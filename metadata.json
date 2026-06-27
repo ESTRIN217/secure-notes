@@ -1,0 +1,6 @@
+{
+  "name": "Secure Notes",
+  "description": "Un bloc de notas con cifrado de extremo a extremo, sincronización en Google Drive, organización por etiquetas y exportación.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
