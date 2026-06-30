@@ -326,7 +326,18 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveNote(id: Int, title: String, content: String, isEncrypted: Boolean, tagsList: List<String>, backgroundColor: Int? = null) {
+    fun saveNote(
+        id: Int,
+        title: String,
+        content: String,
+        isEncrypted: Boolean,
+        tagsList: List<String>,
+        backgroundColor: Int? = null,
+        backgroundImagePath: String? = null,
+        isPinned: Boolean = false,
+        isFavorite: Boolean = false,
+        isArchived: Boolean = false
+    ) {
         viewModelScope.launch {
             val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
             val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
@@ -358,12 +369,12 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 iv = iv,
                 tagsJson = tagsJson,
                 lastModified = System.currentTimeMillis(),
-                isArchived = existing?.isArchived ?: false,
-                isFavorite = existing?.isFavorite ?: false,
-                isPinned = existing?.isPinned ?: false,
+                isArchived = isArchived,
+                isFavorite = isFavorite,
+                isPinned = isPinned,
                 isDeleted = existing?.isDeleted ?: false,
                 backgroundColor = backgroundColor,
-                backgroundImagePath = existing?.backgroundImagePath,
+                backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
                 categoryId = existing?.categoryId
             )
 
@@ -372,6 +383,65 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 repository.updateNote(note)
             }
+        }
+    }
+
+    suspend fun saveNoteAndGetId(
+        id: Int,
+        title: String,
+        content: String,
+        isEncrypted: Boolean,
+        tagsList: List<String>,
+        backgroundColor: Int? = null,
+        backgroundImagePath: String? = null,
+        isPinned: Boolean = false,
+        isFavorite: Boolean = false,
+        isArchived: Boolean = false
+    ): Int {
+        val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
+        val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
+
+        val storedTitle: String
+        val storedContent: String
+
+        if (isEncrypted) {
+            val pass = masterPassword.value ?: ""
+            storedTitle = EncryptionUtils.encrypt(title, pass, salt, iv)
+            storedContent = EncryptionUtils.encrypt(content, pass, salt, iv)
+        } else {
+            storedTitle = title
+            storedContent = content
+        }
+
+        val tagsJson = JSONArray(tagsList).toString()
+
+        val existing = if (id != 0) {
+            repository.allNotesFlow.first().find { it.id == id }
+        } else null
+
+        val note = Note(
+            id = if (id != 0) id else 0,
+            title = storedTitle,
+            content = storedContent,
+            isEncrypted = isEncrypted,
+            salt = salt,
+            iv = iv,
+            tagsJson = tagsJson,
+            lastModified = System.currentTimeMillis(),
+            isArchived = isArchived,
+            isFavorite = isFavorite,
+            isPinned = isPinned,
+            isDeleted = existing?.isDeleted ?: false,
+            backgroundColor = backgroundColor,
+            backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
+            categoryId = existing?.categoryId
+        )
+
+        return if (id == 0) {
+            repository.insertNote(note).toInt()
+        } else {
+            repository.updateNote(note)
+            id
         }
     }
 

@@ -345,6 +345,44 @@ object ExportUtils {
         }
     }
 
+    fun exportSingleNoteToJson(context: Context, note: Note, decryptedTitle: String, decryptedContent: String) {
+        try {
+            val obj = org.json.JSONObject()
+            obj.put("id", note.id)
+            obj.put("title", decryptedTitle)
+            obj.put("summary", decryptedContent)
+            obj.put("lastModified", note.lastModified)
+            obj.put("isEncrypted", note.isEncrypted)
+            obj.put("backgroundColor", note.backgroundColor)
+            obj.put("backgroundImagePath", note.backgroundImagePath)
+            obj.put("isArchived", note.isArchived)
+            obj.put("isFavorite", note.isFavorite)
+            obj.put("categoryId", note.categoryId)
+            obj.put("isPinned", note.isPinned)
+            
+            val cleanedTags = note.tagsJson
+                .replace("[", "")
+                .replace("]", "")
+                .replace("\"", "")
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            val tagsArr = org.json.JSONArray()
+            cleanedTags.forEach { tagsArr.put(it) }
+            obj.put("tags", tagsArr)
+
+            val fileName = "Note_${note.id}_" + decryptedTitle.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".json"
+            val file = File(context.cacheDir, fileName)
+            FileOutputStream(file).use { out ->
+                out.write(obj.toString(4).toByteArray())
+            }
+            shareFile(context, file, "application/json", "Export JSON")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Error exporting JSON: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun exportMultipleToPdf(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
         try {
             val pdfDocument = PdfDocument()

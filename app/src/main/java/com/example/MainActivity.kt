@@ -28,6 +28,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.scale
+import kotlin.math.roundToInt
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.focus.FocusRequester
@@ -36,6 +42,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.content.Intent
+import coil.compose.AsyncImage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,6 +70,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.NoteEditorScreen
+import com.example.ui.DrawingCanvasScreen
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.ExportUtils
@@ -70,6 +83,7 @@ import java.util.Locale
 sealed class Screen {
     object MainList : Screen()
     data class NoteEditor(val noteId: Int) : Screen()
+    data class DrawingCanvas(val noteId: Int, val jsonPath: String? = null) : Screen()
     object CloudSync : Screen()
     object PrivacySettings : Screen()
     object Search : Screen()
@@ -125,6 +139,28 @@ private fun moveNoteDown(noteId: Int, notesList: List<DecryptedNote>, context: C
     }
 }
 
+private fun swapNotes(id1: Int, id2: Int, notesList: List<DecryptedNote>, context: Context) {
+    val prefs = context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE)
+    val customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+    val currentIds = if (customOrderStr.isNotEmpty()) {
+        customOrderStr.split(",").mapNotNull { it.toIntOrNull() }.toMutableList()
+    } else {
+        notesList.map { it.note.id }.toMutableList()
+    }
+    
+    if (!currentIds.contains(id1)) currentIds.add(id1)
+    if (!currentIds.contains(id2)) currentIds.add(id2)
+    
+    val idx1 = currentIds.indexOf(id1)
+    val idx2 = currentIds.indexOf(id2)
+    if (idx1 != -1 && idx2 != -1) {
+        val temp = currentIds[idx1]
+        currentIds[idx1] = currentIds[idx2]
+        currentIds[idx2] = temp
+        prefs.edit().putString("custom_order_ids", currentIds.joinToString(",")).apply()
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -169,17 +205,26 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
                     onNavigateToCloud = { currentScreen = Screen.CloudSync },
                     onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings },
-                    onNavigateToSearch = { currentScreen = Screen.Search }
+                    onNavigateToSearch = { currentScreen = Screen.Search },
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
                 )
                 is Screen.Search -> SearchScreen(
                     viewModel = viewModel,
                     onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
-                    onBack = { currentScreen = Screen.MainList }
+                    onBack = { currentScreen = Screen.MainList },
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
                 )
                 is Screen.NoteEditor -> NoteEditorScreen(
                     noteId = screen.noteId,
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.MainList }
+                    onBack = { currentScreen = Screen.MainList },
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
+                )
+                is Screen.DrawingCanvas -> DrawingCanvasScreen(
+                    noteId = screen.noteId,
+                    jsonPath = screen.jsonPath,
+                    viewModel = viewModel,
+                    onBack = { currentScreen = Screen.NoteEditor(screen.noteId) }
                 )
                 is Screen.CloudSync -> CloudSyncScreen(
                     viewModel = viewModel,
@@ -868,7 +913,8 @@ fun MainListScreen(
     onNavigateToEditor: (Int) -> Unit,
     onNavigateToCloud: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
-    onNavigateToSearch: () -> Unit
+    onNavigateToSearch: () -> Unit,
+    onNavigateToDrawing: (Int, String?) -> Unit
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -895,6 +941,9 @@ fun MainListScreen(
     }
     
     var showSortBottomSheet by remember { mutableStateOf(false) }
+    var draggedNoteId by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetX by remember { mutableStateOf(0f) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
     val configuration = LocalConfiguration.current
     val isLargeScreen = configuration.screenWidthDp >= 600
     var isNavExtended by remember(isLargeScreen) { mutableStateOf(isLargeScreen) }
@@ -1452,56 +1501,133 @@ fun MainListScreen(
                                     contentPadding = PaddingValues(bottom = 80.dp)
                                 ) {
                                     gridItems(sortedNotes) { decryptedNote ->
-                                        NoteCardItem(
-                                            decryptedNote = decryptedNote,
-                                            selected = selectedNoteIds.contains(decryptedNote.note.id),
-                                            isCustomOrderActive = (sortOption == SortOption.CUSTOM && selectedNoteIds.isEmpty() && currentSection == com.example.ui.viewmodel.NavigationSection.HOME),
-                                            isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
-                                            isGrid = true,
-                                            onMoveUp = {
-                                                moveNoteUp(decryptedNote.note.id, sortedNotes, context)
-                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
-                                            },
-                                            onMoveDown = {
-                                                moveNoteDown(decryptedNote.note.id, sortedNotes, context)
-                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
-                                            },
-                                            onToggleFavorite = { viewModel.toggleFavorite(decryptedNote.note) },
-                                            onToggleArchive = { viewModel.toggleArchive(decryptedNote.note) },
-                                            onRestore = {
-                                                viewModel.restoreFromTrash(decryptedNote.note)
-                                                Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
-                                            },
-                                            onDeletePermanently = {
-                                                viewModel.deletePermanently(decryptedNote.note)
-                                                Toast.makeText(context, context.getString(R.string.toast_deleted_perm), Toast.LENGTH_SHORT).show()
-                                            },
-                                            onClick = {
-                                                if (selectedNoteIds.isNotEmpty()) {
-                                                    selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                                        selectedNoteIds - decryptedNote.note.id
-                                                    } else {
-                                                        selectedNoteIds + decryptedNote.note.id
+                                        val isThisDragged = draggedNoteId == decryptedNote.note.id
+                                        val isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.ui.viewmodel.NavigationSection.HOME)
+                                        
+                                        val dragModifier = if (isCustomOrderActive) {
+                                            Modifier.pointerInput(decryptedNote.note.id) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { offset ->
+                                                        draggedNoteId = decryptedNote.note.id
+                                                        dragOffsetX = 0f
+                                                        dragOffsetY = 0f
+                                                    },
+                                                    onDragEnd = {
+                                                        draggedNoteId = null
+                                                        dragOffsetX = 0f
+                                                        dragOffsetY = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        draggedNoteId = null
+                                                        dragOffsetX = 0f
+                                                        dragOffsetY = 0f
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        dragOffsetX += dragAmount.x
+                                                        dragOffsetY += dragAmount.y
+                                                        
+                                                        val currentIndex = sortedNotes.indexOfFirst { it.note.id == decryptedNote.note.id }
+                                                        if (currentIndex != -1) {
+                                                            val density = this.density
+                                                            val xThreshold = with(density) { 130.dp.toPx() }
+                                                            val yThreshold = with(density) { 150.dp.toPx() }
+                                                            
+                                                            var swapped = false
+                                                            
+                                                            if (dragOffsetX > xThreshold && currentIndex % 2 == 0 && currentIndex + 1 < sortedNotes.size) {
+                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 1].note.id, sortedNotes, context)
+                                                                dragOffsetX -= xThreshold
+                                                                swapped = true
+                                                            } else if (dragOffsetX < -xThreshold && currentIndex % 2 == 1 && currentIndex - 1 >= 0) {
+                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 1].note.id, sortedNotes, context)
+                                                                dragOffsetX += xThreshold
+                                                                swapped = true
+                                                            }
+                                                            
+                                                            if (dragOffsetY > yThreshold && currentIndex + 2 < sortedNotes.size) {
+                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 2].note.id, sortedNotes, context)
+                                                                dragOffsetY -= yThreshold
+                                                                swapped = true
+                                                            } else if (dragOffsetY < -yThreshold && currentIndex - 2 >= 0) {
+                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 2].note.id, sortedNotes, context)
+                                                                dragOffsetY += yThreshold
+                                                                swapped = true
+                                                            }
+                                                            
+                                                            if (swapped) {
+                                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                            }
+                                                        }
                                                     }
-                                                } else {
-                                                    if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
-                                                        onNavigateToEditor(decryptedNote.note.id)
-                                                    } else {
-                                                        viewModel.restoreFromTrash(decryptedNote.note)
-                                                        Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            },
-                                            onLongClick = {
-                                                if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
-                                                    selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                                        selectedNoteIds - decryptedNote.note.id
-                                                    } else {
-                                                        selectedNoteIds + decryptedNote.note.id
-                                                    }
-                                                }
+                                                )
                                             }
-                                        )
+                                        } else {
+                                            Modifier
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .zIndex(if (isThisDragged) 10f else 1f)
+                                                .scale(if (isThisDragged) 1.06f else 1f)
+                                                .offset {
+                                                    if (isThisDragged) {
+                                                        IntOffset(dragOffsetX.roundToInt(), dragOffsetY.roundToInt())
+                                                    } else {
+                                                        IntOffset(0, 0)
+                                                    }
+                                                }
+                                        ) {
+                                            NoteCardItem(
+                                                decryptedNote = decryptedNote,
+                                                selected = selectedNoteIds.contains(decryptedNote.note.id),
+                                                isCustomOrderActive = isCustomOrderActive,
+                                                isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
+                                                isGrid = true,
+                                                onNavigateToDrawing = onNavigateToDrawing,
+                                                onMoveUp = {
+                                                    moveNoteUp(decryptedNote.note.id, sortedNotes, context)
+                                                    customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                },
+                                                onMoveDown = {
+                                                    moveNoteDown(decryptedNote.note.id, sortedNotes, context)
+                                                    customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                },
+                                                onToggleFavorite = { viewModel.toggleFavorite(decryptedNote.note) },
+                                                onToggleArchive = { viewModel.toggleArchive(decryptedNote.note) },
+                                                onRestore = {
+                                                    viewModel.restoreFromTrash(decryptedNote.note)
+                                                    Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
+                                                },
+                                                onDeletePermanently = {
+                                                    viewModel.deletePermanently(decryptedNote.note)
+                                                    Toast.makeText(context, context.getString(R.string.toast_deleted_perm), Toast.LENGTH_SHORT).show()
+                                                },
+                                                onClick = {
+                                                    if (selectedNoteIds.isNotEmpty()) {
+                                                        selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
+                                                    } else {
+                                                        if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                            onNavigateToEditor(decryptedNote.note.id)
+                                                        } else {
+                                                            viewModel.restoreFromTrash(decryptedNote.note)
+                                                            Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                        selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
+                                                            selectedNoteIds - decryptedNote.note.id
+                                                        } else {
+                                                            selectedNoteIds + decryptedNote.note.id
+                                                        }
+                                                    }
+                                                },
+                                                dragModifier = dragModifier
+                                            )
+                                        }
                                     }
                                 }
                             } else {
@@ -1516,9 +1642,10 @@ fun MainListScreen(
                                         NoteCardItem(
                                             decryptedNote = decryptedNote,
                                             selected = selectedNoteIds.contains(decryptedNote.note.id),
-                                            isCustomOrderActive = (sortOption == SortOption.CUSTOM && selectedNoteIds.isEmpty() && currentSection == com.example.ui.viewmodel.NavigationSection.HOME),
+                                            isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.ui.viewmodel.NavigationSection.HOME),
                                             isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
                                             isGrid = false,
+                                            onNavigateToDrawing = onNavigateToDrawing,
                                             onMoveUp = {
                                                 moveNoteUp(decryptedNote.note.id, sortedNotes, context)
                                                 customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
@@ -1539,11 +1666,7 @@ fun MainListScreen(
                                             },
                                             onClick = {
                                                 if (selectedNoteIds.isNotEmpty()) {
-                                                    selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                                        selectedNoteIds - decryptedNote.note.id
-                                                    } else {
-                                                        selectedNoteIds + decryptedNote.note.id
-                                                    }
+                                                    selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
                                                 } else {
                                                     if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
                                                         onNavigateToEditor(decryptedNote.note.id)
@@ -1800,7 +1923,9 @@ fun NoteCardItem(
     onRestore: (() -> Unit)? = null,
     onDeletePermanently: (() -> Unit)? = null,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    dragModifier: Modifier = Modifier,
+    onNavigateToDrawing: ((Int, String?) -> Unit)? = null
 ) {
     val note = decryptedNote.note
     val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
@@ -1896,13 +2021,65 @@ fun NoteCardItem(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            val formattedContent = remember(decryptedNote.content) {
+                com.example.util.RichTextParser.parse(decryptedNote.content, hideTags = true)
+            }
+
             Text(
-                text = decryptedNote.content,
+                text = formattedContent,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = if (isGrid) 3 else 4,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+
+            val drawingAttachments = remember(decryptedNote.content) {
+                try {
+                    com.example.ui.parseNoteContentAndAttachments(decryptedNote.content).second.filter { it.type == "drawing" }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+
+            if (drawingAttachments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    drawingAttachments.forEach { att ->
+                        OutlinedCard(
+                            modifier = Modifier
+                                .width(120.dp)
+                                .height(90.dp)
+                                .clickable {
+                                    onNavigateToDrawing?.invoke(note.id, att.path)
+                                },
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.White)
+                            ) {
+                                AsyncImage(
+                                    model = att.name,
+                                    contentDescription = "Drawing Attachment Preview",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             if (isGrid) {
                 if (tagsList.isNotEmpty()) {
@@ -1973,27 +2150,44 @@ fun NoteCardItem(
                     } else {
                         if (isCustomOrderActive && onMoveUp != null && onMoveDown != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = onMoveUp,
-                                    modifier = Modifier.size(32.dp).testTag("move_up_${note.id}")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowUpward,
-                                        contentDescription = stringResource(id = R.string.action_move_up),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                if (!isGrid) {
+                                    IconButton(
+                                        onClick = onMoveUp,
+                                        modifier = Modifier.size(32.dp).testTag("move_up_${note.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowUpward,
+                                            contentDescription = stringResource(id = R.string.action_move_up),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    IconButton(
+                                        onClick = onMoveDown,
+                                        modifier = Modifier.size(32.dp).testTag("move_down_${note.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowDownward,
+                                            contentDescription = stringResource(id = R.string.action_move_down),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(2.dp))
                                 }
-                                Spacer(modifier = Modifier.width(2.dp))
                                 IconButton(
-                                    onClick = onMoveDown,
-                                    modifier = Modifier.size(32.dp).testTag("move_down_${note.id}")
+                                    onClick = {},
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .then(dragModifier)
+                                        .testTag("drag_handle_${note.id}")
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.ArrowDownward,
-                                        contentDescription = stringResource(id = R.string.action_move_down),
+                                        imageVector = Icons.Default.DragHandle,
+                                        contentDescription = "Drag to reorder",
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
@@ -2237,363 +2431,7 @@ fun CreateTagDialog(viewModel: NotesViewModel, onDismiss: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NoteEditorScreen(
-    noteId: Int,
-    viewModel: NotesViewModel,
-    onBack: () -> Unit
-) {
-    val context = LocalContext.current
-    val isPasswordSet by viewModel.isPasswordSet.collectAsState()
-    
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    var isEncrypted by remember { mutableStateOf(isPasswordSet) }
-    
-    val allTags by viewModel.availableTags.collectAsState()
-    var selectedNoteTags by remember { mutableStateOf<List<String>>(emptyList()) }
-    var selectedBgColorId by remember { mutableStateOf<Int?>(null) }
 
-    var originalNote: Note? by remember { mutableStateOf(null) }
-
-    // Recover note details if editing
-    LaunchedEffect(noteId) {
-        if (noteId != 0) {
-            val list = viewModel.notesList.value
-            val match = list.find { it.note.id == noteId }
-            if (match != null) {
-                originalNote = match.note
-                title = match.title
-                content = match.content
-                isEncrypted = match.note.isEncrypted
-                selectedBgColorId = match.note.backgroundColor
-                
-                // Read original note tags
-                try {
-                    val arr = JSONArray(match.note.tagsJson)
-                    val out = mutableListOf<String>()
-                    for (i in 0 until arr.length()) {
-                        out.add(arr.optString(i))
-                    }
-                    selectedNoteTags = out
-                } catch (e: Exception) {
-                    selectedNoteTags = emptyList()
-                }
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                    Text(
-                        text = if (noteId == 0) stringResource(id = R.string.btn_new_note) else stringResource(id = R.string.btn_edit),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Row {
-                        if (noteId != 0) {
-                            IconButton(
-                                onClick = {
-                                    originalNote?.let {
-                                        viewModel.deleteNote(it)
-                                        Toast.makeText(context, context.getString(R.string.toast_note_deleted), Toast.LENGTH_SHORT).show()
-                                        onBack()
-                                    }
-                                },
-                                modifier = Modifier.testTag("delete_note_btn")
-                            ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                        IconButton(
-                            onClick = {
-                                if (title.isBlank() && content.isBlank()) {
-                                    Toast.makeText(context, context.getString(R.string.toast_cannot_save_empty_note), Toast.LENGTH_SHORT).show()
-                                    return@IconButton
-                                }
-                                viewModel.saveNote(
-                                    id = noteId,
-                                    title = title.trim(),
-                                    content = content.trim(),
-                                    isEncrypted = isEncrypted,
-                                    tagsList = selectedNoteTags,
-                                    backgroundColor = selectedBgColorId
-                                )
-                                Toast.makeText(context, context.getString(R.string.toast_note_saved), Toast.LENGTH_SHORT).show()
-                                onBack()
-                            },
-                            modifier = Modifier.testTag("save_note_btn")
-                        ) {
-                            Icon(Icons.Default.Save, contentDescription = "Save Note", tint = Color(0xFF43A047))
-                        }
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            // Title Outlined State
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text(stringResource(id = R.string.label_title)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("note_title_input"),
-                shape = RoundedCornerShape(10.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                )
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Encryption properties Card
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = if (isEncrypted) Color(0xFF43A047) else MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(10.dp)
-                    ),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = if (isEncrypted) Color(0xFF43A047).copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "End-to-End Encryption",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isEncrypted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (isPasswordSet) {
-                                "Secure your note with AES-256 standard and master passphrase."
-                            } else {
-                                "Set up privacy passcode first under Privacy Settings."
-                            },
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = isEncrypted,
-                        onCheckedChange = {
-                            if (!isPasswordSet) {
-                                Toast.makeText(context, context.getString(R.string.toast_setup_password_first), Toast.LENGTH_LONG).show()
-                            } else {
-                                isEncrypted = it
-                            }
-                        },
-                        enabled = isPasswordSet,
-                        colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF43A047))
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Horizontal Pill tag tagging selectors
-            Text(stringResource(id = R.string.label_tags) + ":", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-            ) {
-                allTags.forEach { tag ->
-                    val isTagged = selectedNoteTags.contains(tag.name)
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(
-                                color = if (isTagged) Color(android.graphics.Color.parseColor(tag.colorHex)).copy(alpha = 0.2f) else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (isTagged) Color(android.graphics.Color.parseColor(tag.colorHex)) else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                selectedNoteTags = if (isTagged) {
-                                    selectedNoteTags - tag.name
-                                } else {
-                                    selectedNoteTags + tag.name
-                                }
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(tag.name, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = stringResource(id = R.string.label_note_color) + ":",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                (0..6).forEach { colorId ->
-                    val isSelected = selectedBgColorId == colorId || (colorId == 0 && selectedBgColorId == null)
-                    val colorLabel = when (colorId) {
-                        0 -> stringResource(id = R.string.label_color_none)
-                        1 -> stringResource(id = R.string.label_color_blue)
-                        2 -> stringResource(id = R.string.label_color_green)
-                        3 -> stringResource(id = R.string.label_color_yellow)
-                        4 -> stringResource(id = R.string.label_color_pink)
-                        5 -> stringResource(id = R.string.label_color_purple)
-                        6 -> stringResource(id = R.string.label_color_orange)
-                        else -> ""
-                    }
-                    val isDark = isSystemInDarkTheme()
-                    val circleColor = if (colorId == 0) {
-                        MaterialTheme.colorScheme.surface
-                    } else {
-                        getNoteBackgroundColor(colorId, isDark)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(circleColor)
-                            .border(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                shape = CircleShape
-                            )
-                            .clickable {
-                                selectedBgColorId = if (colorId == 0) null else colorId
-                            }
-                            .testTag("note_bg_color_picker_$colorId"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (colorId == 0) {
-                            Icon(
-                                imageVector = Icons.Default.Block,
-                                contentDescription = colorLabel,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        } else if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = colorLabel,
-                                modifier = Modifier.size(18.dp),
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Content Outlined Textbox
-            OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
-                label = { Text(stringResource(id = R.string.label_content)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .testTag("note_content_input"),
-                shape = RoundedCornerShape(10.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                )
-            )
-
-            // Export Options if note exists
-            if (noteId != 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            originalNote?.let {
-                                ExportUtils.exportToMarkdown(context, it, title, content)
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("export_md_btn"),
-                        colors = ButtonDefaults.outlinedButtonColors()
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Export raw data")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(id = R.string.btn_markdown), fontSize = 11.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            originalNote?.let {
-                                ExportUtils.exportToPdf(context, it, title, content)
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("export_pdf_btn"),
-                        colors = ButtonDefaults.outlinedButtonColors()
-                    ) {
-                        Icon(Icons.Default.PictureAsPdf, contentDescription = "PDF document")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(id = R.string.btn_pdf), fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -3544,7 +3382,8 @@ fun ManageTagsDialog(
 fun SearchScreen(
     viewModel: NotesViewModel,
     onNavigateToEditor: (Int) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToDrawing: (Int, String?) -> Unit
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
@@ -4005,6 +3844,7 @@ fun SearchScreen(
                                     decryptedNote = decryptedNote,
                                     selected = false,
                                     isGrid = true,
+                                    onNavigateToDrawing = onNavigateToDrawing,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)
@@ -4026,6 +3866,7 @@ fun SearchScreen(
                                     decryptedNote = decryptedNote,
                                     selected = false,
                                     isGrid = false,
+                                    onNavigateToDrawing = onNavigateToDrawing,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)
