@@ -400,7 +400,8 @@ fun NoteEditorScreen(
     noteId: Int,
     viewModel: NotesViewModel,
     onBack: () -> Unit,
-    onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> }
+    onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> },
+    onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -1878,7 +1879,8 @@ fun NoteEditorScreen(
                                                 Card(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .wrapContentHeight(),
+                                                        .wrapContentHeight()
+                                                        .clickable { onNavigateToMediaViewer("image", block.src) },
                                                     shape = RoundedCornerShape(12.dp),
                                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                                 ) {
@@ -1896,25 +1898,15 @@ fun NoteEditorScreen(
                                                 Card(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(200.dp),
+                                                        .height(200.dp)
+                                                        .clickable { onNavigateToMediaViewer("video", block.src) },
                                                     shape = RoundedCornerShape(12.dp),
                                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                                 ) {
                                                     Box(
                                                         modifier = Modifier
                                                             .fillMaxSize()
-                                                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
-                                                            .clickable {
-                                                                try {
-                                                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                                        setDataAndType(Uri.parse(block.src), "video/*")
-                                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                                    }
-                                                                    context.startActivity(intent)
-                                                                } catch (e: Exception) {
-                                                                    Toast.makeText(context, context.getString(R.string.toast_no_app_video), Toast.LENGTH_SHORT).show()
-                                                                }
-                                                            },
+                                                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Icon(
@@ -2483,8 +2475,16 @@ fun NoteEditorScreen(
                                     .width(160.dp)
                                     .height(130.dp)
                                     .clickable {
-                                        if (item is PreviewItem.LegacyAttachment && item.attachment.type == "drawing") {
-                                            onNavigateToDrawing(noteId, item.attachment.path)
+                                        when (item) {
+                                            is PreviewItem.LegacyAttachment -> when (item.attachment.type) {
+                                                "drawing" -> onNavigateToDrawing(noteId, item.attachment.path)
+                                                "image" -> onNavigateToMediaViewer("image", item.attachment.path)
+                                                "video" -> onNavigateToMediaViewer("video", item.attachment.path)
+                                            }
+                                            is PreviewItem.MediaTag -> when (item.type) {
+                                                "image" -> onNavigateToMediaViewer("image", item.src)
+                                                "video" -> onNavigateToMediaViewer("video", item.src)
+                                            }
                                         }
                                     },
                                 shape = RoundedCornerShape(12.dp),
@@ -2553,18 +2553,7 @@ fun NoteEditorScreen(
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .clip(RoundedCornerShape(8.dp))
-                                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
-                                                                .clickable {
-                                                                    try {
-                                                                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                                            setDataAndType(Uri.parse(item.src), "video/*")
-                                                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                                        }
-                                                                        context.startActivity(intent)
-                                                                    } catch (e: Exception) {
-                                                                        Toast.makeText(context, context.getString(R.string.toast_no_app_video), Toast.LENGTH_SHORT).show()
-                                                                    }
-                                                                },
+                                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
                                                             contentAlignment = Alignment.Center
                                                         ) {
                                                             Icon(

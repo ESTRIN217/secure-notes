@@ -334,4 +334,11 @@
     <string name="lock_icon">Ícone de cadeado</string>
     <string name="shield_guard">Escudo de segurança</string>
     <string name="cloud_icon">Ícone de nuvem</string>
+
+    <!-- Media Viewer -->
+    <string name="attachment_video">Vídeo</string>
+    <string name="option_save">Salvar</string>
+    <string name="toast_share_error">Erro ao compartilhar arquivo</string>
+    <string name="toast_saved_to_gallery">Salvo na galeria</string>
+    <string name="toast_save_error">Erro ao salvar arquivo</string>
 </resources>

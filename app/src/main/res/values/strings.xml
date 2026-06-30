@@ -334,4 +334,11 @@
     <string name="lock_icon">Lock icon</string>
     <string name="shield_guard">Shield Guard</string>
     <string name="cloud_icon">Cloud Icon</string>
+
+    <!-- Media Viewer -->
+    <string name="attachment_video">Video</string>
+    <string name="option_save">Save</string>
+    <string name="toast_share_error">Error sharing file</string>
+    <string name="toast_saved_to_gallery">Saved to gallery</string>
+    <string name="toast_save_error">Error saving file</string>
 </resources>

@@ -72,6 +72,7 @@ import com.example.data.model.Tag
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.NoteEditorScreen
 import com.example.ui.DrawingCanvasScreen
+import com.example.ui.MediaViewerScreen
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.ExportUtils
@@ -87,6 +88,7 @@ sealed class Screen {
     object CloudSync : Screen()
     object PrivacySettings : Screen()
     object Search : Screen()
+    data class MediaViewer(val type: String, val src: String, val noteId: Int) : Screen()
 }
 
 enum class SortOption {
@@ -206,19 +208,22 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     onNavigateToCloud = { currentScreen = Screen.CloudSync },
                     onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings },
                     onNavigateToSearch = { currentScreen = Screen.Search },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, 0) }
                 )
                 is Screen.Search -> SearchScreen(
                     viewModel = viewModel,
                     onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
                     onBack = { currentScreen = Screen.MainList },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, 0) }
                 )
                 is Screen.NoteEditor -> NoteEditorScreen(
                     noteId = screen.noteId,
                     viewModel = viewModel,
                     onBack = { currentScreen = Screen.MainList },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) }
+                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, screen.noteId) }
                 )
                 is Screen.DrawingCanvas -> DrawingCanvasScreen(
                     noteId = screen.noteId,
@@ -232,6 +237,12 @@ fun AppMainContent(viewModel: NotesViewModel) {
                 )
                 is Screen.PrivacySettings -> PrivacySettingsScreen(
                     viewModel = viewModel,
+                    onBack = { currentScreen = Screen.MainList }
+                )
+                is Screen.MediaViewer -> MediaViewerScreen(
+                    type = screen.type,
+                    src = screen.src,
+                    noteId = screen.noteId,
                     onBack = { currentScreen = Screen.MainList }
                 )
             }
@@ -914,7 +925,8 @@ fun MainListScreen(
     onNavigateToCloud: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     onNavigateToSearch: () -> Unit,
-    onNavigateToDrawing: (Int, String?) -> Unit
+    onNavigateToDrawing: (Int, String?) -> Unit,
+    onNavigateToMediaViewer: (String, String) -> Unit
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -1586,6 +1598,7 @@ fun MainListScreen(
                                                 isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
                                                 isGrid = true,
                                                 onNavigateToDrawing = onNavigateToDrawing,
+                                                onNavigateToMediaViewer = onNavigateToMediaViewer,
                                                 onMoveUp = {
                                                     moveNoteUp(decryptedNote.note.id, sortedNotes, context)
                                                     customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
@@ -1646,6 +1659,7 @@ fun MainListScreen(
                                             isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
                                             isGrid = false,
                                             onNavigateToDrawing = onNavigateToDrawing,
+                                            onNavigateToMediaViewer = onNavigateToMediaViewer,
                                             onMoveUp = {
                                                 moveNoteUp(decryptedNote.note.id, sortedNotes, context)
                                                 customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
@@ -1925,7 +1939,8 @@ fun NoteCardItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     dragModifier: Modifier = Modifier,
-    onNavigateToDrawing: ((Int, String?) -> Unit)? = null
+    onNavigateToDrawing: ((Int, String?) -> Unit)? = null,
+    onNavigateToMediaViewer: ((type: String, src: String) -> Unit)? = null
 ) {
     val note = decryptedNote.note
     val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
@@ -2021,8 +2036,12 @@ fun NoteCardItem(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            val formattedContent = remember(decryptedNote.content) {
-                com.example.util.RichTextParser.parse(decryptedNote.content, hideTags = true)
+            val (cleanNoteText, allAttachments) = remember(decryptedNote.content) {
+                com.example.ui.parseNoteContentAndAttachments(decryptedNote.content)
+            }
+
+            val formattedContent = remember(cleanNoteText) {
+                com.example.util.RichTextParser.parse(cleanNoteText, hideTags = true)
             }
 
             Text(
@@ -2033,15 +2052,21 @@ fun NoteCardItem(
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
 
-            val drawingAttachments = remember(decryptedNote.content) {
-                try {
-                    com.example.ui.parseNoteContentAndAttachments(decryptedNote.content).second.filter { it.type == "drawing" }
-                } catch (e: Exception) {
-                    emptyList()
+            val visualAttachments = remember(allAttachments, cleanNoteText) {
+                val fromLegacy = allAttachments.filter { it.type in listOf("drawing", "image", "video") }
+                val fromMediaTags = mutableListOf<Pair<String, String>>()
+                val regex = Regex("<(img|video)\\s+src=\"([^\"]+)\"\\s*/>")
+                regex.findAll(cleanNoteText).forEach { match ->
+                    val tagType = match.groupValues[1]
+                    val src = match.groupValues[2]
+                    val normType = when (tagType) { "img" -> "image"; else -> tagType }
+                    fromMediaTags.add(normType to src)
                 }
+                fromLegacy.map { Triple(it.type, it.path, it.name) } +
+                    fromMediaTags.map { Triple(it.first, it.second, "") }
             }
 
-            if (drawingAttachments.isNotEmpty()) {
+            if (visualAttachments.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier
@@ -2051,30 +2076,57 @@ fun NoteCardItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    drawingAttachments.forEach { att ->
+                    visualAttachments.forEach { (type, pathOrSrc, thumbPath) ->
                         OutlinedCard(
                             modifier = Modifier
                                 .width(120.dp)
                                 .height(90.dp)
                                 .clickable {
-                                    onNavigateToDrawing?.invoke(note.id, att.path)
+                                    when (type) {
+                                        "drawing" -> onNavigateToDrawing?.invoke(note.id, pathOrSrc)
+                                        else -> onNavigateToMediaViewer?.invoke(type, pathOrSrc)
+                                    }
                                 },
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.White)
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                AsyncImage(
-                                    model = att.name,
-                                    contentDescription = stringResource(R.string.attachment_drawing),
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Fit
-                                )
+                                when (type) {
+                                    "drawing" -> {
+                                        AsyncImage(
+                                            model = thumbPath,
+                                            contentDescription = stringResource(R.string.attachment_drawing),
+                                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                    "image" -> {
+                                        AsyncImage(
+                                            model = pathOrSrc,
+                                            contentDescription = stringResource(R.string.attachment_image),
+                                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                    "video" -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Play Video",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(36.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -3383,7 +3435,8 @@ fun SearchScreen(
     viewModel: NotesViewModel,
     onNavigateToEditor: (Int) -> Unit,
     onBack: () -> Unit,
-    onNavigateToDrawing: (Int, String?) -> Unit
+    onNavigateToDrawing: (Int, String?) -> Unit,
+    onNavigateToMediaViewer: (String, String) -> Unit
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
@@ -3845,6 +3898,7 @@ fun SearchScreen(
                                     selected = false,
                                     isGrid = true,
                                     onNavigateToDrawing = onNavigateToDrawing,
+                                    onNavigateToMediaViewer = onNavigateToMediaViewer,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)
@@ -3858,7 +3912,6 @@ fun SearchScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
                             contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
                             items(filteredResults) { decryptedNote ->
@@ -3867,6 +3920,7 @@ fun SearchScreen(
                                     selected = false,
                                     isGrid = false,
                                     onNavigateToDrawing = onNavigateToDrawing,
+                                    onNavigateToMediaViewer = onNavigateToMediaViewer,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)
