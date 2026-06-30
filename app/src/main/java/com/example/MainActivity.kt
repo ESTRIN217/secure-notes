@@ -272,7 +272,7 @@ fun LockScreen(viewModel: NotesViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Lock icon",
+                        contentDescription = stringResource(R.string.lock_icon),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(64.dp)
                     )
@@ -380,7 +380,7 @@ fun NavigationRailContent(
                 ) {
                     Icon(
                         imageVector = if (isExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
-                        contentDescription = "Toggle Navigation Rail"
+                        contentDescription = stringResource(R.string.toggle_navigation_rail)
                     )
                 }
 
@@ -542,7 +542,7 @@ fun SettingsView(
                     IconButton(onClick = onToggleRail) {
                         Icon(
                             imageVector = if (isLargeScreen && isNavExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
-                            contentDescription = "Toggle Navigation Rail"
+                            contentDescription = stringResource(R.string.toggle_navigation_rail)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -628,7 +628,7 @@ fun SettingsView(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Dark Mode",
+                            contentDescription = stringResource(R.string.toggle_dark_theme),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(28.dp)
                         )
@@ -668,7 +668,7 @@ fun SettingsView(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Shield,
-                            contentDescription = "Shield Guard",
+                            contentDescription = stringResource(R.string.shield_guard),
                             tint = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(28.dp)
                         )
@@ -680,7 +680,7 @@ fun SettingsView(
                                 fontSize = 15.sp
                             )
                             Text(
-                                text = if (isPasswordSet) "Protection Key Active" else "Setup Credentials Protect",
+                                text = if (isPasswordSet) stringResource(R.string.security_active) else stringResource(R.string.setup_credentials),
                                 color = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.error,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
@@ -768,9 +768,9 @@ fun SettingsView(
                                 .testTag("remove_password_btn_settings"),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete master password", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_master_password), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Remove Protection Credentials", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(stringResource(R.string.remove_protection), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }
@@ -791,7 +791,7 @@ fun SettingsView(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.CloudQueue,
-                            contentDescription = "Cloud Icon",
+                            contentDescription = stringResource(R.string.cloud_icon),
                             tint = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(28.dp)
                         )
@@ -877,7 +877,7 @@ fun SettingsView(
                                     .testTag("sync_now_btn_settings"),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))
                             ) {
-                                Icon(Icons.Default.Sync, contentDescription = "Sync", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.sync), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(stringResource(id = R.string.sync_now), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
@@ -894,9 +894,9 @@ fun SettingsView(
                                     .testTag("unlink_drive_btn_settings"),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                             ) {
-                                Icon(Icons.Default.LinkOff, contentDescription = "Unlink", modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.LinkOff, contentDescription = stringResource(R.string.unlink), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Disconnect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.disconnect), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1186,7 +1186,7 @@ fun MainListScreen(
                                             ) {
                                                 Icon(
                                                     imageVector = if (isLargeScreen && isNavExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
-                                                    contentDescription = "Toggle Navigation Rail"
+                                                    contentDescription = stringResource(R.string.toggle_navigation_rail)
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(4.dp))
@@ -1206,13 +1206,13 @@ fun MainListScreen(
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Icon(
                                                         imageVector = Icons.Default.Shield,
-                                                        contentDescription = "Security Active",
+                                                        contentDescription = stringResource(R.string.security_active),
                                                         tint = Color(0xFF43A047),
                                                         modifier = Modifier.size(14.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
-                                                        text = "E2EE ACTIVE",
+                                                        text = stringResource(R.string.e2ee_active),
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color(0xFF43A047)
@@ -1272,7 +1272,7 @@ fun MainListScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Search,
-                                                contentDescription = "Search Icon",
+                                                contentDescription = stringResource(R.string.search_icon),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
@@ -1296,7 +1296,7 @@ fun MainListScreen(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Create Note")
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_note))
                             }
                         }
                     }
@@ -1325,7 +1325,7 @@ fun MainListScreen(
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
-                                        text = "All",
+                                        text = stringResource(R.string.all_notes),
                                         fontWeight = if (selectedTagFilter == null) FontWeight.Bold else FontWeight.Normal,
                                         color = if (selectedTagFilter == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
@@ -1369,7 +1369,7 @@ fun MainListScreen(
                                 IconButton(onClick = { showCreateTagDialog = true }) {
                                     Icon(
                                         imageVector = Icons.Default.AddCircle,
-                                        contentDescription = "Create Tag",
+                                        contentDescription = stringResource(R.string.create_tag),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -1377,7 +1377,7 @@ fun MainListScreen(
                                 IconButton(onClick = { showManageTagsDialog = true }) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,
-                                        contentDescription = "Manage Tags",
+                                        contentDescription = stringResource(R.string.manage_tags),
                                         tint = MaterialTheme.colorScheme.secondary
                                     )
                                 }
@@ -1437,7 +1437,7 @@ fun MainListScreen(
                                             color = MaterialTheme.colorScheme.error
                                         )
                                         Text(
-                                            text = "Deleted notes can be restored here or permanently removed.",
+                                            text = stringResource(R.string.deleted_notes_info),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1448,7 +1448,7 @@ fun MainListScreen(
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                         modifier = Modifier.testTag("empty_trash_btn")
                                     ) {
-                                        Icon(Icons.Default.DeleteSweep, contentDescription = "Empty Trash", modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.empty_trash), modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(stringResource(id = R.string.action_empty_trash), fontSize = 12.sp)
                                     }
@@ -1899,7 +1899,7 @@ fun SortOptionRow(
             if (selected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.selected_label),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -1991,7 +1991,7 @@ fun NoteCardItem(
                     if (note.isPinned) {
                         Icon(
                             imageVector = Icons.Default.PushPin,
-                            contentDescription = "Pinned",
+                            contentDescription = stringResource(R.string.pinned_label),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .size(18.dp)
@@ -2001,7 +2001,7 @@ fun NoteCardItem(
                     if (note.isEncrypted) {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = "Encrypted",
+                            contentDescription = stringResource(R.string.encrypted_label),
                             tint = Color(0xFF43A047),
                             modifier = Modifier
                                 .size(18.dp)
@@ -2011,7 +2011,7 @@ fun NoteCardItem(
                     if (selected) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.selected_label),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
@@ -2069,7 +2069,7 @@ fun NoteCardItem(
                             ) {
                                 AsyncImage(
                                     model = att.name,
-                                    contentDescription = "Drawing Attachment Preview",
+                                    contentDescription = stringResource(R.string.attachment_drawing),
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(8.dp)),
@@ -2185,7 +2185,7 @@ fun NoteCardItem(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.DragHandle,
-                                        contentDescription = "Drag to reorder",
+                                        contentDescription = stringResource(R.string.drag_to_reorder),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -2386,7 +2386,7 @@ fun CreateTagDialog(viewModel: NotesViewModel, onDismiss: () -> Unit) {
                     )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Select Tag Color", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text(stringResource(R.string.label_select_color), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2462,7 +2462,7 @@ fun PrivacySettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                     Text(
                         text = stringResource(id = R.string.title_lock_settings),
@@ -2495,19 +2495,19 @@ fun PrivacySettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Shield,
-                            contentDescription = "Shield Guard",
+                            contentDescription = stringResource(R.string.shield_guard),
                             tint = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "End-to-End Core Security",
+                                text = stringResource(R.string.label_e2e_encryption),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
                             Text(
-                                text = if (isPasswordSet) "Encryption Active" else "Setup Credentials",
+                                text = if (isPasswordSet) stringResource(R.string.security_active) else stringResource(R.string.setup_credentials),
                                 color = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.error,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
@@ -2573,15 +2573,15 @@ fun PrivacySettingsScreen(
                 Button(
                     onClick = {
                         if (passwordInput.length < 4) {
-                            Toast.makeText(context, "Password must be at least 4 characters!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_password_too_short), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         if (passwordInput != passwordConfirm) {
-                            Toast.makeText(context, "Passwords do not match!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_passwords_do_not_match), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         viewModel.setMasterPassword(passwordInput)
-                        Toast.makeText(context, "Password configured successfully!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_password_configured), Toast.LENGTH_SHORT).show()
                         onBack()
                     },
                     modifier = Modifier
@@ -2594,7 +2594,7 @@ fun PrivacySettingsScreen(
                 }
             } else {
                 Text(
-                    text = "Security active",
+                    text = stringResource(R.string.security_active),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color(0xFF43A047),
@@ -2604,7 +2604,7 @@ fun PrivacySettingsScreen(
                 Button(
                     onClick = {
                         viewModel.deletePassword()
-                        Toast.makeText(context, "Master password removed. Notes decrypted.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, context.getString(R.string.toast_password_removed), Toast.LENGTH_LONG).show()
                         onBack()
                     },
                     modifier = Modifier
@@ -2613,9 +2613,9 @@ fun PrivacySettingsScreen(
                         .testTag("remove_password_btn"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete master password")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_master_password))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Remove Protection Credentials", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.remove_protection), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2661,7 +2661,7 @@ fun CloudSyncScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                     Text(
                         text = stringResource(id = R.string.title_cloud_sync),
@@ -2694,14 +2694,14 @@ fun CloudSyncScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.CloudQueue,
-                            contentDescription = "Cloud Icon",
+                            contentDescription = stringResource(R.string.cloud_icon),
                             tint = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(36.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "Google Drive Sync",
+                                text = stringResource(R.string.cloud_sync_title),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -2737,7 +2737,7 @@ fun CloudSyncScreen(
 
             if (!isDriveLinked) {
                 Text(
-                    text = "Link Account",
+                    text = stringResource(R.string.link_account),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary,
@@ -2800,9 +2800,9 @@ fun CloudSyncScreen(
                             .height(50.dp)
                             .testTag("push_sync_btn")
                     ) {
-                        Icon(Icons.Default.Upload, contentDescription = "Upload Backup")
+                        Icon(Icons.Default.Upload, contentDescription = stringResource(R.string.btn_upload_backup))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Backup cloud", fontSize = 11.sp)
+                        Text(stringResource(R.string.backup_cloud), fontSize = 11.sp)
                     }
 
                     Button(
@@ -2812,9 +2812,9 @@ fun CloudSyncScreen(
                             .height(50.dp)
                             .testTag("pull_sync_btn")
                     ) {
-                        Icon(Icons.Default.Download, contentDescription = "Download Backup")
+                        Icon(Icons.Default.Download, contentDescription = stringResource(R.string.btn_download_backup))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Restore notes", fontSize = 11.sp)
+                        Text(stringResource(R.string.restore_notes), fontSize = 11.sp)
                     }
                 }
 
@@ -3280,7 +3280,7 @@ fun ManageTagsDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -3496,7 +3496,7 @@ fun SearchScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -3523,7 +3523,7 @@ fun SearchScreen(
                                 IconButton(onClick = { viewModel.searchQuery.value = "" }) {
                                     Icon(
                                         imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear search",
+                                        contentDescription = stringResource(R.string.clear_search),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -3570,7 +3570,7 @@ fun SearchScreen(
                     leadingIcon = {
                         Icon(
                             imageVector = if (filterFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorite Filter",
+                            contentDescription = stringResource(R.string.favorite_filter),
                             modifier = Modifier.size(16.dp)
                         )
                     },
@@ -3585,7 +3585,7 @@ fun SearchScreen(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Archive,
-                            contentDescription = "Archive Filter",
+                            contentDescription = stringResource(R.string.archive_filter),
                             modifier = Modifier.size(16.dp)
                         )
                     },
@@ -3601,7 +3601,7 @@ fun SearchScreen(
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.LocalOffer,
-                                contentDescription = "Tag Filter",
+                                contentDescription = stringResource(R.string.tag_filter),
                                 modifier = Modifier.size(16.dp)
                             )
                         },
@@ -3609,7 +3609,7 @@ fun SearchScreen(
                             if (filterTag != null) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear Tag Filter",
+                                    contentDescription = stringResource(R.string.clear_tag_filter),
                                     modifier = Modifier
                                         .size(16.dp)
                                         .clickable { filterTag = null }
@@ -3661,7 +3661,7 @@ fun SearchScreen(
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Palette,
-                                    contentDescription = "Color Filter",
+                                    contentDescription = stringResource(R.string.color_filter),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -3670,7 +3670,7 @@ fun SearchScreen(
                             if (filterColorId != null) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear Color Filter",
+                                    contentDescription = stringResource(R.string.clear_color_filter),
                                     modifier = Modifier
                                         .size(16.dp)
                                         .clickable { filterColorId = null }
@@ -3744,7 +3744,7 @@ fun SearchScreen(
                         )
                         TextButton(onClick = { clearAllRecentSearches() }) {
                             Text(
-                                text = "Clear All",
+                                text = stringResource(R.string.clear_all),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -3782,7 +3782,7 @@ fun SearchScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Search Icon Placeholder",
+                            contentDescription = stringResource(R.string.search_icon_placeholder),
                             modifier = Modifier
                                 .size(80.dp)
                                 .padding(8.dp),
@@ -3811,7 +3811,7 @@ fun SearchScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SearchOff,
-                                contentDescription = "No Results Icon",
+                                contentDescription = stringResource(R.string.no_results_icon),
                                 modifier = Modifier
                                     .size(80.dp)
                                     .padding(8.dp),
@@ -3909,7 +3909,7 @@ fun SearchSuggestionChip(
             )
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Remove recent search",
+                contentDescription = stringResource(R.string.remove_recent_search),
                 modifier = Modifier
                     .size(16.dp)
                     .clickable { onDelete() },

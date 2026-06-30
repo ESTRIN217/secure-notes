@@ -218,4 +218,120 @@
     <string name="search_word_found_one">1 palavra encontrada</string>
     <string name="search_word_found_many">%1$d palavras encontradas</string>
     <string name="search_results_empty">Nenhum resultado encontrado</string>
+
+    <!-- Drawing Canvas -->
+    <string name="drawing_canvas_title">Desenho</string>
+    <string name="drawing_clear">Limpar tela</string>
+    <string name="drawing_save">Salvar desenho</string>
+    <string name="drawing_stroke_width">Espessura do traço</string>
+    <string name="drawing_color_picker">Seletor de cor</string>
+    <string name="drawing_size_label">Tamanho: %d</string>
+    <string name="toast_drawing_saved">Desenho adicionado à nota</string>
+    <string name="toast_drawing_load_error">Erro ao carregar desenho</string>
+    <string name="toast_drawing_empty">A tela está vazia ou não inicializada</string>
+    <string name="toast_drawing_save_error">Erro ao salvar desenho</string>
+
+    <!-- Attachments -->
+    <string name="attachment_drawing">Desenho anexo</string>
+    <string name="attachment_file">Arquivo anexo</string>
+    <string name="attachment_image">Imagem anexa</string>
+    <string name="attachment_remove">Remover anexo</string>
+    <string name="add_drawing">Adicionar desenho</string>
+    <string name="add_attachment">Adicionar arquivo</string>
+    <string name="attachments_title">Anexos</string>
+
+    <!-- Editor -->
+    <string name="untitled_note">Nota sem título</string>
+    <string name="normal_text">Texto normal</string>
+    <string name="heading_1">Título 1</string>
+    <string name="heading_2">Título 2</string>
+    <string name="heading_3">Título 3</string>
+    <string name="text_default">Padrão</string>
+    <string name="read_aloud">Ler nota em voz alta</string>
+    <string name="stop_speaking">Parar de falar</string>
+    <string name="nothing_to_read">Nada para ler em voz alta</string>
+    <string name="voice_note_recorder">Gravador de nota de voz</string>
+    <string name="tap_to_record">Toque para começar a gravar</string>
+    <string name="recording_tap_to_stop">Gravando… Toque para parar</string>
+    <string name="attach_voice">Anexar voz</string>
+    <string name="select_external_file">Selecionar arquivo externo</string>
+    <string name="select_file_desc">Escolha documentos, áudio ou outros arquivos para vincular</string>
+    <string name="toast_imported">Nota importada!</string>
+    <string name="toast_no_app_video">Nenhum aplicativo para reproduzir vídeo</string>
+    <string name="toast_cannot_open_url">Não é possível abrir URL</string>
+    <string name="toast_file_attached">Arquivo anexado com sucesso</string>
+    <string name="toast_file_select_error">Erro ao selecionar arquivo</string>
+    <string name="toast_recording_error">Erro ao iniciar gravação</string>
+    <string name="toast_audio_play_error">Erro ao reproduzir áudio</string>
+    <string name="toast_audio_preview_error">Erro ao reproduzir prévia</string>
+    <string name="toast_voice_note_attached">Nota de voz anexada</string>
+    <string name="toast_camera_error">Erro ao iniciar câmera</string>
+    <string name="camera_permission_required">Permissão de câmera é necessária para tirar fotos/vídeos</string>
+    <string name="mic_permission_required">Permissão de microfone é necessária para gravar notas de voz</string>
+
+    <!-- Navigation / common -->
+    <string name="back">Voltar</string>
+    <string name="close">Fechar</string>
+    <string name="sync">Sincronizar</string>
+    <string name="unlink">Desvincular</string>
+    <string name="search_icon">Pesquisar</string>
+    <string name="create_note">Criar nota</string>
+    <string name="create_tag">Criar etiqueta</string>
+    <string name="manage_tags">Gerenciar etiquetas</string>
+    <string name="empty_trash">Esvaziar lixeira</string>
+    <string name="selected_label">Selecionado</string>
+    <string name="pinned_label">Fixado</string>
+    <string name="encrypted_label">Criptografado</string>
+    <string name="drag_to_reorder">Arrastar para reordenar</string>
+    <string name="clear_search">Limpar pesquisa</string>
+    <string name="favorite_filter">Favoritos</string>
+    <string name="archive_filter">Arquivados</string>
+    <string name="tag_filter">Etiqueta</string>
+    <string name="color_filter">Cor</string>
+    <string name="clear_tag_filter">Limpar filtro de etiqueta</string>
+    <string name="clear_color_filter">Limpar filtro de cor</string>
+    <string name="no_results_icon">Sem resultados</string>
+    <string name="remove_recent_search">Remover pesquisa recente</string>
+    <string name="search_icon_placeholder">Pesquisar</string>
+    <string name="dark_mode">Modo escuro</string>
+    <string name="e2ee_active">Criptografia de ponta a ponta ativa</string>
+    <string name="security_active">Segurança ativa</string>
+    <string name="setup_credentials">Configurar credenciais</string>
+    <string name="remove_protection">Remover credenciais de proteção</string>
+    <string name="delete_master_password">Excluir senha mestra</string>
+    <string name="disconnect">Desconectar</string>
+    <string name="deleted_notes_info">Notas excluídas podem ser restauradas aqui ou removidas permanentemente.</string>
+    <string name="all_notes">Tudo</string>
+
+    <!-- Cloud / Sync -->
+    <string name="btn_upload_backup">Enviar backup</string>
+    <string name="btn_download_backup">Baixar backup</string>
+    <string name="cloud_sync_title">Sincronização na nuvem</string>
+    <string name="link_account">Vincular conta</string>
+    <string name="backup_cloud">Backup na nuvem</string>
+    <string name="restore_notes">Restaurar notas</string>
+    <string name="toast_drive_connected">Google Drive conectado!</string>
+    <string name="toast_drive_disconnected">Google Drive desconectado.</string>
+    <string name="toast_drive_auth_first">Autorize o Google Drive primeiro!</string>
+    <string name="toast_syncing">Sincronizando com Google Drive…</string>
+    <string name="toast_sync_success">Sincronizado com Google Drive com sucesso!</string>
+    <string name="toast_sync_auth_expired">Autenticação expirada. Desconectando Drive.</string>
+    <string name="toast_sync_error">Erro de sincronização: %1$s</string>
+    <string name="toast_searching_backup">Procurando arquivo de backup…</string>
+    <string name="toast_no_backup_found">Nenhum arquivo de backup encontrado no Google Drive.</string>
+    <string name="toast_backup_download_failed">Falha ao baixar backup.</string>
+    <string name="toast_unlock_first">Desbloqueie o aplicativo com a senha mestra primeiro!</string>
+    <string name="toast_decrypt_failed">Falha na descriptografia! A senha mestra não corresponde ao backup.</string>
+    <string name="toast_restore_success">Notas restauradas com sucesso da nuvem!</string>
+    <string name="toast_restore_error">Erro ao restaurar: %1$s</string>
+
+    <!-- Export -->
+    <string name="toast_export_error">Erro ao exportar: %1$s</string>
+
+    <!-- Other common messages -->
+    <string name="clear_all">Limpar tudo</string>
+    <string name="toggle_navigation_rail">Alternar barra de navegação</string>
+    <string name="lock_icon">Ícone de cadeado</string>
+    <string name="shield_guard">Escudo de segurança</string>
+    <string name="cloud_icon">Ícone de nuvem</string>
 </resources>

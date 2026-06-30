@@ -157,7 +157,7 @@ fun DrawingCanvasScreen(
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "Failed to load drawing", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_drawing_load_error), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -198,10 +198,10 @@ fun DrawingCanvasScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                     Text(
-                        text = "Drawing Canvas",
+                        text = stringResource(R.string.drawing_canvas_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -211,12 +211,12 @@ fun DrawingCanvasScreen(
                             onClick = { strokes.clear() },
                             modifier = Modifier.testTag("clear_canvas_btn")
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear Canvas", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drawing_clear), tint = MaterialTheme.colorScheme.error)
                         }
                         IconButton(
                             onClick = {
                                 if (canvasSize.width <= 0 || canvasSize.height <= 0) {
-                                    Toast.makeText(context, "Canvas is empty or not initialized", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_drawing_empty), Toast.LENGTH_SHORT).show()
                                     return@IconButton
                                 }
                                 try {
@@ -257,15 +257,34 @@ fun DrawingCanvasScreen(
 
                                     // Save to file
                                     val directory = context.filesDir
-                                    val timestamp = System.currentTimeMillis()
-                                    val pngFile = File(directory, "drawing_${noteId}_${timestamp}.png")
-                                    val jsonFile = File(directory, "drawing_${noteId}_${timestamp}.json")
-                                    
+                                    val match = viewModel.notesList.value.find { it.note.id == noteId }
+
+                                    val jsonFile: File
+                                    val pngFile: File
+
+                                    if (!jsonPath.isNullOrEmpty() && match != null) {
+                                        val (_, currentAttachments) = parseNoteContentAndAttachments(match.content)
+                                        val existingAttachment = currentAttachments.find { it.path == jsonPath }
+                                        jsonFile = File(jsonPath)
+                                        pngFile = if (existingAttachment != null) {
+                                            File(existingAttachment.name)
+                                        } else {
+                                            File(directory, "drawing_${noteId}_${System.currentTimeMillis()}.png")
+                                        }
+                                    } else {
+                                        val timestamp = System.currentTimeMillis()
+                                        pngFile = File(directory, "drawing_${noteId}_${timestamp}.png")
+                                        jsonFile = File(directory, "drawing_${noteId}_${timestamp}.json")
+                                    }
+
+                                    pngFile.parentFile?.mkdirs()
+                                    jsonFile.parentFile?.mkdirs()
+
                                     // Save PNG
                                     FileOutputStream(pngFile).use { out ->
                                         bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                                     }
-                                    
+
                                     // Save JSON Path Data
                                     val jsonArray = JSONArray()
                                     strokes.forEach { stroke ->
@@ -287,13 +306,21 @@ fun DrawingCanvasScreen(
                                     }
 
                                     // Update Note attachments
-                                    val list = viewModel.notesList.value
-                                    val match = list.find { it.note.id == noteId }
                                     if (match != null) {
                                         val (cleanText, currentAttachments) = parseNoteContentAndAttachments(match.content)
-                                        // Store the JSON file path for editing
                                         val newAttachment = Attachment(type = "drawing", path = jsonFile.absolutePath, name = pngFile.absolutePath)
-                                        val newAttachmentsList = currentAttachments + newAttachment
+                                        val newAttachmentsList = if (!jsonPath.isNullOrEmpty()) {
+                                            val mutableList = currentAttachments.toMutableList()
+                                            val existingIdx = mutableList.indexOfFirst { it.type == "drawing" && it.path == jsonPath }
+                                            if (existingIdx >= 0) {
+                                                mutableList[existingIdx] = newAttachment
+                                            } else {
+                                                mutableList.add(newAttachment)
+                                            }
+                                            mutableList.toList()
+                                        } else {
+                                            currentAttachments + newAttachment
+                                        }
                                         val rawContent = createRawContent(cleanText, newAttachmentsList)
 
                                         viewModel.saveNote(
@@ -311,17 +338,16 @@ fun DrawingCanvasScreen(
                                             isFavorite = match.note.isFavorite,
                                             isArchived = match.note.isArchived
                                         )
-                                        Toast.makeText(context, "Drawing added to note", Toast.LENGTH_SHORT).show()
                                     }
                                     onBack()
                                 } catch (e: Exception) {
                                     e.printStackTrace()
-                                    Toast.makeText(context, "Error saving drawing: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.toast_drawing_save_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.testTag("save_canvas_btn")
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "Save Drawing", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.drawing_save), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -454,9 +480,9 @@ fun DrawingCanvasScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.LineWeight, contentDescription = "Stroke Width", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.LineWeight, contentDescription = stringResource(R.string.drawing_stroke_width), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Size: ${selectedWidth.toInt()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = context.getString(R.string.drawing_size_label, selectedWidth.toInt()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.width(16.dp))
                         Slider(
                             value = selectedWidth,
@@ -472,7 +498,7 @@ fun DrawingCanvasScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(Icons.Default.ColorLens, contentDescription = "Color Picker", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.ColorLens, contentDescription = stringResource(R.string.drawing_color_picker), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(8.dp))
                         Row(
                             modifier = Modifier.weight(1f),

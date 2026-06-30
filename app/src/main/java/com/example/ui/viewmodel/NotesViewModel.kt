@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.Locale
+import com.example.R
 
 data class DecryptedNote(
     val note: Note,
@@ -225,8 +226,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val notes = repository.allNotesFlow.first()
                 if (notes.isEmpty()) {
-                    val title = application.getString(com.example.R.string.welcome_note_title)
-                    val content = application.getString(com.example.R.string.welcome_note_content)
+                    val title = getApplication<Application>().getString(com.example.R.string.welcome_note_title)
+                    val content = getApplication<Application>().getString(com.example.R.string.welcome_note_content)
                     val welcomeNote = Note(
                         id = 0,
                         title = title,
@@ -656,7 +657,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         
         isDriveLinked.value = true
         driveAccessToken.value = token
-        syncStatusMessage.value = "Google Drive connected!"
+        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_connected)
     }
 
     fun unlinkGoogleDrive() {
@@ -667,18 +668,18 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         
         isDriveLinked.value = false
         driveAccessToken.value = ""
-        syncStatusMessage.value = "Google Drive disconnected."
+        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_disconnected)
     }
 
     fun forceSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
-            syncStatusMessage.value = "Authorize Google Drive first!"
+            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
             return
         }
 
         viewModelScope.launch {
-            syncStatusMessage.value = "Syncing with Google Drive..."
+            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_syncing)
             try {
                 // 1. Pack all notes & tags into a solid encrypted transport JSON format
                 val notesArray = JSONArray()
@@ -745,14 +746,14 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                     val timeStr = formatter.format(Date())
                     sharedPrefs.edit().putString("last_sync_time", "Today at $timeStr").apply()
                     lastSyncTime.value = "Today at $timeStr"
-                    syncStatusMessage.value = "Successfully synced to Google Drive!"
+                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_success)
                 } else {
-                    syncStatusMessage.value = "Authentication expired. Disconnecting Drive."
+                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_auth_expired)
                     unlinkGoogleDrive()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                syncStatusMessage.value = "Sync error: ${e.localizedMessage}"
+                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)
             }
         }
     }
@@ -760,22 +761,22 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     fun restoreSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
-            syncStatusMessage.value = "Authorize Google Drive first!"
+            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
             return
         }
 
         viewModelScope.launch {
-            syncStatusMessage.value = "Searching backup file..."
+            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_searching_backup)
             try {
                 val fileId = GoogleDriveSyncService.searchBackupFile(token)
                 if (fileId == null) {
-                    syncStatusMessage.value = "No backup file found in Google Drive."
+                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_no_backup_found)
                     return@launch
                 }
 
                 val backupContent = GoogleDriveSyncService.downloadBackupFile(token, fileId)
                 if (backupContent.isNullOrEmpty()) {
-                    syncStatusMessage.value = "Failed to download backup."
+                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_backup_download_failed)
                     return@launch
                 }
 
@@ -786,7 +787,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 if (isBackupEncrypted) {
                     val pass = masterPassword.value
                     if (pass.isNullOrEmpty()) {
-                        syncStatusMessage.value = "Unlock app with master password first!"
+                        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_unlock_first)
                         return@launch
                     }
                     val salt = container.getString("salt")
@@ -794,7 +795,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                     val cipherData = container.getString("data")
                     decryptedPayload = EncryptionUtils.decrypt(cipherData, pass, salt, iv)
                     if (decryptedPayload.isEmpty()) {
-                        syncStatusMessage.value = "Decrypt failed! Master password doesn't match backup."
+                        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_decrypt_failed)
                         return@launch
                     }
                 } else {
@@ -833,11 +834,11 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 val timeStr = formatter.format(Date())
                 sharedPrefs.edit().putString("last_sync_time", "Today at $timeStr").apply()
                 lastSyncTime.value = "Today at $timeStr"
-                syncStatusMessage.value = "Successfully restored notes from Cloud!"
+                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_success)
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                syncStatusMessage.value = "Restore error: ${e.localizedMessage}"
+                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)
             }
         }
     }

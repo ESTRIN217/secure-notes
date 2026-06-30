@@ -377,7 +377,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                             mediaPlayer = mp
                             isPlayingAudio = true
                         } catch (e2: Exception) {
-                            Toast.makeText(context, "Error playing audio", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_audio_play_error), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -638,7 +638,7 @@ fun NoteEditorScreen(
             insertImageCameraLauncher.launch(uri)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error starting camera: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_camera_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -651,7 +651,7 @@ fun NoteEditorScreen(
             insertVideoCameraLauncher.launch(uri)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error starting camera: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_camera_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -665,7 +665,7 @@ fun NoteEditorScreen(
                 launchCameraVideo()
             }
         } else {
-            Toast.makeText(context, "Camera permission is required to take photos/videos", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
         }
         pendingCameraType = null
     }
@@ -822,7 +822,7 @@ fun NoteEditorScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = handleSaveAndExit) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                     Text(
                         text = if (noteId == 0) stringResource(id = R.string.btn_new_note) else stringResource(id = R.string.btn_edit),
@@ -913,7 +913,7 @@ fun NoteEditorScreen(
             ) {
                 if (isPreviewMode) {
                     Text(
-                        text = title.ifEmpty { "Untitled Note" },
+                        text = title.ifEmpty { stringResource(R.string.untitled_note) },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -1164,11 +1164,11 @@ fun NoteEditorScreen(
                                 DropdownMenuItem(
                                     text = { 
                                         Text(
-                                            text = when (heading) {
-                                                "normal" -> "Normal Text"
-                                                "h1" -> "Heading 1"
-                                                "h2" -> "Heading 2"
-                                                "h3" -> "Heading 3"
+                                                    text = when (heading) {
+                                                "normal" -> stringResource(R.string.normal_text)
+                                                "h1" -> stringResource(R.string.heading_1)
+                                                "h2" -> stringResource(R.string.heading_2)
+                                                "h3" -> stringResource(R.string.heading_3)
                                                 else -> heading
                                             },
                                             fontWeight = if (heading == "normal") FontWeight.Normal else FontWeight.Bold,
@@ -1250,7 +1250,7 @@ fun NoteEditorScreen(
                         ) {
                             listOf("default", "12", "14", "16", "18", "20", "24", "28").forEach { size ->
                                 DropdownMenuItem(
-                                    text = { Text(if (size == "default") "Default" else "${size}sp") },
+                                    text = { Text(if (size == "default") stringResource(R.string.text_default) else "${size}sp") },
                                     onClick = {
                                         applyTagWithVal("size", size)
                                         showSizeDropdown = false
@@ -1447,7 +1447,7 @@ fun NoteEditorScreen(
                                 content = importedContent
                                 contentValue = TextFieldValue(text = importedContent, selection = TextRange(importedContent.length))
                                 saveToHistory(importedContent)
-                                Toast.makeText(context, "Note imported!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
                             } else {
                                 val newText = text.substring(0, selStart) + clipText + text.substring(selEnd)
                                 val newCursor = selStart + clipText.length
@@ -1696,7 +1696,7 @@ fun NoteEditorScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Close Search",
+                                        contentDescription = stringResource(R.string.close),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -1884,7 +1884,7 @@ fun NoteEditorScreen(
                                                 ) {
                                                     AsyncImage(
                                                         model = block.src,
-                                                        contentDescription = "Inline Image",
+                                                        contentDescription = stringResource(R.string.attachment_image),
                                                         modifier = Modifier
                                                             .fillMaxWidth()
                                                             .clip(RoundedCornerShape(12.dp)),
@@ -1912,7 +1912,7 @@ fun NoteEditorScreen(
                                                                     }
                                                                     context.startActivity(intent)
                                                                 } catch (e: Exception) {
-                                                                    Toast.makeText(context, "No app to play video", Toast.LENGTH_SHORT).show()
+                                                                    Toast.makeText(context, context.getString(R.string.toast_no_app_video), Toast.LENGTH_SHORT).show()
                                                                 }
                                                             },
                                                         contentAlignment = Alignment.Center
@@ -2397,7 +2397,7 @@ fun NoteEditorScreen(
                                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(clickedUrlAddress))
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Cannot open URL", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
                                         }
                                         showUrlDialog = false
                                     },
@@ -2469,14 +2469,7 @@ fun NoteEditorScreen(
                 }
                 
                 if (previewItems.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Attachments",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2514,7 +2507,7 @@ fun NoteEditorScreen(
                                                     "drawing" -> {
                                                         AsyncImage(
                                                             model = att.name,
-                                                            contentDescription = "Drawing Attachment",
+                                                            contentDescription = stringResource(R.string.attachment_drawing),
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .clip(RoundedCornerShape(8.dp))
@@ -2533,7 +2526,7 @@ fun NoteEditorScreen(
                                                         ) {
                                                             Icon(
                                                                 imageVector = Icons.Default.Description,
-                                                                contentDescription = "File Attachment",
+                                                                contentDescription = stringResource(R.string.attachment_file),
                                                                 tint = MaterialTheme.colorScheme.secondary,
                                                                 modifier = Modifier.size(36.dp)
                                                             )
@@ -2546,7 +2539,7 @@ fun NoteEditorScreen(
                                                     "image" -> {
                                                         AsyncImage(
                                                             model = item.src,
-                                                            contentDescription = "Image Attachment",
+                                                            contentDescription = stringResource(R.string.attachment_image),
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .clip(RoundedCornerShape(8.dp))
@@ -2569,7 +2562,7 @@ fun NoteEditorScreen(
                                                                         }
                                                                         context.startActivity(intent)
                                                                     } catch (e: Exception) {
-                                                                        Toast.makeText(context, "No app to play video", Toast.LENGTH_SHORT).show()
+                                                                        Toast.makeText(context, context.getString(R.string.toast_no_app_video), Toast.LENGTH_SHORT).show()
                                                                     }
                                                                 },
                                                             contentAlignment = Alignment.Center
@@ -2633,7 +2626,7 @@ fun NoteEditorScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove Attachment",
+                                            contentDescription = stringResource(R.string.attachment_remove),
                                             tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(14.dp)
                                         )
@@ -2690,7 +2683,7 @@ fun NoteEditorScreen(
                                     tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
                                     isSpeaking = true
                                 } else {
-                                    Toast.makeText(context, "Nothing to read aloud", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
@@ -2698,7 +2691,7 @@ fun NoteEditorScreen(
                     ) {
                         Icon(
                             imageVector = if (isSpeaking) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                            contentDescription = if (isSpeaking) "Stop Speaking" else "Read Note Aloud",
+                            contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
                             tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     }
@@ -2725,7 +2718,7 @@ fun NoteEditorScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Gesture,
-                            contentDescription = "Add Drawing",
+                            contentDescription = stringResource(R.string.add_drawing),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -2736,7 +2729,7 @@ fun NoteEditorScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.AttachFile,
-                            contentDescription = "Add Attachment",
+                            contentDescription = stringResource(R.string.add_attachment),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -3154,10 +3147,10 @@ fun NoteEditorScreen(
                             )
                         }
                         showVoiceFileSheet = false
-                        Toast.makeText(context, "File attached successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_file_attached), Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(context, "Error selecting file: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_file_select_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -3193,10 +3186,10 @@ fun NoteEditorScreen(
                         isRecording = true
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_recording_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    Toast.makeText(context, "Microphone permission is required to record voice notes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.mic_permission_required), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -3227,7 +3220,7 @@ fun NoteEditorScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Add Attachment",
+                        text = stringResource(R.string.add_attachment),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -3324,7 +3317,7 @@ fun NoteEditorScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Voice Note Recorder",
+                                text = stringResource(R.string.voice_note_recorder),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -3342,12 +3335,12 @@ fun NoteEditorScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Mic,
-                                        contentDescription = "Record voice note",
+                                        contentDescription = stringResource(R.string.tap_to_record),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
-                                Text("Tap to start recording", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.tap_to_record), style = MaterialTheme.typography.bodySmall)
                             } else if (isRecording) {
                                 // Recording State
                                 IconButton(
@@ -3375,7 +3368,7 @@ fun NoteEditorScreen(
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
-                                Text("Recording... Tap to stop", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.recording_tap_to_stop), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             } else if (recordedFile != null) {
                                 // Review / Draft State
                                 Row(
@@ -3404,7 +3397,7 @@ fun NoteEditorScreen(
                                                     isPlayingRecording = true
                                                 } catch (e: Exception) {
                                                     e.printStackTrace()
-                                                    Toast.makeText(context, "Error playing preview", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, context.getString(R.string.toast_audio_preview_error), Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                         },
@@ -3448,11 +3441,11 @@ fun NoteEditorScreen(
                                                 )
                                             }
                                             showVoiceFileSheet = false
-                                            Toast.makeText(context, "Voice note attached", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.toast_voice_note_attached), Toast.LENGTH_SHORT).show()
                                         },
                                         modifier = Modifier.testTag("attach_voice_btn")
                                     ) {
-                                        Text("Attach Voice")
+                                        Text(stringResource(R.string.attach_voice))
                                     }
 
                                     IconButton(
@@ -3483,11 +3476,11 @@ fun NoteEditorScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = "Select File", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                            Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.select_external_file), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
-                                Text("Select External File", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                Text("Choose documents, audio, or other files to link", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.select_external_file), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.select_file_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

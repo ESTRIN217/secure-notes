@@ -12,6 +12,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
+import com.example.R
 import androidx.core.content.FileProvider
 import com.example.data.model.Note
 import java.io.File
@@ -53,7 +54,7 @@ object ExportUtils {
             shareFile(context, file, "text/markdown", "Export Markdown")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error exporting Markdown: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -169,7 +170,7 @@ object ExportUtils {
             shareFile(context, file, "application/pdf", "Export PDF")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error exporting PDF: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -223,7 +224,7 @@ object ExportUtils {
             shareFile(context, file, "text/plain", "Share Notes as Text")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -261,7 +262,7 @@ object ExportUtils {
             shareFile(context, file, "text/markdown", "Share Notes as Markdown")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -306,7 +307,7 @@ object ExportUtils {
             shareFile(context, file, "text/html", "Share Notes as HTML")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -341,7 +342,7 @@ object ExportUtils {
             shareFile(context, file, "application/json", "Share Notes as JSON")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -379,7 +380,7 @@ object ExportUtils {
             shareFile(context, file, "application/json", "Export JSON")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error exporting JSON: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -503,7 +504,7 @@ object ExportUtils {
             shareFile(context, file, "application/pdf", "Share Notes as PDF")
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 }
