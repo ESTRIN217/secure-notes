@@ -43,7 +43,7 @@ object ExportUtils {
                 sb.append("**Tags:** ").append(cleanedTags.joinToString(", ")).append("\n")
             }
             sb.append("\n---\n\n")
-            sb.append(decryptedContent).append("\n")
+            sb.append(RichTextParser.convertToMarkdown(decryptedContent)).append("\n")
 
             val fileName = "Note_${note.id}_" + decryptedTitle.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".md"
             val file = File(context.cacheDir, fileName)
@@ -148,7 +148,8 @@ object ExportUtils {
             }
 
             val maxWidth = (595 - (margin * 2)).toInt()
-            val staticLayout = StaticLayout.Builder.obtain(decryptedContent, 0, decryptedContent.length, contentPaint, maxWidth)
+            val plainContent = RichTextParser.stripTags(decryptedContent)
+            val staticLayout = StaticLayout.Builder.obtain(plainContent, 0, plainContent.length, contentPaint, maxWidth)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                 .setLineSpacing(2f, 1.1f)
                 .build()
@@ -211,7 +212,7 @@ object ExportUtils {
                     sb.append("Tags: ").append(cleanedTags.joinToString(", ")).append("\n")
                 }
                 sb.append("\n")
-                sb.append(dec.content).append("\n\n")
+                sb.append(RichTextParser.stripTags(dec.content)).append("\n\n")
                 if (index < notes.size - 1) {
                     sb.append("----------------------------\n\n")
                 }
@@ -249,7 +250,7 @@ object ExportUtils {
                     sb.append("**Tags:** ").append(cleanedTags.joinToString(", ")).append("\n")
                 }
                 sb.append("\n---\n\n")
-                sb.append(dec.content).append("\n\n")
+                sb.append(RichTextParser.convertToMarkdown(dec.content)).append("\n\n")
                 if (index < notes.size - 1) {
                     sb.append("\n\n---\n\n")
                 }
@@ -295,7 +296,7 @@ object ExportUtils {
                     sb.append(" | Tags: ").append(cleanedTags.joinToString(", "))
                 }
                 sb.append("</div>")
-                sb.append("<div class=\"content\">").append(dec.content).append("</div>")
+                sb.append("<div class=\"content\">").append(RichTextParser.convertToHtml(dec.content)).append("</div>")
                 sb.append("</div>")
             }
             sb.append("</body></html>")
@@ -467,7 +468,8 @@ object ExportUtils {
                     isAntiAlias = true
                 }
 
-                val contentLayout = StaticLayout.Builder.obtain(dec.content, 0, dec.content.length, contentPaint, drawableWidth)
+                val plainContent = RichTextParser.stripTags(dec.content)
+                val contentLayout = StaticLayout.Builder.obtain(plainContent, 0, plainContent.length, contentPaint, drawableWidth)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .setLineSpacing(2f, 1.1f)
                     .build()
@@ -486,7 +488,7 @@ object ExportUtils {
                     
                     val startIdx = contentLayout.getLineStart(i)
                     val endIdx = contentLayout.getLineEnd(i)
-                    val lineStr = dec.content.substring(startIdx, endIdx)
+                    val lineStr = plainContent.substring(startIdx, endIdx)
                     canvas.drawText(lineStr, margin, currentY + lineY - 2, contentPaint)
                     currentY += lineY
                 }

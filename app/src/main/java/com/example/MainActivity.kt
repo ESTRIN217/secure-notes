@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
@@ -960,6 +961,10 @@ fun MainListScreen(
     var isNavExtended by remember(isLargeScreen) { mutableStateOf(isLargeScreen) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    BackHandler(enabled = currentSection != com.example.ui.viewmodel.NavigationSection.HOME) {
+        viewModel.currentSection.value = com.example.ui.viewmodel.NavigationSection.HOME
+    }
 
     val sortedNotes = remember(notes, sortOption, customOrderStr) {
         val currentIds = if (customOrderStr.isNotEmpty()) {

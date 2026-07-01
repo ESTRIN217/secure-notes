@@ -372,8 +372,26 @@ object RichTextParser {
                 }
             }
 
-            // 3. Detect inline markdown markers: bold, italic, strikethrough, inline-code
+            // 3. Detect inline markdown markers: bold, italic, strikethrough, inline-code, links
             if (hideTags) {
+                // Markdown link: [text](url)
+                val linkMatch = Regex("^\\[([^\\]]*)\\]\\(([^\\)]+)\\)").find(rawText.substring(i))
+                if (linkMatch != null) {
+                    val full = linkMatch.value
+                    val display = linkMatch.groupValues[1]
+                    val url = linkMatch.groupValues[2]
+                    for (k in i until i + full.length) {
+                        sourceToTransformed[k] = builder.length
+                    }
+                    // Render the display text with url annotation
+                    val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+                    startStyle("url", linkStyle, annotation = url)
+                    transformedToSourceList.add(i)
+                    builder.append(display)
+                    endStyle("url")
+                    i += full.length
+                    continue
+                }
                 // Bold "**" or "__"
                 if (rawText.startsWith("**", i) || rawText.startsWith("__", i)) {
                     val marker = rawText.substring(i, i + 2)
@@ -511,6 +529,213 @@ object RichTextParser {
     // Keep legacy parse method for other files or parts of code that use it, ensuring compatibility
     fun parse(rawText: String, hideTags: Boolean): AnnotatedString {
         return parseWithMapping(rawText, hideTags).text
+    }
+
+    // ──────────────────────────────────────────────
+    // Conversion utilities for export/import
+    // ──────────────────────────────────────────────
+
+    /** Strip all internal custom tags, leaving plain text. */
+    fun stripTags(raw: String): String {
+        return raw
+            .replace(Regex("</?[a-z]+(=(\"[^\"]*\"|'[^']*'|[^>\\s]+))?\\s*/?>"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    /** Convert internal custom tags to Markdown. */
+    fun convertToMarkdown(raw: String): String {
+        var s = raw
+        // headings
+        s = s.replace(Regex("<h1>(.*?)</h1>"), "# $1")
+        s = s.replace(Regex("<h2>(.*?)</h2>"), "## $1")
+        s = s.replace(Regex("<h3>(.*?)</h3>"), "### $1")
+        // basic formatting
+        s = s.replace(Regex("<b>(.*?)</b>"), "**$1**")
+        s = s.replace(Regex("<i>(.*?)</i>"), "*$1*")
+        s = s.replace(Regex("<s>(.*?)</s>"), "~~$1~~")
+        s = s.replace(Regex("<u>(.*?)</u>"), "<ins>$1</ins>")
+        s = s.replace(Regex("<code>(.*?)</code>"), "`$1`")
+        s = s.replace(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL), "\n```\n$1\n```\n")
+        s = s.replace(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL)) { match ->
+            match.groupValues[1].lines().joinToString("\n") { "> $it" }
+        }
+        // url
+        s = s.replace(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { match ->
+            val url = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+            val text = match.groupValues[2]
+            if (url == text) url else "[$text]($url)"
+        }
+        // font color
+        s = s.replace(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { match ->
+            val color = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+            "<span style=\"color:$color\">${match.groupValues[2]}</span>"
+        }
+        // bg color
+        s = s.replace(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { match ->
+            val color = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+            "<span style=\"background:$color\">${match.groupValues[2]}</span>"
+        }
+        // ordered list
+        s = s.replace(Regex("<ol>\\s*(.*?)\\s*</ol>", RegexOption.DOT_MATCHES_ALL)) { match ->
+            match.groupValues[1].lines().withIndex().joinToString("\n") { (i, line) ->
+                "${i + 1}. ${line.replace(Regex("</?li>"), "").trim()}"
+            }
+        }
+        // unordered list
+        s = s.replace(Regex("<ul>\\s*(.*?)\\s*</ul>", RegexOption.DOT_MATCHES_ALL)) { match ->
+            match.groupValues[1].lines().joinToString("\n") { line ->
+                "- ${line.replace(Regex("</?li>"), "").trim()}"
+            }
+        }
+        // checklist
+        s = s.replace(Regex("<cl>\\s*(.*?)\\s*</cl>", RegexOption.DOT_MATCHES_ALL)) { match ->
+            match.groupValues[1].lines().joinToString("\n") { line ->
+                val checked = line.contains("checked=\"true\"")
+                val content = line.replace(Regex("<[^>]+>"), "").trim()
+                "- [${if (checked) "x" else " "}] $content"
+            }
+        }
+        // inline media
+        s = s.replace(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>"), "![image]($1)")
+        s = s.replace(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>"), "!video[video]($1)")
+        s = s.replace(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>"), "!audio[audio]($1)")
+        // remaining tags: strip anything unhandled
+        s = s.replace(Regex("<[^>]+>"), "")
+        return s
+    }
+
+    /** Convert internal custom tags to standard HTML. */
+    fun convertToHtml(raw: String): String {
+        var s = raw
+        s = s.replace(Regex("<h1>(.*?)</h1>"), "<h1>$1</h1>")
+        s = s.replace(Regex("<h2>(.*?)</h2>"), "<h2>$1</h2>")
+        s = s.replace(Regex("<h3>(.*?)</h3>"), "<h3>$1</h3>")
+        s = s.replace(Regex("<b>(.*?)</b>"), "<strong>$1</strong>")
+        s = s.replace(Regex("<i>(.*?)</i>"), "<em>$1</em>")
+        s = s.replace(Regex("<s>(.*?)</s>"), "<del>$1</del>")
+        s = s.replace(Regex("<u>(.*?)</u>"), "<ins>$1</ins>")
+        s = s.replace(Regex("<code>(.*?)</code>"), "<code>$1</code>")
+        s = s.replace(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL), "<pre>$1</pre>")
+        s = s.replace(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL), "<blockquote>$1</blockquote>")
+        s = s.replace(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { match ->
+            val url = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+            "<a href=\"$url\">${match.groupValues[2]}</a>"
+        }
+        s = s.replace(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { match ->
+            "<span style=\"color:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
+        }
+        s = s.replace(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { match ->
+            "<span style=\"background:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
+        }
+        s = s.replace(Regex("<font=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</font>")) { match ->
+            "<span style=\"font-family:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
+        }
+        s = s.replace(Regex("<size=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</size>")) { match ->
+            "<span style=\"font-size:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}sp\">${match.groupValues[2]}</span>"
+        }
+        s = s.replace(Regex("<ol>(.*?)</ol>", RegexOption.DOT_MATCHES_ALL), "<ol>$1</ol>")
+        s = s.replace(Regex("<ul>(.*?)</ul>", RegexOption.DOT_MATCHES_ALL), "<ul>$1</ul>")
+        s = s.replace(Regex("</?li>"), "")
+        s = s.replace(Regex("<li>"), "<li>")
+        s = s.replace(Regex("<cl>(.*?)</cl>", RegexOption.DOT_MATCHES_ALL)) { match ->
+            match.groupValues[1].lines().joinToString("\n") { line ->
+                val checked = line.contains("checked=\"true\"")
+                val content = line.replace(Regex("<[^>]+>"), "").trim()
+                "<li>${if (checked) "☑" else "☐"} $content</li>"
+            }
+        }
+        s = s.replace(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>"), "<img src=\"$1\" alt=\"image\" />")
+        s = s.replace(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>"), "<video src=\"$1\" controls>video</video>")
+        s = s.replace(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>"), "<audio src=\"$1\" controls>audio</audio>")
+        s = s.replace(Regex("</?normal>"), "")
+        s = s.replace(Regex("</?sub>"), "")
+        s = s.replace(Regex("</?sup>"), "")
+        s = s.replace(Regex("</?indent>"), "")
+        s = s.replace(Regex("<[^>]+>"), "").trim()
+        return s
+    }
+
+    /** Convert basic standard HTML to internal secure-notes custom tags. */
+    fun convertHtmlToSecureNotes(html: String): String {
+        var s = html
+        // strip doc type / html / head / body wrappers
+        s = s.replace(Regex("<!DOCTYPE[^>]*>", RegexOption.IGNORE_CASE), "")
+        s = s.replace(Regex("</?(html|head|body|meta|link|script|style)[^>]*>", RegexOption.IGNORE_CASE), "")
+        s = s.replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
+        // block elements → spacing
+        s = s.replace(Regex("</?(p|div|section|article|nav|header|footer|main|aside)(\\s[^>]*)?>", RegexOption.IGNORE_CASE), "\n")
+        s = s.replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
+        // headings
+        s = s.replace(Regex("<h1[^>]*>(.*?)</h1>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<h1>$1</h1>")
+        s = s.replace(Regex("<h2[^>]*>(.*?)</h2>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<h2>$1</h2>")
+        s = s.replace(Regex("<h3[^>]*>(.*?)</h3>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<h3>$1</h3>")
+        // inline formatting
+        s = s.replace(Regex("<strong[^>]*>(.*?)</strong>", RegexOption.IGNORE_CASE), "<b>$1</b>")
+        s = s.replace(Regex("<b[^>]*>(.*?)</b>", RegexOption.IGNORE_CASE), "<b>$1</b>")
+        s = s.replace(Regex("<em[^>]*>(.*?)</em>", RegexOption.IGNORE_CASE), "<i>$1</i>")
+        s = s.replace(Regex("<i[^>]*>(.*?)</i>", RegexOption.IGNORE_CASE), "<i>$1</i>")
+        s = s.replace(Regex("<ins[^>]*>(.*?)</ins>", RegexOption.IGNORE_CASE), "<u>$1</u>")
+        s = s.replace(Regex("<u[^>]*>(.*?)</u>", RegexOption.IGNORE_CASE), "<u>$1</u>")
+        s = s.replace(Regex("<del[^>]*>(.*?)</del>", RegexOption.IGNORE_CASE), "<s>$1</s>")
+        s = s.replace(Regex("<s[^>]*>(.*?)</s>", RegexOption.IGNORE_CASE), "<s>$1</s>")
+        s = s.replace(Regex("<code[^>]*>(.*?)</code>", RegexOption.IGNORE_CASE), "<code>$1</code>")
+        s = s.replace(Regex("<pre[^>]*>(.*?)</pre>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<pre>$1</pre>")
+        s = s.replace(Regex("<blockquote[^>]*>(.*?)</blockquote>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<quote>$1</quote>")
+        // anchor links
+        s = s.replace(Regex("<a\\s+[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<url=$1>$2</url>")
+        s = s.replace(Regex("<a\\s+[^>]*href='([^']+)'[^>]*>(.*?)</a>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<url=$1>$2</url>")
+        // images
+        s = s.replace(Regex("<img\\s+[^>]*src=\"([^\"]+)\"[^>]*>", RegexOption.IGNORE_CASE), "<img src=\"$1\" />")
+        s = s.replace(Regex("<img\\s+[^>]*src='([^']+)'[^>]*>", RegexOption.IGNORE_CASE), "<img src=\"$1\" />")
+        // span style → parse color, background, font-family, font-size
+        s = s.replace(Regex("<span\\s+[^>]*style=\"([^\"]+)\"[^>]*>(.*?)</span>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))) { match ->
+            val style = match.groupValues[1]
+            val content = match.groupValues[2]
+            val parts = style.split(";").map { it.trim() }
+            var result = content
+            for (part in parts) {
+                if (part.startsWith("color:", true)) {
+                    val c = part.substringAfter(":").trim()
+                    result = "<color=$c>$result</color>"
+                } else if (part.startsWith("background", true)) {
+                    val c = part.substringAfter(":").trim()
+                    result = "<bg=$c>$result</bg>"
+                } else if (part.startsWith("font-weight:", true)) {
+                    if (part.contains("bold", true)) result = "<b>$result</b>"
+                } else if (part.startsWith("font-style:", true)) {
+                    if (part.contains("italic", true)) result = "<i>$result</i>"
+                } else if (part.startsWith("text-decoration:", true)) {
+                    if (part.contains("underline", true)) result = "<u>$result</u>"
+                    if (part.contains("line-through", true)) result = "<s>$result</s>"
+                } else if (part.startsWith("font-family:", true)) {
+                    val fam = part.substringAfter(":").trim().removeSurrounding("\"").removeSurrounding("'")
+                    result = "<font=$fam>$result</font>"
+                } else if (part.startsWith("font-size:", true)) {
+                    val size = part.substringAfter(":").trim().replace("px", "").replace("pt", "").trim()
+                    result = "<size=$size>$result</size>"
+                }
+            }
+            result
+        }
+        // ordered/unordered lists
+        s = s.replace(Regex("<ol[^>]*>(.*?)</ol>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))) { match ->
+            val items = match.groupValues[1]
+            val lis = items.replace(Regex("<li[^>]*>(.*?)</li>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))) { liMatch ->
+                liMatch.groupValues[1]
+            }
+            "<ol>\n${lis.lines().joinToString("\n") { "  <li>$it</li>" }}\n</ol>"
+        }
+        s = s.replace(Regex("<ul[^>]*>(.*?)</ul>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))) { match ->
+            val items = match.groupValues[1]
+            val lis = items.replace(Regex("<li[^>]*>(.*?)</li>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))) { liMatch ->
+                liMatch.groupValues[1]
+            }
+            "<ul>\n${lis.lines().joinToString("\n") { "  <li>$it</li>" }}\n</ul>"
+        }
+        // clean up extra whitespace
+        s = s.replace(Regex("\\n{3,}"), "\n\n")
+        return s.trim()
     }
 
     // Parse media elements into structured blocks (for rich components, if needed)

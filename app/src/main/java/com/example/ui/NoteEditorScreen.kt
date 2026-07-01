@@ -75,11 +75,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.core.content.FileProvider
 
-sealed interface PreviewItem {
-    data class LegacyAttachment(val attachment: Attachment) : PreviewItem
-    data class MediaTag(val type: String, val src: String) : PreviewItem
-}
-
 sealed interface NoteContentBlock {
     data class TextBlock(
         val parseResult: RichTextParser.ParseResult,
@@ -100,6 +95,9 @@ sealed interface NoteContentBlock {
     data class ImageBlock(val src: String) : NoteContentBlock
     data class VideoBlock(val src: String) : NoteContentBlock
     data class AudioBlock(val src: String) : NoteContentBlock
+    data class DrawingBlock(val jsonPath: String, val previewPath: String) : NoteContentBlock
+    data class VoiceBlock(val path: String) : NoteContentBlock
+    data class FileBlock(val name: String, val path: String) : NoteContentBlock
 }
 
 fun highlightMatches(
@@ -290,6 +288,209 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
     return blocks.ifEmpty { 
         val parseResult = RichTextParser.parseWithMapping(rawText, hideTags = true)
         listOf(NoteContentBlock.TextBlock(parseResult, rawStart = 0))
+    }
+}
+
+fun removeMediaFromContent(text: String, src: String, type: String): String {
+    val tagPattern = when (type) {
+        "image" -> Regex("<img\\s+src=\"${Regex.escape(src)}\"\\s*/>")
+        "video" -> Regex("<video\\s+src=\"${Regex.escape(src)}\"\\s*/>")
+        "audio" -> Regex("<audio\\s+src=\"${Regex.escape(src)}\"\\s*/>")
+        else -> return text
+    }
+    return text.replaceFirst(tagPattern, "")
+}
+
+fun removeAttachmentFromContent(content: String, target: Attachment): String {
+    val (cleanText, currentAttachments) = parseNoteContentAndAttachments(content)
+    val updated = currentAttachments.filter { it != target }
+    return createRawContent(cleanText, updated)
+}
+
+fun buildPreviewBlocks(content: String): List<NoteContentBlock> {
+    val (cleanText, attachments) = parseNoteContentAndAttachments(content)
+    val blocks = parseToContentBlocks(cleanText).toMutableList()
+    attachments.forEach { att ->
+        when (att.type) {
+            "drawing" -> blocks.add(NoteContentBlock.DrawingBlock(jsonPath = att.path, previewPath = att.name))
+            "voice" -> blocks.add(NoteContentBlock.VoiceBlock(path = att.path))
+            else -> blocks.add(NoteContentBlock.FileBlock(name = att.name.ifEmpty { att.path.substringAfterLast('/') }, path = att.path))
+        }
+    }
+    return blocks
+}
+
+@Composable
+fun NoteContentBlockCard(
+    block: NoteContentBlock,
+    content: String,
+    noteId: Int,
+    onDeleteBlock: (NoteContentBlock) -> Unit,
+    onNavigateToMediaViewer: (String, String) -> Unit,
+    onNavigateToDrawing: (Int, String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val deleteIcon: @Composable () -> Unit = {
+        Box(modifier = Modifier.fillMaxSize()) {
+            IconButton(
+                onClick = { onDeleteBlock(block) },
+                modifier = Modifier
+                    .size(28.dp)
+                    .align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remove",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+
+    when (block) {
+        is NoteContentBlock.TextBlock -> {
+            if (block.annotatedString.isNotEmpty()) {
+                Box(modifier = modifier) {
+                    @Suppress("DEPRECATION")
+                    ClickableText(
+                        text = block.annotatedString,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        onClick = {}
+                    )
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.ChecklistItemBlock -> {
+            Box(modifier = modifier) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (block.isChecked) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                        contentDescription = if (block.isChecked) "Checked" else "Unchecked",
+                        tint = if (block.isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 8.dp).size(24.dp)
+                    )
+                    @Suppress("DEPRECATION")
+                    ClickableText(
+                        text = block.text,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = if (block.isChecked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
+                            textDecoration = if (block.isChecked) TextDecoration.LineThrough else null
+                        ),
+                        onClick = {}
+                    )
+                }
+                deleteIcon()
+            }
+        }
+        is NoteContentBlock.ImageBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().heightIn(max = 200.dp).wrapContentHeight(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box {
+                    AsyncImage(
+                        model = block.src,
+                        contentDescription = stringResource(R.string.attachment_image),
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onNavigateToMediaViewer("image", block.src) },
+                        contentScale = ContentScale.FillWidth
+                    )
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.VideoBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().height(200.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)).clickable { onNavigateToMediaViewer("video", block.src) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play Video",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.AudioBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().wrapContentHeight(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box {
+                    AudioPlayerWidget(path = block.src, modifier = Modifier.fillMaxWidth().padding(12.dp))
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.DrawingBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().heightIn(max = 200.dp).wrapContentHeight(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box {
+                    AsyncImage(
+                        model = block.previewPath,
+                        contentDescription = stringResource(R.string.attachment_drawing),
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White)
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                            .clickable { onNavigateToDrawing(noteId, block.jsonPath) },
+                        contentScale = ContentScale.Fit
+                    )
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.VoiceBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().wrapContentHeight(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box {
+                    AudioPlayerWidget(path = block.path, modifier = Modifier.fillMaxWidth().padding(12.dp))
+                    deleteIcon()
+                }
+            }
+        }
+        is NoteContentBlock.FileBlock -> {
+            Card(
+                modifier = modifier.fillMaxWidth().wrapContentHeight(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = stringResource(R.string.attachment_file),
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = block.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    deleteIcon()
+                }
+            }
+        }
     }
 }
 
@@ -556,25 +757,8 @@ fun NoteEditorScreen(
     
     var showPaletteSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
-    
+
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
-    val previewItems = remember(attachments, content) {
-        val items = mutableListOf<PreviewItem>()
-        attachments.forEach { items.add(PreviewItem.LegacyAttachment(it)) }
-        val regex = Regex("<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>")
-        regex.findAll(content).forEach { match ->
-            val tagType = match.groupValues[1]
-            val src = match.groupValues[2]
-            val normType = when (tagType) {
-                "img" -> "image"
-                "video" -> "video"
-                "audio" -> "audio"
-                else -> tagType
-            }
-            items.add(PreviewItem.MediaTag(normType, src))
-        }
-        items
-    }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -826,59 +1010,22 @@ fun NoteEditorScreen(
                     IconButton(onClick = handleSaveAndExit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                    Text(
-                        text = if (noteId == 0) stringResource(id = R.string.btn_new_note) else stringResource(id = R.string.btn_edit),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { isPreviewMode = !isPreviewMode },
-                            modifier = Modifier.testTag("toggle_preview_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
-                                contentDescription = if (isPreviewMode) stringResource(R.string.desc_switch_edit) else stringResource(R.string.desc_switch_preview),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(
-                            onClick = { isPinned = !isPinned },
-                            modifier = Modifier.testTag("pin_note_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                                contentDescription = if (isPinned) stringResource(R.string.tooltip_unpin) else stringResource(R.string.tooltip_pin),
-                                tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = { isFavorite = !isFavorite },
-                            modifier = Modifier.testTag("favorite_note_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,
-                                contentDescription = if (isFavorite) stringResource(R.string.tooltip_unfavorite) else stringResource(R.string.tooltip_favorite),
-                                tint = if (isFavorite) Color(0xFFFBC02D) else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = { isArchived = !isArchived },
-                            modifier = Modifier.testTag("archive_note_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isArchived) Icons.Default.Archive else Icons.Outlined.Archive,
-                                contentDescription = if (isArchived) stringResource(R.string.tooltip_unarchive) else stringResource(R.string.tooltip_archive),
-                                tint = if (isArchived) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = { showMoreSheet = true },
-                            modifier = Modifier.testTag("more_note_btn")
-                        ) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
-                        }
+                    IconButton(
+                        onClick = { isPreviewMode = !isPreviewMode },
+                        modifier = Modifier.testTag("toggle_preview_btn")
+                    ) {
+                        Icon(
+                            imageVector = if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
+                            contentDescription = if (isPreviewMode) stringResource(R.string.desc_switch_edit) else stringResource(R.string.desc_switch_preview),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(
+                        onClick = { showMoreSheet = true },
+                        modifier = Modifier.testTag("more_note_btn")
+                    ) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -896,6 +1043,7 @@ fun NoteEditorScreen(
                 .fillMaxSize()
                 .background(currentBgColor)
                 .padding(innerPadding)
+                .imePadding()
         ) {
             selectedBgImagePath?.let { bgPath ->
                 AsyncImage(
@@ -1041,6 +1189,24 @@ fun NoteEditorScreen(
                     
                     VerticalDivider(modifier = Modifier.height(24.dp))
                     
+                    // Active formatting detection
+                    val activeTextStyles = remember(contentValue) {
+                        val parsed = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
+                        val cursorIndex = contentValue.selection.start
+                        val transformedIndex = parsed.sourceToTransformed.getOrNull(cursorIndex) ?: 0
+                        val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
+                        buildSet {
+                            for (range in parsed.text.spanStyles) {
+                                if (range.start <= targetIndex && targetIndex < range.end) {
+                                    if (range.item.fontWeight == FontWeight.Bold) add("b")
+                                    if (range.item.fontStyle == FontStyle.Italic) add("i")
+                                    if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) add("u")
+                                    if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) add("s")
+                                }
+                            }
+                        }
+                    }
+                    
                     // Bold, Italic, Underline, Strikethrough Helpers
                     val applyTag: (String) -> Unit = { tag ->
                         val selStart = contentValue.selection.start
@@ -1083,7 +1249,7 @@ fun NoteEditorScreen(
                     }
                     
                     FilledTonalIconToggleButton(
-                        checked = false,
+                        checked = "b" in activeTextStyles,
                         onCheckedChange = { applyTag("b") },
                         modifier = Modifier.size(36.dp)
                     ) {
@@ -1091,7 +1257,7 @@ fun NoteEditorScreen(
                     }
                     
                     FilledTonalIconToggleButton(
-                        checked = false,
+                        checked = "i" in activeTextStyles,
                         onCheckedChange = { applyTag("i") },
                         modifier = Modifier.size(36.dp)
                     ) {
@@ -1099,7 +1265,7 @@ fun NoteEditorScreen(
                     }
                     
                     FilledTonalIconToggleButton(
-                        checked = false,
+                        checked = "u" in activeTextStyles,
                         onCheckedChange = { applyTag("u") },
                         modifier = Modifier.size(36.dp)
                     ) {
@@ -1107,7 +1273,7 @@ fun NoteEditorScreen(
                     }
                     
                     FilledTonalIconToggleButton(
-                        checked = false,
+                        checked = "s" in activeTextStyles,
                         onCheckedChange = { applyTag("s") },
                         modifier = Modifier.size(36.dp)
                     ) {
@@ -1451,8 +1617,13 @@ fun NoteEditorScreen(
                                 saveToHistory(importedContent)
                                 Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
                             } else {
-                                val newText = text.substring(0, selStart) + clipText + text.substring(selEnd)
-                                val newCursor = selStart + clipText.length
+                                val converted = if (clipText.trimStart().startsWith("<") || clipText.contains("</")) {
+                                    try { RichTextParser.convertHtmlToSecureNotes(clipText) } catch (e: Exception) { clipText }
+                                } else {
+                                    clipText
+                                }
+                                val newText = text.substring(0, selStart) + converted + text.substring(selEnd)
+                                val newCursor = selStart + converted.length
                                 contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
                                 content = newText
                                 saveToHistory(newText)
@@ -1786,7 +1957,10 @@ fun NoteEditorScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                               // Live dual-pane view (Source Editor on top, parsed live render below)
                 if (isPreviewMode) {
-                    val blocks = remember(content) { parseToContentBlocks(content) }
+                    val currentContentForPreview = remember(content, attachments) {
+                        createRawContent(content.trim(), attachments)
+                    }
+                    val blocks = remember(currentContentForPreview) { buildPreviewBlocks(currentContentForPreview) }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1814,130 +1988,54 @@ fun NoteEditorScreen(
                                     )
                                 } else {
                                     blocks.forEach { block ->
-                                        when (block) {
-                                            is NoteContentBlock.TextBlock -> {
-                                                if (block.annotatedString.isNotEmpty()) {
-                                                    @Suppress("DEPRECATION")
-                                                    ClickableText(
-                                                        text = block.annotatedString,
-                                                        style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                                                        onClick = { offset ->
-                                                            block.annotatedString.getStringAnnotations("URL", offset, offset)
-                                                                .firstOrNull()?.let { annotation ->
-                                                                    val url = annotation.item
-                                                                    clickedUrlAddress = url
-                                                                    clickedUrlAbsoluteOffset = block.rawStart + (block.parseResult.transformedToSource.getOrNull(offset) ?: offset)
-                                                                    showUrlDialog = true
-                                                                }
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                            is NoteContentBlock.ChecklistItemBlock -> {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .clickable {
-                                                            val newContent = toggleNthChecklistItem(content, block.globalIndex)
-                                                            content = newContent
-                                                            contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                                                            saveToHistory(newContent)
-                                                        }
-                                                        .padding(vertical = 4.dp)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = if (block.isChecked) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                                                        contentDescription = if (block.isChecked) "Checked" else "Unchecked",
-                                                        tint = if (block.isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier
-                                                            .padding(end = 8.dp)
-                                                            .size(24.dp)
-                                                    )
-                                                    @Suppress("DEPRECATION")
-                                                    ClickableText(
-                                                        text = block.text,
-                                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                                            color = if (block.isChecked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
-                                                            textDecoration = if (block.isChecked) TextDecoration.LineThrough else null
-                                                        ),
-                                                        onClick = { offset ->
-                                                            block.text.getStringAnnotations("URL", offset, offset)
-                                                                .firstOrNull()?.let { annotation ->
-                                                                    val url = annotation.item
-                                                                    clickedUrlAddress = url
-                                                                    clickedUrlAbsoluteOffset = block.rawStart + (block.parseResult.transformedToSource.getOrNull(offset) ?: offset)
-                                                                    showUrlDialog = true
-                                                                } ?: run {
-                                                                    val newContent = toggleNthChecklistItem(content, block.globalIndex)
-                                                                    content = newContent
-                                                                    contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                                                                    saveToHistory(newContent)
-                                                                }
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                            is NoteContentBlock.ImageBlock -> {
-                                                Card(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .wrapContentHeight()
-                                                        .clickable { onNavigateToMediaViewer("image", block.src) },
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                                ) {
-                                                    AsyncImage(
-                                                        model = block.src,
-                                                        contentDescription = stringResource(R.string.attachment_image),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .clip(RoundedCornerShape(12.dp)),
-                                                        contentScale = ContentScale.FillWidth
-                                                    )
-                                                }
-                                            }
-                                            is NoteContentBlock.VideoBlock -> {
-                                                Card(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(200.dp)
-                                                        .clickable { onNavigateToMediaViewer("video", block.src) },
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.PlayArrow,
-                                                            contentDescription = "Play Video",
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(48.dp)
-                                                        )
+                                        NoteContentBlockCard(
+                                            block = block,
+                                            content = currentContentForPreview,
+                                            noteId = noteId,
+                                            onDeleteBlock = { deletedBlock ->
+                                                when (deletedBlock) {
+                                                    is NoteContentBlock.ImageBlock -> {
+                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "image")
+                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
                                                     }
+                                                    is NoteContentBlock.VideoBlock -> {
+                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "video")
+                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
+                                                    }
+                                                    is NoteContentBlock.AudioBlock -> {
+                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "audio")
+                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
+                                                    }
+                                                    is NoteContentBlock.DrawingBlock -> {
+                                                        val target = attachments.find { it.type == "drawing" && it.path == deletedBlock.jsonPath }
+                                                        if (target != null) {
+                                                            attachments = attachments - target
+                                                            val raw = createRawContent(content.trim(), attachments - target)
+                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                        }
+                                                    }
+                                                    is NoteContentBlock.VoiceBlock -> {
+                                                        val target = attachments.find { it.type == "voice" && it.path == deletedBlock.path }
+                                                        if (target != null) {
+                                                            attachments = attachments - target
+                                                            val raw = createRawContent(content.trim(), attachments - target)
+                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                        }
+                                                    }
+                                                    is NoteContentBlock.FileBlock -> {
+                                                        val target = attachments.find { it.type != "drawing" && it.type != "voice" && it.name == deletedBlock.name }
+                                                        if (target != null) {
+                                                            attachments = attachments - target
+                                                            val raw = createRawContent(content.trim(), attachments - target)
+                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                        }
+                                                    }
+                                                    is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock -> { }
                                                 }
-                                            }
-                                            is NoteContentBlock.AudioBlock -> {
-                                                Card(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .wrapContentHeight(),
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                                ) {
-                                                    AudioPlayerWidget(
-                                                        path = block.src,
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(12.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
+                                            },
+                                            onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                            onNavigateToDrawing = onNavigateToDrawing
+                                        )
                                     }
                                 }
                             }
@@ -2463,171 +2561,7 @@ fun NoteEditorScreen(
                     )
                 }
                 
-                if (previewItems.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        previewItems.forEach { item ->
-                            OutlinedCard(
-                                modifier = Modifier
-                                    .width(160.dp)
-                                    .height(130.dp)
-                                    .clickable {
-                                        when (item) {
-                                            is PreviewItem.LegacyAttachment -> when (item.attachment.type) {
-                                                "drawing" -> onNavigateToDrawing(noteId, item.attachment.path)
-                                                "image" -> onNavigateToMediaViewer("image", item.attachment.path)
-                                                "video" -> onNavigateToMediaViewer("video", item.attachment.path)
-                                            }
-                                            is PreviewItem.MediaTag -> when (item.type) {
-                                                "image" -> onNavigateToMediaViewer("image", item.src)
-                                                "video" -> onNavigateToMediaViewer("video", item.src)
-                                            }
-                                        }
-                                    },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.outlinedCardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                                )
-                            ) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(4.dp),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        when (item) {
-                                            is PreviewItem.LegacyAttachment -> {
-                                                val att = item.attachment
-                                                when (att.type) {
-                                                    "drawing" -> {
-                                                        AsyncImage(
-                                                            model = att.name,
-                                                            contentDescription = stringResource(R.string.attachment_drawing),
-                                                            modifier = Modifier
-                                                                .fillMaxSize()
-                                                                .clip(RoundedCornerShape(8.dp))
-                                                                .background(Color.White)
-                                                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
-                                                            contentScale = ContentScale.Fit
-                                                        )
-                                                    }
-                                                    "voice" -> {
-                                                        AudioPlayerWidget(path = att.path, modifier = Modifier.fillMaxSize())
-                                                    }
-                                                    else -> {
-                                                        Box(
-                                                            modifier = Modifier.fillMaxSize(),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Description,
-                                                                contentDescription = stringResource(R.string.attachment_file),
-                                                                tint = MaterialTheme.colorScheme.secondary,
-                                                                modifier = Modifier.size(36.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            is PreviewItem.MediaTag -> {
-                                                when (item.type) {
-                                                    "image" -> {
-                                                        AsyncImage(
-                                                            model = item.src,
-                                                            contentDescription = stringResource(R.string.attachment_image),
-                                                            modifier = Modifier
-                                                                .fillMaxSize()
-                                                                .clip(RoundedCornerShape(8.dp))
-                                                                .background(Color.White)
-                                                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
-                                                            contentScale = ContentScale.Crop
-                                                        )
-                                                    }
-                                                    "video" -> {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .fillMaxSize()
-                                                                .clip(RoundedCornerShape(8.dp))
-                                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.PlayArrow,
-                                                                contentDescription = "Play Video",
-                                                                tint = MaterialTheme.colorScheme.primary,
-                                                                modifier = Modifier.size(36.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                    "audio" -> {
-                                                        AudioPlayerWidget(path = item.src, modifier = Modifier.fillMaxSize())
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    IconButton(
-                                        onClick = {
-                                            when (item) {
-                                                is PreviewItem.LegacyAttachment -> {
-                                                    attachments = attachments - item.attachment
-                                                    scope.launch {
-                                                        viewModel.saveNote(
-                                                            id = noteId,
-                                                            title = title.trim(),
-                                                            content = createRawContent(contentValue.text.trim(), attachments),
-                                                            isEncrypted = isEncrypted,
-                                                            tagsList = selectedNoteTags,
-                                                            backgroundColor = selectedBgColorId,
-                                                            backgroundImagePath = selectedBgImagePath,
-                                                            isPinned = isPinned,
-                                                            isFavorite = isFavorite,
-                                                            isArchived = isArchived
-                                                        )
-                                                    }
-                                                }
-                                                is PreviewItem.MediaTag -> {
-                                                    val oldText = contentValue.text
-                                                    val tagPattern = when (item.type) {
-                                                        "image" -> "<img\\s+src=\"${Regex.escape(item.src)}\"\\s*/>"
-                                                        "video" -> "<video\\s+src=\"${Regex.escape(item.src)}\"\\s*/>"
-                                                        "audio" -> "<audio\\s+src=\"${Regex.escape(item.src)}\"\\s*/>"
-                                                        else -> ""
-                                                    }
-                                                    if (tagPattern.isNotEmpty()) {
-                                                        val newText = oldText.replaceFirst(Regex(tagPattern), "")
-                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                        content = newText
-                                                        saveToHistory(newText)
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .align(Alignment.TopEnd)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = stringResource(R.string.attachment_remove),
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+
             }
 
             // Bottom floating toolbar
@@ -3009,6 +2943,37 @@ fun NoteEditorScreen(
                         }
                     }
                     
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    OutlinedCard(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth().clickable { isPinned = !isPinned }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin, contentDescription = null, tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text = stringResource(if (isPinned) R.string.tooltip_unpin else R.string.tooltip_pin), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Switch(checked = isPinned, onCheckedChange = { isPinned = it })
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                            Row(modifier = Modifier.fillMaxWidth().clickable { isFavorite = !isFavorite }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star, contentDescription = null, tint = if (isFavorite) Color(0xFFFBC02D) else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text = stringResource(if (isFavorite) R.string.tooltip_unfavorite else R.string.tooltip_favorite), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Switch(checked = isFavorite, onCheckedChange = { isFavorite = it })
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                            Row(modifier = Modifier.fillMaxWidth().clickable { isArchived = !isArchived }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = if (isArchived) Icons.Default.Archive else Icons.Outlined.Archive, contentDescription = null, tint = if (isArchived) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text = stringResource(if (isArchived) R.string.tooltip_unarchive else R.string.tooltip_archive), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Switch(checked = isArchived, onCheckedChange = { isArchived = it })
+                            }
+                        }
+                    }
+                    
                     // SHARE section
                     Text(
                         text = stringResource(id = R.string.option_share),
@@ -3069,8 +3034,8 @@ fun NoteEditorScreen(
                         Button(
                             onClick = {
                                 originalNote?.let {
-                                    viewModel.deleteNote(it)
-                                    Toast.makeText(context, context.getString(R.string.toast_note_deleted), Toast.LENGTH_SHORT).show()
+                                    viewModel.moveToTrash(it)
+                                    Toast.makeText(context, context.getString(R.string.toast_moved_trash), Toast.LENGTH_SHORT).show()
                                     showMoreSheet = false
                                     onBack()
                                 }
