@@ -17,7 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Star
@@ -48,6 +48,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.speech.tts.TextToSpeech
+import androidx.lifecycle.viewModelScope
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import java.io.File
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
+
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
@@ -68,8 +70,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import com.example.util.RichTextParser
 import com.example.util.MediaBlock
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.automirrored.filled.Redo
+
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.core.content.FileProvider
@@ -1484,7 +1485,7 @@ fun NoteEditorScreen(
                     // Bulleted List Button
                     IconButton(onClick = { applyListTag("ul") }) {
                         Icon(
-                            imageVector = Icons.Default.FormatListBulleted,
+                            imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
                             contentDescription = stringResource(id = R.string.rich_bulleted_list),
                             modifier = Modifier.size(20.dp)
                         )
@@ -1493,7 +1494,7 @@ fun NoteEditorScreen(
                     // Checklist Button
                     IconButton(onClick = { applyListTag("cl") }) {
                         Icon(
-                            imageVector = Icons.Default.FactCheck,
+                            imageVector = Icons.AutoMirrored.Filled.FactCheck,
                             contentDescription = stringResource(id = R.string.rich_checklist),
                             modifier = Modifier.size(20.dp)
                         )
@@ -1520,7 +1521,7 @@ fun NoteEditorScreen(
                     // Increase Indent Button
                     IconButton(onClick = { applyTag("indent") }) {
                         Icon(
-                            imageVector = Icons.Default.FormatIndentIncrease,
+                            imageVector = Icons.AutoMirrored.Filled.FormatIndentIncrease,
                             contentDescription = stringResource(id = R.string.rich_increase_indent),
                             modifier = Modifier.size(20.dp)
                         )
@@ -1529,7 +1530,7 @@ fun NoteEditorScreen(
                     // Decrease Indent Button
                     IconButton(onClick = { decreaseIndent() }) {
                         Icon(
-                            imageVector = Icons.Default.FormatIndentDecrease,
+                            imageVector = Icons.AutoMirrored.Filled.FormatIndentDecrease,
                             contentDescription = stringResource(id = R.string.rich_decrease_indent),
                             modifier = Modifier.size(20.dp)
                         )
@@ -1816,6 +1817,7 @@ fun NoteEditorScreen(
                                         when (block) {
                                             is NoteContentBlock.TextBlock -> {
                                                 if (block.annotatedString.isNotEmpty()) {
+                                                    @Suppress("DEPRECATION")
                                                     ClickableText(
                                                         text = block.annotatedString,
                                                         style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
@@ -1852,6 +1854,7 @@ fun NoteEditorScreen(
                                                             .padding(end = 8.dp)
                                                             .size(24.dp)
                                                     )
+                                                    @Suppress("DEPRECATION")
                                                     ClickableText(
                                                         text = block.text,
                                                         style = MaterialTheme.typography.bodyLarge.copy(
@@ -2396,7 +2399,7 @@ fun NoteEditorScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.OpenInNew,
+                                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -2679,7 +2682,7 @@ fun NoteEditorScreen(
                         modifier = Modifier.testTag("tts_toolbar_btn")
                     ) {
                         Icon(
-                            imageVector = if (isSpeaking) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
                             tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )

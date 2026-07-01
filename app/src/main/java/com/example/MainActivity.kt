@@ -40,7 +40,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -88,7 +88,7 @@ sealed class Screen {
     object CloudSync : Screen()
     object PrivacySettings : Screen()
     object Search : Screen()
-    data class MediaViewer(val type: String, val src: String, val noteId: Int) : Screen()
+    data class MediaViewer(val type: String, val src: String, val previousScreen: Screen) : Screen()
 }
 
 enum class SortOption {
@@ -209,21 +209,21 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings },
                     onNavigateToSearch = { currentScreen = Screen.Search },
                     onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, 0) }
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
                 )
                 is Screen.Search -> SearchScreen(
                     viewModel = viewModel,
                     onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
                     onBack = { currentScreen = Screen.MainList },
                     onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, 0) }
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
                 )
                 is Screen.NoteEditor -> NoteEditorScreen(
                     noteId = screen.noteId,
                     viewModel = viewModel,
                     onBack = { currentScreen = Screen.MainList },
                     onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, screen.noteId) }
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
                 )
                 is Screen.DrawingCanvas -> DrawingCanvasScreen(
                     noteId = screen.noteId,
@@ -242,8 +242,7 @@ fun AppMainContent(viewModel: NotesViewModel) {
                 is Screen.MediaViewer -> MediaViewerScreen(
                     type = screen.type,
                     src = screen.src,
-                    noteId = screen.noteId,
-                    onBack = { currentScreen = Screen.MainList }
+                    onBack = { currentScreen = screen.previousScreen },
                 )
             }
         }
@@ -390,7 +389,7 @@ fun NavigationRailContent(
                         .testTag("toggle_rail_btn_rail")
                 ) {
                     Icon(
-                        imageVector = if (isExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
+                        imageVector = if (isExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
                         contentDescription = stringResource(R.string.toggle_navigation_rail)
                     )
                 }
@@ -552,7 +551,7 @@ fun SettingsView(
                     val isLargeScreen = configuration.screenWidthDp >= 600
                     IconButton(onClick = onToggleRail) {
                         Icon(
-                            imageVector = if (isLargeScreen && isNavExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
+                            imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
                             contentDescription = stringResource(R.string.toggle_navigation_rail)
                         )
                     }
@@ -1143,7 +1142,7 @@ fun MainListScreen(
                                             modifier = Modifier.testTag("batch_tag_btn")
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Label,
+                                                imageVector = Icons.AutoMirrored.Filled.Label,
                                                 contentDescription = stringResource(id = R.string.menu_batch_tag),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1197,7 +1196,7 @@ fun MainListScreen(
                                                 modifier = Modifier.testTag("toggle_rail_btn")
                                             ) {
                                                 Icon(
-                                                    imageVector = if (isLargeScreen && isNavExtended) Icons.Default.MenuOpen else Icons.Default.Menu,
+                                                    imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
                                                     contentDescription = stringResource(R.string.toggle_navigation_rail)
                                                 )
                                             }
@@ -1244,7 +1243,7 @@ fun MainListScreen(
                                                 modifier = Modifier.testTag("toggle_view_mode_btn")
                                             ) {
                                                 Icon(
-                                                    imageVector = if (isGridView) Icons.Default.FormatListBulleted else Icons.Default.GridView,
+                                                    imageVector = if (isGridView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.GridView,
                                                     contentDescription = stringResource(id = R.string.menu_toggle_view),
                                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -1255,7 +1254,7 @@ fun MainListScreen(
                                                 modifier = Modifier.testTag("sort_options_btn")
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Sort,
+                                                    imageVector = Icons.AutoMirrored.Filled.Sort,
                                                     contentDescription = stringResource(id = R.string.menu_sort_options),
                                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -3095,7 +3094,9 @@ fun ShareFormatSheet(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Article, contentDescription = "PDF Icon", tint = MaterialTheme.colorScheme.primary)
+                    @Suppress("DEPRECATION")
+                    val articleIcon = Icons.Default.Article
+                    Icon(articleIcon, contentDescription = "PDF Icon", tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_pdf),
