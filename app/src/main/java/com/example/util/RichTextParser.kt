@@ -79,7 +79,7 @@ object RichTextParser {
     }
 
     // Single-pass parsing that returns styled AnnotatedString and offset mappings
-    fun parseWithMapping(rawText: String, hideTags: Boolean): ParseResult {
+    fun parseWithMapping(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false): ParseResult {
         val N = rawText.length
         
         // If it's JSON, colorize and keep full identity mapping
@@ -94,6 +94,21 @@ object RichTextParser {
         val builder = AnnotatedString.Builder()
         val sourceToTransformed = IntArray(N + 1) { -1 }
         val transformedToSourceList = ArrayList<Int>(N)
+
+        fun skipOrGrayTagChars(start: Int, end: Int) {
+            if (showTagsGray) {
+                for (k in start until end) {
+                    transformedToSourceList.add(k)
+                    sourceToTransformed[k] = builder.length
+                    builder.append(rawText[k])
+                }
+                builder.addStyle(SpanStyle(color = Color(0xFF9E9E9E)), builder.length - (end - start), builder.length)
+            } else {
+                for (k in start until end) {
+                    sourceToTransformed[k] = builder.length
+                }
+            }
+        }
 
         // Stack to track active SpanStyles and their start indices in the transformed text
         data class ActiveStyle(val type: String, val style: SpanStyle, val start: Int, val annotation: String? = null)
@@ -126,13 +141,11 @@ object RichTextParser {
             val char = rawText[i]
 
             // 1. Detect Markdown line-start structures (Headers, Lists, Quotes)
-            if (isLineStart && hideTags) {
+            if (isLineStart && (hideTags || showTagsGray)) {
                 // Check for H3: "### "
                 if (rawText.startsWith("### ", i)) {
                     val tagEnd = i + 4
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
-                    }
+                    skipOrGrayTagChars(i, tagEnd)
                     startStyle("h3", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFFE65100)))
                     i = tagEnd
                     isLineStart = false
@@ -141,9 +154,7 @@ object RichTextParser {
                 // Check for H2: "## "
                 if (rawText.startsWith("## ", i)) {
                     val tagEnd = i + 3
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
-                    }
+                    skipOrGrayTagChars(i, tagEnd)
                     startStyle("h2", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFF57C00)))
                     i = tagEnd
                     isLineStart = false
@@ -152,9 +163,7 @@ object RichTextParser {
                 // Check for H1: "# "
                 if (rawText.startsWith("# ", i)) {
                     val tagEnd = i + 2
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
-                    }
+                    skipOrGrayTagChars(i, tagEnd)
                     startStyle("h1", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFFB8C00)))
                     i = tagEnd
                     isLineStart = false
@@ -163,9 +172,7 @@ object RichTextParser {
                 // Check for Blockquote: "> "
                 if (rawText.startsWith("> ", i)) {
                     val tagEnd = i + 2
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
-                    }
+                    skipOrGrayTagChars(i, tagEnd)
                     startStyle("quote", SpanStyle(fontStyle = FontStyle.Italic, color = Color(0xFF546E7A)))
                     i = tagEnd
                     isLineStart = false
@@ -174,22 +181,26 @@ object RichTextParser {
                 // Check for Checklists: "- [ ] " or "- [x] " / "* [ ] " or "* [x] "
                 if (rawText.startsWith("- [ ] ", i) || rawText.startsWith("* [ ] ", i)) {
                     val tagEnd = i + 6
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
+                    if (showTagsGray) {
+                        skipOrGrayTagChars(i, tagEnd)
+                    } else {
+                        skipOrGrayTagChars(i, tagEnd)
+                        transformedToSourceList.add(i)
+                        builder.append("☐ ")
                     }
-                    transformedToSourceList.add(i)
-                    builder.append("☐ ")
                     i = tagEnd
                     isLineStart = false
                     continue
                 }
                 if (rawText.startsWith("- [x] ", i) || rawText.startsWith("* [x] ", i) || rawText.startsWith("- [X] ", i) || rawText.startsWith("* [X] ", i)) {
                     val tagEnd = i + 6
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
+                    if (showTagsGray) {
+                        skipOrGrayTagChars(i, tagEnd)
+                    } else {
+                        skipOrGrayTagChars(i, tagEnd)
+                        transformedToSourceList.add(i)
+                        builder.append("☑ ")
                     }
-                    transformedToSourceList.add(i)
-                    builder.append("☑ ")
                     i = tagEnd
                     isLineStart = false
                     continue
@@ -197,11 +208,13 @@ object RichTextParser {
                 // Check for bullet list: "- " or "* "
                 if (rawText.startsWith("- ", i) || rawText.startsWith("* ", i)) {
                     val tagEnd = i + 2
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
+                    if (showTagsGray) {
+                        skipOrGrayTagChars(i, tagEnd)
+                    } else {
+                        skipOrGrayTagChars(i, tagEnd)
+                        transformedToSourceList.add(i)
+                        builder.append("• ")
                     }
-                    transformedToSourceList.add(i)
-                    builder.append("• ")
                     i = tagEnd
                     isLineStart = false
                     continue
@@ -211,11 +224,13 @@ object RichTextParser {
                 if (numListMatch != null) {
                     val tagLen = numListMatch.value.length
                     val tagEnd = i + tagLen
-                    for (k in i until tagEnd) {
-                        sourceToTransformed[k] = builder.length
+                    if (showTagsGray) {
+                        skipOrGrayTagChars(i, tagEnd)
+                    } else {
+                        skipOrGrayTagChars(i, tagEnd)
+                        transformedToSourceList.add(i)
+                        builder.append(numListMatch.value)
                     }
-                    transformedToSourceList.add(i)
-                    builder.append(numListMatch.value)
                     i = tagEnd
                     isLineStart = false
                     continue
@@ -223,13 +238,14 @@ object RichTextParser {
             }
 
             // 2. Detect inline HTML tags: starting with "<"
-            if (char == '<' && hideTags) {
+            if (char == '<' && (hideTags || showTagsGray)) {
                 val closeIdx = rawText.indexOf('>', i)
                 if (closeIdx != -1) {
                     val tagContent = rawText.substring(i + 1, closeIdx).trim()
                     val lowerTag = tagContent.lowercase()
                     
                     var isValidHtmlTag = false
+                    var tagRendered = false
                     if (lowerTag.startsWith("/")) {
                         val endTagName = lowerTag.substring(1)
                         if (endTagName in listOf("b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font", "size", "h1", "h2", "h3", "normal", "sub", "sup", "indent", "url", "ol", "ul", "cl", "img", "video", "audio")) {
@@ -330,31 +346,41 @@ object RichTextParser {
                                 isValidHtmlTag = true
                             }
                             "indent" -> {
-                                transformedToSourceList.add(i)
-                                builder.append("    ")
+                                if (!showTagsGray) {
+                                    transformedToSourceList.add(i)
+                                    builder.append("    ")
+                                }
                                 isValidHtmlTag = true
                             }
                             "li" -> {
-                                transformedToSourceList.add(i)
-                                if (listContainerStack.lastOrNull() == "ol" && olIndexStack.isNotEmpty()) {
-                                    val idx = olIndexStack.last()
-                                    builder.append("$idx. ")
-                                    olIndexStack[olIndexStack.lastIndex] = idx + 1
-                                } else {
-                                    builder.append("• ")
+                                if (!showTagsGray) {
+                                    transformedToSourceList.add(i)
+                                    if (listContainerStack.lastOrNull() == "ol" && olIndexStack.isNotEmpty()) {
+                                        val idx = olIndexStack.last()
+                                        builder.append("$idx. ")
+                                        olIndexStack[olIndexStack.lastIndex] = idx + 1
+                                    } else {
+                                        builder.append("• ")
+                                    }
                                 }
                                 isValidHtmlTag = true
                             }
                             "item" -> {
-                                transformedToSourceList.add(i)
-                                val isChecked = tagValue?.lowercase()?.contains("true") == true
-                                builder.append(if (isChecked) "☑ " else "☐ ")
+                                if (!showTagsGray) {
+                                    transformedToSourceList.add(i)
+                                    val isChecked = tagValue?.lowercase()?.contains("true") == true
+                                    builder.append(if (isChecked) "☑ " else "☐ ")
+                                }
                                 isValidHtmlTag = true
                             }
                         }
 
                         if (style != null || tagName in listOf("b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font", "size", "h1", "h2", "h3", "normal", "sub", "sup", "ol", "ul", "cl", "indent", "li", "item", "url", "img", "video", "audio")) {
                             if (style != null) {
+                                if (showTagsGray) {
+                                    skipOrGrayTagChars(i, closeIdx + 1)
+                                    tagRendered = true
+                                }
                                 val annot = if (tagName == "url") tagValue else null
                                 startStyle(tagName, style, annot)
                             }
@@ -363,8 +389,8 @@ object RichTextParser {
                     }
 
                     if (isValidHtmlTag) {
-                        for (k in i..closeIdx) {
-                            sourceToTransformed[k] = builder.length
+                        if (!tagRendered) {
+                            skipOrGrayTagChars(i, closeIdx + 1)
                         }
                         i = closeIdx + 1
                         continue
@@ -373,65 +399,113 @@ object RichTextParser {
             }
 
             // 3. Detect inline markdown markers: bold, italic, strikethrough, inline-code, links
-            if (hideTags) {
+            if (hideTags || showTagsGray) {
                 // Markdown link: [text](url)
                 val linkMatch = Regex("^\\[([^\\]]*)\\]\\(([^\\)]+)\\)").find(rawText.substring(i))
                 if (linkMatch != null) {
                     val full = linkMatch.value
                     val display = linkMatch.groupValues[1]
                     val url = linkMatch.groupValues[2]
-                    for (k in i until i + full.length) {
-                        sourceToTransformed[k] = builder.length
+                    if (showTagsGray) {
+                        // Render [ in gray
+                        skipOrGrayTagChars(i, i + 1)
+                        // Render display text in link style
+                        val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+                        startStyle("url", linkStyle, annotation = url)
+                        transformedToSourceList.add(i + 1)
+                        builder.append(display)
+                        endStyle("url")
+                        // Render ](url) in gray
+                        skipOrGrayTagChars(i + 1 + display.length, i + full.length)
+                    } else {
+                        for (k in i until i + full.length) {
+                            sourceToTransformed[k] = builder.length
+                        }
+                        val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+                        startStyle("url", linkStyle, annotation = url)
+                        transformedToSourceList.add(i)
+                        builder.append(display)
+                        endStyle("url")
                     }
-                    // Render the display text with url annotation
-                    val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
-                    startStyle("url", linkStyle, annotation = url)
-                    transformedToSourceList.add(i)
-                    builder.append(display)
-                    endStyle("url")
                     i += full.length
                     continue
                 }
                 // Bold "**" or "__"
                 if (rawText.startsWith("**", i) || rawText.startsWith("__", i)) {
                     val marker = rawText.substring(i, i + 2)
-                    for (k in i until i + 2) {
-                        sourceToTransformed[k] = builder.length
-                    }
                     val isActive = activeStyles.any { it.type == marker }
-                    if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(fontWeight = FontWeight.Bold))
+                    if (showTagsGray) {
+                        if (isActive) {
+                            endStyle(marker)
+                            skipOrGrayTagChars(i, i + 2)
+                        } else {
+                            skipOrGrayTagChars(i, i + 2)
+                            startStyle(marker, SpanStyle(fontWeight = FontWeight.Bold))
+                        }
+                    } else {
+                        skipOrGrayTagChars(i, i + 2)
+                        if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(fontWeight = FontWeight.Bold))
+                    }
                     i += 2
                     continue
                 }
                 // Italic "*" or "_"
                 if (char == '*' || char == '_') {
                     val marker = char.toString()
-                    sourceToTransformed[i] = builder.length
                     val isActive = activeStyles.any { it.type == marker }
-                    if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(fontStyle = FontStyle.Italic))
+                    if (showTagsGray) {
+                        if (isActive) {
+                            endStyle(marker)
+                            skipOrGrayTagChars(i, i + 1)
+                        } else {
+                            skipOrGrayTagChars(i, i + 1)
+                            startStyle(marker, SpanStyle(fontStyle = FontStyle.Italic))
+                        }
+                    } else {
+                        skipOrGrayTagChars(i, i + 1)
+                        if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(fontStyle = FontStyle.Italic))
+                    }
                     i += 1
                     continue
                 }
                 // Strikethrough "~~"
                 if (rawText.startsWith("~~", i)) {
-                    for (k in i until i + 2) {
-                        sourceToTransformed[k] = builder.length
-                    }
                     val marker = "~~"
                     val isActive = activeStyles.any { it.type == marker }
-                    if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(textDecoration = TextDecoration.LineThrough))
+                    if (showTagsGray) {
+                        if (isActive) {
+                            endStyle(marker)
+                            skipOrGrayTagChars(i, i + 2)
+                        } else {
+                            skipOrGrayTagChars(i, i + 2)
+                            startStyle(marker, SpanStyle(textDecoration = TextDecoration.LineThrough))
+                        }
+                    } else {
+                        skipOrGrayTagChars(i, i + 2)
+                        if (isActive) endStyle(marker) else startStyle(marker, SpanStyle(textDecoration = TextDecoration.LineThrough))
+                    }
                     i += 2
                     continue
                 }
                 // Inline Code "`"
                 if (char == '`') {
-                    sourceToTransformed[i] = builder.length
                     val marker = "`"
                     val isActive = activeStyles.any { it.type == marker }
-                    if (isActive) {
-                        endStyle(marker)
+                    if (showTagsGray) {
+                        if (isActive) {
+                            endStyle(marker)
+                            skipOrGrayTagChars(i, i + 1)
+                        } else {
+                            skipOrGrayTagChars(i, i + 1)
+                            startStyle(marker, SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFFE91E63)))
+                        }
                     } else {
-                        startStyle(marker, SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFFE91E63)))
+                        skipOrGrayTagChars(i, i + 1)
+                        if (isActive) {
+                            endStyle(marker)
+                        } else {
+                            startStyle(marker, SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFFE91E63)))
+                        }
                     }
                     i += 1
                     continue
@@ -445,7 +519,7 @@ object RichTextParser {
 
             if (char == '\n') {
                 isLineStart = true
-                if (hideTags) {
+                if (hideTags || showTagsGray) {
                     endStyle("h1")
                     endStyle("h2")
                     endStyle("h3")
@@ -527,8 +601,8 @@ object RichTextParser {
     }
 
     // Keep legacy parse method for other files or parts of code that use it, ensuring compatibility
-    fun parse(rawText: String, hideTags: Boolean): AnnotatedString {
-        return parseWithMapping(rawText, hideTags).text
+    fun parse(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false): AnnotatedString {
+        return parseWithMapping(rawText, hideTags, showTagsGray).text
     }
 
     // ──────────────────────────────────────────────

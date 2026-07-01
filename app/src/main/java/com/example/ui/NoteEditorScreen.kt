@@ -2044,7 +2044,7 @@ fun NoteEditorScreen(
                 } else {
                     val visualTransformation = remember(searchQuery, searchCaseSensitive, searchFullWord, currentMatchIndex, isSearchActive) {
                         VisualTransformation { text ->
-                            val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = true)
+                            val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = false, showTagsGray = true)
                             val annotated = if (isSearchActive && searchQuery.isNotEmpty()) {
                                 highlightMatches(
                                     annotatedString = parseResult.text,
