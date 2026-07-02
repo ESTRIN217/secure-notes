@@ -98,69 +98,50 @@ enum class SortOption {
     CUSTOM
 }
 
-private fun moveNoteUp(noteId: Int, notesList: List<DecryptedNote>, context: Context) {
-    val prefs = context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE)
-    val customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
-    val currentIds = if (customOrderStr.isNotEmpty()) {
-        customOrderStr.split(",").mapNotNull { it.toIntOrNull() }.toMutableList()
-    } else {
-        notesList.map { it.note.id }.toMutableList()
-    }
-    
-    if (!currentIds.contains(noteId)) {
-        currentIds.add(noteId)
-    }
-    
-    val index = currentIds.indexOf(noteId)
-    if (index > 0) {
-        val temp = currentIds[index]
-        currentIds[index] = currentIds[index - 1]
-        currentIds[index - 1] = temp
-        prefs.edit().putString("custom_order_ids", currentIds.joinToString(",")).apply()
-    }
-}
+private enum class MoveDirection { UP, DOWN }
 
-private fun moveNoteDown(noteId: Int, notesList: List<DecryptedNote>, context: Context) {
-    val prefs = context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE)
-    val customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+private fun reorderNote(noteId: Int, direction: MoveDirection, notesList: List<DecryptedNote>, context: Context) {
+    val prefs = context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+    val customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
     val currentIds = if (customOrderStr.isNotEmpty()) {
         customOrderStr.split(",").mapNotNull { it.toIntOrNull() }.toMutableList()
     } else {
         notesList.map { it.note.id }.toMutableList()
     }
-    
-    if (!currentIds.contains(noteId)) {
-        currentIds.add(noteId)
-    }
-    
+
+    if (!currentIds.contains(noteId)) currentIds.add(noteId)
+
     val index = currentIds.indexOf(noteId)
-    if (index >= 0 && index < currentIds.size - 1) {
-        val temp = currentIds[index]
-        currentIds[index] = currentIds[index + 1]
-        currentIds[index + 1] = temp
-        prefs.edit().putString("custom_order_ids", currentIds.joinToString(",")).apply()
+    val swapIndex = when (direction) {
+        MoveDirection.UP -> if (index > 0) index - 1 else return
+        MoveDirection.DOWN -> if (index in 0 until currentIds.size - 1) index + 1 else return
     }
+
+    val temp = currentIds[index]
+    currentIds[index] = currentIds[swapIndex]
+    currentIds[swapIndex] = temp
+    prefs.edit().putString(AppConstants.CUSTOM_ORDER_KEY, currentIds.joinToString(",")).apply()
 }
 
 private fun swapNotes(id1: Int, id2: Int, notesList: List<DecryptedNote>, context: Context) {
-    val prefs = context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE)
-    val customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+    val prefs = context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+    val customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
     val currentIds = if (customOrderStr.isNotEmpty()) {
         customOrderStr.split(",").mapNotNull { it.toIntOrNull() }.toMutableList()
     } else {
         notesList.map { it.note.id }.toMutableList()
     }
-    
+
     if (!currentIds.contains(id1)) currentIds.add(id1)
     if (!currentIds.contains(id2)) currentIds.add(id2)
-    
+
     val idx1 = currentIds.indexOf(id1)
     val idx2 = currentIds.indexOf(id2)
     if (idx1 != -1 && idx2 != -1) {
         val temp = currentIds[idx1]
         currentIds[idx1] = currentIds[idx2]
         currentIds[idx2] = temp
-        prefs.edit().putString("custom_order_ids", currentIds.joinToString(",")).apply()
+        prefs.edit().putString(AppConstants.CUSTOM_ORDER_KEY, currentIds.joinToString(",")).apply()
     }
 }
 
@@ -937,7 +918,7 @@ fun MainListScreen(
     val isDarkMode by viewModel.isDarkMode.collectAsState()
 
     val context = LocalContext.current
-    val prefs = remember(context) { context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE) }
+    val prefs = remember(context) { context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE) }
     
     var isGridView by remember { 
         mutableStateOf(prefs.getBoolean("is_grid_view", false)) 
@@ -949,7 +930,7 @@ fun MainListScreen(
     }
     
     var customOrderStr by remember {
-        mutableStateOf(prefs.getString("custom_order_ids", "") ?: "")
+        mutableStateOf(prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
     }
     
     var showSortBottomSheet by remember { mutableStateOf(false) }
@@ -1572,7 +1553,7 @@ fun MainListScreen(
                                                             }
                                                             
                                                             if (swapped) {
-                                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                                customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
                                                             }
                                                         }
                                                     }
@@ -1604,12 +1585,12 @@ fun MainListScreen(
                                                 onNavigateToDrawing = onNavigateToDrawing,
                                                 onNavigateToMediaViewer = onNavigateToMediaViewer,
                                                 onMoveUp = {
-                                                    moveNoteUp(decryptedNote.note.id, sortedNotes, context)
-                                                    customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                    reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
+                                                    customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
                                                 },
                                                 onMoveDown = {
-                                                    moveNoteDown(decryptedNote.note.id, sortedNotes, context)
-                                                    customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                    reorderNote(decryptedNote.note.id, MoveDirection.DOWN, sortedNotes, context)
+                                                    customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
                                                 },
                                                 onToggleFavorite = { viewModel.toggleFavorite(decryptedNote.note) },
                                                 onToggleArchive = { viewModel.toggleArchive(decryptedNote.note) },
@@ -1665,12 +1646,12 @@ fun MainListScreen(
                                             onNavigateToDrawing = onNavigateToDrawing,
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
                                             onMoveUp = {
-                                                moveNoteUp(decryptedNote.note.id, sortedNotes, context)
-                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
+                                                customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
                                             },
                                             onMoveDown = {
-                                                moveNoteDown(decryptedNote.note.id, sortedNotes, context)
-                                                customOrderStr = prefs.getString("custom_order_ids", "") ?: ""
+                                                reorderNote(decryptedNote.note.id, MoveDirection.DOWN, sortedNotes, context)
+                                                customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
                                             },
                                             onToggleFavorite = { viewModel.toggleFavorite(decryptedNote.note) },
                                             onToggleArchive = { viewModel.toggleArchive(decryptedNote.note) },
@@ -3447,7 +3428,7 @@ fun SearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val context = LocalContext.current
-    val prefs = remember(context) { context.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE) }
+    val prefs = remember(context) { context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE) }
     
     val isGridView = remember { prefs.getBoolean("is_grid_view", false) }
     

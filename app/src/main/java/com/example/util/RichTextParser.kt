@@ -609,6 +609,19 @@ object RichTextParser {
     // Conversion utilities for export/import
     // ──────────────────────────────────────────────
 
+    private data class TagTransform(
+        val regex: Regex,
+        val transform: (MatchResult) -> String
+    )
+
+    private fun applyTransforms(input: String, transforms: List<TagTransform>): String {
+        var s = input
+        for (t in transforms) {
+            s = s.replace(t.regex, t.transform)
+        }
+        return s
+    }
+
     /** Strip all internal custom tags, leaving plain text. */
     fun stripTags(raw: String): String {
         return raw
@@ -619,115 +632,104 @@ object RichTextParser {
 
     /** Convert internal custom tags to Markdown. */
     fun convertToMarkdown(raw: String): String {
-        var s = raw
-        // headings
-        s = s.replace(Regex("<h1>(.*?)</h1>"), "# $1")
-        s = s.replace(Regex("<h2>(.*?)</h2>"), "## $1")
-        s = s.replace(Regex("<h3>(.*?)</h3>"), "### $1")
-        // basic formatting
-        s = s.replace(Regex("<b>(.*?)</b>"), "**$1**")
-        s = s.replace(Regex("<i>(.*?)</i>"), "*$1*")
-        s = s.replace(Regex("<s>(.*?)</s>"), "~~$1~~")
-        s = s.replace(Regex("<u>(.*?)</u>"), "<ins>$1</ins>")
-        s = s.replace(Regex("<code>(.*?)</code>"), "`$1`")
-        s = s.replace(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL), "\n```\n$1\n```\n")
-        s = s.replace(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1].lines().joinToString("\n") { "> $it" }
-        }
-        // url
-        s = s.replace(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { match ->
-            val url = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
-            val text = match.groupValues[2]
-            if (url == text) url else "[$text]($url)"
-        }
-        // font color
-        s = s.replace(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { match ->
-            val color = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
-            "<span style=\"color:$color\">${match.groupValues[2]}</span>"
-        }
-        // bg color
-        s = s.replace(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { match ->
-            val color = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
-            "<span style=\"background:$color\">${match.groupValues[2]}</span>"
-        }
-        // ordered list
-        s = s.replace(Regex("<ol>\\s*(.*?)\\s*</ol>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1].lines().withIndex().joinToString("\n") { (i, line) ->
-                "${i + 1}. ${line.replace(Regex("</?li>"), "").trim()}"
-            }
-        }
-        // unordered list
-        s = s.replace(Regex("<ul>\\s*(.*?)\\s*</ul>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1].lines().joinToString("\n") { line ->
-                "- ${line.replace(Regex("</?li>"), "").trim()}"
-            }
-        }
-        // checklist
-        s = s.replace(Regex("<cl>\\s*(.*?)\\s*</cl>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1].lines().joinToString("\n") { line ->
-                val checked = line.contains("checked=\"true\"")
-                val content = line.replace(Regex("<[^>]+>"), "").trim()
-                "- [${if (checked) "x" else " "}] $content"
-            }
-        }
-        // inline media
-        s = s.replace(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>"), "![image]($1)")
-        s = s.replace(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>"), "!video[video]($1)")
-        s = s.replace(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>"), "!audio[audio]($1)")
-        // remaining tags: strip anything unhandled
-        s = s.replace(Regex("<[^>]+>"), "")
-        return s
+        return applyTransforms(raw, listOf(
+            TagTransform(Regex("<h1>(.*?)</h1>")) { "# ${it.groupValues[1]}" },
+            TagTransform(Regex("<h2>(.*?)</h2>")) { "## ${it.groupValues[1]}" },
+            TagTransform(Regex("<h3>(.*?)</h3>")) { "### ${it.groupValues[1]}" },
+            TagTransform(Regex("<b>(.*?)</b>")) { "**${it.groupValues[1]}**" },
+            TagTransform(Regex("<i>(.*?)</i>")) { "*${it.groupValues[1]}*" },
+            TagTransform(Regex("<s>(.*?)</s>")) { "~~${it.groupValues[1]}~~" },
+            TagTransform(Regex("<u>(.*?)</u>")) { "<ins>${it.groupValues[1]}</ins>" },
+            TagTransform(Regex("<code>(.*?)</code>")) { "`${it.groupValues[1]}`" },
+            TagTransform(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL)) { "\n```\n${it.groupValues[1]}\n```\n" },
+            TagTransform(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL)) {
+                it.groupValues[1].lines().joinToString("\n") { line -> "> $line" }
+            },
+            TagTransform(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { m ->
+                val url = m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+                val text = m.groupValues[2]
+                if (url == text) url else "[$text]($url)"
+            },
+            TagTransform(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { m ->
+                val color = m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+                "<span style=\"color:$color\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { m ->
+                val color = m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+                "<span style=\"background:$color\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<ol>\\s*(.*?)\\s*</ol>", RegexOption.DOT_MATCHES_ALL)) { m ->
+                m.groupValues[1].lines().withIndex().joinToString("\n") { (i, line) ->
+                    "${i + 1}. ${line.replace(Regex("</?li>"), "").trim()}"
+                }
+            },
+            TagTransform(Regex("<ul>\\s*(.*?)\\s*</ul>", RegexOption.DOT_MATCHES_ALL)) { m ->
+                m.groupValues[1].lines().joinToString("\n") { line ->
+                    "- ${line.replace(Regex("</?li>"), "").trim()}"
+                }
+            },
+            TagTransform(Regex("<cl>\\s*(.*?)\\s*</cl>", RegexOption.DOT_MATCHES_ALL)) { m ->
+                m.groupValues[1].lines().joinToString("\n") { line ->
+                    val checked = line.contains("checked=\"true\"")
+                    val content = line.replace(Regex("<[^>]+>"), "").trim()
+                    "- [${if (checked) "x" else " "}] $content"
+                }
+            },
+            TagTransform(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>")) { "![image](${it.groupValues[1]})" },
+            TagTransform(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>")) { "!video[video](${it.groupValues[1]})" },
+            TagTransform(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>")) { "!audio[audio](${it.groupValues[1]})" },
+            TagTransform(Regex("<[^>]+>")) { "" }
+        ))
     }
 
     /** Convert internal custom tags to standard HTML. */
     fun convertToHtml(raw: String): String {
-        var s = raw
-        s = s.replace(Regex("<h1>(.*?)</h1>"), "<h1>$1</h1>")
-        s = s.replace(Regex("<h2>(.*?)</h2>"), "<h2>$1</h2>")
-        s = s.replace(Regex("<h3>(.*?)</h3>"), "<h3>$1</h3>")
-        s = s.replace(Regex("<b>(.*?)</b>"), "<strong>$1</strong>")
-        s = s.replace(Regex("<i>(.*?)</i>"), "<em>$1</em>")
-        s = s.replace(Regex("<s>(.*?)</s>"), "<del>$1</del>")
-        s = s.replace(Regex("<u>(.*?)</u>"), "<ins>$1</ins>")
-        s = s.replace(Regex("<code>(.*?)</code>"), "<code>$1</code>")
-        s = s.replace(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL), "<pre>$1</pre>")
-        s = s.replace(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL), "<blockquote>$1</blockquote>")
-        s = s.replace(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { match ->
-            val url = match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
-            "<a href=\"$url\">${match.groupValues[2]}</a>"
-        }
-        s = s.replace(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { match ->
-            "<span style=\"color:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
-        }
-        s = s.replace(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { match ->
-            "<span style=\"background:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
-        }
-        s = s.replace(Regex("<font=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</font>")) { match ->
-            "<span style=\"font-family:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${match.groupValues[2]}</span>"
-        }
-        s = s.replace(Regex("<size=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</size>")) { match ->
-            "<span style=\"font-size:${match.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}sp\">${match.groupValues[2]}</span>"
-        }
-        s = s.replace(Regex("<ol>(.*?)</ol>", RegexOption.DOT_MATCHES_ALL), "<ol>$1</ol>")
-        s = s.replace(Regex("<ul>(.*?)</ul>", RegexOption.DOT_MATCHES_ALL), "<ul>$1</ul>")
-        s = s.replace(Regex("</?li>"), "")
-        s = s.replace(Regex("<li>"), "<li>")
-        s = s.replace(Regex("<cl>(.*?)</cl>", RegexOption.DOT_MATCHES_ALL)) { match ->
-            match.groupValues[1].lines().joinToString("\n") { line ->
-                val checked = line.contains("checked=\"true\"")
-                val content = line.replace(Regex("<[^>]+>"), "").trim()
-                "<li>${if (checked) "☑" else "☐"} $content</li>"
-            }
-        }
-        s = s.replace(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>"), "<img src=\"$1\" alt=\"image\" />")
-        s = s.replace(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>"), "<video src=\"$1\" controls>video</video>")
-        s = s.replace(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>"), "<audio src=\"$1\" controls>audio</audio>")
-        s = s.replace(Regex("</?normal>"), "")
-        s = s.replace(Regex("</?sub>"), "")
-        s = s.replace(Regex("</?sup>"), "")
-        s = s.replace(Regex("</?indent>"), "")
-        s = s.replace(Regex("<[^>]+>"), "").trim()
-        return s
+        return applyTransforms(raw, listOf(
+            TagTransform(Regex("<h1>(.*?)</h1>")) { "<h1>${it.groupValues[1]}</h1>" },
+            TagTransform(Regex("<h2>(.*?)</h2>")) { "<h2>${it.groupValues[1]}</h2>" },
+            TagTransform(Regex("<h3>(.*?)</h3>")) { "<h3>${it.groupValues[1]}</h3>" },
+            TagTransform(Regex("<b>(.*?)</b>")) { "<strong>${it.groupValues[1]}</strong>" },
+            TagTransform(Regex("<i>(.*?)</i>")) { "<em>${it.groupValues[1]}</em>" },
+            TagTransform(Regex("<s>(.*?)</s>")) { "<del>${it.groupValues[1]}</del>" },
+            TagTransform(Regex("<u>(.*?)</u>")) { "<ins>${it.groupValues[1]}</ins>" },
+            TagTransform(Regex("<code>(.*?)</code>")) { "<code>${it.groupValues[1]}</code>" },
+            TagTransform(Regex("<pre>(.*?)</pre>", RegexOption.DOT_MATCHES_ALL)) { "<pre>${it.groupValues[1]}</pre>" },
+            TagTransform(Regex("<quote>(.*?)</quote>", RegexOption.DOT_MATCHES_ALL)) { "<blockquote>${it.groupValues[1]}</blockquote>" },
+            TagTransform(Regex("<url=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</url>")) { m ->
+                val url = m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")
+                "<a href=\"$url\">${m.groupValues[2]}</a>"
+            },
+            TagTransform(Regex("<color=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</color>")) { m ->
+                "<span style=\"color:${m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<bg=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</bg>")) { m ->
+                "<span style=\"background:${m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<font=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</font>")) { m ->
+                "<span style=\"font-family:${m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<size=(\"[^\"]*\"|'[^']*'|[^>]+)>(.*?)</size>")) { m ->
+                "<span style=\"font-size:${m.groupValues[1].removeSurrounding("\"").removeSurrounding("'")}sp\">${m.groupValues[2]}</span>"
+            },
+            TagTransform(Regex("<ol>(.*?)</ol>", RegexOption.DOT_MATCHES_ALL)) { "<ol>${it.groupValues[1]}</ol>" },
+            TagTransform(Regex("<ul>(.*?)</ul>", RegexOption.DOT_MATCHES_ALL)) { "<ul>${it.groupValues[1]}</ul>" },
+            TagTransform(Regex("</?li>")) { "" },
+            TagTransform(Regex("<cl>(.*?)</cl>", RegexOption.DOT_MATCHES_ALL)) { m ->
+                m.groupValues[1].lines().joinToString("\n") { line ->
+                    val checked = line.contains("checked=\"true\"")
+                    val content = line.replace(Regex("<[^>]+>"), "").trim()
+                    "<li>${if (checked) "☑" else "☐"} $content</li>"
+                }
+            },
+            TagTransform(Regex("<img\\s+src=\"([^\"]+)\"\\s*/>")) { "<img src=\"${it.groupValues[1]}\" alt=\"image\" />" },
+            TagTransform(Regex("<video\\s+src=\"([^\"]+)\"\\s*/>")) { "<video src=\"${it.groupValues[1]}\" controls>video</video>" },
+            TagTransform(Regex("<audio\\s+src=\"([^\"]+)\"\\s*/>")) { "<audio src=\"${it.groupValues[1]}\" controls>audio</audio>" },
+            TagTransform(Regex("</?normal>")) { "" },
+            TagTransform(Regex("</?sub>")) { "" },
+            TagTransform(Regex("</?sup>")) { "" },
+            TagTransform(Regex("</?indent>")) { "" },
+            TagTransform(Regex("<[^>]+>")) { "" }
+        )).trim()
     }
 
     /** Convert basic standard HTML to internal secure-notes custom tags. */

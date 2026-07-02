@@ -178,6 +178,23 @@ fun findEnclosingUrlTagRange(rawText: String, offset: Int): IntRange? {
     return null
 }
 
+fun findEnclosingMarkdownLinkRange(rawText: String, offset: Int): IntRange? {
+    var temp = offset
+    while (temp >= 0) {
+        if (rawText[temp] == '[') {
+            val closeBracket = rawText.indexOf(']', temp)
+            if (closeBracket != -1 && closeBracket + 1 < rawText.length && rawText[closeBracket + 1] == '(') {
+                val closeParen = rawText.indexOf(')', closeBracket + 2)
+                if (closeParen != -1 && offset <= closeParen) {
+                    return IntRange(temp, closeParen)
+                }
+            }
+        }
+        temp--
+    }
+    return null
+}
+
 fun toggleNthChecklistItem(rawText: String, indexToToggle: Int): String {
     val regex = Regex("<item\\s+checked=\"(true|false)\">")
     val matches = regex.findAll(rawText).toList()
@@ -191,6 +208,103 @@ fun toggleNthChecklistItem(rawText: String, indexToToggle: Int): String {
         return rawText.substring(0, start) + updatedTag + rawText.substring(end)
     }
     return rawText
+}
+
+@Composable
+private fun InsertMediaDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    titleResId: Int,
+    mediaType: String,
+    galleryMime: String,
+    cameraIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    linkExpanded: Boolean,
+    onLinkExpandedChange: (Boolean) -> Unit,
+    inputUrl: String,
+    onInputUrlChange: (String) -> Unit,
+    onGalleryClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    onInsertLink: (String) -> Unit
+) {
+    if (!show) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(id = titleResId)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedCard(
+                    onClick = { onGalleryClick() },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Collections, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(stringResource(id = R.string.label_option_gallery), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                OutlinedCard(
+                    onClick = { onCameraClick() },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(cameraIcon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(stringResource(id = R.string.label_option_camera), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                OutlinedCard(
+                    onClick = { onLinkExpandedChange(!linkExpanded) },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Link, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(stringResource(id = R.string.label_option_link), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                if (linkExpanded) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = inputUrl,
+                        onValueChange = onInputUrlChange,
+                        label = { Text(stringResource(id = R.string.label_media_url)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (linkExpanded) {
+                Button(onClick = { onInsertLink(inputUrl) }) {
+                    Text(stringResource(id = R.string.btn_insert))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(id = R.string.btn_cancel))
+            }
+        }
+    )
 }
 
 fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
@@ -328,6 +442,7 @@ fun NoteContentBlockCard(
     onDeleteBlock: (NoteContentBlock) -> Unit,
     onNavigateToMediaViewer: (String, String) -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
+    onUrlClicked: (url: String, rawOffset: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val deleteIcon: @Composable () -> Unit = {
@@ -356,7 +471,13 @@ fun NoteContentBlockCard(
                     ClickableText(
                         text = block.annotatedString,
                         style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        onClick = {}
+                        onClick = { offset ->
+                            block.annotatedString.getStringAnnotations("URL", offset, offset)
+                                .firstOrNull()?.let { annotation ->
+                                    val rawOffset = block.rawStart + block.parseResult.transformedToSource[offset.coerceIn(0, block.parseResult.transformedToSource.lastIndex)]
+                                    onUrlClicked(annotation.item, rawOffset)
+                                }
+                        }
                     )
                     deleteIcon()
                 }
@@ -378,7 +499,13 @@ fun NoteContentBlockCard(
                             color = if (block.isChecked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
                             textDecoration = if (block.isChecked) TextDecoration.LineThrough else null
                         ),
-                        onClick = {}
+                        onClick = { offset ->
+                            block.text.getStringAnnotations("URL", offset, offset)
+                                .firstOrNull()?.let { annotation ->
+                                    val rawOffset = block.rawStart + block.parseResult.transformedToSource[offset.coerceIn(0, block.parseResult.transformedToSource.lastIndex)]
+                                    onUrlClicked(annotation.item, rawOffset)
+                                }
+                        }
                     )
                 }
                 deleteIcon()
@@ -779,7 +906,7 @@ fun NoteEditorScreen(
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
     var cameraVideoUri by remember { mutableStateOf<Uri?>(null) }
 
-    val insertImageCameraLauncher = rememberLauncherForActivityResult(
+    val insertCameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
@@ -797,7 +924,7 @@ fun NoteEditorScreen(
         }
     }
 
-    val insertVideoCameraLauncher = rememberLauncherForActivityResult(
+    val captureVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CaptureVideo()
     ) { success: Boolean ->
         if (success) {
@@ -815,26 +942,20 @@ fun NoteEditorScreen(
         }
     }
 
-    val launchCameraImage = {
+    val launchCamera: (String) -> Unit = { type ->
         try {
-            val tempFile = File(context.cacheDir, "img_${System.currentTimeMillis()}.jpg")
+            val ext = if (type == "image") "jpg" else "mp4"
+            val prefix = if (type == "image") "img" else "vid"
+            val tempFile = File(context.cacheDir, "${prefix}_${System.currentTimeMillis()}.$ext")
             val authority = "${context.packageName}.fileprovider"
             val uri = FileProvider.getUriForFile(context, authority, tempFile)
-            cameraImageUri = uri
-            insertImageCameraLauncher.launch(uri)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(context, context.getString(R.string.toast_camera_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val launchCameraVideo = {
-        try {
-            val tempFile = File(context.cacheDir, "vid_${System.currentTimeMillis()}.mp4")
-            val authority = "${context.packageName}.fileprovider"
-            val uri = FileProvider.getUriForFile(context, authority, tempFile)
-            cameraVideoUri = uri
-            insertVideoCameraLauncher.launch(uri)
+            if (type == "image") {
+                cameraImageUri = uri
+                insertCameraLauncher.launch(uri)
+            } else {
+                cameraVideoUri = uri
+                captureVideoLauncher.launch(uri)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_camera_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
@@ -845,11 +966,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            if (pendingCameraType == "image") {
-                launchCameraImage()
-            } else if (pendingCameraType == "video") {
-                launchCameraVideo()
-            }
+            pendingCameraType?.let { launchCamera(it) }
         } else {
             Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
         }
@@ -863,18 +980,14 @@ fun NoteEditorScreen(
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         
         if (hasPermission) {
-            if (type == "image") {
-                launchCameraImage()
-            } else {
-                launchCameraVideo()
-            }
+            launchCamera(type)
         } else {
             pendingCameraType = type
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
-    val insertImageGalleryLauncher = rememberLauncherForActivityResult(
+    val insertGalleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
@@ -2034,7 +2147,12 @@ fun NoteEditorScreen(
                                                 }
                                             },
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
-                                            onNavigateToDrawing = onNavigateToDrawing
+                                            onNavigateToDrawing = onNavigateToDrawing,
+                                            onUrlClicked = { url, rawOffset ->
+                                                clickedUrlAddress = url
+                                                clickedUrlAbsoluteOffset = rawOffset
+                                                showUrlDialog = true
+                                            }
                                         )
                                     }
                                 }
@@ -2098,300 +2216,84 @@ fun NoteEditorScreen(
                 }
 
                 // Insert Image Dialog
-                if (showInsertImageDialog) {
-                    AlertDialog(
-                        onDismissRequest = { 
-                            showInsertImageDialog = false 
-                            isImageLinkExpanded = false
-                        },
-                        title = { Text(stringResource(id = R.string.dialog_insert_image_title)) },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Gallery Card
-                                OutlinedCard(
-                                    onClick = {
-                                        insertImageGalleryLauncher.launch("image/*")
-                                        showInsertImageDialog = false
-                                        isImageLinkExpanded = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Collections,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_gallery),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                // Camera Card
-                                OutlinedCard(
-                                    onClick = {
-                                        checkCameraPermissionAndLaunch("image")
-                                        showInsertImageDialog = false
-                                        isImageLinkExpanded = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PhotoCamera,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_camera),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                // Link Card
-                                OutlinedCard(
-                                    onClick = {
-                                        isImageLinkExpanded = !isImageLinkExpanded
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Link,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_link),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                if (isImageLinkExpanded) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    OutlinedTextField(
-                                        value = imageInputUrl,
-                                        onValueChange = { imageInputUrl = it },
-                                        label = { Text(stringResource(id = R.string.label_media_url)) },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            if (isImageLinkExpanded) {
-                                Button(
-                                    onClick = {
-                                        if (imageInputUrl.isNotBlank()) {
-                                            val selStart = contentValue.selection.start
-                                            val selEnd = contentValue.selection.end
-                                            val text = contentValue.text
-                                            val mediaTag = "<img src=\"$imageInputUrl\" />"
-                                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                                            val newCursor = selStart + mediaTag.length
-                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                            content = newText
-                                            saveToHistory(newText)
-                                        }
-                                        imageInputUrl = ""
-                                        showInsertImageDialog = false
-                                        isImageLinkExpanded = false
-                                    }
-                                ) {
-                                    Text(stringResource(id = R.string.btn_insert))
-                                }
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    imageInputUrl = ""
-                                    showInsertImageDialog = false
-                                    isImageLinkExpanded = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
+                InsertMediaDialog(
+                    show = showInsertImageDialog,
+                    onDismiss = { showInsertImageDialog = false; isImageLinkExpanded = false },
+                    titleResId = R.string.dialog_insert_image_title,
+                    mediaType = "image",
+                    galleryMime = "image/*",
+                    cameraIcon = Icons.Default.PhotoCamera,
+                    linkExpanded = isImageLinkExpanded,
+                    onLinkExpandedChange = { isImageLinkExpanded = it },
+                    inputUrl = imageInputUrl,
+                    onInputUrlChange = { imageInputUrl = it },
+                    onGalleryClick = {
+                        insertGalleryLauncher.launch("image/*")
+                        showInsertImageDialog = false
+                        isImageLinkExpanded = false
+                    },
+                    onCameraClick = {
+                        checkCameraPermissionAndLaunch("image")
+                        showInsertImageDialog = false
+                        isImageLinkExpanded = false
+                    },
+                    onInsertLink = { url ->
+                        if (url.isNotBlank()) {
+                            val selStart = contentValue.selection.start
+                            val selEnd = contentValue.selection.end
+                            val text = contentValue.text
+                            val mediaTag = "<img src=\"$url\" />"
+                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
+                            val newCursor = selStart + mediaTag.length
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                            content = newText
+                            saveToHistory(newText)
                         }
-                    )
-                }
+                        imageInputUrl = ""
+                        showInsertImageDialog = false
+                        isImageLinkExpanded = false
+                    }
+                )
 
                 // Insert Video Dialog
-                if (showInsertVideoDialog) {
-                    AlertDialog(
-                        onDismissRequest = { 
-                            showInsertVideoDialog = false 
-                            isVideoLinkExpanded = false
-                        },
-                        title = { Text(stringResource(id = R.string.dialog_insert_video_title)) },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Gallery Card
-                                OutlinedCard(
-                                    onClick = {
-                                        insertVideoGalleryLauncher.launch("video/*")
-                                        showInsertVideoDialog = false
-                                        isVideoLinkExpanded = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Collections,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_gallery),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                // Camera Card
-                                OutlinedCard(
-                                    onClick = {
-                                        checkCameraPermissionAndLaunch("video")
-                                        showInsertVideoDialog = false
-                                        isVideoLinkExpanded = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Videocam,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_camera),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                // Link Card
-                                OutlinedCard(
-                                    onClick = {
-                                        isVideoLinkExpanded = !isVideoLinkExpanded
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Link,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.label_option_link),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                if (isVideoLinkExpanded) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    OutlinedTextField(
-                                        value = videoInputUrl,
-                                        onValueChange = { videoInputUrl = it },
-                                        label = { Text(stringResource(id = R.string.label_media_url)) },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            if (isVideoLinkExpanded) {
-                                Button(
-                                    onClick = {
-                                        if (videoInputUrl.isNotBlank()) {
-                                            val selStart = contentValue.selection.start
-                                            val selEnd = contentValue.selection.end
-                                            val text = contentValue.text
-                                            val mediaTag = "<video src=\"$videoInputUrl\" />"
-                                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                                            val newCursor = selStart + mediaTag.length
-                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                            content = newText
-                                            saveToHistory(newText)
-                                        }
-                                        videoInputUrl = ""
-                                        showInsertVideoDialog = false
-                                        isVideoLinkExpanded = false
-                                    }
-                                ) {
-                                    Text(stringResource(id = R.string.btn_insert))
-                                }
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    videoInputUrl = ""
-                                    showInsertVideoDialog = false
-                                    isVideoLinkExpanded = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
+                InsertMediaDialog(
+                    show = showInsertVideoDialog,
+                    onDismiss = { showInsertVideoDialog = false; isVideoLinkExpanded = false },
+                    titleResId = R.string.dialog_insert_video_title,
+                    mediaType = "video",
+                    galleryMime = "video/*",
+                    cameraIcon = Icons.Default.Videocam,
+                    linkExpanded = isVideoLinkExpanded,
+                    onLinkExpandedChange = { isVideoLinkExpanded = it },
+                    inputUrl = videoInputUrl,
+                    onInputUrlChange = { videoInputUrl = it },
+                    onGalleryClick = {
+                        insertVideoGalleryLauncher.launch("video/*")
+                        showInsertVideoDialog = false
+                        isVideoLinkExpanded = false
+                    },
+                    onCameraClick = {
+                        checkCameraPermissionAndLaunch("video")
+                        showInsertVideoDialog = false
+                        isVideoLinkExpanded = false
+                    },
+                    onInsertLink = { url ->
+                        if (url.isNotBlank()) {
+                            val selStart = contentValue.selection.start
+                            val selEnd = contentValue.selection.end
+                            val text = contentValue.text
+                            val mediaTag = "<video src=\"$url\" />"
+                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
+                            val newCursor = selStart + mediaTag.length
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                            content = newText
+                            saveToHistory(newText)
                         }
-                    )
-                }
+                        videoInputUrl = ""
+                        showInsertVideoDialog = false
+                        isVideoLinkExpanded = false
+                    }
+                )
                 
                 // Insert URL Dialog
                 if (showInsertUrlDialog) {
@@ -2524,7 +2426,7 @@ fun NoteEditorScreen(
                                 
                                 OutlinedButton(
                                     onClick = {
-                                        val rangeToDelete = findEnclosingUrlTagRange(content, clickedUrlAbsoluteOffset)
+                                        val rangeToDelete = findEnclosingUrlTagRange(content, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(content, clickedUrlAbsoluteOffset)
                                         if (rangeToDelete != null) {
                                             val newContent = content.removeRange(rangeToDelete)
                                             content = newContent

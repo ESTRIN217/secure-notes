@@ -69,6 +69,14 @@ fun ListItem.toNote(isEncrypted: Boolean = false, salt: String = "", iv: String 
 
 
 
+fun Note.cleanedTags(): List<String> = tagsJson
+    .replace("[", "")
+    .replace("]", "")
+    .replace("\"", "")
+    .split(",")
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+
 @Entity(tableName = "tags")
 data class Tag(
     @PrimaryKey val name: String,

@@ -15,6 +15,7 @@ import android.widget.Toast
 import com.example.R
 import androidx.core.content.FileProvider
 import com.example.data.model.Note
+import com.example.data.model.cleanedTags
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -30,15 +31,7 @@ object ExportUtils {
             sb.append("# ").append(decryptedTitle).append("\n\n")
             sb.append("**Last Modified:** ").append(dateStr).append("\n")
             
-            // Format tags
-            val cleanedTags = note.tagsJson
-                .replace("[", "")
-                .replace("]", "")
-                .replace("\"", "")
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-            
+            val cleanedTags = note.cleanedTags()
             if (cleanedTags.isNotEmpty()) {
                 sb.append("**Tags:** ").append(cleanedTags.joinToString(", ")).append("\n")
             }
@@ -127,13 +120,7 @@ object ExportUtils {
             val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(note.lastModified))
             canvas.drawText("Last Modified: $dateStr", margin + 10, margin + 85, infoPaint)
 
-            val cleanedTags = note.tagsJson
-                .replace("[", "")
-                .replace("]", "")
-                .replace("\"", "")
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
+            val cleanedTags = note.cleanedTags()
             if (cleanedTags.isNotEmpty()) {
                 canvas.drawText("Tags: " + cleanedTags.joinToString(", "), margin + 10, margin + 105, infoPaint)
             }
@@ -201,13 +188,7 @@ object ExportUtils {
                 sb.append("=== ").append(dec.title.uppercase(Locale.getDefault())).append(" ===\n")
                 sb.append("Modified: ").append(dateStr).append("\n")
                 
-                val cleanedTags = dec.note.tagsJson
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
+                val cleanedTags = dec.note.cleanedTags()
                 if (cleanedTags.isNotEmpty()) {
                     sb.append("Tags: ").append(cleanedTags.joinToString(", ")).append("\n")
                 }
@@ -238,14 +219,7 @@ object ExportUtils {
                 sb.append("# ").append(dec.title).append("\n\n")
                 sb.append("**Last Modified:** ").append(dateStr).append("\n")
                 
-                val cleanedTags = dec.note.tagsJson
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                
+                val cleanedTags = dec.note.cleanedTags()
                 if (cleanedTags.isNotEmpty()) {
                     sb.append("**Tags:** ").append(cleanedTags.joinToString(", ")).append("\n")
                 }
@@ -285,13 +259,7 @@ object ExportUtils {
                 sb.append("<h1>").append(dec.title).append("</h1>")
                 sb.append("<div class=\"meta\">Last Modified: ").append(dateStr)
                 
-                val cleanedTags = dec.note.tagsJson
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
+                val cleanedTags = dec.note.cleanedTags()
                 if (cleanedTags.isNotEmpty()) {
                     sb.append(" | Tags: ").append(cleanedTags.joinToString(", "))
                 }
@@ -322,13 +290,7 @@ object ExportUtils {
                 obj.put("lastModified", dec.note.lastModified)
                 obj.put("isEncrypted", dec.note.isEncrypted)
                 
-                val cleanedTags = dec.note.tagsJson
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
+                val cleanedTags = dec.note.cleanedTags()
                 val tagsArr = org.json.JSONArray()
                 cleanedTags.forEach { tagsArr.put(it) }
                 obj.put("tags", tagsArr)
@@ -362,13 +324,7 @@ object ExportUtils {
             obj.put("categoryId", note.categoryId)
             obj.put("isPinned", note.isPinned)
             
-            val cleanedTags = note.tagsJson
-                .replace("[", "")
-                .replace("]", "")
-                .replace("\"", "")
-                .split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
+            val cleanedTags = note.cleanedTags()
             val tagsArr = org.json.JSONArray()
             cleanedTags.forEach { tagsArr.put(it) }
             obj.put("tags", tagsArr)
@@ -449,13 +405,7 @@ object ExportUtils {
                 currentY += titleLayout.height + 8f
 
                 val dateStr = format.format(Date(dec.note.lastModified))
-                val cleanedTags = dec.note.tagsJson
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "")
-                    .split(",")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
+                val cleanedTags = dec.note.cleanedTags()
                 val metaText = "Last Modified: $dateStr" + if (cleanedTags.isNotEmpty()) " | Tags: " + cleanedTags.joinToString(", ") else ""
                 
                 canvas.drawText(metaText, margin, currentY, infoPaint)

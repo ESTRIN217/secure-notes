@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.Locale
+import com.example.AppConstants
 import com.example.R
 
 data class DecryptedNote(
@@ -63,14 +64,27 @@ enum class NavigationSection {
 
 class NotesViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: NoteRepository
-    private val sharedPrefs = application.getSharedPreferences("secure_notes_prefs", Context.MODE_PRIVATE)
+    private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun decryptNote(note: Note, password: String?): DecryptedNote {
+        if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
+        val pass = password ?: ""
+        if (pass.isEmpty()) return DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
+        val decTitle = EncryptionUtils.decrypt(note.title, pass, note.salt, note.iv)
+        val decContent = EncryptionUtils.decrypt(note.content, pass, note.salt, note.iv)
+        return if (decTitle.isEmpty() && decContent.isEmpty()) {
+            DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
+        } else {
+            DecryptedNote(note, decTitle, decContent, true)
+        }
+    }
 
     // Forced Dark Mode state
-    val isDarkMode = MutableStateFlow(sharedPrefs.getBoolean("dark_mode", false))
+    val isDarkMode = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DARK_MODE_KEY, false))
 
     // Password credentials state
-    val isPasswordSet = MutableStateFlow(sharedPrefs.contains("master_password_hash"))
-    val isUnlocked = MutableStateFlow(!sharedPrefs.contains("master_password_hash"))
+    val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
+    val isUnlocked = MutableStateFlow(!sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
     private val masterPassword = MutableStateFlow<String?>(null)
 
     // Navigation and Filtering state
@@ -81,9 +95,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     val selectedTagFilter = MutableStateFlow<String?>(null)
 
     // Google Drive state
-    val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean("drive_linked", false))
-    val driveAccessToken = MutableStateFlow(sharedPrefs.getString("drive_access_token", "") ?: "")
-    val lastSyncTime = MutableStateFlow(sharedPrefs.getString("last_sync_time", "Never") ?: "Never")
+    val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false))
+    val driveAccessToken = MutableStateFlow(sharedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
+    val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, "Never") ?: "Never")
     val syncStatusMessage = MutableStateFlow<String?>(null)
 
     // Data lists from Room
@@ -118,24 +132,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             selectedTagFilter,
             currentSection
         ) { notes, password, query, tag, section ->
-            val decryptedList = notes.map { note ->
-                if (note.isEncrypted) {
-                    val pass = password ?: ""
-                    if (pass.isEmpty()) {
-                        DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
-                    } else {
-                        val decTitle = EncryptionUtils.decrypt(note.title, pass, note.salt, note.iv)
-                        val decContent = EncryptionUtils.decrypt(note.content, pass, note.salt, note.iv)
-                        if (decTitle.isEmpty() && decContent.isEmpty()) {
-                            DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
-                        } else {
-                            DecryptedNote(note, decTitle, decContent, true)
-                        }
-                    }
-                } else {
-                    DecryptedNote(note, note.title, note.content, true)
-                }
-            }
+            val decryptedList = notes.map { decryptNote(it, password) }
 
             // Filter by search query, tag and section
             decryptedList.filter { decryptedNote ->
@@ -184,24 +181,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             rawNotes,
             masterPassword
         ) { notes, password ->
-            notes.map { note ->
-                if (note.isEncrypted) {
-                    val pass = password ?: ""
-                    if (pass.isEmpty()) {
-                        DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
-                    } else {
-                        val decTitle = EncryptionUtils.decrypt(note.title, pass, note.salt, note.iv)
-                        val decContent = EncryptionUtils.decrypt(note.content, pass, note.salt, note.iv)
-                        if (decTitle.isEmpty() && decContent.isEmpty()) {
-                            DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
-                        } else {
-                            DecryptedNote(note, decTitle, decContent, true)
-                        }
-                    }
-                } else {
-                    DecryptedNote(note, note.title, note.content, true)
-                }
-            }.filter { decryptedNote ->
+            notes.map { decryptNote(it, password) }.filter { decryptedNote ->
                 !decryptedNote.note.isDeleted
             }
         }.stateIn(
@@ -221,17 +201,17 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Seed default welcome note if empty
+        // Seed default notes if empty
         viewModelScope.launch {
             try {
                 val notes = repository.allNotesFlow.first()
                 if (notes.isEmpty()) {
-                    val title = getApplication<Application>().getString(com.example.R.string.welcome_note_title)
-                    val content = getApplication<Application>().getString(com.example.R.string.welcome_note_content)
+                    val welcomeTitle = getApplication<Application>().getString(com.example.R.string.welcome_note_title)
+                    val welcomeContent = getApplication<Application>().getString(com.example.R.string.welcome_note_content)
                     val welcomeNote = Note(
                         id = 0,
-                        title = title,
-                        content = content,
+                        title = welcomeTitle,
+                        content = welcomeContent,
                         isEncrypted = false,
                         salt = "",
                         iv = "",
@@ -239,6 +219,20 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                         lastModified = System.currentTimeMillis()
                     )
                     repository.insertNote(welcomeNote)
+
+                    val workoutTitle = getApplication<Application>().getString(com.example.R.string.workout_note_title)
+                    val workoutContent = getApplication<Application>().getString(com.example.R.string.workout_note_content)
+                    val workoutNote = Note(
+                        id = 0,
+                        title = workoutTitle,
+                        content = workoutContent,
+                        isEncrypted = false,
+                        salt = "",
+                        iv = "",
+                        tagsJson = "[\"Personal\"]",
+                        lastModified = System.currentTimeMillis()
+                    )
+                    repository.insertNote(workoutNote)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -249,7 +243,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleDarkMode() {
         val newVal = !isDarkMode.value
         isDarkMode.value = newVal
-        sharedPrefs.edit().putBoolean("dark_mode", newVal).apply()
+        sharedPrefs.edit().putBoolean(AppConstants.DARK_MODE_KEY, newVal).apply()
     }
 
     fun setMasterPassword(password: String) {
@@ -259,9 +253,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         val validationHash = EncryptionUtils.encrypt("VALID", password, salt, iv)
         
         sharedPrefs.edit()
-            .putString("master_password_hash", validationHash)
-            .putString("master_password_salt", salt)
-            .putString("master_password_iv", iv)
+            .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
+            .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
+            .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
             .apply()
 
         masterPassword.value = password
@@ -270,9 +264,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun unlockApp(password: String): Boolean {
-        val hash = sharedPrefs.getString("master_password_hash", "") ?: ""
-        val salt = sharedPrefs.getString("master_password_salt", "") ?: ""
-        val iv = sharedPrefs.getString("master_password_iv", "") ?: ""
+        val hash = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_HASH_KEY, "") ?: ""
+        val salt = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_SALT_KEY, "") ?: ""
+        val iv = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_IV_KEY, "") ?: ""
 
         val result = EncryptionUtils.decrypt(hash, password, salt, iv)
         return if (result == "VALID") {
@@ -293,9 +287,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deletePassword() {
         sharedPrefs.edit()
-            .remove("master_password_hash")
-            .remove("master_password_salt")
-            .remove("master_password_iv")
+            .remove(AppConstants.MASTER_PASSWORD_HASH_KEY)
+            .remove(AppConstants.MASTER_PASSWORD_SALT_KEY)
+            .remove(AppConstants.MASTER_PASSWORD_IV_KEY)
             .apply()
         
         // Convert all currently encrypted notes back to plain text if unlocked,
@@ -340,50 +334,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         isArchived: Boolean = false
     ) {
         viewModelScope.launch {
-            val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
-            val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
-
-            val storedTitle: String
-            val storedContent: String
-
-            if (isEncrypted) {
-                val pass = masterPassword.value ?: ""
-                storedTitle = EncryptionUtils.encrypt(title, pass, salt, iv)
-                storedContent = EncryptionUtils.encrypt(content, pass, salt, iv)
-            } else {
-                storedTitle = title
-                storedContent = content
-            }
-
-            val tagsJson = JSONArray(tagsList).toString()
-
-            val existing = if (id != 0) {
-                repository.allNotesFlow.first().find { it.id == id }
-            } else null
-
-            val note = Note(
-                id = if (id != 0) id else 0,
-                title = storedTitle,
-                content = storedContent,
-                isEncrypted = isEncrypted,
-                salt = salt,
-                iv = iv,
-                tagsJson = tagsJson,
-                lastModified = System.currentTimeMillis(),
-                isArchived = isArchived,
-                isFavorite = isFavorite,
-                isPinned = isPinned,
-                isDeleted = existing?.isDeleted ?: false,
-                backgroundColor = backgroundColor,
-                backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
-                categoryId = existing?.categoryId
-            )
-
-            if (id == 0) {
-                repository.insertNote(note)
-            } else {
-                repository.updateNote(note)
-            }
+            saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived)
         }
     }
 
@@ -402,17 +353,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
         val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
 
-        val storedTitle: String
-        val storedContent: String
-
-        if (isEncrypted) {
-            val pass = masterPassword.value ?: ""
-            storedTitle = EncryptionUtils.encrypt(title, pass, salt, iv)
-            storedContent = EncryptionUtils.encrypt(content, pass, salt, iv)
-        } else {
-            storedTitle = title
-            storedContent = content
-        }
+        val pass = if (isEncrypted) masterPassword.value ?: "" else ""
+        val storedTitle = if (isEncrypted) EncryptionUtils.encrypt(title, pass, salt, iv) else title
+        val storedContent = if (isEncrypted) EncryptionUtils.encrypt(content, pass, salt, iv) else content
 
         val tagsJson = JSONArray(tagsList).toString()
 
@@ -651,8 +594,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     // Google Drive Integration
     fun linkGoogleDrive(token: String) {
         sharedPrefs.edit()
-            .putBoolean("drive_linked", true)
-            .putString("drive_access_token", token)
+            .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
+            .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
             .apply()
         
         isDriveLinked.value = true
@@ -662,8 +605,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
     fun unlinkGoogleDrive() {
         sharedPrefs.edit()
-            .putBoolean("drive_linked", false)
-            .remove("drive_access_token")
+            .putBoolean(AppConstants.DRIVE_LINKED_KEY, false)
+            .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
             .apply()
         
         isDriveLinked.value = false
@@ -744,7 +687,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 if (success) {
                     val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timeStr = formatter.format(Date())
-                    sharedPrefs.edit().putString("last_sync_time", "Today at $timeStr").apply()
+                    sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, "Today at $timeStr").apply()
                     lastSyncTime.value = "Today at $timeStr"
                     syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_success)
                 } else {
@@ -832,7 +775,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 val timeStr = formatter.format(Date())
-                sharedPrefs.edit().putString("last_sync_time", "Today at $timeStr").apply()
+                sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, "Today at $timeStr").apply()
                 lastSyncTime.value = "Today at $timeStr"
                 syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_success)
 
