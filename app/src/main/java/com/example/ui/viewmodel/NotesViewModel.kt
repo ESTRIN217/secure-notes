@@ -26,6 +26,7 @@ import java.time.Instant
 import java.util.Date
 import java.util.Locale
 import com.example.AppConstants
+import com.example.DarkModeOption
 import com.example.R
 
 data class DecryptedNote(
@@ -79,8 +80,26 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Forced Dark Mode state
-    val isDarkMode = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DARK_MODE_KEY, false))
+    // Dark Mode state (tri-state: SYSTEM / OFF / ON)
+    val darkModeOption = MutableStateFlow(
+        try {
+            DarkModeOption.valueOf(sharedPrefs.getString(AppConstants.DARK_MODE_OPTION_KEY, DarkModeOption.SYSTEM.name) ?: DarkModeOption.SYSTEM.name)
+        } catch (e: Exception) {
+            // Migrate from old boolean key
+            val oldBool = sharedPrefs.getBoolean(AppConstants.DARK_MODE_KEY, false)
+            sharedPrefs.edit().remove(AppConstants.DARK_MODE_KEY).apply()
+            if (oldBool) DarkModeOption.ON else DarkModeOption.SYSTEM
+        }
+    )
+
+    // Dynamic Colors
+    val isDynamicColor = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DYNAMIC_COLORS_KEY, true))
+
+    // Language selection
+    val language = MutableStateFlow(sharedPrefs.getString(AppConstants.LANGUAGE_KEY, "") ?: "")
+
+    // Auto update check
+    val autoUpdateCheck = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
 
     // Password credentials state
     val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
@@ -240,10 +259,24 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleDarkMode() {
-        val newVal = !isDarkMode.value
-        isDarkMode.value = newVal
-        sharedPrefs.edit().putBoolean(AppConstants.DARK_MODE_KEY, newVal).apply()
+    fun setDarkModeOption(option: DarkModeOption) {
+        darkModeOption.value = option
+        sharedPrefs.edit().putString(AppConstants.DARK_MODE_OPTION_KEY, option.name).apply()
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        isDynamicColor.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.DYNAMIC_COLORS_KEY, enabled).apply()
+    }
+
+    fun setLanguage(locale: String) {
+        language.value = locale
+        sharedPrefs.edit().putString(AppConstants.LANGUAGE_KEY, locale).apply()
+    }
+
+    fun setAutoUpdateCheck(enabled: Boolean) {
+        autoUpdateCheck.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, enabled).apply()
     }
 
     fun setMasterPassword(password: String) {

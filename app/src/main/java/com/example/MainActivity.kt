@@ -74,6 +74,10 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.NoteEditorScreen
 import com.example.ui.DrawingCanvasScreen
 import com.example.ui.MediaViewerScreen
+import com.example.ui.settings.AboutScreen
+import com.example.ui.settings.BackupRestoreScreen
+import com.example.ui.settings.SettingsScreen
+import com.example.ui.settings.UpdateInfoScreen
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.ExportUtils
@@ -90,6 +94,10 @@ sealed class Screen {
     object PrivacySettings : Screen()
     object Search : Screen()
     data class MediaViewer(val type: String, val src: String, val previousScreen: Screen) : Screen()
+    object SettingsHub : Screen()
+    object BackupRestore : Screen()
+    object UpdateInfo : Screen()
+    object About : Screen()
 }
 
 enum class SortOption {
@@ -151,9 +159,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: NotesViewModel = viewModel()
-            val isDark by viewModel.isDarkMode.collectAsState()
+            val darkModeOption by viewModel.darkModeOption.collectAsState()
+            val isDynamicColor by viewModel.isDynamicColor.collectAsState()
 
-            MyApplicationTheme(darkTheme = isDark) {
+            val isDark = when (darkModeOption) {
+                DarkModeOption.SYSTEM -> isSystemInDarkTheme()
+                DarkModeOption.ON -> true
+                DarkModeOption.OFF -> false
+            }
+
+            MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamicColor) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -191,7 +206,11 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings },
                     onNavigateToSearch = { currentScreen = Screen.Search },
                     onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
+                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) },
+                    onNavigateToSettingsHub = { currentScreen = Screen.SettingsHub },
+                    onNavigateToBackupRestore = { currentScreen = Screen.BackupRestore },
+                    onNavigateToUpdateInfo = { currentScreen = Screen.UpdateInfo },
+                    onNavigateToAbout = { currentScreen = Screen.About }
                 )
                 is Screen.Search -> SearchScreen(
                     viewModel = viewModel,
@@ -225,6 +244,23 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     type = screen.type,
                     src = screen.src,
                     onBack = { currentScreen = screen.previousScreen },
+                )
+                is Screen.SettingsHub -> SettingsScreen(
+                    viewModel = viewModel,
+                    onBack = { currentScreen = Screen.MainList },
+                    onNavigateToBackupRestore = { currentScreen = Screen.BackupRestore },
+                    onNavigateToUpdateInfo = { currentScreen = Screen.UpdateInfo },
+                    onNavigateToAbout = { currentScreen = Screen.About }
+                )
+                is Screen.BackupRestore -> BackupRestoreScreen(
+                    viewModel = viewModel,
+                    onBack = { currentScreen = Screen.SettingsHub }
+                )
+                is Screen.UpdateInfo -> UpdateInfoScreen(
+                    onBack = { currentScreen = Screen.SettingsHub }
+                )
+                is Screen.About -> AboutScreen(
+                    onBack = { currentScreen = Screen.SettingsHub }
                 )
             }
         }
@@ -480,423 +516,7 @@ fun NavigationRailContent(
     }
 }
 
-// Inline helper to prevent repeat modifier logic
 private fun Modifier.fillPackageNameOrScope(): Modifier = this.fillMaxWidth()
-
-@Composable
-fun SettingsView(
-    viewModel: NotesViewModel,
-    isNavExtended: Boolean,
-    onToggleRail: () -> Unit
-) {
-    val isPasswordSet by viewModel.isPasswordSet.collectAsState()
-    val isDriveLinked by viewModel.isDriveLinked.collectAsState()
-    val driveAccessToken by viewModel.driveAccessToken.collectAsState()
-    val lastSyncTime by viewModel.lastSyncTime.collectAsState()
-    val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
-
-    var passwordInput by remember { mutableStateOf("") }
-    var passwordConfirm by remember { mutableStateOf("") }
-    var tokenInput by remember { mutableStateOf(driveAccessToken) }
-    val context = LocalContext.current
-
-    LaunchedEffect(driveAccessToken) {
-        tokenInput = driveAccessToken
-    }
-
-    LaunchedEffect(syncStatusMessage) {
-        syncStatusMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-            viewModel.clearStatusMessage()
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val configuration = LocalConfiguration.current
-                    val isLargeScreen = configuration.screenWidthDp >= 600
-                    IconButton(onClick = onToggleRail) {
-                        Icon(
-                            imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.toggle_navigation_rail)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(id = R.string.nav_settings),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // App Hero Logo card
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-                )
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_app_icon),
-                        contentDescription = "Secure Notes Logo",
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Your Offline-First Private Crypt",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Military-grade AES-256 E2EE Encryption Protocol",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF43A047),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            // Dark Mode option
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = stringResource(R.string.toggle_dark_theme),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(id = R.string.toggle_dark_theme),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = "Force slate dark aesthetic theme",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Switch(
-                        checked = isDarkMode,
-                        onCheckedChange = { viewModel.toggleDarkMode() }
-                    )
-                }
-            }
-
-            // Privacy Settings Card
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = stringResource(R.string.shield_guard),
-                            tint = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(id = R.string.title_lock_settings),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = if (isPasswordSet) stringResource(R.string.security_active) else stringResource(R.string.setup_credentials),
-                                color = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.error,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = stringResource(id = R.string.label_set_password_msg),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (!isPasswordSet) {
-                        OutlinedTextField(
-                            value = passwordInput,
-                            onValueChange = { passwordInput = it },
-                            label = { Text("Choose Master Password") },
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("setup_password_input_settings"),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedTextField(
-                            value = passwordConfirm,
-                            onValueChange = { passwordConfirm = it },
-                            label = { Text("Confirm Master Password") },
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = {
-                                if (passwordInput.length < 4) {
-                                    Toast.makeText(context, context.getString(R.string.toast_password_too_short), Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                if (passwordInput != passwordConfirm) {
-                                    Toast.makeText(context, context.getString(R.string.toast_passwords_do_not_match), Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                viewModel.setMasterPassword(passwordInput)
-                                passwordInput = ""
-                                passwordConfirm = ""
-                                Toast.makeText(context, context.getString(R.string.toast_password_configured), Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .testTag("confirm_setup_password_btn_settings"),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                viewModel.deletePassword()
-                                Toast.makeText(context, context.getString(R.string.toast_password_removed), Toast.LENGTH_LONG).show()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .testTag("remove_password_btn_settings"),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_master_password), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.remove_protection), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-
-            // Cloud synchronization options
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = stringResource(R.string.cloud_icon),
-                            tint = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(id = R.string.title_cloud_sync),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = if (isDriveLinked) stringResource(id = R.string.drive_linked) else stringResource(id = R.string.drive_unlinked),
-                                color = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = stringResource(id = R.string.info_cloud),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = stringResource(id = R.string.last_synced, lastSyncTime),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (!isDriveLinked) {
-                        OutlinedTextField(
-                            value = tokenInput,
-                            onValueChange = { tokenInput = it },
-                            label = { Text("Paste Google API Access Token") },
-                            placeholder = { Text("ya29.a0Ac...") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("token_input_field_settings"),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Button(
-                            onClick = {
-                                if (tokenInput.isBlank()) {
-                                    viewModel.linkGoogleDrive("ya29.simulated_access_token")
-                                    Toast.makeText(context, context.getString(R.string.toast_simulation_token_seeded), Toast.LENGTH_SHORT).show()
-                                } else {
-                                    viewModel.linkGoogleDrive(tokenInput.trim())
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .testTag("link_drive_btn_settings")
-                        ) {
-                            Text(stringResource(id = R.string.btn_link_drive), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { viewModel.forceSyncCloud() },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .testTag("sync_now_btn_settings"),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))
-                            ) {
-                                Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.sync), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(id = R.string.sync_now), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            Button(
-                                onClick = {
-                                    viewModel.unlinkGoogleDrive()
-                                    tokenInput = ""
-                                    Toast.makeText(context, context.getString(R.string.drive_unlinked), Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .testTag("unlink_drive_btn_settings"),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                            ) {
-                                Icon(Icons.Default.LinkOff, contentDescription = stringResource(R.string.unlink), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.disconnect), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -907,7 +527,11 @@ fun MainListScreen(
     onNavigateToPrivacy: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
-    onNavigateToMediaViewer: (String, String) -> Unit
+    onNavigateToMediaViewer: (String, String) -> Unit,
+    onNavigateToSettingsHub: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {},
+    onNavigateToUpdateInfo: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {}
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -915,7 +539,6 @@ fun MainListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
     val isDriveLinked by viewModel.isDriveLinked.collectAsState()
-    val isDarkMode by viewModel.isDarkMode.collectAsState()
 
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE) }
@@ -1026,19 +649,6 @@ fun MainListScreen(
 
             // Right side main contents pane
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                if (currentSection == com.example.ui.viewmodel.NavigationSection.SETTINGS) {
-                    SettingsView(
-                        viewModel = viewModel,
-                        isNavExtended = isNavExtended,
-                        onToggleRail = {
-                            if (isLargeScreen) {
-                                isNavExtended = !isNavExtended
-                            } else {
-                                scope.launch { drawerState.open() }
-                            }
-                        }
-                    )
-            } else {
                 Scaffold(
                     topBar = {
                         OutlinedCard(
@@ -1694,7 +1304,6 @@ fun MainListScreen(
             }
         }
     }
-}
 
     if (showCreateTagDialog) {
         CreateTagDialog(
