@@ -358,6 +358,8 @@
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
+    <string name="settings_lang_es_es">Español (España)</string>
+    <string name="settings_lang_pt_pt">Português (Portugal)</string>
     <string name="settings_storage_data">Storage &amp; Data</string>
     <string name="settings_backup_restore">Backup &amp; Restore</string>
     <string name="settings_backup_restore_desc">Local and cloud backups</string>
@@ -367,6 +369,9 @@
     <string name="settings_check_update">Check for Updates</string>
     <string name="settings_about">About</string>
     <string name="settings_about_desc">App info and links</string>
+    <string name="settings_privacy_security">Privacy &amp; Security</string>
+    <string name="settings_privacy_desc">Password protection</string>
+    <string name="confirm_master_password">Confirm Master Password</string>
     <string name="backup_restore_title">Backup &amp; Restore</string>
     <string name="backup_local_section">Local Backup</string>
     <string name="backup_export">Export Backup</string>
@@ -378,11 +383,17 @@
     <string name="backup_download">Download from Drive</string>
     <string name="update_title">Update Info</string>
     <string name="update_current_version">Current Version</string>
+    <string name="update_current_version_label">v%s</string>
     <string name="update_auto_check">Auto-check for updates</string>
+    <string name="update_notifications">Enable update notifications</string>
+    <string name="update_settings_title">Update Settings</string>
     <string name="update_check_now">Check for Update</string>
     <string name="update_checking">Checking for updates…</string>
     <string name="update_up_to_date">You\'re up to date!</string>
     <string name="update_available">Update available: %s</string>
+    <string name="update_latest_version">Latest: %s</string>
+    <string name="update_show_changelog">View changelog</string>
+    <string name="update_hide_changelog">Hide changelog</string>
     <string name="update_error">Failed to check for updates</string>
     <string name="about_title">About</string>
     <string name="about_desc">Your Offline-First Private Crypt</string>
@@ -396,4 +407,5 @@
     <string name="toast_import_backup_success">Backup imported successfully!</string>
     <string name="toast_import_backup_error">Error importing backup</string>
     <string name="toast_language_changed">Language changed</string>
+    <string name="cancel">Cancel</string>
 </resources>

@@ -4,6 +4,34 @@ Un bloc de notas moderno, elegante y seguro con cifrado de extremo a extremo (E2
 
 ---
 
+[![Latest release](https://img.shields.io/github/v/release/ESTRIN217/Bloc-de-notas?style=for-the-badge&labelColor=0d1117)](https://github.com/ESTRIN217/Bloc-de-notas/releases)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+## 📸 Capturas de Pantalla
+
+Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, puedes visualizar la interfaz aquí:
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/vista-principal.png" width="220" alt="Vista Principal (Material 3)"/>
+      <br><b>Vista Principal</b>
+    </td>
+    <td align="center">
+      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/editor.png" width="220" alt="Editor Enriquecido"/>
+      <br><b>Editor Flotante</b>
+    </td>
+    <td align="center">
+      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/busqueda-y-filtro.png" width="220" alt="Búsqueda Dinámica"/>
+      <br><b>Búsqueda y Filtros</b>
+    </td>
+  </tr>
+</table>
+
+> 💡 *Nota técnica sobre imágenes:* En este repositorio, para ajustar el tamaño de las imágenes de forma personalizada, utilizamos la etiqueta HTML `<img>` con el atributo `width="220"` dentro de tablas, lo que permite un alineado perfecto y responsivo en GitHub.
+
+---
+
 ## 🌎 Idiomas Soportados / Supported Languages / Idiomas Suportados
 * **Español (VE)** - Traducción nativa completa.
 * **Português (BR)** - Tradução nativa completa.
@@ -18,10 +46,18 @@ Un bloc de notas moderno, elegante y seguro con cifrado de extremo a extremo (E2
 
 ---
 
-## 🛡️ Cifrado de Extremo a Extremo (E2EE)
+## ⚙️ Configuración y Widgets Compartidos
+* **Settings Hub:** Pantalla central de configuración con secciones organizadas: Apariencia, Idioma, Privacidad y Seguridad, Almacenamiento y Datos, Información.
+* **Widgets MD3 Expressive:** Sistema de componentes compartidos (`SettingsSectionTitle`, `SettingsIconContainer`, `SettingsCardGroup`, `SettingsSwitchTile`, `SettingsListTile`) con consistencia visual: bordes de 1.5dp, esquinas de 28dp, iconos de 44dp.
+* **ViewModels Separados:** `ThemeViewModel` (tema/idioma), `BackupViewModel` (respaldos), `UpdaterViewModel` (actualizaciones) para mejor separación de responsabilidades.
+
+---
+
+## 🛡️ Privacidad y Seguridad
 * **Contraseña Maestra:** Protege tus notas confidenciales con una contraseña maestra única de alta seguridad.
 * **Algoritmo de Grado Militar (AES-256):** Las notas marcadas como cifradas se encriptan de forma segura utilizando derivación de claves mediante PBKDF2, generando un **Salt** y un **Vector de Inicialización (IV)** aleatorios por cada nota.
 * **Privacidad Absoluta:** Los datos cifrados se almacenan localmente en la base de datos de Room. Sin la contraseña maestra, es matemáticamente imposible descifrar o leer el contenido de las notas.
+* **Pantalla de Privacidad:** Sección dedicada para configurar o eliminar la contraseña maestra con confirmación de seguridad.
 
 ---
 
@@ -60,3 +96,19 @@ Un bloc de notas moderno, elegante y seguro con cifrado de extremo a extremo (E2
 * **Persistencia Local:** Room Database (SQLite con migraciones robustas)
 * **Seguridad:** API de Criptografía de Android, PBKDF2 y AES-256
 * **Arquitectura:** MVVM (Model-View-ViewModel) con flujos reactivos `StateFlow`
+
+---
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para obtener más detalles.
+
+---
+
+<p align="center">
+  Desarrollado con pasión por <b>ESTRIN217</b>.
+</p>
+
+<p align="center">
+  Hecho con ❤️ en Venezuela.
+</p>

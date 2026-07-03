@@ -358,6 +358,8 @@
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
+    <string name="settings_lang_es_es">Español (España)</string>
+    <string name="settings_lang_pt_pt">Português (Portugal)</string>
     <string name="settings_storage_data">Armazenamento e Dados</string>
     <string name="settings_backup_restore">Backup e Restauração</string>
     <string name="settings_backup_restore_desc">Backups locais e na nuvem</string>
@@ -367,6 +369,9 @@
     <string name="settings_check_update">Verificar Atualizações</string>
     <string name="settings_about">Sobre</string>
     <string name="settings_about_desc">Informações e links do aplicativo</string>
+    <string name="settings_privacy_security">Privacidade e Segurança</string>
+    <string name="settings_privacy_desc">Proteção com senha</string>
+    <string name="confirm_master_password">Confirmar Senha Mestra</string>
     <string name="backup_restore_title">Backup e Restauração</string>
     <string name="backup_local_section">Backup Local</string>
     <string name="backup_export">Exportar Backup</string>
@@ -378,11 +383,17 @@
     <string name="backup_download">Baixar do Drive</string>
     <string name="update_title">Informações de Atualização</string>
     <string name="update_current_version">Versão Atual</string>
+    <string name="update_current_version_label">v%s</string>
     <string name="update_auto_check">Verificar atualizações automaticamente</string>
+    <string name="update_notifications">Habilitar notificações de atualização</string>
+    <string name="update_settings_title">Configurações de Atualização</string>
     <string name="update_check_now">Verificar Atualização</string>
     <string name="update_checking">Verificando atualizações…</string>
     <string name="update_up_to_date">Você está atualizado!</string>
     <string name="update_available">Atualização disponível: %s</string>
+    <string name="update_latest_version">Última: %s</string>
+    <string name="update_show_changelog">Ver registro de alterações</string>
+    <string name="update_hide_changelog">Ocultar registro de alterações</string>
     <string name="update_error">Falha ao verificar atualizações</string>
     <string name="about_title">Sobre</string>
     <string name="about_desc">Seu Cofre Privado Offline-First</string>
@@ -396,4 +407,5 @@
     <string name="toast_import_backup_success">Backup importado com sucesso!</string>
     <string name="toast_import_backup_error">Erro ao importar backup</string>
     <string name="toast_language_changed">Idioma alterado</string>
+    <string name="cancel">Cancelar</string>
 </resources>

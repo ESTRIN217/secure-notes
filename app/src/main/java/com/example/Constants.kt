@@ -13,6 +13,7 @@ object AppConstants {
     const val DYNAMIC_COLORS_KEY = "dynamic_colors"
     const val LANGUAGE_KEY = "language"
     const val AUTO_UPDATE_CHECK_KEY = "auto_update_check"
+    const val UPDATE_NOTIFICATIONS_KEY = "update_notifications"
     const val DRIVE_LINKED_KEY = "drive_linked"
     const val DRIVE_ACCESS_TOKEN_KEY = "drive_access_token"
     const val LAST_SYNC_TIME_KEY = "last_sync_time"

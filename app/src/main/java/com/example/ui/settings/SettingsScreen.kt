@@ -1,13 +1,13 @@
 package com.example.ui.settings
 
+import android.os.Build
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -15,148 +15,210 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.DarkModeOption
 import com.example.R
-import com.example.ui.viewmodel.NotesViewModel
+import com.example.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: NotesViewModel,
+    themeViewModel: ThemeViewModel,
     onBack: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToUpdateInfo: () -> Unit,
-    onNavigateToAbout: () -> Unit
+    onNavigateToAbout: () -> Unit,
+    onNavigateToPrivacy: () -> Unit
 ) {
-    val darkModeOption by viewModel.darkModeOption.collectAsState()
-    val isDynamicColor by viewModel.isDynamicColor.collectAsState()
-    val language by viewModel.language.collectAsState()
+    val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
+    val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
+    val language by themeViewModel.language.collectAsStateWithLifecycle()
 
+    var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
+    val isDynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            TopAppBar(
+                title = { Text(stringResource(R.string.nav_settings)) },
+                navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                    Text(
-                        text = stringResource(id = R.string.nav_settings),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 12.dp)
+                }
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            // --- APPEARANCE ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_appearance))
+            }
+
+            if (isDynamicColorSupported) {
+                item {
+                    SettingsCardGroup {
+                        SettingsSwitchTile(
+                            title = stringResource(R.string.settings_dynamic_colors),
+                            icon = Icons.Default.Palette,
+                            checked = isDynamicColor,
+                            onCheckedChange = { themeViewModel.setDynamicColor(it) }
+                        )
+                    }
+                }
+            }
+
+            item {
+                SettingsCardGroup {
+                    val currentThemeLabel = when (darkModeOption) {
+                        DarkModeOption.SYSTEM -> stringResource(R.string.settings_dark_mode_system)
+                        DarkModeOption.ON -> stringResource(R.string.settings_dark_mode_on)
+                        DarkModeOption.OFF -> stringResource(R.string.settings_dark_mode_off)
+                    }
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.DarkMode,
+                        title = stringResource(R.string.settings_dark_mode),
+                        subtitle = currentThemeLabel,
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = { showThemeDialog = true }
+                    )
+                }
+            }
+
+            // --- LANGUAGE ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_language))
+            }
+
+            item {
+                SettingsCardGroup {
+                    val currentLangLabel = when (language) {
+                        "" -> stringResource(R.string.settings_lang_default)
+                        "en" -> stringResource(R.string.settings_lang_en)
+                        "es-VE" -> stringResource(R.string.settings_lang_es)
+                        "es-ES" -> stringResource(R.string.settings_lang_es_es)
+                        "pt-BR" -> stringResource(R.string.settings_lang_pt)
+                        "pt-PT" -> stringResource(R.string.settings_lang_pt_pt)
+                        else -> language.uppercase()
+                    }
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Language,
+                        title = stringResource(R.string.settings_language),
+                        subtitle = currentLangLabel,
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = { showLanguageSheet = true }
+                    )
+                }
+            }
+
+            // --- PRIVACY & SECURITY ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_privacy_security))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Shield,
+                        title = stringResource(R.string.settings_privacy_security),
+                        subtitle = stringResource(R.string.settings_privacy_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToPrivacy
+                    )
+                }
+            }
+
+            // --- STORAGE & DATA ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_storage_data))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.CloudDownload,
+                        title = stringResource(R.string.settings_backup_restore),
+                        subtitle = stringResource(R.string.settings_backup_restore_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToBackupRestore
+                    )
+                }
+            }
+
+            // --- INFORMATION ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_information))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Update,
+                        title = stringResource(R.string.settings_check_update),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToUpdateInfo
+                    )
+                }
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.History,
+                        title = stringResource(R.string.settings_changelog),
+                        subtitle = stringResource(R.string.settings_changelog_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = { showChangelogSheet = true }
+                    )
+                }
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Info,
+                        title = stringResource(R.string.settings_about),
+                        subtitle = stringResource(R.string.settings_about_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToAbout
                     )
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // App Hero
-            HeroCard()
+    }
 
-            // Appearance Section
-            SectionHeader(title = stringResource(R.string.settings_appearance))
-            SettingsCard {
-                DynamicColorsRow(isEnabled = isDynamicColor, onToggle = { viewModel.setDynamicColor(it) })
-                SettingsDivider()
-                DarkModeRow(currentOption = darkModeOption, onSelect = { viewModel.setDarkModeOption(it) })
-            }
+    // --- DIALOGS & SHEETS ---
 
-            // Language Section
-            SectionHeader(title = stringResource(R.string.settings_language))
-            SettingsCard {
-                ClickableSettingsRow(
-                    icon = Icons.Default.Language,
-                    title = stringResource(R.string.settings_language),
-                    subtitle = getLanguageDisplayName(language),
-                    onClick = { showLanguageSheet = true }
-                )
-            }
-
-            // Storage & Data Section
-            SectionHeader(title = stringResource(R.string.settings_storage_data))
-            SettingsCard {
-                ClickableSettingsRow(
-                    icon = Icons.Default.Backup,
-                    title = stringResource(R.string.settings_backup_restore),
-                    subtitle = stringResource(R.string.settings_backup_restore_desc),
-                    onClick = onNavigateToBackupRestore
-                )
-            }
-
-            // Information Section
-            SectionHeader(title = stringResource(R.string.settings_information))
-            SettingsCard {
-                ClickableSettingsRow(
-                    icon = Icons.Default.History,
-                    title = stringResource(R.string.settings_changelog),
-                    subtitle = stringResource(R.string.settings_changelog_desc),
-                    onClick = { showChangelogSheet = true }
-                )
-                SettingsDivider()
-                ClickableSettingsRow(
-                    icon = Icons.Default.Update,
-                    title = stringResource(R.string.settings_check_update),
-                    subtitle = "",
-                    onClick = onNavigateToUpdateInfo
-                )
-                SettingsDivider()
-                ClickableSettingsRow(
-                    icon = Icons.Default.Info,
-                    title = stringResource(R.string.settings_about),
-                    subtitle = stringResource(R.string.settings_about_desc),
-                    onClick = onNavigateToAbout
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+    if (showThemeDialog) {
+        ThemeDialog(
+            currentTheme = darkModeOption,
+            onDismiss = { showThemeDialog = false },
+            onThemeSelected = { themeViewModel.setDarkModeOption(it) }
+        )
     }
 
     if (showLanguageSheet) {
         LanguageBottomSheet(
             currentLanguage = language,
-            onSelect = { locale ->
-                viewModel.setLanguage(locale)
+            onDismiss = { showLanguageSheet = false },
+            onLocaleSelected = { locale ->
+                themeViewModel.setLanguage(locale)
                 showLanguageSheet = false
                 Toast.makeText(context, context.getString(R.string.toast_language_changed), Toast.LENGTH_SHORT).show()
-            },
-            onDismiss = { showLanguageSheet = false }
+            }
         )
     }
 
@@ -167,336 +229,159 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun HeroCard() {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-        )
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.img_app_icon),
-                contentDescription = "Secure Notes Logo",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(id = R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(id = R.string.about_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(id = R.string.about_encryption),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF43A047),
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
+// ---------------------------------------------------------------------------
+// Theme Dialog
+// ---------------------------------------------------------------------------
 
 @Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-    )
-}
-
-@Composable
-private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-            content = content
-        )
-    }
-}
-
-@Composable
-private fun SettingsDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    )
-}
-
-@Composable
-private fun DynamicColorsRow(isEnabled: Boolean, onToggle: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Icon(
-                imageVector = Icons.Default.Palette,
-                contentDescription = stringResource(R.string.settings_dynamic_colors),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = stringResource(R.string.settings_dynamic_colors),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = stringResource(R.string.settings_dynamic_colors_desc),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Switch(
-            checked = isEnabled,
-            onCheckedChange = onToggle
-        )
-    }
-}
-
-@Composable
-private fun DarkModeRow(currentOption: DarkModeOption, onSelect: (DarkModeOption) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = when (currentOption) {
-                    DarkModeOption.SYSTEM -> Icons.Default.BrightnessAuto
-                    DarkModeOption.ON -> Icons.Default.DarkMode
-                    DarkModeOption.OFF -> Icons.Default.LightMode
-                },
-                contentDescription = stringResource(R.string.settings_dark_mode),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.settings_dark_mode),
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            DarkModeChip(
-                label = stringResource(R.string.settings_dark_mode_system),
-                selected = currentOption == DarkModeOption.SYSTEM,
-                onClick = { onSelect(DarkModeOption.SYSTEM) }
-            )
-            DarkModeChip(
-                label = stringResource(R.string.settings_dark_mode_on),
-                selected = currentOption == DarkModeOption.ON,
-                onClick = { onSelect(DarkModeOption.ON) }
-            )
-            DarkModeChip(
-                label = stringResource(R.string.settings_dark_mode_off),
-                selected = currentOption == DarkModeOption.OFF,
-                onClick = { onSelect(DarkModeOption.OFF) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RowScope.DarkModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, fontSize = 12.sp) },
-        modifier = Modifier.weight(1f),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    )
-}
-
-@Composable
-private fun ClickableSettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
+fun ThemeDialog(
+    currentTheme: DarkModeOption,
+    onDismiss: () -> Unit,
+    onThemeSelected: (DarkModeOption) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_dark_mode)) },
+        text = {
+            Column(Modifier.selectableGroup()) {
+                val options = listOf(
+                    Triple(DarkModeOption.SYSTEM, stringResource(R.string.settings_dark_mode_system), Icons.Default.BrightnessAuto),
+                    Triple(DarkModeOption.OFF, stringResource(R.string.settings_dark_mode_off), Icons.Default.LightMode),
+                    Triple(DarkModeOption.ON, stringResource(R.string.settings_dark_mode_on), Icons.Default.DarkMode)
                 )
+                options.forEach { (mode, label, icon) ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .selectable(
+                                selected = (mode == currentTheme),
+                                onClick = {
+                                    onThemeSelected(mode)
+                                    onDismiss()
+                                },
+                                role = Role.RadioButton
+                            )
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = (mode == currentTheme), onClick = null)
+                        Spacer(Modifier.width(16.dp))
+                        Icon(icon, contentDescription = null)
+                        Spacer(Modifier.width(16.dp))
+                        Text(label)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
             }
         }
-            Icon(
-                imageVector = Icons.Default.NavigateNext,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
-    }
+    )
 }
+
+// ---------------------------------------------------------------------------
+// Language Bottom Sheet
+// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LanguageBottomSheet(
+fun LanguageBottomSheet(
     currentLanguage: String,
-    onSelect: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLocaleSelected: (String) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = 48.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.settings_language),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 16.dp)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected(""); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_default)) },
+                leadingContent = { Icon(Icons.Default.Language, contentDescription = null) },
+                trailingContent = {
+                    if (currentLanguage == "") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+            HorizontalDivider()
+
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected("en"); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_en)) },
+                leadingContent = { Text("\uD83C\uDDFA\uD83C\uDDF8", style = MaterialTheme.typography.titleLarge) },
+                trailingContent = {
+                    if (currentLanguage == "en") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+            HorizontalDivider()
+
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected("es-VE"); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_es)) },
+                leadingContent = { Text("\uD83C\uDDFB\uD83C\uDDEA", style = MaterialTheme.typography.titleLarge) },
+                trailingContent = {
+                    if (currentLanguage == "es-VE") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+            HorizontalDivider()
+
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected("es-ES"); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_es_es)) },
+                leadingContent = { Text("\uD83C\uDDEA\uD83C\uDDF8", style = MaterialTheme.typography.titleLarge) },
+                trailingContent = {
+                    if (currentLanguage == "es-ES") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+            HorizontalDivider()
+
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected("pt-BR"); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_pt)) },
+                leadingContent = { Text("\uD83C\uDDFE\uD83C\uDDF7", style = MaterialTheme.typography.titleLarge) },
+                trailingContent = {
+                    if (currentLanguage == "pt-BR") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+            HorizontalDivider()
+
+            ListItem(
+                modifier = Modifier.clickable { onLocaleSelected("pt-PT"); onDismiss() },
+                headlineContent = { Text(stringResource(R.string.settings_lang_pt_pt)) },
+                leadingContent = { Text("\uD83C\uDDF5\uD83C\uDDF9", style = MaterialTheme.typography.titleLarge) },
+                trailingContent = {
+                    if (currentLanguage == "pt-PT") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
             )
 
-            LanguageOption(
-                label = stringResource(R.string.settings_lang_default),
-                value = "",
-                selected = currentLanguage == "",
-                onClick = { onSelect("") }
-            )
-            LanguageOption(
-                label = stringResource(R.string.settings_lang_en),
-                value = "en",
-                selected = currentLanguage == "en",
-                onClick = { onSelect("en") }
-            )
-            LanguageOption(
-                label = stringResource(R.string.settings_lang_es),
-                value = "es-VE",
-                selected = currentLanguage == "es-VE",
-                onClick = { onSelect("es-VE") }
-            )
-            LanguageOption(
-                label = stringResource(R.string.settings_lang_pt),
-                value = "pt-BR",
-                selected = currentLanguage == "pt-BR",
-                onClick = { onSelect("pt-BR") }
-            )
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
-@Composable
-private fun LanguageOption(
-    label: String,
-    value: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(0.dp, MaterialTheme.colorScheme.surface),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 15.sp
-            )
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
+// ---------------------------------------------------------------------------
+// Changelog Bottom Sheet
+// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChangelogBottomSheet(onDismiss: () -> Unit) {
+fun ChangelogBottomSheet(onDismiss: () -> Unit) {
     var releaseNotes by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
@@ -520,10 +405,7 @@ private fun ChangelogBottomSheet(onDismiss: () -> Unit) {
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
             modifier = Modifier
@@ -532,10 +414,8 @@ private fun ChangelogBottomSheet(onDismiss: () -> Unit) {
                 .padding(top = 8.dp, bottom = 48.dp)
         ) {
             Text(
-                text = stringResource(R.string.changelog_title),
+                text = stringResource(R.string.settings_changelog),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -566,21 +446,11 @@ private fun ChangelogBottomSheet(onDismiss: () -> Unit) {
                 else -> {
                     Text(
                         text = releaseNotes ?: "",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
-    }
-}
-
-private fun getLanguageDisplayName(locale: String): String {
-    return when (locale) {
-        "" -> "System"
-        "en" -> "English"
-        "es-VE" -> "Español (Venezuela)"
-        "pt-BR" -> "Português (Brasil)"
-        else -> locale
     }
 }

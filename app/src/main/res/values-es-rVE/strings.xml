@@ -358,6 +358,8 @@
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
+    <string name="settings_lang_es_es">Español (España)</string>
+    <string name="settings_lang_pt_pt">Português (Portugal)</string>
     <string name="settings_storage_data">Almacenamiento y Datos</string>
     <string name="settings_backup_restore">Copia de Seguridad y Restauración</string>
     <string name="settings_backup_restore_desc">Copias locales y en la nube</string>
@@ -367,6 +369,9 @@
     <string name="settings_check_update">Buscar Actualizaciones</string>
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_desc">Info de la app y enlaces</string>
+    <string name="settings_privacy_security">Privacidad y Seguridad</string>
+    <string name="settings_privacy_desc">Protección con contraseña</string>
+    <string name="confirm_master_password">Confirmar Contraseña Maestra</string>
     <string name="backup_restore_title">Copia de Seguridad y Restauración</string>
     <string name="backup_local_section">Copia Local</string>
     <string name="backup_export">Exportar Copia</string>
@@ -378,11 +383,17 @@
     <string name="backup_download">Descargar de Drive</string>
     <string name="update_title">Información de Actualización</string>
     <string name="update_current_version">Versión Actual</string>
+    <string name="update_current_version_label">v%s</string>
     <string name="update_auto_check">Buscar actualizaciones automáticamente</string>
+    <string name="update_notifications">Habilitar notificaciones de actualización</string>
+    <string name="update_settings_title">Ajustes de Actualización</string>
     <string name="update_check_now">Buscar Actualización</string>
     <string name="update_checking">Buscando actualizaciones…</string>
     <string name="update_up_to_date">¡Estás actualizado!</string>
     <string name="update_available">Actualización disponible: %s</string>
+    <string name="update_latest_version">Última: %s</string>
+    <string name="update_show_changelog">Ver registro de cambios</string>
+    <string name="update_hide_changelog">Ocultar registro de cambios</string>
     <string name="update_error">Error al buscar actualizaciones</string>
     <string name="about_title">Acerca de</string>
     <string name="about_desc">Tu Cripta Privada Offline-First</string>
@@ -396,4 +407,5 @@
     <string name="toast_import_backup_success">¡Copia importada exitosamente!</string>
     <string name="toast_import_backup_error">Error al importar copia</string>
     <string name="toast_language_changed">Idioma cambiado</string>
+    <string name="cancel">Cancelar</string>
 </resources>

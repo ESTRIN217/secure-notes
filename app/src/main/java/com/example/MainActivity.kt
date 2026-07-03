@@ -67,6 +67,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Note
 import com.example.data.model.Tag
@@ -76,10 +77,14 @@ import com.example.ui.DrawingCanvasScreen
 import com.example.ui.MediaViewerScreen
 import com.example.ui.settings.AboutScreen
 import com.example.ui.settings.BackupRestoreScreen
+import com.example.ui.settings.PrivacySettingsScreen
 import com.example.ui.settings.SettingsScreen
 import com.example.ui.settings.UpdateInfoScreen
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.ui.viewmodel.ThemeViewModel
+import com.example.ui.viewmodel.BackupViewModel
+import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.util.ExportUtils
 import org.json.JSONArray
 import java.text.SimpleDateFormat
@@ -159,8 +164,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: NotesViewModel = viewModel()
-            val darkModeOption by viewModel.darkModeOption.collectAsState()
-            val isDynamicColor by viewModel.isDynamicColor.collectAsState()
+            val themeViewModel: ThemeViewModel = viewModel()
+            val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
+            val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
 
             val isDark = when (darkModeOption) {
                 DarkModeOption.SYSTEM -> isSystemInDarkTheme()
@@ -173,7 +179,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppMainContent(viewModel)
+                    AppMainContent(viewModel, themeViewModel)
                 }
             }
         }
@@ -181,10 +187,20 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppMainContent(viewModel: NotesViewModel) {
+fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
     var currentScreen by remember { mutableStateOf<Screen>(Screen.MainList) }
+    val context = LocalContext.current
+    val backupViewModel: BackupViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return BackupViewModel(context.applicationContext as android.app.Application, viewModel) as T
+            }
+        }
+    )
+    val updaterViewModel: UpdaterViewModel = viewModel()
 
     // Lock Screen integration
     if (isPasswordSet && !isUnlocked) {
@@ -238,7 +254,7 @@ fun AppMainContent(viewModel: NotesViewModel) {
                 )
                 is Screen.PrivacySettings -> PrivacySettingsScreen(
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.MainList }
+                    onBack = { currentScreen = Screen.SettingsHub }
                 )
                 is Screen.MediaViewer -> MediaViewerScreen(
                     type = screen.type,
@@ -246,17 +262,19 @@ fun AppMainContent(viewModel: NotesViewModel) {
                     onBack = { currentScreen = screen.previousScreen },
                 )
                 is Screen.SettingsHub -> SettingsScreen(
-                    viewModel = viewModel,
+                    themeViewModel = themeViewModel,
                     onBack = { currentScreen = Screen.MainList },
                     onNavigateToBackupRestore = { currentScreen = Screen.BackupRestore },
                     onNavigateToUpdateInfo = { currentScreen = Screen.UpdateInfo },
-                    onNavigateToAbout = { currentScreen = Screen.About }
+                    onNavigateToAbout = { currentScreen = Screen.About },
+                    onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings }
                 )
                 is Screen.BackupRestore -> BackupRestoreScreen(
-                    viewModel = viewModel,
+                    viewModel = backupViewModel,
                     onBack = { currentScreen = Screen.SettingsHub }
                 )
                 is Screen.UpdateInfo -> UpdateInfoScreen(
+                    viewModel = updaterViewModel,
                     onBack = { currentScreen = Screen.SettingsHub }
                 )
                 is Screen.About -> AboutScreen(
@@ -2087,195 +2105,6 @@ fun CreateTagDialog(viewModel: NotesViewModel, onDismiss: () -> Unit) {
 }
 
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PrivacySettingsScreen(
-    viewModel: NotesViewModel,
-    onBack: () -> Unit
-) {
-    val isPasswordSet by viewModel.isPasswordSet.collectAsState()
-    var passwordInput by remember { mutableStateOf("") }
-    var passwordConfirm by remember { mutableStateOf("") }
-    
-    val context = LocalContext.current
-
-    Scaffold(
-        topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
-                        text = stringResource(id = R.string.title_lock_settings),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 12.dp)
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = stringResource(R.string.shield_guard),
-                            tint = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.label_e2e_encryption),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Text(
-                                text = if (isPasswordSet) stringResource(R.string.security_active) else stringResource(R.string.setup_credentials),
-                                color = if (isPasswordSet) Color(0xFF43A047) else MaterialTheme.colorScheme.error,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = stringResource(id = R.string.label_set_password_msg),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (!isPasswordSet) {
-                Text(
-                    text = stringResource(id = R.string.label_setup_password),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                OutlinedTextField(
-                    value = passwordInput,
-                    onValueChange = { passwordInput = it },
-                    label = { Text("Choose Master Password") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("setup_password_input"),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = passwordConfirm,
-                    onValueChange = { passwordConfirm = it },
-                    label = { Text("Confirm Master Password") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = {
-                        if (passwordInput.length < 4) {
-                            Toast.makeText(context, context.getString(R.string.toast_password_too_short), Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        if (passwordInput != passwordConfirm) {
-                            Toast.makeText(context, context.getString(R.string.toast_passwords_do_not_match), Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        viewModel.setMasterPassword(passwordInput)
-                        Toast.makeText(context, context.getString(R.string.toast_password_configured), Toast.LENGTH_SHORT).show()
-                        onBack()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("confirm_setup_password_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(stringResource(id = R.string.btn_save), fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Text(
-                    text = stringResource(R.string.security_active),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF43A047),
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                Button(
-                    onClick = {
-                        viewModel.deletePassword()
-                        Toast.makeText(context, context.getString(R.string.toast_password_removed), Toast.LENGTH_LONG).show()
-                        onBack()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("remove_password_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_master_password))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.remove_protection), fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

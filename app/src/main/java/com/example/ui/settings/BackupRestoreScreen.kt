@@ -1,384 +1,324 @@
 package com.example.ui.settings
 
-import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
-import com.example.data.model.Note
-import com.example.data.model.Tag
-import com.example.ui.viewmodel.NotesViewModel
-import org.json.JSONArray
-import org.json.JSONObject
+import com.example.ui.viewmodel.BackupViewModel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupRestoreScreen(
-    viewModel: NotesViewModel,
+    viewModel: BackupViewModel,
     onBack: () -> Unit
 ) {
-    val isDriveLinked by viewModel.isDriveLinked.collectAsState()
-    val lastSyncTime by viewModel.lastSyncTime.collectAsState()
-    val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    LaunchedEffect(syncStatusMessage) {
-        syncStatusMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-            viewModel.clearStatusMessage()
-        }
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.restoreFromUri(it, context) }
     }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri != null) {
-            try {
-                val notes = viewModel.rawNotes.value
-                val tags = viewModel.availableTags.value
-                val backupJson = buildBackupJson(notes, tags)
-                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(backupJson.toByteArray())
-                }
-                Toast.makeText(context, context.getString(R.string.toast_export_backup_success), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, context.getString(R.string.toast_export_backup_error), Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            try {
-                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
-                restoreFromBackup(json, viewModel)
-                Toast.makeText(context, context.getString(R.string.toast_import_backup_success), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, context.getString(R.string.toast_import_backup_error), Toast.LENGTH_SHORT).show()
-            }
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            TopAppBar(
+                title = { Text(stringResource(R.string.backup_restore_title)) },
+                navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                    Text(
-                        text = stringResource(R.string.backup_restore_title),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 12.dp)
+                }
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    ) { innerPadding ->
+        if (uiState.isLoading) {
+            SkeletonBody(modifier = Modifier.padding(innerPadding))
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+            ) {
+                // Cloud Section
+                item {
+                    SettingsSectionTitle(title = stringResource(R.string.backup_cloud_section))
+                }
+                item {
+                    CloudSection(
+                        isDriveLinked = uiState.isDriveLinked,
+                        lastSyncTime = uiState.lastSyncTime,
+                        onBackupCloud = { viewModel.backupToCloud() },
+                        onRestoreCloud = { viewModel.restoreFromCloud() },
+                        onLinkDrive = { viewModel.linkDrive() },
+                        onUnlinkDrive = { viewModel.unlinkDrive() }
+                    )
+                }
+
+                // Local Section
+                item {
+                    SettingsSectionTitle(title = stringResource(R.string.backup_local_section))
+                }
+                item {
+                    LocalSection(
+                        onCreateBackup = {
+                            try {
+                                val json = viewModel.buildBackupJson()
+                                val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
+                                cacheFile.writeText(json)
+                                val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
+                                        context, "${context.packageName}.fileprovider", cacheFile
+                                    ))
+                                    type = "application/json"
+                                }
+                                context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
+                            } catch (e: Exception) {
+                                // handled by snackbar
+                            }
+                        },
+                        onRestoreBackup = { filePickerLauncher.launch("application/json") }
                     )
                 }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Local Backup Section
-            Text(
-                text = stringResource(R.string.backup_local_section),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 4.dp)
-            )
+    }
+}
 
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    ActionButton(
-                        icon = Icons.Default.Upload,
-                        title = stringResource(R.string.backup_export),
-                        desc = stringResource(R.string.backup_export_desc),
-                        color = Color(0xFF43A047),
-                        onClick = { exportLauncher.launch("secure_notes_backup.json") }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ActionButton(
-                        icon = Icons.Default.Download,
-                        title = stringResource(R.string.backup_import),
-                        desc = stringResource(R.string.backup_import_desc),
-                        color = MaterialTheme.colorScheme.primary,
-                        onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }
-                    )
-                }
-            }
+// ---------------------------------------------------------------------------
+// Cloud Section
+// ---------------------------------------------------------------------------
 
-            // Cloud Backup Section
-            Text(
-                text = stringResource(R.string.backup_cloud_section),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-            )
+@Composable
+fun CloudSection(
+    isDriveLinked: Boolean,
+    lastSyncTime: String,
+    onBackupCloud: () -> Unit,
+    onRestoreCloud: () -> Unit,
+    onLinkDrive: () -> Unit,
+    onUnlinkDrive: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
 
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = stringResource(R.string.cloud_icon),
-                            tint = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.title_cloud_sync),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
-                                color = if (isDriveLinked) Color(0xFF42A5F5) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
+    SettingsCardGroup(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SettingsIconContainer(icon = Icons.Outlined.Cloud)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
                     Text(
-                        text = stringResource(R.string.last_synced, lastSyncTime),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = stringResource(R.string.title_cloud_sync),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (isDriveLinked) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { viewModel.forceSyncCloud() },
-                                modifier = Modifier.weight(1f).height(44.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))
-                            ) {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.backup_upload), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Button(
-                                onClick = { viewModel.restoreSyncCloud() },
-                                modifier = Modifier.weight(1f).height(44.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.backup_download), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.unlinkGoogleDrive()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(Icons.Default.LinkOff, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.disconnect), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        Button(
-                            onClick = { viewModel.linkGoogleDrive("ya29.simulated_access_token") },
-                            modifier = Modifier.fillMaxWidth().height(44.dp)
-                        ) {
-                            Icon(Icons.Default.CloudQueue, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.btn_link_drive), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                    }
+                    Text(
+                        text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
+                        color = if (isDriveLinked) Color(0xFF42A5F5) else colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.last_synced, lastSyncTime),
+                fontSize = 12.sp,
+                color = colorScheme.onSurfaceVariant
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (isDriveLinked) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onBackupCloud,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.backup_upload), fontSize = 13.sp)
+                    }
+                    OutlinedButton(
+                        onClick = onRestoreCloud,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.backup_download), fontSize = 13.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onUnlinkDrive,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.error)
+                ) {
+                    Icon(Icons.Outlined.LinkOff, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_unlink_drive), fontSize = 13.sp)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onLinkDrive,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Outlined.CloudQueue, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_link_drive), fontSize = 13.sp)
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// ---------------------------------------------------------------------------
+// Local Section
+// ---------------------------------------------------------------------------
+
 @Composable
-private fun ActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    desc: String,
-    color: Color,
-    onClick: () -> Unit
+fun LocalSection(
+    onCreateBackup: () -> Unit,
+    onRestoreBackup: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = color,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    SettingsCardGroup(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SettingsIconContainer(icon = Icons.Outlined.PhoneAndroid)
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = desc,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = stringResource(R.string.backup_local_section),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-            Icon(
-                imageVector = Icons.Default.NavigateNext,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.backup_export_desc),
+                fontSize = 12.sp,
+                color = colorScheme.onSurfaceVariant
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onCreateBackup,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Outlined.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.backup_export), fontSize = 13.sp)
+                }
+                OutlinedButton(
+                    onClick = onRestoreBackup,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Outlined.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.backup_import), fontSize = 13.sp)
+                }
+            }
         }
     }
 }
 
-private fun buildBackupJson(notes: List<com.example.data.model.Note>, tags: List<Tag>): String {
-    val notesArray = JSONArray()
-    notes.forEach { note ->
-        val noteObj = JSONObject().apply {
-            put("id", note.id)
-            put("title", note.title)
-            put("content", note.content)
-            put("isEncrypted", note.isEncrypted)
-            put("salt", note.salt)
-            put("iv", note.iv)
-            put("lastModified", note.lastModified)
-            put("tagsJson", note.tagsJson)
-            put("isArchived", note.isArchived)
-            put("isFavorite", note.isFavorite)
-            put("isPinned", note.isPinned)
-            put("isDeleted", note.isDeleted)
-            put("backgroundColor", note.backgroundColor)
-            put("backgroundImagePath", note.backgroundImagePath ?: "")
-            put("categoryId", note.categoryId)
-        }
-        notesArray.put(noteObj)
-    }
+// ---------------------------------------------------------------------------
+// Skeleton Loading (Shimmer)
+// ---------------------------------------------------------------------------
 
-    val tagsArray = JSONArray()
-    tags.forEach { tag ->
-        val tagObj = JSONObject().apply {
-            put("name", tag.name)
-            put("colorHex", tag.colorHex)
-        }
-        tagsArray.put(tagObj)
-    }
+@Composable
+fun SkeletonBody(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alphaAnim by transition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
 
-    return JSONObject().apply {
-        put("version", 3)
-        put("notes", notesArray)
-        put("tags", tagsArray)
-        put("timestamp", System.currentTimeMillis())
-    }.toString(2)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .alpha(alphaAnim)
+    ) {
+        SkeletonCard()
+        Spacer(modifier = Modifier.height(16.dp))
+        SkeletonCard()
+    }
 }
 
-private fun restoreFromBackup(json: String, viewModel: NotesViewModel) {
-    val container = JSONObject(json)
-    val notesArr = container.getJSONArray("notes")
-    val tagsArr = container.getJSONArray("tags")
+@Composable
+fun SkeletonCard() {
+    val placeholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
 
-    for (i in 0 until notesArr.length()) {
-        val noteObj = notesArr.getJSONObject(i)
-
-        val tagsJson = noteObj.optString("tagsJson", "[]")
-        val tagsList = try {
-            val arr = JSONArray(tagsJson)
-            List(arr.length()) { arr.getString(it) }
-        } catch (e: Exception) {
-            emptyList()
+    SettingsCardGroup {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(28.dp).background(placeholderColor, CircleShape))
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(modifier = Modifier.size(140.dp, 20.dp).background(placeholderColor, RoundedCornerShape(4.dp)))
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(14.dp).background(placeholderColor, RoundedCornerShape(4.dp)))
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.size(200.dp, 12.dp).background(placeholderColor, RoundedCornerShape(4.dp)))
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.weight(1f).height(40.dp).background(placeholderColor, RoundedCornerShape(20.dp)))
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(modifier = Modifier.weight(1f).height(40.dp).background(placeholderColor, RoundedCornerShape(20.dp)))
+            }
         }
-
-        viewModel.saveNote(
-            id = 0,
-            title = noteObj.getString("title"),
-            content = noteObj.getString("content"),
-            isEncrypted = noteObj.getBoolean("isEncrypted"),
-            tagsList = tagsList,
-            backgroundColor = if (noteObj.has("backgroundColor") && !noteObj.isNull("backgroundColor"))
-                noteObj.optInt("backgroundColor") else null,
-            backgroundImagePath = noteObj.optString("backgroundImagePath", "").ifEmpty { null },
-            isPinned = noteObj.optBoolean("isPinned", false),
-            isFavorite = noteObj.optBoolean("isFavorite", false),
-            isArchived = noteObj.optBoolean("isArchived", false)
-        )
-    }
-
-    for (i in 0 until tagsArr.length()) {
-        val tagObj = tagsArr.getJSONObject(i)
-        viewModel.createTag(tagObj.getString("name"), tagObj.getString("colorHex"))
     }
 }
