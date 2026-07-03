@@ -614,9 +614,14 @@ fun MainListScreen(
                     NavigationRailContent(
                         currentSection = currentSection,
                         onSectionSelected = { section ->
-                            viewModel.currentSection.value = section
-                            selectedNoteIds = emptySet()
-                            scope.launch { drawerState.close() }
+                            if (section == com.example.ui.viewmodel.NavigationSection.SETTINGS) {
+                                scope.launch { drawerState.close() }
+                                onNavigateToSettingsHub()
+                            } else {
+                                viewModel.currentSection.value = section
+                                selectedNoteIds = emptySet()
+                                scope.launch { drawerState.close() }
+                            }
                         },
                         isExtended = true,
                         onToggleExtend = {}
@@ -631,8 +636,12 @@ fun MainListScreen(
                 NavigationRailContent(
                     currentSection = currentSection,
                     onSectionSelected = { section ->
-                        viewModel.currentSection.value = section
-                        selectedNoteIds = emptySet()
+                        if (section == com.example.ui.viewmodel.NavigationSection.SETTINGS) {
+                            onNavigateToSettingsHub()
+                        } else {
+                            viewModel.currentSection.value = section
+                            selectedNoteIds = emptySet()
+                        }
                     },
                     isExtended = isNavExtended,
                     onToggleExtend = { isNavExtended = !isNavExtended }
