@@ -4,7 +4,7 @@ Un bloc de notas moderno, elegante y seguro con cifrado de extremo a extremo (E2
 
 ---
 
-[![Latest release](https://img.shields.io/github/v/release/ESTRIN217/Bloc-de-notas?style=for-the-badge&labelColor=0d1117)](https://github.com/ESTRIN217/Bloc-de-notas/releases)
+[![Latest release](https://img.shields.io/github/v/release/ESTRIN217/secure-notes?style=for-the-badge&labelColor=0d1117)](https://github.com/ESTRIN217/secure-notes/releases)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## 📸 Capturas de Pantalla
@@ -14,15 +14,15 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/vista-principal.png" width="220" alt="Vista Principal (Material 3)"/>
+      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-173051.png" width="220" alt="Vista Principal (Material 3)"/>
       <br><b>Vista Principal</b>
     </td>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/editor.png" width="220" alt="Editor Enriquecido"/>
+      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-173055.png" width="220" alt="Editor Enriquecido"/>
       <br><b>Editor Flotante</b>
     </td>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/Bloc-de-notas/blob/master/assets/im%C3%A1genes/busqueda-y-filtro.png" width="220" alt="Búsqueda Dinámica"/>
+      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-174048.png" width="220" alt="Búsqueda Dinámica"/>
       <br><b>Búsqueda y Filtros</b>
     </td>
   </tr>
