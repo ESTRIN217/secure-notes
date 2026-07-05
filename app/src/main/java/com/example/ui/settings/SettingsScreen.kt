@@ -1,12 +1,13 @@
 package com.example.ui.settings
 
+import android.app.Activity
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,8 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.DarkModeOption
@@ -33,6 +35,7 @@ fun SettingsScreen(
     onNavigateToAbout: () -> Unit,
     onNavigateToPrivacy: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
     val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
     val language by themeViewModel.language.collectAsStateWithLifecycle()
@@ -68,21 +71,21 @@ fun SettingsScreen(
                 SettingsSectionTitle(title = stringResource(R.string.settings_appearance))
             }
 
-            if (isDynamicColorSupported) {
                 item {
                     SettingsCardGroup {
+                        if (isDynamicColorSupported) {
                         SettingsSwitchTile(
                             title = stringResource(R.string.settings_dynamic_colors),
                             icon = Icons.Default.Palette,
                             checked = isDynamicColor,
                             onCheckedChange = { themeViewModel.setDynamicColor(it) }
                         )
-                    }
-                }
-            }
-
-            item {
-                SettingsCardGroup {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        }
+                    
                     val currentThemeLabel = when (darkModeOption) {
                         DarkModeOption.SYSTEM -> stringResource(R.string.settings_dark_mode_system)
                         DarkModeOption.ON -> stringResource(R.string.settings_dark_mode_on)
@@ -95,8 +98,8 @@ fun SettingsScreen(
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = { showThemeDialog = true }
                     )
+                    }
                 }
-            }
 
             // --- LANGUAGE ---
             item {
@@ -171,11 +174,11 @@ fun SettingsScreen(
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = onNavigateToUpdateInfo
                     )
-                }
-            }
 
-            item {
-                SettingsCardGroup {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                     SettingsListTile(
                         leadingIcon = Icons.Default.History,
                         title = stringResource(R.string.settings_changelog),
@@ -183,11 +186,12 @@ fun SettingsScreen(
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = { showChangelogSheet = true }
                     )
-                }
-            }
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
 
-            item {
-                SettingsCardGroup {
                     SettingsListTile(
                         leadingIcon = Icons.Default.Info,
                         title = stringResource(R.string.settings_about),
@@ -218,6 +222,7 @@ fun SettingsScreen(
                 themeViewModel.setLanguage(locale)
                 showLanguageSheet = false
                 Toast.makeText(context, context.getString(R.string.toast_language_changed), Toast.LENGTH_SHORT).show()
+                (context as Activity).recreate()
             }
         )
     }
@@ -233,54 +238,93 @@ fun SettingsScreen(
 // Theme Dialog
 // ---------------------------------------------------------------------------
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeDialog(
     currentTheme: DarkModeOption,
     onDismiss: () -> Unit,
     onThemeSelected: (DarkModeOption) -> Unit
 ) {
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_dark_mode)) },
-        text = {
-            Column(Modifier.selectableGroup()) {
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 48.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_dark_mode),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            SettingsCardGroup {
                 val options = listOf(
                     Triple(DarkModeOption.SYSTEM, stringResource(R.string.settings_dark_mode_system), Icons.Default.BrightnessAuto),
                     Triple(DarkModeOption.OFF, stringResource(R.string.settings_dark_mode_off), Icons.Default.LightMode),
                     Triple(DarkModeOption.ON, stringResource(R.string.settings_dark_mode_on), Icons.Default.DarkMode)
                 )
-                options.forEach { (mode, label, icon) ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .selectable(
-                                selected = (mode == currentTheme),
-                                onClick = {
-                                    onThemeSelected(mode)
-                                    onDismiss()
-                                },
-                                role = Role.RadioButton
-                            )
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = (mode == currentTheme), onClick = null)
-                        Spacer(Modifier.width(16.dp))
-                        Icon(icon, contentDescription = null)
-                        Spacer(Modifier.width(16.dp))
-                        Text(label)
+
+                options.forEachIndexed { index, (mode, label, icon) ->
+                    if (index > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
                     }
+                    ThemeOptionRow(
+                        icon = icon,
+                        label = label,
+                        isSelected = mode == currentTheme,
+                        onClick = {
+                            onThemeSelected(mode)
+                            onDismiss()
+                        }
+                    )
                 }
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
         }
-    )
+    }
+}
+
+@Composable
+private fun ThemeOptionRow(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SettingsIconContainer(icon = icon, isSelected = isSelected)
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        if (isSelected) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -294,83 +338,144 @@ fun LanguageBottomSheet(
     onDismiss: () -> Unit,
     onLocaleSelected: (String) -> Unit
 ) {
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected(""); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_default)) },
-                leadingContent = { Icon(Icons.Default.Language, contentDescription = null) },
-                trailingContent = {
-                    if (currentLanguage == "") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-            HorizontalDivider()
-
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected("en"); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_en)) },
-                leadingContent = { Text("\uD83C\uDDFA\uD83C\uDDF8", style = MaterialTheme.typography.titleLarge) },
-                trailingContent = {
-                    if (currentLanguage == "en") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-            HorizontalDivider()
-
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected("es-VE"); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_es)) },
-                leadingContent = { Text("\uD83C\uDDFB\uD83C\uDDEA", style = MaterialTheme.typography.titleLarge) },
-                trailingContent = {
-                    if (currentLanguage == "es-VE") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-            HorizontalDivider()
-
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected("es-ES"); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_es_es)) },
-                leadingContent = { Text("\uD83C\uDDEA\uD83C\uDDF8", style = MaterialTheme.typography.titleLarge) },
-                trailingContent = {
-                    if (currentLanguage == "es-ES") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-            HorizontalDivider()
-
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected("pt-BR"); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_pt)) },
-                leadingContent = { Text("\uD83C\uDDFE\uD83C\uDDF7", style = MaterialTheme.typography.titleLarge) },
-                trailingContent = {
-                    if (currentLanguage == "pt-BR") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-            HorizontalDivider()
-
-            ListItem(
-                modifier = Modifier.clickable { onLocaleSelected("pt-PT"); onDismiss() },
-                headlineContent = { Text(stringResource(R.string.settings_lang_pt_pt)) },
-                leadingContent = { Text("\uD83C\uDDF5\uD83C\uDDF9", style = MaterialTheme.typography.titleLarge) },
-                trailingContent = {
-                    if (currentLanguage == "pt-PT") {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 48.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_language),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            SettingsCardGroup {
+                LanguageOption(
+                    icon = Icons.Default.Language,
+                    label = stringResource(R.string.settings_lang_default),
+                    isSelected = currentLanguage.isEmpty(),
+                    onClick = { onLocaleSelected(""); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flag = "\uD83C\uDDFA\uD83C\uDDF8",
+                    label = stringResource(R.string.settings_lang_en),
+                    isSelected = currentLanguage == "en",
+                    onClick = { onLocaleSelected("en"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flag = "\uD83C\uDDFB\uD83C\uDDEA",
+                    label = stringResource(R.string.settings_lang_es),
+                    isSelected = currentLanguage == "es-VE",
+                    onClick = { onLocaleSelected("es-VE"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flag = "\uD83C\uDDEA\uD83C\uDDF8",
+                    label = stringResource(R.string.settings_lang_es_es),
+                    isSelected = currentLanguage == "es-ES",
+                    onClick = { onLocaleSelected("es-ES"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flag = "\uD83C\uDDFE\uD83C\uDDF7",
+                    label = stringResource(R.string.settings_lang_pt),
+                    isSelected = currentLanguage == "pt-BR",
+                    onClick = { onLocaleSelected("pt-BR"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flag = "\uD83C\uDDF5\uD83C\uDDF9",
+                    label = stringResource(R.string.settings_lang_pt_pt),
+                    isSelected = currentLanguage == "pt-PT",
+                    onClick = { onLocaleSelected("pt-PT"); onDismiss() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageOption(
+    icon: ImageVector? = null,
+    flag: String? = null,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else {
+                Text(
+                    text = flag ?: "",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        if (isSelected) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

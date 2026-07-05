@@ -3,6 +3,7 @@ package com.example
 import kotlinx.coroutines.launch
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -50,6 +51,8 @@ import android.content.Intent
 import coil.compose.AsyncImage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -105,6 +108,40 @@ sealed class Screen {
     object About : Screen()
 }
 
+val ScreenSaver = mapSaver(
+    save = { screen: Screen ->
+        when (screen) {
+            is Screen.MainList -> mapOf("route" to "main_list")
+            is Screen.NoteEditor -> mapOf("route" to "note_editor", "noteId" to screen.noteId)
+            is Screen.DrawingCanvas -> mapOf("route" to "drawing_canvas", "noteId" to screen.noteId, "jsonPath" to (screen.jsonPath ?: ""))
+            is Screen.CloudSync -> mapOf("route" to "cloud_sync")
+            is Screen.PrivacySettings -> mapOf("route" to "privacy_settings")
+            is Screen.Search -> mapOf("route" to "search")
+            is Screen.MediaViewer -> mapOf("route" to "media_viewer", "type" to screen.type, "src" to screen.src)
+            is Screen.SettingsHub -> mapOf("route" to "settings_hub")
+            is Screen.BackupRestore -> mapOf("route" to "backup_restore")
+            is Screen.UpdateInfo -> mapOf("route" to "update_info")
+            is Screen.About -> mapOf("route" to "about")
+        }
+    },
+    restore = { map: Map<String, Any?> ->
+        when (map["route"] as? String) {
+            "main_list" -> Screen.MainList
+            "note_editor" -> Screen.NoteEditor((map["noteId"] as? Int) ?: 0)
+            "drawing_canvas" -> Screen.DrawingCanvas((map["noteId"] as? Int) ?: 0, (map["jsonPath"] as? String)?.ifEmpty { null })
+            "cloud_sync" -> Screen.CloudSync
+            "privacy_settings" -> Screen.PrivacySettings
+            "search" -> Screen.Search
+            "media_viewer" -> Screen.MediaViewer((map["type"] as? String) ?: "", (map["src"] as? String) ?: "", Screen.MainList)
+            "settings_hub" -> Screen.SettingsHub
+            "backup_restore" -> Screen.BackupRestore
+            "update_info" -> Screen.UpdateInfo
+            "about" -> Screen.About
+            else -> Screen.MainList
+        }
+    }
+)
+
 enum class SortOption {
     ALPHABETICAL,
     LAST_MODIFIED,
@@ -159,6 +196,20 @@ private fun swapNotes(id1: Int, id2: Int, notesList: List<DecryptedNote>, contex
 }
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        val lang = prefs.getString(AppConstants.LANGUAGE_KEY, "") ?: ""
+        val context = if (lang.isNotEmpty()) {
+            val locale = java.util.Locale.forLanguageTag(lang)
+            val config = Configuration(newBase.resources.configuration)
+            config.setLocale(locale)
+            newBase.createConfigurationContext(config)
+        } else {
+            newBase
+        }
+        super.attachBaseContext(context)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -190,7 +241,8 @@ class MainActivity : ComponentActivity() {
 fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.MainList) }
+    var currentScreen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.MainList) }
+    var isBackNavigation by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val backupViewModel: BackupViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -202,6 +254,16 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
     )
     val updaterViewModel: UpdaterViewModel = viewModel()
 
+    fun navigateTo(screen: Screen) {
+        isBackNavigation = false
+        currentScreen = screen
+    }
+
+    fun navigateBack(to: Screen) {
+        isBackNavigation = true
+        currentScreen = to
+    }
+
     // Lock Screen integration
     if (isPasswordSet && !isUnlocked) {
         LockScreen(viewModel)
@@ -209,76 +271,81 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
         AnimatedContent(
             targetState = currentScreen,
             transitionSpec = {
-                slideInHorizontally { width -> width } + fadeIn() togetherWith
-                        slideOutHorizontally { width -> -width } + fadeOut()
+                if (isBackNavigation) {
+                    slideInHorizontally { -it } + fadeIn() togetherWith
+                            slideOutHorizontally { it } + fadeOut()
+                } else {
+                    slideInHorizontally { it } + fadeIn() togetherWith
+                            slideOutHorizontally { -it } + fadeOut()
+                }
             },
             label = "ScreenTransition"
         ) { screen ->
             when (screen) {
                 is Screen.MainList -> MainListScreen(
                     viewModel = viewModel,
-                    onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
-                    onNavigateToCloud = { currentScreen = Screen.CloudSync },
-                    onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings },
-                    onNavigateToSearch = { currentScreen = Screen.Search },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) },
-                    onNavigateToSettingsHub = { currentScreen = Screen.SettingsHub },
-                    onNavigateToBackupRestore = { currentScreen = Screen.BackupRestore },
-                    onNavigateToUpdateInfo = { currentScreen = Screen.UpdateInfo },
-                    onNavigateToAbout = { currentScreen = Screen.About }
+                    onNavigateToEditor = { noteId -> navigateTo(Screen.NoteEditor(noteId)) },
+                    onNavigateToCloud = { navigateTo(Screen.CloudSync) },
+                    onNavigateToPrivacy = { navigateTo(Screen.PrivacySettings) },
+                    onNavigateToSearch = { navigateTo(Screen.Search) },
+                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
+                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) },
+                    onNavigateToSettingsHub = { navigateTo(Screen.SettingsHub) },
+                    onNavigateToBackupRestore = { navigateTo(Screen.BackupRestore) },
+                    onNavigateToUpdateInfo = { navigateTo(Screen.UpdateInfo) },
+                    onNavigateToAbout = { navigateTo(Screen.About) }
                 )
                 is Screen.Search -> SearchScreen(
                     viewModel = viewModel,
-                    onNavigateToEditor = { noteId -> currentScreen = Screen.NoteEditor(noteId) },
-                    onBack = { currentScreen = Screen.MainList },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
+                    onNavigateToEditor = { noteId -> navigateTo(Screen.NoteEditor(noteId)) },
+                    onBack = { navigateBack(Screen.MainList) },
+                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
+                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) }
                 )
                 is Screen.NoteEditor -> NoteEditorScreen(
                     noteId = screen.noteId,
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.MainList },
-                    onNavigateToDrawing = { id, path -> currentScreen = Screen.DrawingCanvas(id, path) },
-                    onNavigateToMediaViewer = { type, src -> currentScreen = Screen.MediaViewer(type, src, currentScreen) }
+                    onBack = { navigateBack(Screen.MainList) },
+                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
+                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) }
                 )
                 is Screen.DrawingCanvas -> DrawingCanvasScreen(
                     noteId = screen.noteId,
                     jsonPath = screen.jsonPath,
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.NoteEditor(screen.noteId) }
+                    onBack = { navigateBack(Screen.NoteEditor(screen.noteId)) }
                 )
                 is Screen.CloudSync -> CloudSyncScreen(
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.MainList }
+                    onBack = { navigateBack(Screen.MainList) }
                 )
                 is Screen.PrivacySettings -> PrivacySettingsScreen(
                     viewModel = viewModel,
-                    onBack = { currentScreen = Screen.SettingsHub }
+                    onBack = { navigateBack(Screen.SettingsHub) }
                 )
                 is Screen.MediaViewer -> MediaViewerScreen(
                     type = screen.type,
                     src = screen.src,
-                    onBack = { currentScreen = screen.previousScreen },
+                    onBack = { navigateBack(screen.previousScreen) },
                 )
                 is Screen.SettingsHub -> SettingsScreen(
                     themeViewModel = themeViewModel,
-                    onBack = { currentScreen = Screen.MainList },
-                    onNavigateToBackupRestore = { currentScreen = Screen.BackupRestore },
-                    onNavigateToUpdateInfo = { currentScreen = Screen.UpdateInfo },
-                    onNavigateToAbout = { currentScreen = Screen.About },
-                    onNavigateToPrivacy = { currentScreen = Screen.PrivacySettings }
+                    onBack = { navigateBack(Screen.MainList) },
+                    onNavigateToBackupRestore = { navigateTo(Screen.BackupRestore) },
+                    onNavigateToUpdateInfo = { navigateTo(Screen.UpdateInfo) },
+                    onNavigateToAbout = { navigateTo(Screen.About) },
+                    onNavigateToPrivacy = { navigateTo(Screen.PrivacySettings) }
                 )
                 is Screen.BackupRestore -> BackupRestoreScreen(
                     viewModel = backupViewModel,
-                    onBack = { currentScreen = Screen.SettingsHub }
+                    onBack = { navigateBack(Screen.SettingsHub) }
                 )
                 is Screen.UpdateInfo -> UpdateInfoScreen(
                     viewModel = updaterViewModel,
-                    onBack = { currentScreen = Screen.SettingsHub }
+                    onBack = { navigateBack(Screen.SettingsHub) }
                 )
                 is Screen.About -> AboutScreen(
-                    onBack = { currentScreen = Screen.SettingsHub }
+                    onBack = { navigateBack(Screen.SettingsHub) }
                 )
             }
         }
@@ -2112,6 +2179,7 @@ fun CloudSyncScreen(
     viewModel: NotesViewModel,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val isDriveLinked by viewModel.isDriveLinked.collectAsState()
     val driveAccessToken by viewModel.driveAccessToken.collectAsState()
     val lastSyncTime by viewModel.lastSyncTime.collectAsState()
@@ -2872,6 +2940,7 @@ fun SearchScreen(
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToMediaViewer: (String, String) -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val context = LocalContext.current

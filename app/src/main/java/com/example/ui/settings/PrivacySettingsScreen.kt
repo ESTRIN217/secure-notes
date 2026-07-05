@@ -1,5 +1,6 @@
 package com.example.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,6 +29,7 @@ fun PrivacySettingsScreen(
     viewModel: NotesViewModel,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val isPasswordSet by viewModel.isPasswordSet.collectAsStateWithLifecycle()
     var passwordInput by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }

@@ -1,6 +1,7 @@
 package com.example.ui.settings
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -11,7 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +30,7 @@ fun UpdateInfoScreen(
     viewModel: UpdaterViewModel,
     onBack: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showChangelog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -66,28 +68,12 @@ fun UpdateInfoScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.update_current_version))
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedCard(
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.update_current_version_label, uiState.currentVersion),
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                text = "$deviceArch - FOSS",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Info,
+                        title = stringResource(R.string.update_current_version_label, uiState.currentVersion),
+                        subtitle = "$deviceArch - FOSS",
+                        onClick = {}
                     )
                 }
             }
@@ -96,21 +82,21 @@ fun UpdateInfoScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.update_settings_title))
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedCard(
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                SettingsCardGroup {
                     Column {
                         SettingsSwitchTile(
                             title = stringResource(R.string.update_auto_check),
-                            icon = Icons.Rounded.Refresh,
+                            icon = Icons.Default.Refresh,
                             checked = uiState.autoUpdate,
                             onCheckedChange = { viewModel.toggleAutoUpdate(it) }
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
                         SettingsSwitchTile(
                             title = stringResource(R.string.update_notifications),
-                            icon = Icons.Rounded.NotificationsNone,
+                            icon = Icons.Default.NotificationsNone,
                             checked = uiState.notifications,
                             onCheckedChange = { viewModel.toggleNotifications(it) }
                         )
@@ -122,26 +108,23 @@ fun UpdateInfoScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.update_check_now))
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedCard(
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val targetIcon = when {
-                        uiState.isChecking -> Icons.Rounded.HourglassEmpty
-                        uiState.hasUpdate -> Icons.Rounded.Download
-                        else -> Icons.Rounded.Refresh
-                    }
-
-                    val targetTitle = if (uiState.hasUpdate) {
-                        stringResource(R.string.update_latest_version, uiState.latestVersion ?: "")
-                    } else {
-                        stringResource(R.string.update_check_now)
-                    }
-
-                    ListItem(
-                        modifier = Modifier.clickable(enabled = !uiState.isChecking) {
+                val targetIcon = when {
+                    uiState.isChecking -> Icons.Default.HourglassEmpty
+                    uiState.hasUpdate -> Icons.Default.Download
+                    else -> Icons.Default.Refresh
+                }
+                val targetTitle = when {
+                    uiState.isChecking -> stringResource(R.string.update_checking)
+                    uiState.hasUpdate -> stringResource(R.string.update_latest_version, uiState.latestVersion ?: "")
+                    else -> stringResource(R.string.update_check_now)
+                }
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = targetIcon,
+                        title = targetTitle,
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = {
                             if (uiState.hasUpdate) {
-                                // Open browser or download
                                 val intent = android.content.Intent(
                                     android.content.Intent.ACTION_VIEW,
                                     android.net.Uri.parse("https://github.com/ESTRIN217/secure-notes/releases/latest")
@@ -150,34 +133,7 @@ fun UpdateInfoScreen(
                             } else {
                                 viewModel.checkForUpdates()
                             }
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = targetIcon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        headlineContent = {
-                            if (uiState.isChecking) {
-                                Text(
-                                    text = stringResource(R.string.update_checking),
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                            } else {
-                                Text(
-                                    text = targetTitle,
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            Icon(
-                                imageVector = Icons.Rounded.ChevronRight,
-                                contentDescription = null
-                            )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+                        }
                     )
                 }
             }
@@ -185,10 +141,7 @@ fun UpdateInfoScreen(
             // --- CHANGELOG ---
             if (uiState.hasUpdate && uiState.latestChangelog != null) {
                 item {
-                    OutlinedCard(
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    SettingsCardGroup {
                         Column {
                             TextButton(
                                 onClick = { showChangelog = !showChangelog },
@@ -201,7 +154,7 @@ fun UpdateInfoScreen(
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Icon(
-                                        imageVector = if (showChangelog) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                        imageVector = if (showChangelog) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                         contentDescription = null
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
