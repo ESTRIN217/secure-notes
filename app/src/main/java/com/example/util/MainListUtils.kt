@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.AppConstants
 import com.example.R
-import com.example.ui.viewmodel.DecryptedNote
+import com.example.data.model.DecryptedNote
 
 enum class SortOption {
     ALPHABETICAL,

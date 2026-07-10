@@ -18,7 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
-import com.example.ui.viewmodel.DecryptedNote
+import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import org.json.JSONArray
 

@@ -88,7 +88,7 @@ import com.example.ui.settings.BackupRestoreScreen
 import com.example.ui.settings.PrivacySettingsScreen
 import com.example.ui.settings.SettingsScreen
 import com.example.ui.settings.UpdateInfoScreen
-import com.example.ui.viewmodel.DecryptedNote
+import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
@@ -286,8 +286,8 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
 
 @Composable
 fun NavigationRailContent(
-    currentSection: com.example.ui.viewmodel.NavigationSection,
-    onSectionSelected: (com.example.ui.viewmodel.NavigationSection) -> Unit,
+    currentSection: com.example.data.model.NavigationSection,
+    onSectionSelected: (com.example.data.model.NavigationSection) -> Unit,
     isExtended: Boolean,
     onToggleExtend: () -> Unit,
     widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact
@@ -350,11 +350,11 @@ fun NavigationRailContent(
 
             // Navigation Items
             val navItems = listOf(
-                Triple(com.example.ui.viewmodel.NavigationSection.HOME, Icons.Default.Home, R.string.nav_home),
-                Triple(com.example.ui.viewmodel.NavigationSection.FAVORITES, Icons.Default.Favorite, R.string.nav_favorites),
-                Triple(com.example.ui.viewmodel.NavigationSection.ARCHIVED, Icons.Default.Archive, R.string.nav_archived),
-                Triple(com.example.ui.viewmodel.NavigationSection.TRASH, Icons.Default.Delete, R.string.nav_trash),
-                Triple(com.example.ui.viewmodel.NavigationSection.SETTINGS, Icons.Default.Settings, R.string.nav_settings)
+                Triple(com.example.data.model.NavigationSection.HOME, Icons.Default.Home, R.string.nav_home),
+                Triple(com.example.data.model.NavigationSection.FAVORITES, Icons.Default.Favorite, R.string.nav_favorites),
+                Triple(com.example.data.model.NavigationSection.ARCHIVED, Icons.Default.Archive, R.string.nav_archived),
+                Triple(com.example.data.model.NavigationSection.TRASH, Icons.Default.Delete, R.string.nav_trash),
+                Triple(com.example.data.model.NavigationSection.SETTINGS, Icons.Default.Settings, R.string.nav_settings)
             )
 
             Column(

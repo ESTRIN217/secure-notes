@@ -58,9 +58,9 @@ import com.example.R
 import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.data.model.parseNoteContentAndAttachments
-import com.example.ui.viewmodel.DecryptedNote
+import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
-import com.example.ui.viewmodel.NavigationSection
+import com.example.data.model.NavigationSection
 import com.example.util.MoveDirection
 import com.example.util.RichTextParser
 import com.example.util.SortOption
@@ -132,8 +132,8 @@ fun MainListScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    BackHandler(enabled = currentSection != com.example.ui.viewmodel.NavigationSection.HOME) {
-        viewModel.currentSection.value = com.example.ui.viewmodel.NavigationSection.HOME
+    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME) {
+        viewModel.currentSection.value = com.example.data.model.NavigationSection.HOME
     }
 
     val sortedNotes = remember(notes, sortOption, customOrderStr) {
@@ -180,7 +180,7 @@ fun MainListScreen(
                     NavigationRailContent(
                         currentSection = currentSection,
                         onSectionSelected = { section ->
-                            if (section == com.example.ui.viewmodel.NavigationSection.SETTINGS) {
+                            if (section == com.example.data.model.NavigationSection.SETTINGS) {
                                 scope.launch { drawerState.close() }
                                 onNavigateToSettingsHub()
                             } else {
@@ -203,7 +203,7 @@ fun MainListScreen(
                 NavigationRailContent(
                     currentSection = currentSection,
                     onSectionSelected = { section ->
-                        if (section == com.example.ui.viewmodel.NavigationSection.SETTINGS) {
+                        if (section == com.example.data.model.NavigationSection.SETTINGS) {
                             onNavigateToSettingsHub()
                         } else {
                             viewModel.currentSection.value = section
@@ -377,10 +377,10 @@ fun MainListScreen(
                                             Column {
                                                 Text(
                                                     text = when (currentSection) {
-                                                        com.example.ui.viewmodel.NavigationSection.HOME -> stringResource(id = R.string.app_name)
-                                                        com.example.ui.viewmodel.NavigationSection.FAVORITES -> stringResource(id = R.string.nav_favorites_title)
-                                                        com.example.ui.viewmodel.NavigationSection.ARCHIVED -> stringResource(id = R.string.nav_archived_title)
-                                                        com.example.ui.viewmodel.NavigationSection.TRASH -> stringResource(id = R.string.nav_trash_title)
+                                                        com.example.data.model.NavigationSection.HOME -> stringResource(id = R.string.app_name)
+                                                        com.example.data.model.NavigationSection.FAVORITES -> stringResource(id = R.string.nav_favorites_title)
+                                                        com.example.data.model.NavigationSection.ARCHIVED -> stringResource(id = R.string.nav_archived_title)
+                                                        com.example.data.model.NavigationSection.TRASH -> stringResource(id = R.string.nav_trash_title)
                                                         else -> stringResource(id = R.string.app_name)
                                                     },
                                                     fontSize = 20.sp,
@@ -404,8 +404,8 @@ fun MainListScreen(
                                                 }
                                             }
                                         }
-                                        if (currentSection != com.example.ui.viewmodel.NavigationSection.ARCHIVED &&
-                                            currentSection != com.example.ui.viewmodel.NavigationSection.TRASH
+                                        if (currentSection != com.example.data.model.NavigationSection.ARCHIVED &&
+                                            currentSection != com.example.data.model.NavigationSection.TRASH
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                             IconButton(
@@ -473,7 +473,7 @@ fun MainListScreen(
                         }
                     },
                     floatingActionButton = {
-                        if (selectedNoteIds.isEmpty() && currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                        if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
                             FloatingActionButton(
                                 onClick = { onNavigateToEditor(0) },
                                 modifier = Modifier.testTag("new_note_fab"),
@@ -491,8 +491,8 @@ fun MainListScreen(
                             .padding(innerPadding)
                     ) {
                         // Tag filters row - only show on HOME or FAVORITES
-                        if (currentSection == com.example.ui.viewmodel.NavigationSection.HOME ||
-                            currentSection == com.example.ui.viewmodel.NavigationSection.FAVORITES) {
+                        if (currentSection == com.example.data.model.NavigationSection.HOME ||
+                            currentSection == com.example.data.model.NavigationSection.FAVORITES) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -569,7 +569,7 @@ fun MainListScreen(
                         }
 
                         // Banner to empty trash
-                        if (currentSection == com.example.ui.viewmodel.NavigationSection.TRASH && notes.isNotEmpty()) {
+                        if (currentSection == com.example.data.model.NavigationSection.TRASH && notes.isNotEmpty()) {
                             var showEmptyTrashAlert by remember { mutableStateOf(false) }
 
                             if (showEmptyTrashAlert) {
@@ -686,7 +686,7 @@ fun MainListScreen(
                                 ) {
                                     gridItems(sortedNotes) { decryptedNote ->
                                         val isThisDragged = draggedNoteId == decryptedNote.note.id
-                                        val isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.ui.viewmodel.NavigationSection.HOME)
+                                        val isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.data.model.NavigationSection.HOME)
                                         
                                         val dragModifier = if (isCustomOrderActive) {
                                             Modifier.pointerInput(decryptedNote.note.id) {
@@ -767,7 +767,7 @@ fun MainListScreen(
                                                 decryptedNote = decryptedNote,
                                                 selected = selectedNoteIds.contains(decryptedNote.note.id),
                                                 isCustomOrderActive = isCustomOrderActive,
-                                                isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
+                                                isInTrash = currentSection == com.example.data.model.NavigationSection.TRASH,
                                                 isGrid = true,
                                                 onNavigateToDrawing = onNavigateToDrawing,
                                                 onNavigateToMediaViewer = onNavigateToMediaViewer,
@@ -793,7 +793,7 @@ fun MainListScreen(
                                                     if (selectedNoteIds.isNotEmpty()) {
                                                         selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
                                                     } else {
-                                                        if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                        if (currentSection != com.example.data.model.NavigationSection.TRASH) {
                                                             onNavigateToEditor(decryptedNote.note.id)
                                                         } else {
                                                             viewModel.restoreFromTrash(decryptedNote.note)
@@ -802,7 +802,7 @@ fun MainListScreen(
                                                     }
                                                 },
                                                 onLongClick = {
-                                                    if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                    if (currentSection != com.example.data.model.NavigationSection.TRASH) {
                                                         selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
                                                             selectedNoteIds - decryptedNote.note.id
                                                         } else {
@@ -827,8 +827,8 @@ fun MainListScreen(
                                         NoteCardItem(
                                             decryptedNote = decryptedNote,
                                             selected = selectedNoteIds.contains(decryptedNote.note.id),
-                                            isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.ui.viewmodel.NavigationSection.HOME),
-                                            isInTrash = currentSection == com.example.ui.viewmodel.NavigationSection.TRASH,
+                                            isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.data.model.NavigationSection.HOME),
+                                            isInTrash = currentSection == com.example.data.model.NavigationSection.TRASH,
                                             isGrid = false,
                                             onNavigateToDrawing = onNavigateToDrawing,
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
@@ -854,7 +854,7 @@ fun MainListScreen(
                                                 if (selectedNoteIds.isNotEmpty()) {
                                                     selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
                                                 } else {
-                                                    if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                    if (currentSection != com.example.data.model.NavigationSection.TRASH) {
                                                         onNavigateToEditor(decryptedNote.note.id)
                                                     } else {
                                                         viewModel.restoreFromTrash(decryptedNote.note)
@@ -863,7 +863,7 @@ fun MainListScreen(
                                                 }
                                             },
                                             onLongClick = {
-                                                if (currentSection != com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                                if (currentSection != com.example.data.model.NavigationSection.TRASH) {
                                                     selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
                                                         selectedNoteIds - decryptedNote.note.id
                                                     } else {
@@ -914,7 +914,7 @@ fun MainListScreen(
                     onClick = {
                         notes.forEach { decryptedNote ->
                             if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                if (currentSection == com.example.ui.viewmodel.NavigationSection.TRASH) {
+                                if (currentSection == com.example.data.model.NavigationSection.TRASH) {
                                     viewModel.deletePermanently(decryptedNote.note)
                                     Toast.makeText(context, context.getString(R.string.toast_deleted_perm), Toast.LENGTH_SHORT).show()
                                 } else {

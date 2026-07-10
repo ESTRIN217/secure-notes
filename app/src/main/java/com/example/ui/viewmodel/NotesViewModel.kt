@@ -31,40 +31,8 @@ import java.util.Locale
 import com.example.AppConstants
 
 import com.example.R
-
-data class DecryptedNote(
-    val note: Note,
-    val title: String,
-    val content: String,
-    val isDecryptionSuccessful: Boolean
-) {
-    fun toListItem(): ListItem {
-        val tagsList = try {
-            val arr = JSONArray(note.tagsJson)
-            List(arr.length()) { arr.getString(it) }
-        } catch (e: Exception) {
-            emptyList()
-        }
-        return ListItem(
-            id = note.id.toString(),
-            title = title,
-            summary = content,
-            lastModified = Instant.ofEpochMilli(note.lastModified),
-            backgroundColor = note.backgroundColor,
-            backgroundImagePath = note.backgroundImagePath,
-            tags = tagsList,
-            isArchived = note.isArchived,
-            isFavorite = note.isFavorite,
-            categoryId = note.categoryId,
-            isPinned = note.isPinned,
-            isDeleted = note.isDeleted
-        )
-    }
-}
-
-enum class NavigationSection {
-    HOME, FAVORITES, ARCHIVED, TRASH, SETTINGS
-}
+import com.example.data.model.DecryptedNote
+import com.example.data.model.NavigationSection
 
 class NotesViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: NoteRepository

@@ -179,7 +179,7 @@ object ExportUtils {
         context.startActivity(chooser)
     }
 
-    fun exportMultipleToTxt(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
+    fun exportMultipleToTxt(context: Context, notes: List<com.example.data.model.DecryptedNote>) {
         try {
             val sb = StringBuilder()
             val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -210,7 +210,7 @@ object ExportUtils {
         }
     }
 
-    fun exportMultipleToMarkdown(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
+    fun exportMultipleToMarkdown(context: Context, notes: List<com.example.data.model.DecryptedNote>) {
         try {
             val sb = StringBuilder()
             val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -241,7 +241,7 @@ object ExportUtils {
         }
     }
 
-    fun exportMultipleToHtml(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
+    fun exportMultipleToHtml(context: Context, notes: List<com.example.data.model.DecryptedNote>) {
         try {
             val sb = StringBuilder()
             val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -280,7 +280,7 @@ object ExportUtils {
         }
     }
 
-    fun exportMultipleToJson(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
+    fun exportMultipleToJson(context: Context, notes: List<com.example.data.model.DecryptedNote>) {
         try {
             val arr = org.json.JSONArray()
             notes.forEach { dec ->
@@ -341,7 +341,7 @@ object ExportUtils {
         }
     }
 
-    fun exportMultipleToPdf(context: Context, notes: List<com.example.ui.viewmodel.DecryptedNote>) {
+    fun exportMultipleToPdf(context: Context, notes: List<com.example.data.model.DecryptedNote>) {
         try {
             val pdfDocument = PdfDocument()
             val paint = Paint().apply {

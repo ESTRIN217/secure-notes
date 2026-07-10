@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.example.AppConstants
 import com.example.ui.NoteCardItem
 import com.example.R
-import com.example.ui.viewmodel.DecryptedNote
+import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.getColorName
 import com.example.util.getNoteBackgroundColor
