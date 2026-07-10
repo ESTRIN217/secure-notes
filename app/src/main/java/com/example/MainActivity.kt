@@ -145,11 +145,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val cipherService = com.example.data.security.EncryptionServiceImpl()
+            val syncService = com.example.data.sync.GoogleDriveSyncService()
             val viewModel: NotesViewModel = viewModel(
                 factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                         @Suppress("UNCHECKED_CAST")
-                        return NotesViewModel(this@MainActivity.applicationContext as android.app.Application, cipherService) as T
+                        return NotesViewModel(this@MainActivity.applicationContext as android.app.Application, cipherService, syncService) as T
                     }
                 }
             )

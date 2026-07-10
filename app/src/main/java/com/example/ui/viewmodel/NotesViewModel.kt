@@ -13,7 +13,7 @@ import com.example.data.model.ListItem
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
-import com.example.data.sync.GoogleDriveSyncService
+import com.example.data.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +38,8 @@ import com.example.data.model.NavigationSection
 
 class NotesViewModel(
     application: Application,
-    private val cipherService: CipherService = EncryptionServiceImpl()
+    private val cipherService: CipherService = EncryptionServiceImpl(),
+    private val syncService: SyncService = com.example.data.sync.GoogleDriveSyncService()
 ) : AndroidViewModel(application) {
     private val noteDao: NoteDao
     private val tagDao: TagDao
@@ -659,12 +660,12 @@ class NotesViewModel(
                 }
 
                 // 2. Execute backup to Drive API
-                val existingFileId = GoogleDriveSyncService.searchBackupFile(token)
+                val existingFileId = syncService.searchBackupFile(token).getOrNull()
                 val success: Boolean
                 if (existingFileId != null) {
-                    success = GoogleDriveSyncService.uploadFileContent(token, existingFileId, finalPayload)
+                    success = syncService.uploadFileContent(token, existingFileId, finalPayload).getOrDefault(false)
                 } else {
-                    val createdFileId = GoogleDriveSyncService.createBackupFile(token, finalPayload)
+                    val createdFileId = syncService.createBackupFile(token, finalPayload).getOrNull()
                     success = createdFileId != null
                 }
 
@@ -695,13 +696,13 @@ class NotesViewModel(
         viewModelScope.launch {
             syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_searching_backup)
             try {
-                val fileId = GoogleDriveSyncService.searchBackupFile(token)
+                val fileId = syncService.searchBackupFile(token).getOrNull()
                 if (fileId == null) {
                     syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_no_backup_found)
                     return@launch
                 }
 
-                val backupContent = GoogleDriveSyncService.downloadBackupFile(token, fileId)
+                val backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
                 if (backupContent.isNullOrEmpty()) {
                     syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_backup_download_failed)
                     return@launch
