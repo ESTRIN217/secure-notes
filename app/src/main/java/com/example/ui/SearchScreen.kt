@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.AppConstants
-import com.example.NoteCardItem
+import com.example.ui.NoteCardItem
 import com.example.R
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
