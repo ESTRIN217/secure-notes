@@ -144,7 +144,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val viewModel: NotesViewModel = viewModel()
+            val cipherService = com.example.data.security.EncryptionServiceImpl()
+            val viewModel: NotesViewModel = viewModel(
+                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return NotesViewModel(this@MainActivity.applicationContext as android.app.Application, cipherService) as T
+                    }
+                }
+            )
             val themeViewModel: ThemeViewModel = viewModel()
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
             val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
