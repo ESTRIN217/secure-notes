@@ -2,6 +2,7 @@ package com.example.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.NoteDatabase
@@ -471,7 +472,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                             }
                         }
                     } catch (e: Exception) {
-                        // ignore
+                        Log.e("NotesViewModel", "batch tag update failed", e)
                     }
 
                     allAvailTags.forEach { availTag ->
@@ -545,8 +546,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                             val updatedTagsJson = JSONArray(existingTags).toString()
                             repository.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                         }
-                    } catch (e: Exception) {
-                        // ignore
+                        } catch (e: Exception) {
+                            Log.e("NotesViewModel", "rename tag update failed", e)
                     }
                 }
             } catch (e: Exception) {
@@ -585,9 +586,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                                 val updatedTagsJson = JSONArray(existingTags).toString()
                                 repository.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                             }
-                        } catch (e: Exception) {
-                            // ignore
-                        }
+                    } catch (e: Exception) {
+                        Log.e("NotesViewModel", "parse existing tags failed", e)
+                    }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -665,7 +666,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Encrypt payload if app security features are set up
                 val finalPayload: String = if (isPasswordSet.value && masterPassword.value != null) {
-                    val pass = masterPassword.value!!
+                    val pass = masterPassword.value ?: return@launch
                     val salt = EncryptionUtils.generateSalt()
                     val iv = EncryptionUtils.generateIv()
                     val cipherPayload = EncryptionUtils.encrypt(syncPayload, pass, salt, iv)

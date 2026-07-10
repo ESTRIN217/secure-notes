@@ -51,6 +51,7 @@ import android.speech.tts.TextToSpeech
 import androidx.lifecycle.viewModelScope
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.launch
@@ -638,12 +639,12 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                         mp.stop()
                     }
                 } catch (e: Exception) {
-                    // ignore
+                    Log.e("AudioPlayerWidget", "stop failed", e)
                 }
                 try {
                     mp.release()
                 } catch (e: Exception) {
-                    // ignore
+                    Log.e("AudioPlayerWidget", "release failed", e)
                 }
             }
         }
@@ -662,12 +663,12 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                                 mp.stop()
                             }
                         } catch (e: Exception) {
-                            // ignore
+                            Log.e("AudioPlayerWidget", "stop failed", e)
                         }
                         try {
                             mp.release()
                         } catch (e: Exception) {
-                            // ignore
+                            Log.e("AudioPlayerWidget", "release failed", e)
                         }
                     }
                     mediaPlayer = null
@@ -683,7 +684,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                                 try {
                                     release()
                                 } catch (e: Exception) {
-                                    // ignore
+                                    Log.e("AudioPlayerWidget", "release on completion failed", e)
                                 }
                                 mediaPlayer = null
                             }
@@ -701,7 +702,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                                     try {
                                         release()
                                     } catch (e: Exception) {
-                                        // ignore
+                                        Log.e("AudioPlayerWidget", "release on completion 2 failed", e)
                                     }
                                     mediaPlayer = null
                                 }
@@ -1942,7 +1943,9 @@ fun NoteEditorScreen(
                                             contentValue = contentValue.copy(selection = matchRanges[currentMatchIndex])
                                             try {
                                                 editorFocusRequester.requestFocus()
-                                            } catch (e: Exception) {}
+                                            } catch (e: Exception) {
+                                                Log.e("NoteEditor", "focus request up failed", e)
+                                            }
                                         }
                                     },
                                     enabled = matchRanges.isNotEmpty(),
@@ -1954,7 +1957,7 @@ fun NoteEditorScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
-                                
+
                                 // 2. Down Button
                                 IconButton(
                                     onClick = {
@@ -1963,7 +1966,9 @@ fun NoteEditorScreen(
                                             contentValue = contentValue.copy(selection = matchRanges[currentMatchIndex])
                                             try {
                                                 editorFocusRequester.requestFocus()
-                                            } catch (e: Exception) {}
+                                            } catch (e: Exception) {
+                                                Log.e("NoteEditor", "focus request down failed", e)
+                                            }
                                         }
                                     },
                                     enabled = matchRanges.isNotEmpty(),
@@ -3079,7 +3084,9 @@ fun NoteEditorScreen(
                     mediaRecorder?.apply {
                         try {
                             stop()
-                        } catch (e: Exception) {}
+                        } catch (e: Exception) {
+                            Log.e("NoteEditor", "media recorder stop failed", e)
+                        }
                         release()
                     }
                     draftPlayer?.release()

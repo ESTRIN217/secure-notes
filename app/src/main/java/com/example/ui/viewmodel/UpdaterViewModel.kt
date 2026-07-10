@@ -2,13 +2,17 @@ package com.example.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
 import com.example.BuildConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 data class UpdaterUiState(
@@ -47,7 +51,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(isChecking = true) }
         val currentVersion = _uiState.value.currentVersion
 
-        Thread {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val url = java.net.URL("https://api.github.com/repos/ESTRIN217/secure-notes/releases/latest")
                 val connection = url.openConnection() as java.net.HttpURLConnection
@@ -76,9 +80,10 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                     _uiState.update { it.copy(isChecking = false, hasUpdate = false) }
                 }
             } catch (e: Exception) {
+                Log.e("UpdaterViewModel", "check for updates failed", e)
                 _uiState.update { it.copy(isChecking = false, hasUpdate = false) }
             }
-        }.start()
+        }
     }
 
     private fun compareVersions(a: List<Int>, b: List<Int>): Int {

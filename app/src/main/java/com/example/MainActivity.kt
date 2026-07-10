@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -2444,7 +2445,7 @@ fun BatchTagDialog(
                     tags.add(arr.optString(i))
                 }
             } catch (e: Exception) {
-                // ignore
+                Log.e("BatchTagDialog", "parse tags failed", e)
             }
         }
         tags

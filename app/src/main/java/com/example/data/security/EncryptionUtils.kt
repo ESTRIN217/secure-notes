@@ -1,6 +1,7 @@
 package com.example.data.security
 
 import android.util.Base64
+import android.util.Log
 import java.security.SecureRandom
 import java.security.spec.KeySpec
 import javax.crypto.Cipher
@@ -10,6 +11,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 object EncryptionUtils {
+    private const val TAG = "EncryptionUtils"
     private const val KEY_DERIVATION_ALGORITHM = "PBKDF2WithHmacSHA256"
     private const val ENCRYPTION_ALGORITHM = "AES/GCM/NoPadding"
     private const val ITERATION_COUNT = 10000
@@ -50,7 +52,7 @@ object EncryptionUtils {
             val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
             return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "encrypt failed", e)
             return ""
         }
     }
@@ -66,7 +68,7 @@ object EncryptionUtils {
             val decryptedBytes = cipher.doFinal(cipherText)
             return String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "decrypt failed", e)
             return ""
         }
     }
