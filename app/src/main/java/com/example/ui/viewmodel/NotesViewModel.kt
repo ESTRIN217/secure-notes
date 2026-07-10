@@ -48,8 +48,8 @@ class NotesViewModel(
         if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
         val pass = password ?: ""
         if (pass.isEmpty()) return DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
-        val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv)
-        val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv)
+        val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv).getOrDefault("")
+        val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv).getOrDefault("")
         return if (decTitle.isEmpty() && decContent.isEmpty()) {
             DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
         } else {
@@ -228,7 +228,7 @@ class NotesViewModel(
         // Compute pseudo-hash to store in preference for validation
         val salt = cipherService.generateSalt()
         val iv = cipherService.generateIv()
-        val validationHash = cipherService.encrypt("VALID", password, salt, iv)
+        val validationHash = cipherService.encrypt("VALID", password, salt, iv).getOrDefault("")
         
         sharedPrefs.edit()
             .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
@@ -246,7 +246,7 @@ class NotesViewModel(
         val salt = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_SALT_KEY, "") ?: ""
         val iv = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_IV_KEY, "") ?: ""
 
-        val result = cipherService.decrypt(hash, password, salt, iv)
+        val result = cipherService.decrypt(hash, password, salt, iv).getOrDefault("")
         return if (result == "VALID") {
             masterPassword.value = password
             isUnlocked.value = true
@@ -277,8 +277,8 @@ class NotesViewModel(
             if (password.isNotEmpty()) {
                 rawNotes.value.forEach { note ->
                     if (note.isEncrypted) {
-                        val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv)
-                        val decContent = cipherService.decrypt(note.content, password, note.salt, note.iv)
+                        val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv).getOrDefault("")
+                        val decContent = cipherService.decrypt(note.content, password, note.salt, note.iv).getOrDefault("")
                         if (decTitle.isNotEmpty() || decContent.isNotEmpty()) {
                             noteDao.updateNote(
                                 note.copy(
@@ -333,8 +333,8 @@ class NotesViewModel(
             val iv = if (isEncrypted) cipherService.generateIv() else ""
 
             val pass = if (isEncrypted) masterPassword.value ?: "" else ""
-            val storedTitle = if (isEncrypted) cipherService.encrypt(title, pass, salt, iv) else title
-            val storedContent = if (isEncrypted) cipherService.encrypt(content, pass, salt, iv) else content
+            val storedTitle = if (isEncrypted) cipherService.encrypt(title, pass, salt, iv).getOrDefault("") else title
+            val storedContent = if (isEncrypted) cipherService.encrypt(content, pass, salt, iv).getOrDefault("") else content
 
             val tagsJson = JSONArray(tagsList).toString()
 
@@ -644,7 +644,7 @@ class NotesViewModel(
                     val pass = masterPassword.value ?: return@launch
                     val salt = cipherService.generateSalt()
                     val iv = cipherService.generateIv()
-                    val cipherPayload = cipherService.encrypt(syncPayload, pass, salt, iv)
+                    val cipherPayload = cipherService.encrypt(syncPayload, pass, salt, iv).getOrDefault("")
                     JSONObject().apply {
                         put("encrypted", true)
                         put("salt", salt)
@@ -720,7 +720,7 @@ class NotesViewModel(
                     val salt = container.getString("salt")
                     val iv = container.getString("iv")
                     val cipherData = container.getString("data")
-                    decryptedPayload = cipherService.decrypt(cipherData, pass, salt, iv)
+                    decryptedPayload = cipherService.decrypt(cipherData, pass, salt, iv).getOrDefault("")
                     if (decryptedPayload.isEmpty()) {
                         syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_decrypt_failed)
                         return@launch

@@ -29,23 +29,23 @@ class EncryptionServiceImpl : CipherService {
         return Base64.encodeToString(iv, Base64.NO_WRAP)
     }
 
-    override fun encrypt(plainText: String, password: String, saltBase64: String, ivBase64: String): String {
-        try {
+    override fun encrypt(plainText: String, password: String, saltBase64: String, ivBase64: String): Result<String> {
+        return try {
             val key = KeyDerivation.deriveKey(password, saltBase64)
             val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
             val cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM)
             val gcmSpec = GCMParameterSpec(TAG_LENGTH_BITS, iv)
             cipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec)
             val encryptedBytes = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-            return Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+            Result.success(Base64.encodeToString(encryptedBytes, Base64.NO_WRAP))
         } catch (e: Exception) {
             Log.e(TAG, "encrypt failed", e)
-            return ""
+            Result.failure(e)
         }
     }
 
-    override fun decrypt(cipherTextBase64: String, password: String, saltBase64: String, ivBase64: String): String {
-        try {
+    override fun decrypt(cipherTextBase64: String, password: String, saltBase64: String, ivBase64: String): Result<String> {
+        return try {
             val key = KeyDerivation.deriveKey(password, saltBase64)
             val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
             val cipherText = Base64.decode(cipherTextBase64, Base64.NO_WRAP)
@@ -53,10 +53,10 @@ class EncryptionServiceImpl : CipherService {
             val gcmSpec = GCMParameterSpec(TAG_LENGTH_BITS, iv)
             cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec)
             val decryptedBytes = cipher.doFinal(cipherText)
-            return String(decryptedBytes, Charsets.UTF_8)
+            Result.success(String(decryptedBytes, Charsets.UTF_8))
         } catch (e: Exception) {
             Log.e(TAG, "decrypt failed", e)
-            return ""
+            Result.failure(e)
         }
     }
 }
