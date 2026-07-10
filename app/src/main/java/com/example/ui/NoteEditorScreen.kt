@@ -54,6 +54,9 @@ import android.media.MediaRecorder
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.FlowPreview
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.VisualTransformation
@@ -723,7 +726,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun NoteEditorScreen(
     noteId: Int,
@@ -1302,13 +1305,22 @@ fun NoteEditorScreen(
                     
                     VerticalDivider(modifier = Modifier.height(24.dp))
                     
-                    // Active formatting detection
-                    val activeTextStyles = remember(contentValue) {
-                        val parsed = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
+                    // Debounced toolbar parse — avoids re-parsing on every keystroke
+                    var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { contentValue.text }
+                            .debounce(80)
+                            .collectLatest { text ->
+                                toolbarParseResult = RichTextParser.parseWithMapping(text, hideTags = true)
+                            }
+                    }
+                    data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
+                    val toolbarState = remember(toolbarParseResult, contentValue.selection) {
+                        val parsed = toolbarParseResult
                         val cursorIndex = contentValue.selection.start
                         val transformedIndex = parsed.sourceToTransformed.getOrNull(cursorIndex) ?: 0
                         val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
-                        buildSet {
+                        val activeStyles = buildSet {
                             for (range in parsed.text.spanStyles) {
                                 if (range.start <= targetIndex && targetIndex < range.end) {
                                     if (range.item.fontWeight == FontWeight.Bold) add("b")
@@ -1318,7 +1330,17 @@ fun NoteEditorScreen(
                                 }
                             }
                         }
+                        val activeFontColor = parsed.text.spanStyles.lastOrNull { range ->
+                            range.start <= targetIndex && targetIndex < range.end && range.item.color != Color.Unspecified
+                        }?.item?.color
+                        val activeBgColor = parsed.text.spanStyles.lastOrNull { range ->
+                            range.start <= targetIndex && targetIndex < range.end && range.item.background != Color.Unspecified && range.item.background != Color.Transparent
+                        }?.item?.background
+                        ToolbarState(activeStyles, activeFontColor, activeBgColor)
                     }
+                    val activeTextStyles = toolbarState.activeStyles
+                    val activeFontColor = toolbarState.activeFontColor
+                    val activeBgColor = toolbarState.activeBgColor
                     
                     // Bold, Italic, Underline, Strikethrough Helpers
                     val applyTag: (String) -> Unit = { tag ->
@@ -1539,34 +1561,6 @@ fun NoteEditorScreen(
                                 )
                             }
                         }
-                    }
-
-                    VerticalDivider(modifier = Modifier.height(24.dp))
-
-                    val activeFontColor = remember(contentValue) {
-                        val parsed = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
-                        val selection = contentValue.selection
-                        val cursorIndex = selection.start
-                        val transformedIndex = parsed.sourceToTransformed.getOrNull(cursorIndex) ?: 0
-                        
-                        val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
-                        
-                        parsed.text.spanStyles.lastOrNull { range ->
-                            range.start <= targetIndex && targetIndex < range.end && range.item.color != Color.Unspecified
-                        }?.item?.color
-                    }
-
-                    val activeBgColor = remember(contentValue) {
-                        val parsed = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
-                        val selection = contentValue.selection
-                        val cursorIndex = selection.start
-                        val transformedIndex = parsed.sourceToTransformed.getOrNull(cursorIndex) ?: 0
-                        
-                        val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
-                        
-                        parsed.text.spanStyles.lastOrNull { range ->
-                            range.start <= targetIndex && targetIndex < range.end && range.item.background != Color.Unspecified && range.item.background != Color.Transparent
-                        }?.item?.background
                     }
 
                     var showFontColorDialog by remember { mutableStateOf(false) }
@@ -2162,8 +2156,14 @@ fun NoteEditorScreen(
                     }
                 } else {
                     val visualTransformation = remember(searchQuery, searchCaseSensitive, searchFullWord, currentMatchIndex, isSearchActive) {
+                        var cachedText: String? = null
+                        var cachedResult: RichTextParser.ParseResult? = null
                         VisualTransformation { text ->
-                            val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = false, showTagsGray = true)
+                            if (cachedText != text.text) {
+                                cachedText = text.text
+                                cachedResult = RichTextParser.parseWithMapping(text.text, hideTags = false, showTagsGray = true)
+                            }
+                            val parseResult = cachedResult!!
                             val annotated = if (isSearchActive && searchQuery.isNotEmpty()) {
                                 highlightMatches(
                                     annotatedString = parseResult.text,
@@ -2576,8 +2576,7 @@ fun NoteEditorScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -2770,7 +2769,6 @@ fun NoteEditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .navigationBarsPadding()
                 ) {
                     Text(
                         text = stringResource(id = R.string.more_options),
@@ -3074,8 +3072,7 @@ fun NoteEditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .verticalScroll(rememberScrollState())
-                        .navigationBarsPadding(),
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
