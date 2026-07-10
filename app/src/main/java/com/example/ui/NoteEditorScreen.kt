@@ -1175,7 +1175,7 @@ fun NoteEditorScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 80.dp)
+                    .padding(top = 16.dp)
             ) {
                 if (isPreviewMode) {
                     Text(
