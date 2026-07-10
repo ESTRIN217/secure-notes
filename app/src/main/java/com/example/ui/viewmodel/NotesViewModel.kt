@@ -11,6 +11,8 @@ import com.example.data.model.ListItem
 import com.example.data.repository.NoteRepository
 import com.example.data.security.EncryptionUtils
 import com.example.data.sync.GoogleDriveSyncService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -349,42 +351,48 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         isPinned: Boolean = false,
         isFavorite: Boolean = false,
         isArchived: Boolean = false
-    ): Int {
-        val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
-        val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
+    ): Int = withContext(Dispatchers.IO) {
+        try {
+            val salt = if (isEncrypted) EncryptionUtils.generateSalt() else ""
+            val iv = if (isEncrypted) EncryptionUtils.generateIv() else ""
 
-        val pass = if (isEncrypted) masterPassword.value ?: "" else ""
-        val storedTitle = if (isEncrypted) EncryptionUtils.encrypt(title, pass, salt, iv) else title
-        val storedContent = if (isEncrypted) EncryptionUtils.encrypt(content, pass, salt, iv) else content
+            val pass = if (isEncrypted) masterPassword.value ?: "" else ""
+            val storedTitle = if (isEncrypted) EncryptionUtils.encrypt(title, pass, salt, iv) else title
+            val storedContent = if (isEncrypted) EncryptionUtils.encrypt(content, pass, salt, iv) else content
 
-        val tagsJson = JSONArray(tagsList).toString()
+            val tagsJson = JSONArray(tagsList).toString()
 
-        val existing = if (id != 0) {
-            repository.allNotesFlow.first().find { it.id == id }
-        } else null
+            val existing = if (id != 0) {
+                repository.allNotesFlow.first().find { it.id == id }
+            } else null
 
-        val note = Note(
-            id = if (id != 0) id else 0,
-            title = storedTitle,
-            content = storedContent,
-            isEncrypted = isEncrypted,
-            salt = salt,
-            iv = iv,
-            tagsJson = tagsJson,
-            lastModified = System.currentTimeMillis(),
-            isArchived = isArchived,
-            isFavorite = isFavorite,
-            isPinned = isPinned,
-            isDeleted = existing?.isDeleted ?: false,
-            backgroundColor = backgroundColor,
-            backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
-            categoryId = existing?.categoryId
-        )
+            val note = Note(
+                id = if (id != 0) id else 0,
+                title = storedTitle,
+                content = storedContent,
+                isEncrypted = isEncrypted,
+                salt = salt,
+                iv = iv,
+                tagsJson = tagsJson,
+                lastModified = System.currentTimeMillis(),
+                isArchived = isArchived,
+                isFavorite = isFavorite,
+                isPinned = isPinned,
+                isDeleted = existing?.isDeleted ?: false,
+                backgroundColor = backgroundColor,
+                backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
+                categoryId = existing?.categoryId
+            )
 
-        return if (id == 0) {
-            repository.insertNote(note).toInt()
-        } else {
-            repository.updateNote(note)
+            val result = if (id == 0) {
+                repository.insertNote(note).toInt()
+            } else {
+                repository.updateNote(note)
+                id
+            }
+            result
+        } catch (e: Exception) {
+            android.util.Log.e("NotesViewModel", "saveNoteAndGetId failed", e)
             id
         }
     }

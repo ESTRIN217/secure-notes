@@ -1085,6 +1085,29 @@ fun NoteEditorScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        snapshotFlow {
+            listOf(content, title, selectedNoteTags.size, selectedBgColorId)
+        }
+        .debounce(2000)
+        .collectLatest {
+            if ((title.isNotBlank() || content.isNotBlank()) && noteId != 0) {
+                viewModel.saveNote(
+                    id = noteId,
+                    title = title.trim(),
+                    content = createRawContent(content.trim(), attachments),
+                    isEncrypted = isEncrypted,
+                    tagsList = selectedNoteTags,
+                    backgroundColor = selectedBgColorId,
+                    backgroundImagePath = selectedBgImagePath,
+                    isPinned = isPinned,
+                    isFavorite = isFavorite,
+                    isArchived = isArchived
+                )
+            }
+        }
+    }
+
     val handleSaveAndExit = {
         if (title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()) {
             viewModel.saveNote(
