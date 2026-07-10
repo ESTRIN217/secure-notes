@@ -2,9 +2,9 @@ package com.example
 
 import com.example.util.RichTextParser
 import com.example.util.MediaBlock
-import com.example.ui.toggleNthChecklistItem
-import com.example.ui.parseToContentBlocks
-import com.example.ui.NoteContentBlock
+import com.example.data.model.NoteContentBlock
+import com.example.util.parseToContentBlocks
+import com.example.util.toggleNthChecklistItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

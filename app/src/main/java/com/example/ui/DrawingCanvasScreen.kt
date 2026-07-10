@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
+import com.example.data.model.Attachment
+import com.example.data.model.parseNoteContentAndAttachments
+import com.example.data.model.createRawContent
 import com.example.ui.viewmodel.NotesViewModel
 import org.json.JSONArray
 import java.io.File
@@ -52,47 +55,7 @@ data class DrawingStroke(
     val width: Float
 )
 
-// Helper models for serialization of attachments
-data class Attachment(val type: String, val path: String, val name: String = "")
 
-fun parseNoteContentAndAttachments(rawContent: String): Pair<String, List<Attachment>> {
-    val delimiter = "\n\n---Attachments---\n"
-    if (rawContent.contains(delimiter)) {
-        val parts = rawContent.split(delimiter, limit = 2)
-        val text = parts[0]
-        val jsonStr = parts.getOrNull(1) ?: "[]"
-        val list = mutableListOf<Attachment>()
-        try {
-            val arr = JSONArray(jsonStr)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                list.add(Attachment(
-                    type = obj.getString("type"),
-                    path = obj.getString("path"),
-                    name = obj.optString("name", "")
-                ))
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return Pair(text, list)
-    }
-    return Pair(rawContent, emptyList())
-}
-
-fun createRawContent(text: String, attachments: List<Attachment>): String {
-    if (attachments.isEmpty()) return text
-    val delimiter = "\n\n---Attachments---\n"
-    val arr = JSONArray()
-    attachments.forEach { att ->
-        val obj = org.json.JSONObject()
-        obj.put("type", att.type)
-        obj.put("path", att.path)
-        obj.put("name", att.name)
-        arr.put(obj)
-    }
-    return text + delimiter + arr.toString()
-}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawingCanvasScreen(

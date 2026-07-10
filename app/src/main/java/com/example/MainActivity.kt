@@ -1749,7 +1749,7 @@ fun NoteCardItem(
             Spacer(modifier = Modifier.height(6.dp))
 
             val (cleanNoteText, allAttachments) = remember(decryptedNote.content) {
-                com.example.ui.parseNoteContentAndAttachments(decryptedNote.content)
+                com.example.data.model.parseNoteContentAndAttachments(decryptedNote.content)
             }
 
             val formattedContent = remember(cleanNoteText) {
