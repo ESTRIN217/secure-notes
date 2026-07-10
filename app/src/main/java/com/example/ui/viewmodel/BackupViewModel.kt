@@ -64,8 +64,8 @@ class BackupViewModel(
         _snackbarMessage.value = null
     }
 
-    fun linkDrive() {
-        // Navigate to CloudSyncScreen for full Google Sign-In flow
+    fun linkGoogleDrive(token: String) {
+        notesViewModel.linkGoogleDrive(token)
     }
 
     fun unlinkDrive() {

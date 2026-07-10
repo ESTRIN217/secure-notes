@@ -114,7 +114,6 @@ import com.example.util.getColorName
 import com.example.util.getNoteBackgroundColor
 import com.example.util.reorderNote
 import com.example.util.swapNotes
-import com.example.ui.CloudSyncScreen
 import com.example.ui.LockScreen
 import com.example.ui.SearchScreen
 import com.example.ui.CreateTagDialog
@@ -216,7 +215,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
                 is Screen.MainList -> MainListScreen(
                     viewModel = viewModel,
                     onNavigateToEditor = { noteId -> navigateTo(Screen.NoteEditor(noteId)) },
-                    onNavigateToCloud = { navigateTo(Screen.CloudSync) },
+                    onNavigateToCloud = { navigateTo(Screen.BackupRestore) },
                     onNavigateToPrivacy = { navigateTo(Screen.PrivacySettings) },
                     onNavigateToSearch = { navigateTo(Screen.Search) },
                     onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
@@ -246,10 +245,6 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
                     viewModel = viewModel,
                     onBack = { navigateBack(Screen.NoteEditor(screen.noteId)) }
                 )
-                is Screen.CloudSync -> CloudSyncScreen(
-                    viewModel = viewModel,
-                    onBack = { navigateBack(Screen.MainList) }
-                )
                 is Screen.PrivacySettings -> PrivacySettingsScreen(
                     viewModel = viewModel,
                     onBack = { navigateBack(Screen.SettingsHub) }
@@ -269,7 +264,6 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
                 )
                 is Screen.BackupRestore -> BackupRestoreScreen(
                     viewModel = backupViewModel,
-                    onNavigateToCloud = { navigateTo(Screen.CloudSync) },
                     onBack = { navigateBack(Screen.SettingsHub) }
                 )
                 is Screen.UpdateInfo -> UpdateInfoScreen(

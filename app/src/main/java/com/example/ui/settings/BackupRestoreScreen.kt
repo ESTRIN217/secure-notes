@@ -1,6 +1,9 @@
 package com.example.ui.settings
 
+import android.accounts.Account
+import android.app.Activity
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,12 +30,19 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.ui.viewmodel.BackupViewModel
+import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupRestoreScreen(
     viewModel: BackupViewModel,
-    onNavigateToCloud: () -> Unit,
     onBack: () -> Unit
 ) {
     BackHandler(onBack = onBack)
@@ -40,6 +50,43 @@ fun BackupRestoreScreen(
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val signInClient: GoogleSignInClient = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.file"))
+            .requestEmail()
+            .build()
+            .let { GoogleSignIn.getClient(context, it) }
+    }
+
+    val signInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val signedInAccount = GoogleSignIn.getLastSignedInAccount(context)
+                    if (signedInAccount == null) return@launch
+                    val accountEmail = signedInAccount.email
+                    if (accountEmail == null) return@launch
+                    val token = GoogleAuthUtil.getToken(
+                        context,
+                        Account(accountEmail, "com.google"),
+                        "oauth2:https://www.googleapis.com/auth/drive.file"
+                    )
+                    withContext(Dispatchers.Main) {
+                        viewModel.linkGoogleDrive(token)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("CloudSync", "Failed to get Drive token", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -87,7 +134,7 @@ fun BackupRestoreScreen(
                         lastSyncTime = uiState.lastSyncTime,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
-                        onLinkDrive = onNavigateToCloud,
+                        onLinkDrive = { signInLauncher.launch(signInClient.signInIntent) },
                         onUnlinkDrive = { viewModel.unlinkDrive() }
                     )
                 }
