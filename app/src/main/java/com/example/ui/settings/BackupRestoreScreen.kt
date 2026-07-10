@@ -32,6 +32,7 @@ import com.example.ui.viewmodel.BackupViewModel
 @Composable
 fun BackupRestoreScreen(
     viewModel: BackupViewModel,
+    onNavigateToCloud: () -> Unit,
     onBack: () -> Unit
 ) {
     BackHandler(onBack = onBack)
@@ -86,7 +87,7 @@ fun BackupRestoreScreen(
                         lastSyncTime = uiState.lastSyncTime,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
-                        onLinkDrive = { viewModel.linkDrive() },
+                        onLinkDrive = onNavigateToCloud,
                         onUnlinkDrive = { viewModel.unlinkDrive() }
                     )
                 }

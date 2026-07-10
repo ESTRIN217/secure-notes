@@ -37,8 +37,10 @@
     <string name="encryption_active">AES-256 E2E Encryption Active</string>
     <string name="toggle_dark_theme">Dark Mode</string>
     <string name="info_cloud">Your notes are compressed, end-to-end encrypted locally, and backed up in a secure file on your Google Drive app folder.</string>
-    <string name="btn_link_drive">Link Google Drive</string>
+    <string name="btn_link_drive">Sign in with Google</string>
     <string name="btn_unlink_drive">Disconnect Drive</string>
+    <string name="btn_sign_in_google">Sign in with Google</string>
+    <string name="toast_auth_error">Authentication failed. Please try again.</string>
     <string name="sync_now">Sync Now</string>
     <string name="last_synced">Last synced: %s</string>
     <string name="selection_count">%1$d selected</string>
@@ -102,7 +104,6 @@
     <string name="toast_cannot_save_empty_note">Cannot save empty note</string>
     <string name="toast_note_saved">Note Saved Successfully</string>
     <string name="toast_setup_password_first">Set a Master Password in settings first!</string>
-    <string name="toast_simulation_token_seeded">Seeded Simulation Token</string>
     <string name="dialog_edit_tag">Edit Tag</string>
     <string name="dialog_manage_tags">Manage Tags</string>
     <string name="toast_tag_updated">Tag updated successfully</string>
@@ -438,11 +439,6 @@
     <string name="cd_stop_recording">Stop recording</string>
     <string name="cd_preview_voice_note">Preview Voice Note</string>
     <string name="cd_discard_recording">Discard Recording</string>
-
-    <!-- v4.0 Token / Auth UI -->
-    <string name="token_label">Paste Google API Access Token</string>
-    <string name="token_placeholder">ya29.a0Ac…</string>
-    <string name="token_info_text">Your Access Token is handled on-device securely. It grants temporary folder authorization directly to cloud storage without middleman storage.</string>
 
     <!-- v4.0 Platform & About -->
     <string name="platform_android">ANDROID</string>

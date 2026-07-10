@@ -1,7 +1,11 @@
 package com.example
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.app.Application
+import android.accounts.Account
+import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
@@ -90,6 +94,11 @@ import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.util.ExportUtils
+import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -339,6 +348,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
                 )
                 is Screen.BackupRestore -> BackupRestoreScreen(
                     viewModel = backupViewModel,
+                    onNavigateToCloud = { navigateTo(Screen.CloudSync) },
                     onBack = { navigateBack(Screen.SettingsHub) }
                 )
                 is Screen.UpdateInfo -> UpdateInfoScreen(
@@ -2194,12 +2204,47 @@ fun CloudSyncScreen(
 ) {
     BackHandler(onBack = onBack)
     val isDriveLinked by viewModel.isDriveLinked.collectAsState()
-    val driveAccessToken by viewModel.driveAccessToken.collectAsState()
     val lastSyncTime by viewModel.lastSyncTime.collectAsState()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
 
-    var tokenInput by remember { mutableStateOf(driveAccessToken) }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val signInClient: GoogleSignInClient = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.file"))
+            .requestEmail()
+            .build()
+            .let { GoogleSignIn.getClient(context, it) }
+    }
+
+    val signInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val signedInAccount = GoogleSignIn.getLastSignedInAccount(context)
+                    if (signedInAccount == null) return@launch
+                    val accountEmail = signedInAccount.email
+                    if (accountEmail == null) return@launch
+                    val token = GoogleAuthUtil.getToken(
+                        context,
+                        Account(accountEmail, "com.google"),
+                        "oauth2:https://www.googleapis.com/auth/drive.file"
+                    )
+                    withContext(Dispatchers.Main) {
+                        viewModel.linkGoogleDrive(token)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("CloudSync", "Failed to get Drive token", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
 
     // Launch action notifier
     LaunchedEffect(syncStatusMessage) {
@@ -2309,49 +2354,21 @@ fun CloudSyncScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                // Input field for OAuth API token
-                OutlinedTextField(
-                    value = tokenInput,
-                    onValueChange = { tokenInput = it },
-                    label = { Text(stringResource(id = R.string.token_label)) },
-                    placeholder = { Text(stringResource(id = R.string.token_placeholder)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("token_input_field"),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = stringResource(id = R.string.token_info_text),
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
                 Button(
-                    onClick = {
-                        if (tokenInput.isBlank()) {
-                            // Seed simulation / test token for smooth UI demo
-                            viewModel.linkGoogleDrive("ya29.simulated_access_token")
-                            Toast.makeText(context, context.getString(R.string.toast_simulation_token_seeded), Toast.LENGTH_SHORT).show()
-                        } else {
-                            viewModel.linkGoogleDrive(tokenInput.trim())
-                        }
-                    },
+                    onClick = { signInLauncher.launch(signInClient.signInIntent) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
-                        .testTag("link_drive_button"),
+                        .testTag("google_sign_in_button"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(stringResource(id = R.string.btn_link_drive), fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(id = R.string.btn_sign_in_google), fontWeight = FontWeight.Bold)
                 }
             } else {
                 Row(

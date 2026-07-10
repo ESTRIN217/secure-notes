@@ -65,7 +65,7 @@ class BackupViewModel(
     }
 
     fun linkDrive() {
-        notesViewModel.linkGoogleDrive("ya29.simulated_access_token")
+        // Navigate to CloudSyncScreen for full Google Sign-In flow
     }
 
     fun unlinkDrive() {
