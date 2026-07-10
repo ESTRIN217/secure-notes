@@ -9,7 +9,7 @@ import com.example.data.local.NoteDatabase
 import com.example.data.local.TagDao
 import com.example.data.model.Note
 import com.example.data.model.Tag
-import com.example.data.model.ListItem
+
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
