@@ -9,7 +9,7 @@ import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.data.model.ListItem
-import com.example.data.repository.NoteRepository
+import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
 import com.example.data.sync.GoogleDriveSyncService
@@ -39,7 +39,7 @@ class NotesViewModel(
     application: Application,
     private val cipherService: CipherService = EncryptionServiceImpl()
 ) : AndroidViewModel(application) {
-    private val repository: NoteRepository
+    private val noteDao: NoteDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
 
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
@@ -86,15 +86,15 @@ class NotesViewModel(
 
     init {
         val database = NoteDatabase.getDatabase(application)
-        repository = NoteRepository(database.noteDao)
+        noteDao = database.noteDao
 
-        availableTags = repository.allTagsFlow.stateIn(
+        availableTags = noteDao.getAllTagsFlow().stateIn(
             viewModelScope,
             SharingStarted.Lazily,
             emptyList()
         )
 
-        rawNotes = repository.allNotesFlow.stateIn(
+        rawNotes = noteDao.getAllNotesFlow().stateIn(
             viewModelScope,
             SharingStarted.Lazily,
             emptyList()
@@ -168,11 +168,11 @@ class NotesViewModel(
 
         // Seed default tags if empty
         viewModelScope.launch {
-            repository.allTagsFlow.collect { tags ->
+            noteDao.getAllTagsFlow().collect { tags ->
                 if (tags.isEmpty()) {
-                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_work), "#42A5F5"))
-                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_personal), "#66BB6A"))
-                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_private), "#EC407A"))
+                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_work), "#42A5F5"))
+                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_personal), "#66BB6A"))
+                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_private), "#EC407A"))
                 }
             }
         }
@@ -180,7 +180,7 @@ class NotesViewModel(
         // Seed default notes if empty
         viewModelScope.launch {
             try {
-                val notes = repository.allNotesFlow.first()
+                val notes = noteDao.getAllNotesFlow().first()
                 if (notes.isEmpty()) {
                     val welcomeTitle = getApplication<Application>().getString(com.example.R.string.welcome_note_title)
                     val welcomeContent = getApplication<Application>().getString(com.example.R.string.welcome_note_content)
@@ -194,7 +194,7 @@ class NotesViewModel(
                         tagsJson = "[\"Personal\"]",
                         lastModified = System.currentTimeMillis()
                     )
-                    repository.insertNote(welcomeNote)
+                    noteDao.insertNote(welcomeNote)
 
                     val workoutTitle = getApplication<Application>().getString(com.example.R.string.workout_note_title)
                     val workoutContent = getApplication<Application>().getString(com.example.R.string.workout_note_content)
@@ -208,7 +208,7 @@ class NotesViewModel(
                         tagsJson = "[\"Personal\"]",
                         lastModified = System.currentTimeMillis()
                     )
-                    repository.insertNote(workoutNote)
+                    noteDao.insertNote(workoutNote)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -277,7 +277,7 @@ class NotesViewModel(
                         val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv)
                         val decContent = cipherService.decrypt(note.content, password, note.salt, note.iv)
                         if (decTitle.isNotEmpty() || decContent.isNotEmpty()) {
-                            repository.updateNote(
+                            noteDao.updateNote(
                                 note.copy(
                                     title = decTitle,
                                     content = decContent,
@@ -336,7 +336,7 @@ class NotesViewModel(
             val tagsJson = JSONArray(tagsList).toString()
 
             val existing = if (id != 0) {
-                repository.allNotesFlow.first().find { it.id == id }
+                noteDao.getAllNotesFlow().first().find { it.id == id }
             } else null
 
             val note = Note(
@@ -358,9 +358,9 @@ class NotesViewModel(
             )
 
             val result = if (id == 0) {
-                repository.insertNote(note).toInt()
+                noteDao.insertNote(note).toInt()
             } else {
-                repository.updateNote(note)
+                noteDao.updateNote(note)
                 id
             }
             result
@@ -372,24 +372,24 @@ class NotesViewModel(
 
     fun deleteNote(note: Note) {
         viewModelScope.launch {
-            repository.deleteNote(note)
+            noteDao.deleteNote(note)
         }
     }
 
     fun toggleFavorite(note: Note) {
         viewModelScope.launch {
-            repository.updateNote(note.copy(isFavorite = !note.isFavorite, lastModified = System.currentTimeMillis()))
+            noteDao.updateNote(note.copy(isFavorite = !note.isFavorite, lastModified = System.currentTimeMillis()))
         }
     }
 
     fun batchTogglePin(noteIds: Set<Int>) {
         viewModelScope.launch {
             try {
-                val allNotes = repository.allNotesFlow.first()
+                val allNotes = noteDao.getAllNotesFlow().first()
                 val selected = allNotes.filter { it.id in noteIds }
                 val hasUnpinned = selected.any { !it.isPinned }
                 selected.forEach { note ->
-                    repository.updateNote(note.copy(isPinned = hasUnpinned, lastModified = System.currentTimeMillis()))
+                    noteDao.updateNote(note.copy(isPinned = hasUnpinned, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -400,11 +400,11 @@ class NotesViewModel(
     fun batchToggleFavorite(noteIds: Set<Int>) {
         viewModelScope.launch {
             try {
-                val allNotes = repository.allNotesFlow.first()
+                val allNotes = noteDao.getAllNotesFlow().first()
                 val selected = allNotes.filter { it.id in noteIds }
                 val hasUnfav = selected.any { !it.isFavorite }
                 selected.forEach { note ->
-                    repository.updateNote(note.copy(isFavorite = hasUnfav, lastModified = System.currentTimeMillis()))
+                    noteDao.updateNote(note.copy(isFavorite = hasUnfav, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -415,11 +415,11 @@ class NotesViewModel(
     fun batchToggleArchive(noteIds: Set<Int>) {
         viewModelScope.launch {
             try {
-                val allNotes = repository.allNotesFlow.first()
+                val allNotes = noteDao.getAllNotesFlow().first()
                 val selected = allNotes.filter { it.id in noteIds }
                 val hasUnarchived = selected.any { !it.isArchived }
                 selected.forEach { note ->
-                    repository.updateNote(note.copy(isArchived = hasUnarchived, lastModified = System.currentTimeMillis()))
+                    noteDao.updateNote(note.copy(isArchived = hasUnarchived, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -430,7 +430,7 @@ class NotesViewModel(
     fun batchUpdateTags(noteIds: Set<Int>, tagNames: List<String>) {
         viewModelScope.launch {
             try {
-                val allNotes = repository.allNotesFlow.first()
+                val allNotes = noteDao.getAllNotesFlow().first()
                 val selected = allNotes.filter { it.id in noteIds }
                 val allAvailTags = availableTags.value.map { it.name }
                 selected.forEach { note ->
@@ -458,7 +458,7 @@ class NotesViewModel(
                     }
 
                     val updatedTagsJson = JSONArray(existingTags).toString()
-                    repository.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
+                    noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -468,39 +468,39 @@ class NotesViewModel(
 
     fun toggleArchive(note: Note) {
         viewModelScope.launch {
-            repository.updateNote(note.copy(isArchived = !note.isArchived, lastModified = System.currentTimeMillis()))
+            noteDao.updateNote(note.copy(isArchived = !note.isArchived, lastModified = System.currentTimeMillis()))
         }
     }
 
     fun moveToTrash(note: Note) {
         viewModelScope.launch {
-            repository.updateNote(note.copy(isDeleted = true, lastModified = System.currentTimeMillis()))
+            noteDao.updateNote(note.copy(isDeleted = true, lastModified = System.currentTimeMillis()))
         }
     }
 
     fun restoreFromTrash(note: Note) {
         viewModelScope.launch {
-            repository.updateNote(note.copy(isDeleted = false, lastModified = System.currentTimeMillis()))
+            noteDao.updateNote(note.copy(isDeleted = false, lastModified = System.currentTimeMillis()))
         }
     }
 
     fun deletePermanently(note: Note) {
         viewModelScope.launch {
-            repository.deleteNote(note)
+            noteDao.deleteNote(note)
         }
     }
 
     fun createTag(name: String, colorHex: String) {
         viewModelScope.launch {
-            repository.insertTag(Tag(name, colorHex))
+            noteDao.insertTag(Tag(name, colorHex))
         }
     }
 
     fun deleteTag(tag: Tag) {
         viewModelScope.launch {
-            repository.deleteTag(tag)
+            noteDao.deleteTag(tag)
             try {
-                val allNotes = repository.allNotesFlow.first()
+                val allNotes = noteDao.getAllNotesFlow().first()
                 allNotes.forEach { note ->
                     try {
                         val arr = JSONArray(note.tagsJson)
@@ -516,7 +516,7 @@ class NotesViewModel(
                         }
                         if (modified) {
                             val updatedTagsJson = JSONArray(existingTags).toString()
-                            repository.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
+                            noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                         }
                         } catch (e: Exception) {
                             Log.e("NotesViewModel", "rename tag update failed", e)
@@ -534,12 +534,12 @@ class NotesViewModel(
     fun updateTag(oldTag: Tag, newName: String, newColorHex: String) {
         viewModelScope.launch {
             if (oldTag.name == newName) {
-                repository.insertTag(Tag(newName, newColorHex))
+                noteDao.insertTag(Tag(newName, newColorHex))
             } else {
-                repository.insertTag(Tag(newName, newColorHex))
-                repository.deleteTag(oldTag)
+                noteDao.insertTag(Tag(newName, newColorHex))
+                noteDao.deleteTag(oldTag)
                 try {
-                    val allNotes = repository.allNotesFlow.first()
+                    val allNotes = noteDao.getAllNotesFlow().first()
                     allNotes.forEach { note ->
                         try {
                             val arr = JSONArray(note.tagsJson)
@@ -556,7 +556,7 @@ class NotesViewModel(
                             }
                             if (modified) {
                                 val updatedTagsJson = JSONArray(existingTags).toString()
-                                repository.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
+                                noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                             }
                     } catch (e: Exception) {
                         Log.e("NotesViewModel", "parse existing tags failed", e)
@@ -741,7 +741,7 @@ class NotesViewModel(
                         lastModified = noteObj.getLong("lastModified"),
                         tagsJson = noteObj.getString("tagsJson")
                     )
-                    repository.insertNote(note)
+                    noteDao.insertNote(note)
                 }
 
                 val tagsArr = payloadObj.getJSONArray("tags")
@@ -751,7 +751,7 @@ class NotesViewModel(
                         name = tagObj.getString("name"),
                         colorHex = tagObj.getString("colorHex")
                     )
-                    repository.insertTag(tag)
+                    noteDao.insertTag(tag)
                 }
 
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
