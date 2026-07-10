@@ -70,6 +70,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Note
@@ -465,10 +466,10 @@ fun NavigationRailContent(
     currentSection: com.example.ui.viewmodel.NavigationSection,
     onSectionSelected: (com.example.ui.viewmodel.NavigationSection) -> Unit,
     isExtended: Boolean,
-    onToggleExtend: () -> Unit
+    onToggleExtend: () -> Unit,
+    widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact
 ) {
-    val configuration = LocalConfiguration.current
-    val isLargeScreen = configuration.screenWidthDp >= 600
+    val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
@@ -646,8 +647,18 @@ fun MainListScreen(
     var dragOffsetX by remember { mutableStateOf(0f) }
     var dragOffsetY by remember { mutableStateOf(0f) }
     val configuration = LocalConfiguration.current
-    val isLargeScreen = configuration.screenWidthDp >= 600
-    var isNavExtended by remember(isLargeScreen) { mutableStateOf(isLargeScreen) }
+    val widthClass = when {
+        configuration.screenWidthDp < 600 -> WindowWidthSizeClass.Compact
+        configuration.screenWidthDp < 840 -> WindowWidthSizeClass.Medium
+        else -> WindowWidthSizeClass.Expanded
+    }
+    val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
+    var isNavExtended by remember(isLargeScreen) { mutableStateOf(widthClass == WindowWidthSizeClass.Expanded) }
+    val gridColumns = when (widthClass) {
+        WindowWidthSizeClass.Compact -> 2
+        WindowWidthSizeClass.Medium -> 2
+        else -> 3
+    }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -709,7 +720,8 @@ fun MainListScreen(
                             }
                         },
                         isExtended = true,
-                        onToggleExtend = {}
+                        onToggleExtend = {},
+                        widthClass = widthClass
                     )
                 }
             }
@@ -729,7 +741,8 @@ fun MainListScreen(
                         }
                     },
                     isExtended = isNavExtended,
-                    onToggleExtend = { isNavExtended = !isNavExtended }
+                    onToggleExtend = { isNavExtended = !isNavExtended },
+                    widthClass = widthClass
                 )
 
                 // Custom division line
@@ -1193,7 +1206,7 @@ fun MainListScreen(
                         } else {
                             if (isGridView) {
                                 LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
+                                    columns = GridCells.Fixed(gridColumns),
                                     modifier = Modifier
                                         .weight(1f)
                                         .padding(horizontal = 16.dp),
