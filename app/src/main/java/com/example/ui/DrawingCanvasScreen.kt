@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -178,6 +179,7 @@ fun DrawingCanvasScreen(
     var selectedColor by remember { mutableStateOf(colors[0]) }
     var selectedWidth by remember { mutableStateOf(8f) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val canvasCardBorderStroke = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
 
     Scaffold(
         topBar = {
@@ -186,7 +188,7 @@ fun DrawingCanvasScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
+                    .border(canvasCardBorderStroke, RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.outlinedCardColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -465,7 +467,7 @@ fun DrawingCanvasScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
+                    .border(canvasCardBorderStroke, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.outlinedCardColors(
                     containerColor = MaterialTheme.colorScheme.surface
