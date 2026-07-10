@@ -10,6 +10,7 @@ import com.example.data.model.Tag
 @Database(entities = [Note::class, Tag::class], version = 3, exportSchema = false)
 abstract class NoteDatabase : RoomDatabase() {
     abstract val noteDao: NoteDao
+    abstract val tagDao: TagDao
 
     companion object {
         @Volatile

@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.NoteDatabase
+import com.example.data.local.TagDao
 import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.data.model.ListItem
@@ -40,6 +41,7 @@ class NotesViewModel(
     private val cipherService: CipherService = EncryptionServiceImpl()
 ) : AndroidViewModel(application) {
     private val noteDao: NoteDao
+    private val tagDao: TagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
 
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
@@ -87,8 +89,9 @@ class NotesViewModel(
     init {
         val database = NoteDatabase.getDatabase(application)
         noteDao = database.noteDao
+        tagDao = database.tagDao
 
-        availableTags = noteDao.getAllTagsFlow().stateIn(
+        availableTags = tagDao.getAllTagsFlow().stateIn(
             viewModelScope,
             SharingStarted.Lazily,
             emptyList()
@@ -168,11 +171,11 @@ class NotesViewModel(
 
         // Seed default tags if empty
         viewModelScope.launch {
-            noteDao.getAllTagsFlow().collect { tags ->
+            tagDao.getAllTagsFlow().collect { tags ->
                 if (tags.isEmpty()) {
-                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_work), "#42A5F5"))
-                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_personal), "#66BB6A"))
-                    noteDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_private), "#EC407A"))
+                    tagDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_work), "#42A5F5"))
+                    tagDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_personal), "#66BB6A"))
+                    tagDao.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_private), "#EC407A"))
                 }
             }
         }
@@ -492,13 +495,13 @@ class NotesViewModel(
 
     fun createTag(name: String, colorHex: String) {
         viewModelScope.launch {
-            noteDao.insertTag(Tag(name, colorHex))
+            tagDao.insertTag(Tag(name, colorHex))
         }
     }
 
     fun deleteTag(tag: Tag) {
         viewModelScope.launch {
-            noteDao.deleteTag(tag)
+            tagDao.deleteTag(tag)
             try {
                 val allNotes = noteDao.getAllNotesFlow().first()
                 allNotes.forEach { note ->
@@ -534,10 +537,10 @@ class NotesViewModel(
     fun updateTag(oldTag: Tag, newName: String, newColorHex: String) {
         viewModelScope.launch {
             if (oldTag.name == newName) {
-                noteDao.insertTag(Tag(newName, newColorHex))
+                tagDao.insertTag(Tag(newName, newColorHex))
             } else {
-                noteDao.insertTag(Tag(newName, newColorHex))
-                noteDao.deleteTag(oldTag)
+                tagDao.insertTag(Tag(newName, newColorHex))
+                tagDao.deleteTag(oldTag)
                 try {
                     val allNotes = noteDao.getAllNotesFlow().first()
                     allNotes.forEach { note ->
@@ -751,7 +754,7 @@ class NotesViewModel(
                         name = tagObj.getString("name"),
                         colorHex = tagObj.getString("colorHex")
                     )
-                    noteDao.insertTag(tag)
+                    tagDao.insertTag(tag)
                 }
 
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
