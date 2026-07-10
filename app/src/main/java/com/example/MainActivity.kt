@@ -503,7 +503,7 @@ fun NavigationRailContent(
             // Logo
             Image(
                 painter = painterResource(id = R.drawable.img_app_icon),
-                contentDescription = "Secure Notes Logo",
+                contentDescription = stringResource(id = R.string.cd_secure_notes_logo),
                 modifier = Modifier
                     .size(if (isExtended) 84.dp else 44.dp)
                     .clip(RoundedCornerShape(12.dp))
@@ -1172,7 +1172,7 @@ fun MainListScreen(
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.img_notes_empty),
-                                        contentDescription = "Empty notes background banner",
+                                        contentDescription = stringResource(id = R.string.cd_empty_notes_banner),
                                         modifier = Modifier
                                             .size(180.dp)
                                             .clip(RoundedCornerShape(24.dp))
@@ -1808,7 +1808,7 @@ fun NoteCardItem(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.PlayArrow,
-                                                contentDescription = "Play Video",
+                                                contentDescription = stringResource(id = R.string.cd_play_video),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(36.dp)
                                             )
@@ -2300,8 +2300,8 @@ fun CloudSyncScreen(
                 OutlinedTextField(
                     value = tokenInput,
                     onValueChange = { tokenInput = it },
-                    label = { Text("Paste Google API Access Token") },
-                    placeholder = { Text("ya29.a0Ac...") },
+                    label = { Text(stringResource(id = R.string.token_label)) },
+                    placeholder = { Text(stringResource(id = R.string.token_placeholder)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("token_input_field"),
@@ -2315,7 +2315,7 @@ fun CloudSyncScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Your Access Token is handled on-device securely. It grants temporary folder authorization directly to cloud storage without middleman storage.",
+                    text = stringResource(id = R.string.token_info_text),
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2543,7 +2543,7 @@ fun ShareFormatSheet(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = "TXT Icon", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Description, contentDescription = stringResource(id = R.string.cd_txt_icon), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_txt),
@@ -2569,7 +2569,7 @@ fun ShareFormatSheet(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Code, contentDescription = "Markdown Icon", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Code, contentDescription = stringResource(id = R.string.cd_markdown_icon), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_md),
@@ -2597,7 +2597,7 @@ fun ShareFormatSheet(
                 ) {
                     @Suppress("DEPRECATION")
                     val articleIcon = Icons.Default.Article
-                    Icon(articleIcon, contentDescription = "PDF Icon", tint = MaterialTheme.colorScheme.primary)
+                    Icon(articleIcon, contentDescription = stringResource(id = R.string.cd_pdf_icon), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_pdf),
@@ -2623,7 +2623,7 @@ fun ShareFormatSheet(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Web, contentDescription = "HTML Icon", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Web, contentDescription = stringResource(id = R.string.cd_html_icon), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_html),
@@ -2649,7 +2649,7 @@ fun ShareFormatSheet(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = "JSON Icon", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.cd_json_icon), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = stringResource(id = R.string.share_format_json),
@@ -2729,7 +2729,7 @@ fun EditTagDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Tag",
+                            contentDescription = stringResource(id = R.string.cd_delete_tag),
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
@@ -2874,7 +2874,7 @@ fun ManageTagsDialog(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit Tag",
+                                        contentDescription = stringResource(id = R.string.cd_edit_tag),
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -2910,7 +2910,7 @@ fun ManageTagsDialog(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete Tag",
+                                        contentDescription = stringResource(id = R.string.cd_delete_tag),
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(20.dp)
                                     )

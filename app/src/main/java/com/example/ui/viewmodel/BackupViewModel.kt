@@ -18,8 +18,8 @@ import org.json.JSONObject
 data class BackupUiState(
     val isDriveLinked: Boolean = false,
     val isLoading: Boolean = false,
-    val lastSyncTime: String = "Never",
-    val lastLocalBackup: String = "Never"
+    val lastSyncTime: String = "",
+    val lastLocalBackup: String = ""
 )
 
 class BackupViewModel(

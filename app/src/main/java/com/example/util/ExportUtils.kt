@@ -44,7 +44,7 @@ object ExportUtils {
                 out.write(sb.toString().toByteArray())
             }
 
-            shareFile(context, file, "text/markdown", "Export Markdown")
+            shareFile(context, file, "text/markdown", context.getString(R.string.export_title_markdown))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -106,9 +106,9 @@ object ExportUtils {
                 isAntiAlias = true
             }
             if (note.isEncrypted) {
-                canvas.drawText("🛡️ AES-256 END-TO-END ENCRYPTED", margin + 10, margin + 60, securityPaint)
+                canvas.drawText(context.getString(R.string.pdf_watermark_encrypted), margin + 10, margin + 60, securityPaint)
             } else {
-                canvas.drawText("📝 PLAIN LOCAL COPY", margin + 10, margin + 60, Paint().apply {
+                canvas.drawText(context.getString(R.string.pdf_watermark_plain), margin + 10, margin + 60, Paint().apply {
                     color = Color.parseColor("#E65100")
                     textSize = 10f
                     typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -118,11 +118,11 @@ object ExportUtils {
 
             // Draw date & tags
             val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(note.lastModified))
-            canvas.drawText("Last Modified: $dateStr", margin + 10, margin + 85, infoPaint)
+            canvas.drawText(context.getString(R.string.export_label_last_modified, dateStr), margin + 10, margin + 85, infoPaint)
 
             val cleanedTags = note.cleanedTags()
             if (cleanedTags.isNotEmpty()) {
-                canvas.drawText("Tags: " + cleanedTags.joinToString(", "), margin + 10, margin + 105, infoPaint)
+                canvas.drawText(context.getString(R.string.export_label_tags, cleanedTags.joinToString(", ")), margin + 10, margin + 105, infoPaint)
             }
 
             // Draw note Content (supporting multi-line and text wrapping!)
@@ -155,7 +155,7 @@ object ExportUtils {
             }
             pdfDocument.close()
 
-            shareFile(context, file, "application/pdf", "Export PDF")
+            shareFile(context, file, "application/pdf", context.getString(R.string.export_title_pdf))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -186,11 +186,11 @@ object ExportUtils {
             notes.forEachIndexed { index, dec ->
                 val dateStr = format.format(Date(dec.note.lastModified))
                 sb.append("=== ").append(dec.title.uppercase(Locale.getDefault())).append(" ===\n")
-                sb.append("Modified: ").append(dateStr).append("\n")
+                sb.append(context.getString(R.string.export_label_modified, dateStr)).append("\n")
                 
                 val cleanedTags = dec.note.cleanedTags()
                 if (cleanedTags.isNotEmpty()) {
-                    sb.append("Tags: ").append(cleanedTags.joinToString(", ")).append("\n")
+                    sb.append(context.getString(R.string.export_label_tags, cleanedTags.joinToString(", "))).append("\n")
                 }
                 sb.append("\n")
                 sb.append(RichTextParser.stripTags(dec.content)).append("\n\n")
@@ -203,7 +203,7 @@ object ExportUtils {
             FileOutputStream(file).use { out ->
                 out.write(sb.toString().toByteArray())
             }
-            shareFile(context, file, "text/plain", "Share Notes as Text")
+            shareFile(context, file, "text/plain", context.getString(R.string.share_title_text))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -234,7 +234,7 @@ object ExportUtils {
             FileOutputStream(file).use { out ->
                 out.write(sb.toString().toByteArray())
             }
-            shareFile(context, file, "text/markdown", "Share Notes as Markdown")
+            shareFile(context, file, "text/markdown", context.getString(R.string.share_title_markdown))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -273,7 +273,7 @@ object ExportUtils {
             FileOutputStream(file).use { out ->
                 out.write(sb.toString().toByteArray())
             }
-            shareFile(context, file, "text/html", "Share Notes as HTML")
+            shareFile(context, file, "text/html", context.getString(R.string.share_title_html))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -302,7 +302,7 @@ object ExportUtils {
             FileOutputStream(file).use { out ->
                 out.write(arr.toString(4).toByteArray())
             }
-            shareFile(context, file, "application/json", "Share Notes as JSON")
+            shareFile(context, file, "application/json", context.getString(R.string.share_title_json))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -334,7 +334,7 @@ object ExportUtils {
             FileOutputStream(file).use { out ->
                 out.write(obj.toString(4).toByteArray())
             }
-            shareFile(context, file, "application/json", "Export JSON")
+            shareFile(context, file, "application/json", context.getString(R.string.export_title_json))
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -406,7 +406,7 @@ object ExportUtils {
 
                 val dateStr = format.format(Date(dec.note.lastModified))
                 val cleanedTags = dec.note.cleanedTags()
-                val metaText = "Last Modified: $dateStr" + if (cleanedTags.isNotEmpty()) " | Tags: " + cleanedTags.joinToString(", ") else ""
+                val metaText = context.getString(R.string.export_label_last_modified, dateStr) + if (cleanedTags.isNotEmpty()) " | " + context.getString(R.string.export_label_tags, cleanedTags.joinToString(", ")) else ""
                 
                 canvas.drawText(metaText, margin, currentY, infoPaint)
                 currentY += 20f

@@ -60,12 +60,12 @@
     <string name="workout_note_title">Rutina Maestra: Fuerza y Resistencia</string>
     <string name="workout_note_content">**Objetivo: Hipertrofia, potencia y capacidad cardiovascular.**\n\n**Programación Semanal: L, M, J, V**\n\n### Bloque 1: Enfoque Agilidad y Potencia\n- **Flexiones Rusas**: 3 series de 3 a 5 repeticiones.\n- **Flexiones con Aplauso**: 3 series de 4 a 6 repeticiones.\n- **Dominadas (Barras)**: 3 series de 5 a 6 repeticiones (explosivas).\n- **Flexiones en Pica**: 3 series de 5 repeticiones.\n\n### Bloque 2: Resistencia de Empuje\n- **Flexiones de arco**: 10 repeticiones (5 por brazo).\n- **Dominadas Australianas**: 3 series de 10 a 12 repeticiones.\n- **Flexiones de Puños**: 20 repeticiones.\n- **Flexiones Normales**: 3 series de 10 repeticiones.\n- **Deltoides Frontales**: 15 repeticiones.\n\n### Bloque 3: Tren Inferior\n- **Sentadillas**: 30 repeticiones.\n- **Sentadillas Explosivas**: 3 series de 15 repeticiones.\n- **Zancadas Búlgaras**: 3 series de 10 repeticiones por pierna.\n- **Zancadas Frontales**: 40 repeticiones (20 por pierna).\n- **Butt Bridge**: 30 repeticiones.\n- **Pierna adentro y fuera**: 30 repeticiones.\n\n### Bloque 4: Core y Cardio\n- **Elevaciones de Pierna**: 25 repeticiones.\n- **Escaladores**: 100 repeticiones.\n- **Planchas**: 3 series de 1 minuto.\n\n### Bloque 5: Estiramiento\n- **Gato-Vaca**: 10 ciclos.\n- **Postura del Niño**: 20-30 segundos.\n- **Estiramiento de Pectorales en pared**: 20-30 segundos.\n- **Estiramiento de Tríceps**: 20-30 segundos.\n- **Perro Boca Abajo**: 20-30 segundos.\n- **Estiramiento de Flexores de Cadera**: 20-30 segundos.\n- **Estiramiento de Muñecas**: 20-30 segundos.\n\n¡Consistencia es la clave! Intenta mantener este orden al menos 4 semanas antes de subir repeticiones.</string>
     <string name="nav_home">Home</string>
-    <string name="nav_favorites">Favorites</string>
+    <string name="nav_favorites">Favourites</string>
     <string name="nav_archived">Archived</string>
     <string name="nav_trash">Trash</string>
     <string name="nav_settings">Settings</string>
     
-    <string name="nav_favorites_title">Favorites</string>
+    <string name="nav_favorites_title">Favourites</string>
     <string name="nav_archived_title">Archived Notes</string>
     <string name="nav_trash_title">Trash</string>
     
@@ -79,7 +79,7 @@
     
     <string name="menu_batch_pin">Pin</string>
     <string name="menu_batch_unpin">Unpin</string>
-    <string name="menu_batch_favorite">Favorite</string>
+    <string name="menu_batch_favorite">Favourite</string>
     <string name="menu_batch_archive">Archive</string>
     <string name="menu_batch_unarchive">Unarchive</string>
     <string name="menu_batch_tag">Tag</string>
@@ -109,12 +109,12 @@
     <string name="toast_tag_deleted">Tag deleted successfully</string>
     <string name="delete_tag_confirm_title">Delete Tag?</string>
     <string name="delete_tag_confirm_message">Are you sure you want to delete the tag \"%1$s\"? This will remove it from all notes.</string>
-    <string name="label_select_color">Select Tag Color</string>
+    <string name="label_select_color">Select Tag Colour</string>
     <string name="label_search">Search</string>
     <string name="search_no_results">No notes found matching your search.</string>
     <string name="search_recent">Recent Searches</string>
     <string name="search_hint">Type to start searching…</string>
-    <string name="label_note_color">Note Background Color</string>
+    <string name="label_note_color">Note Background Colour</string>
     <string name="label_color_none">Default</string>
     <string name="label_color_blue">Blue</string>
     <string name="label_color_green">Green</string>
@@ -124,17 +124,17 @@
     <string name="label_color_orange">Orange</string>
     <string name="label_filter_by">Filters:</string>
     <string name="label_all">All</string>
-    <string name="label_favorites">Favorites</string>
+    <string name="label_favorites">Favourites</string>
     <string name="label_archived">Archived</string>
     <string name="label_tags_filter">Tags</string>
-    <string name="label_color_filter">Colors</string>
+    <string name="label_color_filter">Colours</string>
     <string name="more_options">More Options</string>
     <string name="label_last_modified">Last Modified: %s</string>
     <string name="option_share">Share Note</string>
     <string name="option_delete">Delete Note</string>
     <string name="option_select_bg_image">Select Background Image</string>
     <string name="option_clear_bg_image">Remove Background Image</string>
-    <string name="option_note_styling">Note Styling &amp; Colors</string>
+    <string name="option_note_styling">Note Styling &amp; Colours</string>
     <string name="label_e2e_encryption">End-to-End Encryption</string>
     <string name="desc_e2e_encryption_enabled">Secure your note with AES-256 standard and master passphrase.</string>
     <string name="desc_e2e_encryption_disabled">Set up privacy passcode first under Privacy Settings.</string>
@@ -158,8 +158,8 @@
     <string name="rich_inline_code">Inline Code</string>
     <string name="rich_subscript">Subscript</string>
     <string name="rich_superscript">Superscript</string>
-    <string name="rich_font_color">Font Color</string>
-    <string name="rich_bg_color">Background Color</string>
+    <string name="rich_font_color">Font Colour</string>
+    <string name="rich_bg_color">Background Colour</string>
     <string name="rich_remove_format">Clear Formatting</string>
     <string name="rich_insert_image">Insert Image</string>
     <string name="rich_insert_video">Insert Video</string>
@@ -184,10 +184,10 @@
     <string name="label_url_address">URL Link Address</string>
     <string name="label_url_text">Display Text (Optional)</string>
     <string name="rich_live_preview">Live Render</string>
-    <string name="dialog_font_color_title">Font Color</string>
-    <string name="dialog_bg_color_title">Background Color</string>
-    <string name="color_option_material">Material Colors</string>
-    <string name="color_option_picker">Color Picker</string>
+    <string name="dialog_font_color_title">Font Colour</string>
+    <string name="dialog_bg_color_title">Background Colour</string>
+    <string name="color_option_material">Material Colours</string>
+    <string name="color_option_picker">Colour Picker</string>
     <string name="color_option_default">Default Option</string>
     <string name="color_default">Use Default</string>
     <string name="color_hex_label">Hex Code</string>
@@ -226,7 +226,7 @@
     <string name="drawing_clear">Clear Canvas</string>
     <string name="drawing_save">Save Drawing</string>
     <string name="drawing_stroke_width">Stroke Width</string>
-    <string name="drawing_color_picker">Color Picker</string>
+    <string name="drawing_color_picker">Colour Picker</string>
     <string name="drawing_size_label">Size: %d</string>
     <string name="toast_drawing_saved">Drawing added to note</string>
     <string name="toast_drawing_load_error">Failed to load drawing</string>
@@ -286,12 +286,12 @@
     <string name="encrypted_label">Encrypted</string>
     <string name="drag_to_reorder">Drag to reorder</string>
     <string name="clear_search">Clear search</string>
-    <string name="favorite_filter">Favorites</string>
+    <string name="favorite_filter">Favourites</string>
     <string name="archive_filter">Archived</string>
     <string name="tag_filter">Tag</string>
-    <string name="color_filter">Color</string>
+    <string name="color_filter">Colour</string>
     <string name="clear_tag_filter">Clear Tag Filter</string>
-    <string name="clear_color_filter">Clear Color Filter</string>
+    <string name="clear_color_filter">Clear Colour Filter</string>
     <string name="no_results_icon">No results</string>
     <string name="remove_recent_search">Remove recent search</string>
     <string name="search_icon_placeholder">Search</string>
@@ -346,7 +346,7 @@
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_dynamic_colors">Dynamic Colors</string>
+    <string name="settings_dynamic_colors">Dynamic Colours</string>
     <string name="settings_dynamic_colors_desc">Use Material You dynamic color scheme (Android 12+)</string>
     <string name="settings_dark_mode">Dark Mode</string>
     <string name="settings_dark_mode_system">System</string>

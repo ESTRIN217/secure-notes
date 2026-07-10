@@ -37,9 +37,9 @@ object RichTextParser {
         }
     }
 
-    fun parseSecureNotesJson(text: String): Pair<String, String> {
+    fun parseSecureNotesJson(text: String, defaultTitle: String = "Imported Note"): Pair<String, String> {
         val json = org.json.JSONObject(text.trim())
-        val title = json.optString("title", "Imported Note")
+        val title = json.optString("title", defaultTitle)
         val summary = json.optString("summary", "")
         return Pair(title, summary)
     }

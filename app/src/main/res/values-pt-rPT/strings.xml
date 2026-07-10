@@ -2,9 +2,9 @@
     <string name="app_name">Secure Notes</string>
     <string name="search_placeholder">Buscar notas…</string>
     <string name="btn_new_note">Nova Nota</string>
-    <string name="btn_save">Salvar</string>
+    <string name="btn_save">Guardar</string>
     <string name="btn_edit">Editar</string>
-    <string name="btn_delete">Excluir</string>
+    <string name="btn_delete">Eliminar</string>
     <string name="btn_sync">Sincronizar Nuvem</string>
     <string name="btn_export">Exportar Nota</string>
     <string name="btn_markdown">Exportar Markdown</string>
@@ -22,11 +22,11 @@
     <string name="label_title">Título</string>
     <string name="label_content">Digite algo…</string>
     <string name="label_tags">Etiquetas</string>
-    <string name="label_enter_password">Digite a Senha Mestra</string>
-    <string name="label_setup_password">Criar Senha de Segurança</string>
-    <string name="label_set_password_msg">Defina uma senha mestra para criptografar suas notas de ponta a ponta. Suas notas não poderão ser descriptografadas sem ela!</string>
-    <string name="label_unlock">Desbloquear Aplicativo</string>
-    <string name="error_wrong_password">Senha incorreta. Tente novamente!</string>
+    <string name="label_enter_password">Digite a Palavra-passe Mestre</string>
+    <string name="label_setup_password">Criar Palavra-passe de Segurança</string>
+    <string name="label_set_password_msg">Defina uma palavra-passe mestre para criptografar suas notas de ponta a ponta. Suas notas não poderão ser descriptografadas sem ela!</string>
+    <string name="label_unlock">Desbloquear Aplicação</string>
+    <string name="error_wrong_password">Palavra-passe incorreta. Tente novamente!</string>
     <string name="sync_success">Sincronizado com o Google Drive com sucesso!</string>
     <string name="sync_error">Falha na sincronização. Verifique a conexão ou autorização.</string>
     <string name="export_success">Nota exportada com sucesso!</string>
@@ -36,16 +36,16 @@
     <string name="tag_name_hint">Nome da Etiqueta</string>
     <string name="encryption_active">Criptografia AES-256 E2E Ativa</string>
     <string name="toggle_dark_theme">Modo Escuro</string>
-    <string name="info_cloud">Suas notas são compactadas, criptografadas de ponta a ponta localmente e salvas em um arquivo seguro no seu Google Drive.</string>
+    <string name="info_cloud">Suas notas são compactadas, criptografadas de ponta a ponta localmente e guardadas num ficheiro seguro no seu Google Drive.</string>
     <string name="btn_link_drive">Vincular Google Drive</string>
     <string name="btn_unlink_drive">Desconectar Drive</string>
     <string name="sync_now">Sincronizar Agora</string>
     <string name="last_synced">Última sinc.: %s</string>
     <string name="selection_count">%1$d selecionadas</string>
-    <string name="menu_delete_selected">Excluir selecionadas</string>
+    <string name="menu_delete_selected">Eliminar selecionadas</string>
     <string name="menu_cancel_selection">Cancelar seleção</string>
     <string name="confirm_delete_title">Confirmar Exclusão</string>
-    <string name="confirm_delete_msg">Tem certeza de que deseja excluir as notas selecionadas?</string>
+    <string name="confirm_delete_msg">Tem certeza de que deseja eliminar as notas selecionadas?</string>
     <string name="menu_toggle_view">Alternar modo de visualização</string>
     <string name="menu_sort_options">Alterar ordenação</string>
     <string name="bottom_sheet_sort_title">Ordenar Notas</string>
@@ -55,27 +55,27 @@
     <string name="action_move_up">Mover para cima</string>
     <string name="action_move_down">Mover para baixo</string>
     <string name="welcome_note_title">Boas-vindas ao Secure Notes! 🚀</string>
-    <string name="welcome_note_content">Este é o seu espaço protegido para armazenar ideias, credenciais e notas criptografadas.\n\n🔒 **Criptografia Local**: Tudo o que você escreve pode ser criptografado na sua máquina com o padrão militar **AES-256 GCM** através de uma Senha Mestra.\n\n☁️ **Backup no Google Drive**: Conecte sua conta via Sincronização em Nuvem para salvar suas notas em segurança, protegidas de ponta a ponta.\n\n⚡ **Visualizações e Filtros Interativos**: Classifique suas anotações por tags como Trabalho, Pessoal e Privado, além de organizá-las na ordem que preferir!\n\nBoas anotações!</string>
+    <string name="welcome_note_content">Este é o seu espaço protegido para armazenar ideias, credenciais e notas criptografadas.\n\n🔒 **Criptografia Local**: Tudo o que você escreve pode ser criptografado na sua máquina com o padrão militar **AES-256 GCM** através de uma Palavra-passe Mestre.\n\n☁️ **Backup no Google Drive**: Conecte sua conta via Sincronização em Nuvem para guardar suas notas em segurança, protegidas de ponta a ponta.\n\n⚡ **Visualizações e Filtros Interativos**: Classifique suas anotações por tags como Trabalho, Pessoal e Privado, além de organizá-las na ordem que preferir!\n\nBoas anotações!</string>
     
     <string name="workout_note_title">Rutina Maestra: Força e Resistência</string>
     <string name="workout_note_content">**Objetivo: Hipertrofia, potência e capacidade cardiovascular.**\n\n**Programação Semanal: S, T, Q, S**\n\n### Bloco 1: Agilidade e Potência\n- **Flexões Russas**: 3 séries de 3 a 5 repetições.\n- **Flexões com Palma**: 3 séries de 4 a 6 repetições.\n- **Dominadas (Barras)**: 3 séries de 5 a 6 repetições (explosivas).\n- **Flexões em Pica**: 3 séries de 5 repetições.\n\n### Bloco 2: Resistência de Empurrão\n- **Flexões de arco**: 10 repetições (5 por braço).\n- **Dominadas Australianas**: 3 séries de 10 a 12 repetições.\n- **Flexões de Punhos**: 20 repetições.\n- **Flexões Normais**: 3 séries de 10 repetições.\n- **Deltóides Frontais**: 15 repetições.\n\n### Bloco 3: Pernas\n- **Agachamentos**: 30 repetições.\n- **Agachamentos Explosivos**: 3 séries de 15 repetições.\n- **Afundos Búlgaros**: 3 séries de 10 repetições por perna.\n- **Afundos Frontais**: 40 repetições (20 por perna).\n- **Ponte de Glúteo**: 30 repetições.\n- **Perna dentro e fora**: 30 repetições.\n\n### Bloco 4: Core e Cardio\n- **Elevações de Perna**: 25 repetições.\n- **Escaladores**: 100 repetições.\n- **Pranchas**: 3 séries de 1 minuto.\n\n### Bloco 5: Alongamento\n- **Gato-Vaca**: 10 ciclos.\n- **Postura da Criança**: 20-30 segundos.\n- **Alongamento de Peitoral na parede**: 20-30 segundos.\n- **Alongamento de Tríceps**: 20-30 segundos.\n- **Cachorro Olhando para Baixo**: 20-30 segundos.\n- **Alongamento de Flexores do Quadril**: 20-30 segundos.\n- **Alongamento de Punhos**: 20-30 segundos.\n\nConsistência é a chave! Tente manter esta ordem por pelo menos 4 semanas antes de aumentar repetições.</string>
     <string name="nav_home">Início</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_archived">Arquivados</string>
-    <string name="nav_trash">Lixeira</string>
-    <string name="nav_settings">Configurações</string>
+    <string name="nav_trash">Reciclagem</string>
+    <string name="nav_settings">Definições</string>
     
     <string name="nav_favorites_title">Favoritos</string>
     <string name="nav_archived_title">Notas Arquivadas</string>
-    <string name="nav_trash_title">Lixeira</string>
+    <string name="nav_trash_title">Reciclagem</string>
     
     <string name="action_restore">Restaurar</string>
-    <string name="action_delete_perm">Excluir permanentemente</string>
-    <string name="action_empty_trash">Esvaziar lixeira</string>
-    <string name="alert_empty_trash_msg">Tem certeza de que deseja excluir permanentemente todas as notas da lixeira?</string>
-    <string name="toast_moved_trash">Movido para a lixeira</string>
+    <string name="action_delete_perm">Eliminar permanentemente</string>
+    <string name="action_empty_trash">Esvaziar reciclagem</string>
+    <string name="alert_empty_trash_msg">Tem certeza de que deseja eliminar permanentemente todas as notas da reciclagem?</string>
+    <string name="toast_moved_trash">Movido para a reciclagem</string>
     <string name="toast_restored">Nota restaurada</string>
-    <string name="toast_deleted_perm">Excluído permanentemente</string>
+    <string name="toast_deleted_perm">Eliminado permanentemente</string>
     
     <string name="menu_batch_pin">Fixar</string>
     <string name="menu_batch_unpin">Desafixar</string>
@@ -83,7 +83,7 @@
     <string name="menu_batch_archive">Arquivar</string>
     <string name="menu_batch_unarchive">Desarquivar</string>
     <string name="menu_batch_tag">Etiquetar</string>
-    <string name="menu_batch_share">Compartilhar</string>
+    <string name="menu_batch_share">Partilhar</string>
     
     <string name="share_sheet_title">Formato de Compartilhamento</string>
     <string name="share_format_txt">Texto simples (.txt)</string>
@@ -93,27 +93,27 @@
     <string name="share_format_json">Formato JSON (.json)</string>
     <string name="batch_tags_title">Gerenciar etiquetas das notas selecionadas</string>
     <string name="toast_batch_tags_applied">Etiquetas atualizadas com sucesso</string>
-    <string name="toast_unlocked">Aplicativo desbloqueado</string>
-    <string name="toast_password_too_short">A senha deve ter pelo menos 4 caracteres!</string>
-    <string name="toast_passwords_do_not_match">As senhas não coincidem!</string>
-    <string name="toast_password_configured">Senha configurada com sucesso!</string>
-    <string name="toast_password_removed">Senha mestra removida. Notas descriptografadas.</string>
+    <string name="toast_unlocked">Aplicação desbloqueada</string>
+    <string name="toast_password_too_short">A palavra-passe deve ter pelo menos 4 caracteres!</string>
+    <string name="toast_passwords_do_not_match">As palavra-passes não coincidem!</string>
+    <string name="toast_password_configured">Palavra-passe configurada com sucesso!</string>
+    <string name="toast_password_removed">Palavra-passe mestre removida. Notas descriptografadas.</string>
     <string name="toast_note_deleted">Nota excluída</string>
-    <string name="toast_cannot_save_empty_note">Não é possível salvar uma nota vazia</string>
+    <string name="toast_cannot_save_empty_note">Não é possível guardar uma nota vazia</string>
     <string name="toast_note_saved">Nota salva com sucesso</string>
-    <string name="toast_setup_password_first">Defina uma senha mestra nas configurações primeiro!</string>
+    <string name="toast_setup_password_first">Defina uma palavra-passe mestre nas configurações primeiro!</string>
     <string name="toast_simulation_token_seeded">Token de simulação gerado</string>
     <string name="dialog_edit_tag">Editar etiqueta</string>
     <string name="dialog_manage_tags">Gerenciar etiquetas</string>
     <string name="toast_tag_updated">Etiqueta atualizada com sucesso</string>
     <string name="toast_tag_deleted">Etiqueta excluída com sucesso</string>
-    <string name="delete_tag_confirm_title">Excluir etiqueta?</string>
-    <string name="delete_tag_confirm_message">Tem certeza de que deseja excluir a etiqueta \"%1$s\"? Isso a removerá de todas as notas.</string>
+    <string name="delete_tag_confirm_title">Eliminar etiqueta?</string>
+    <string name="delete_tag_confirm_message">Tem certeza de que deseja eliminar a etiqueta \"%1$s\"? Isso a removerá de todas as notas.</string>
     <string name="label_select_color">Selecionar cor da etiqueta</string>
     <string name="label_search">Buscar</string>
     <string name="search_no_results">Nenhuma nota encontrada correspondente à sua pesquisa.</string>
-    <string name="search_recent">Pesquisas recentes</string>
-    <string name="search_hint">Digite para começar a pesquisar…</string>
+    <string name="search_recent">Procuras recentes</string>
+    <string name="search_hint">Digite para começar a procurar…</string>
     <string name="label_note_color">Cor de fundo da nota</string>
     <string name="label_color_none">Padrão</string>
     <string name="label_color_blue">Azul</string>
@@ -130,14 +130,14 @@
     <string name="label_color_filter">Cores</string>
     <string name="more_options">Mais Opções</string>
     <string name="label_last_modified">Última modif.: %s</string>
-    <string name="option_share">Compartilhar Nota</string>
-    <string name="option_delete">Excluir Nota</string>
+    <string name="option_share">Partilhar Nota</string>
+    <string name="option_delete">Eliminar Nota</string>
     <string name="option_select_bg_image">Selecionar imagem de fundo</string>
     <string name="option_clear_bg_image">Remover imagem de fundo</string>
     <string name="option_note_styling">Estilo e cores da nota</string>
     <string name="label_e2e_encryption">Criptografia de ponta a ponta</string>
-    <string name="desc_e2e_encryption_enabled">Proteja sua nota com o padrão AES-256 e uma senha mestre.</string>
-    <string name="desc_e2e_encryption_disabled">Configure primeiro uma senha de privacidade em Configurações de Privacidade.</string>
+    <string name="desc_e2e_encryption_enabled">Proteja sua nota com o padrão AES-256 e uma palavra-passe mestre.</string>
+    <string name="desc_e2e_encryption_disabled">Configure primeiro uma palavra-passe de privacidade em Definições de Privacidade.</string>
     <string name="tooltip_pin">Fixar nota</string>
     <string name="tooltip_unpin">Desafixar nota</string>
     <string name="tooltip_favorite">Adicionar aos favoritos</string>
@@ -197,11 +197,11 @@
     <string name="color_blue">Azul Material</string>
     <string name="color_green">Verde Material</string>
     <string name="label_option_gallery">Galeria</string>
-    <string name="label_option_camera">Câmera</string>
+    <string name="label_option_camera">Câmara</string>
     <string name="label_option_link">Link da Web</string>
     <string name="desc_insert_image">Adicione uma imagem da sua galeria, câmera ou link da web</string>
     <string name="desc_insert_video">Adicione um vídeo da sua galeria, câmera ou link da web</string>
-    <string name="desc_insert_audio">Grave uma nota de voz ou vincule arquivos de áudio</string>
+    <string name="desc_insert_audio">Grave uma nota de voz ou vincule ficheiros de áudio</string>
     <string name="rich_insert_audio">Inserir Áudio</string>
     <string name="label_empty_preview">Conteúdo vazio</string>
     <string name="desc_switch_edit">Alternar para o Modo de Edição</string>
@@ -209,7 +209,7 @@
     <string name="url_dialog_title">Ações do Link</string>
     <string name="url_dialog_open">Abrir</string>
     <string name="url_dialog_copy">Copiar</string>
-    <string name="url_dialog_delete">Excluir</string>
+    <string name="url_dialog_delete">Eliminar</string>
     <string name="search_up">Subir</string>
     <string name="search_down">Descer</string>
     <string name="search_more">Mais</string>
@@ -223,23 +223,23 @@
 
     <!-- Drawing Canvas -->
     <string name="drawing_canvas_title">Desenho</string>
-    <string name="drawing_clear">Limpar tela</string>
-    <string name="drawing_save">Salvar desenho</string>
+    <string name="drawing_clear">Limpar ecrã</string>
+    <string name="drawing_save">Guardar desenho</string>
     <string name="drawing_stroke_width">Espessura do traço</string>
     <string name="drawing_color_picker">Seletor de cor</string>
     <string name="drawing_size_label">Tamanho: %d</string>
     <string name="toast_drawing_saved">Desenho adicionado à nota</string>
     <string name="toast_drawing_load_error">Erro ao carregar desenho</string>
-    <string name="toast_drawing_empty">A tela está vazia ou não inicializada</string>
-    <string name="toast_drawing_save_error">Erro ao salvar desenho</string>
+    <string name="toast_drawing_empty">A ecrã está vazia ou não inicializada</string>
+    <string name="toast_drawing_save_error">Erro ao guardar desenho</string>
 
     <!-- Attachments -->
     <string name="attachment_drawing">Desenho anexo</string>
-    <string name="attachment_file">Arquivo anexo</string>
+    <string name="attachment_file">Ficheiro anexo</string>
     <string name="attachment_image">Imagem anexa</string>
     <string name="attachment_remove">Remover anexo</string>
     <string name="add_drawing">Adicionar desenho</string>
-    <string name="add_attachment">Adicionar arquivo</string>
+    <string name="add_attachment">Adicionar ficheiro</string>
     <string name="attachments_title">Anexos</string>
 
     <!-- Editor -->
@@ -254,15 +254,15 @@
     <string name="nothing_to_read">Nada para ler em voz alta</string>
     <string name="voice_note_recorder">Gravador de nota de voz</string>
     <string name="tap_to_record">Toque para começar a gravar</string>
-    <string name="recording_tap_to_stop">Gravando… Toque para parar</string>
+    <string name="recording_tap_to_stop">A gravar… Toque para parar</string>
     <string name="attach_voice">Anexar voz</string>
-    <string name="select_external_file">Selecionar arquivo externo</string>
-    <string name="select_file_desc">Escolha documentos, áudio ou outros arquivos para vincular</string>
+    <string name="select_external_file">Selecionar ficheiro externo</string>
+    <string name="select_file_desc">Escolha documentos, áudio ou outros ficheiros para vincular</string>
     <string name="toast_imported">Nota importada!</string>
-    <string name="toast_no_app_video">Nenhum aplicativo para reproduzir vídeo</string>
+    <string name="toast_no_app_video">Nenhum aplicação para reproduzir vídeo</string>
     <string name="toast_cannot_open_url">Não é possível abrir URL</string>
-    <string name="toast_file_attached">Arquivo anexado com sucesso</string>
-    <string name="toast_file_select_error">Erro ao selecionar arquivo</string>
+    <string name="toast_file_attached">Ficheiro anexado com sucesso</string>
+    <string name="toast_file_select_error">Erro ao selecionar ficheiro</string>
     <string name="toast_recording_error">Erro ao iniciar gravação</string>
     <string name="toast_audio_play_error">Erro ao reproduzir áudio</string>
     <string name="toast_audio_preview_error">Erro ao reproduzir prévia</string>
@@ -276,11 +276,11 @@
     <string name="close">Fechar</string>
     <string name="sync">Sincronizar</string>
     <string name="unlink">Desvincular</string>
-    <string name="search_icon">Pesquisar</string>
+    <string name="search_icon">Procurar</string>
     <string name="create_note">Criar nota</string>
     <string name="create_tag">Criar etiqueta</string>
     <string name="manage_tags">Gerenciar etiquetas</string>
-    <string name="empty_trash">Esvaziar lixeira</string>
+    <string name="empty_trash">Esvaziar reciclagem</string>
     <string name="selected_label">Selecionado</string>
     <string name="pinned_label">Fixado</string>
     <string name="encrypted_label">Criptografado</string>
@@ -294,20 +294,20 @@
     <string name="clear_color_filter">Limpar filtro de cor</string>
     <string name="no_results_icon">Sem resultados</string>
     <string name="remove_recent_search">Remover pesquisa recente</string>
-    <string name="search_icon_placeholder">Pesquisar</string>
+    <string name="search_icon_placeholder">Procurar</string>
     <string name="dark_mode">Modo escuro</string>
     <string name="e2ee_active">Criptografia de ponta a ponta ativa</string>
     <string name="security_active">Segurança ativa</string>
     <string name="setup_credentials">Configurar credenciais</string>
     <string name="remove_protection">Remover credenciais de proteção</string>
-    <string name="delete_master_password">Excluir senha mestra</string>
+    <string name="delete_master_password">Eliminar palavra-passe mestre</string>
     <string name="disconnect">Desconectar</string>
     <string name="deleted_notes_info">Notas excluídas podem ser restauradas aqui ou removidas permanentemente.</string>
     <string name="all_notes">Tudo</string>
 
     <!-- Cloud / Sync -->
-    <string name="btn_upload_backup">Enviar backup</string>
-    <string name="btn_download_backup">Baixar backup</string>
+    <string name="btn_upload_backup">Carregar backup</string>
+    <string name="btn_download_backup">Descarregar backup</string>
     <string name="cloud_sync_title">Sincronização na nuvem</string>
     <string name="link_account">Vincular conta</string>
     <string name="backup_cloud">Backup na nuvem</string>
@@ -319,11 +319,11 @@
     <string name="toast_sync_success">Sincronizado com Google Drive com sucesso!</string>
     <string name="toast_sync_auth_expired">Autenticação expirada. Desconectando Drive.</string>
     <string name="toast_sync_error">Erro de sincronização: %1$s</string>
-    <string name="toast_searching_backup">Procurando arquivo de backup…</string>
-    <string name="toast_no_backup_found">Nenhum arquivo de backup encontrado no Google Drive.</string>
-    <string name="toast_backup_download_failed">Falha ao baixar backup.</string>
-    <string name="toast_unlock_first">Desbloqueie o aplicativo com a senha mestra primeiro!</string>
-    <string name="toast_decrypt_failed">Falha na descriptografia! A senha mestra não corresponde ao backup.</string>
+    <string name="toast_searching_backup">Procurando ficheiro de backup…</string>
+    <string name="toast_no_backup_found">Nenhum ficheiro de backup encontrado no Google Drive.</string>
+    <string name="toast_backup_download_failed">Falha ao descarregar backup.</string>
+    <string name="toast_unlock_first">Desbloqueie o aplicação com a palavra-passe mestre primeiro!</string>
+    <string name="toast_decrypt_failed">Falha na descriptografia! A palavra-passe mestre não corresponde ao backup.</string>
     <string name="toast_restore_success">Notas restauradas com sucesso da nuvem!</string>
     <string name="toast_restore_error">Erro ao restaurar: %1$s</string>
 
@@ -339,10 +339,10 @@
 
     <!-- Media Viewer -->
     <string name="attachment_video">Vídeo</string>
-    <string name="option_save">Salvar</string>
-    <string name="toast_share_error">Erro ao compartilhar arquivo</string>
-    <string name="toast_saved_to_gallery">Salvo na galeria</string>
-    <string name="toast_save_error">Erro ao salvar arquivo</string>
+    <string name="option_save">Guardar</string>
+    <string name="toast_share_error">Erro ao partilhar ficheiro</string>
+    <string name="toast_saved_to_gallery">Guardado na galeria</string>
+    <string name="toast_save_error">Erro ao guardar ficheiro</string>
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Aparência</string>
@@ -353,7 +353,7 @@
     <string name="settings_dark_mode_on">Ligado</string>
     <string name="settings_dark_mode_off">Desligado</string>
     <string name="settings_language">Idioma</string>
-    <string name="settings_language_desc">Alterar idioma do aplicativo</string>
+    <string name="settings_language_desc">Alterar idioma do aplicação</string>
     <string name="settings_lang_default">Padrão (Sistema)</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
@@ -368,25 +368,25 @@
     <string name="settings_changelog_desc">Últimas notas de lançamento</string>
     <string name="settings_check_update">Verificar Atualizações</string>
     <string name="settings_about">Sobre</string>
-    <string name="settings_about_desc">Informações e links do aplicativo</string>
+    <string name="settings_about_desc">Informações e links do aplicação</string>
     <string name="settings_privacy_security">Privacidade e Segurança</string>
-    <string name="settings_privacy_desc">Proteção com senha</string>
-    <string name="confirm_master_password">Confirmar Senha Mestra</string>
+    <string name="settings_privacy_desc">Proteção com palavra-passe</string>
+    <string name="confirm_master_password">Confirmar Palavra-passe Mestre</string>
     <string name="backup_restore_title">Backup e Restauração</string>
     <string name="backup_local_section">Backup Local</string>
     <string name="backup_export">Exportar Backup</string>
-    <string name="backup_export_desc">Salvar todas as notas e tags em um arquivo JSON</string>
+    <string name="backup_export_desc">Guardar todas as notas e tags num ficheiro JSON</string>
     <string name="backup_import">Importar Backup</string>
-    <string name="backup_import_desc">Restaurar notas de um arquivo JSON</string>
+    <string name="backup_import_desc">Restaurar notas de um ficheiro JSON</string>
     <string name="backup_cloud_section">Backup na Nuvem</string>
-    <string name="backup_upload">Enviar para o Drive</string>
-    <string name="backup_download">Baixar do Drive</string>
+    <string name="backup_upload">Carregar para o Drive</string>
+    <string name="backup_download">Descarregar do Drive</string>
     <string name="update_title">Informações de Atualização</string>
     <string name="update_current_version">Versão Atual</string>
     <string name="update_current_version_label">v%s</string>
     <string name="update_auto_check">Verificar atualizações automaticamente</string>
     <string name="update_notifications">Habilitar notificações de atualização</string>
-    <string name="update_settings_title">Configurações de Atualização</string>
+    <string name="update_settings_title">Definições de Atualização</string>
     <string name="update_check_now">Verificar Atualização</string>
     <string name="update_checking">Verificando atualizações…</string>
     <string name="update_up_to_date">Você está atualizado!</string>
@@ -427,7 +427,7 @@
     <string name="cd_pdf_icon">Ícone PDF</string>
     <string name="cd_html_icon">Ícone HTML</string>
     <string name="cd_json_icon">Ícone JSON</string>
-    <string name="cd_delete_tag">Excluir etiqueta</string>
+    <string name="cd_delete_tag">Eliminar etiqueta</string>
     <string name="cd_edit_tag">Editar etiqueta</string>
     <string name="cd_remove">Remover</string>
     <string name="cd_checked">Marcado</string>
@@ -454,12 +454,12 @@
     <!-- v4.0 Export / Share chooser titles -->
     <string name="export_title_markdown">Exportar Markdown</string>
     <string name="export_title_pdf">Exportar PDF</string>
-    <string name="share_title_text">Compartilhar notas como texto</string>
-    <string name="share_title_markdown">Compartilhar notas como Markdown</string>
-    <string name="share_title_html">Compartilhar notas como HTML</string>
-    <string name="share_title_json">Compartilhar notas como JSON</string>
+    <string name="share_title_text">Partilhar notas como texto</string>
+    <string name="share_title_markdown">Partilhar notas como Markdown</string>
+    <string name="share_title_html">Partilhar notas como HTML</string>
+    <string name="share_title_json">Partilhar notas como JSON</string>
     <string name="export_title_json">Exportar JSON</string>
-    <string name="share_title_pdf">Compartilhar notas como PDF</string>
+    <string name="share_title_pdf">Partilhar notas como PDF</string>
 
     <!-- v4.0 PDF / Export content labels -->
     <string name="pdf_watermark_encrypted">🛡️ CRIPTOGRAFADO AES-256 DE PONTA A PONTA</string>

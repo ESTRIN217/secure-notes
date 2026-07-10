@@ -35,8 +35,9 @@ fun UpdateInfoScreen(
     var showChangelog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    val unknownLabel = stringResource(R.string.platform_unknown)
     val deviceArch = remember {
-        if (Build.SUPPORTED_ABIS.isNotEmpty()) Build.SUPPORTED_ABIS[0].uppercase() else "UNKNOWN"
+        if (Build.SUPPORTED_ABIS.isNotEmpty()) Build.SUPPORTED_ABIS[0].uppercase() else unknownLabel
     }
 
     Scaffold(
@@ -72,7 +73,7 @@ fun UpdateInfoScreen(
                     SettingsListTile(
                         leadingIcon = Icons.Default.Info,
                         title = stringResource(R.string.update_current_version_label, uiState.currentVersion),
-                        subtitle = "$deviceArch - FOSS",
+                        subtitle = stringResource(R.string.update_device_arch_foss, deviceArch),
                         onClick = {}
                     )
                 }

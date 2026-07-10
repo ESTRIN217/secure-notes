@@ -98,7 +98,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     // Google Drive state
     val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false))
     val driveAccessToken = MutableStateFlow(sharedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
-    val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, "Never") ?: "Never")
+    val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never))
     val syncStatusMessage = MutableStateFlow<String?>(null)
 
     // Data lists from Room
@@ -195,9 +195,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.allTagsFlow.collect { tags ->
                 if (tags.isEmpty()) {
-                    repository.insertTag(Tag("Work", "#42A5F5"))
-                    repository.insertTag(Tag("Personal", "#66BB6A"))
-                    repository.insertTag(Tag("Private", "#EC407A"))
+                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_work), "#42A5F5"))
+                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_personal), "#66BB6A"))
+                    repository.insertTag(Tag(getApplication<Application>().getString(R.string.tag_default_private), "#EC407A"))
                 }
             }
         }
@@ -687,8 +687,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 if (success) {
                     val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timeStr = formatter.format(Date())
-                    sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, "Today at $timeStr").apply()
-                    lastSyncTime.value = "Today at $timeStr"
+                    sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
+                    lastSyncTime.value = getApplication<Application>().getString(R.string.label_today_at, timeStr)
                     syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_success)
                 } else {
                     syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_auth_expired)
@@ -775,8 +775,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 val timeStr = formatter.format(Date())
-                sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, "Today at $timeStr").apply()
-                lastSyncTime.value = "Today at $timeStr"
+                sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
+                lastSyncTime.value = getApplication<Application>().getString(R.string.label_today_at, timeStr)
                 syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_success)
 
             } catch (e: Exception) {

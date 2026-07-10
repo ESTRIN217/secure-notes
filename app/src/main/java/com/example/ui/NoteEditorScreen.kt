@@ -455,7 +455,7 @@ fun NoteContentBlockCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Remove",
+                    contentDescription = stringResource(id = R.string.cd_remove),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp)
                 )
@@ -488,7 +488,7 @@ fun NoteContentBlockCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = if (block.isChecked) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                        contentDescription = if (block.isChecked) "Checked" else "Unchecked",
+                        contentDescription = if (block.isChecked) stringResource(id = R.string.cd_checked) else stringResource(id = R.string.cd_unchecked),
                         tint = if (block.isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(end = 8.dp).size(24.dp)
                     )
@@ -541,7 +541,7 @@ fun NoteContentBlockCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play Video",
+                            contentDescription = stringResource(id = R.string.cd_play_video),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(48.dp)
                         )
@@ -715,7 +715,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = if (isPlayingAudio) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = "Play/Pause Audio",
+                contentDescription = stringResource(id = R.string.cd_play_pause_audio),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(36.dp)
             )
@@ -1236,7 +1236,7 @@ fun NoteEditorScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove tag",
+                                        contentDescription = stringResource(id = R.string.cd_remove_tag),
                                         modifier = Modifier.size(12.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1723,7 +1723,8 @@ fun NoteEditorScreen(
                         val clipText = clipboardManager.getText()?.text ?: ""
                         if (clipText.isNotEmpty()) {
                             if (RichTextParser.isSecureNotesJson(clipText)) {
-                                val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText)
+                                val defaultTitle = context.getString(R.string.title_imported_note)
+                                val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
                                 title = importedTitle
                                 content = importedContent
                                 contentValue = TextFieldValue(text = importedContent, selection = TextRange(importedContent.length))
@@ -1910,7 +1911,7 @@ fun NoteEditorScreen(
                                 
                                 if (matchRanges.isNotEmpty()) {
                                     Text(
-                                        text = "${currentMatchIndex + 1}/${matchRanges.size}",
+                                        text = stringResource(id = R.string.search_match_counter, currentMatchIndex + 1, matchRanges.size),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -2705,7 +2706,7 @@ fun NoteEditorScreen(
                         ) {
                             AsyncImage(
                                 model = bgPath,
-                                contentDescription = "Background preview",
+                                contentDescription = stringResource(id = R.string.cd_bg_preview),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -3222,7 +3223,7 @@ fun NoteEditorScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Stop,
-                                        contentDescription = "Stop recording",
+                                        contentDescription = stringResource(id = R.string.cd_stop_recording),
                                         tint = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.size(32.dp)
                                     )
@@ -3267,7 +3268,7 @@ fun NoteEditorScreen(
                                     ) {
                                         Icon(
                                             imageVector = if (isPlayingRecording) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = "Preview Voice Note",
+                                            contentDescription = stringResource(id = R.string.cd_preview_voice_note),
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                     }
@@ -3314,7 +3315,7 @@ fun NoteEditorScreen(
                                         },
                                         modifier = Modifier.testTag("delete_recording_btn")
                                     ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Discard Recording", tint = MaterialTheme.colorScheme.error)
+                                        Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.cd_discard_recording), tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }

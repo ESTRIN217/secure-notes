@@ -34,7 +34,7 @@ import com.example.BuildConfig
 import com.example.R
 
 data class AppSystemInfo(
-    val platformLabel: String = "ANDROID",
+    val platformLabel: String = "",
     val version: String = "...",
     val archLabel: String = "..."
 )
@@ -48,14 +48,16 @@ fun AboutScreen(
     BackHandler(onBack = onBack)
     val context = LocalContext.current
 
+    val platformLabel = stringResource(R.string.platform_android)
+    val unknownLabel = stringResource(R.string.platform_unknown)
     val systemInfo = remember {
         AppSystemInfo(
-            platformLabel = "ANDROID",
+            platformLabel = platformLabel,
             version = BuildConfig.VERSION_NAME,
             archLabel = if (Build.SUPPORTED_ABIS.isNotEmpty()) {
                 Build.SUPPORTED_ABIS[0].uppercase()
             } else {
-                "UNKNOWN"
+                unknownLabel
             }
         )
     }
@@ -120,7 +122,7 @@ fun AboutScreen(
                     SettingsListTile(
                         leadingIcon = Icons.Default.Code,
                         title = stringResource(R.string.about_view_repo),
-                        subtitle = "ESTRIN217/secure-notes",
+                        subtitle = stringResource(R.string.about_repo_subtitle),
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = { openUrl("https://github.com/ESTRIN217/secure-notes") }
                     )
@@ -231,7 +233,7 @@ private fun DeveloperCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ESTRIN217",
+                        text = stringResource(R.string.about_developer_name),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )

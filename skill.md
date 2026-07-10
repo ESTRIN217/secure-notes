@@ -2,6 +2,8 @@
 
 This document details the architecture, design guidelines, and code patterns utilized in the Secure Notes WYSIWYG rich text editor, Material Design 3 Expressive Outlined styling, custom color selector dialogs, and native regional localization.
 
+> **All code in this skill follows the principles in [AGENTS.md](AGENTS.md): DRY, SOLID, Clean Code, KISS, YAGNI, Error Handling & Robustness.**
+
 ---
 
 ## 1. Material Design 3 Expressive Outlined Styling

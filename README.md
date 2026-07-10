@@ -99,6 +99,46 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 
 ---
 
+## 🧠 Software Engineering Principles
+
+This project is developed following industry‑standard practices to ensure maintainability, testability, and long‑term quality:
+
+### DRY (Don't Repeat Yourself)
+Shared Compose widgets (`SettingsSectionTitle`, `SettingsCardGroup`, `SettingsSwitchTile`, `SettingsListTile`) centralize repeated UI patterns. Rich‑text parsing and rendering logic lives in `RichTextParser` — a single source of truth for the custom tag system.
+
+### SOLID
+| Principle | How it's applied |
+|---|---|
+| **SRP** | ViewModels handle one screen; `NoteDao` owns DB access; `EncryptionUtils` owns crypto; Composables are pure UI. |
+| **OCP** | New note formats or export types are added by extending parameters, not modifying existing functions. |
+| **LSP** | `DarkModeOption` enum values are fully substitutable; `BackupViewModel` treats local and cloud backups uniformly. |
+| **ISP** | Fine‑grained composable parameters instead of wide interfaces. UI callbacks use single‑method Kotlin lambdas. |
+| **DIP** | Dependencies injected via constructor (no static singletons). `GoogleDriveSyncService`, `NoteDao`, and `EncryptionUtils` are test‑friendly abstractions. |
+
+### Clean Code
+- Functions ≤ 20 lines with single responsibility.
+- Intention‑revealing names (`encryptContent`, `toggleDarkMode`, `searchNotes`).
+- Guard clauses replace deep nesting.
+- Comments document *why* (edge cases, design trade‑offs), never *what*.
+
+### KISS (Keep It Simple, Stupid)
+- Single‑module app with manual constructor DI — no framework overhead.
+- `StateFlow` + `collectAsState()` for reactive UI — no additional reactive libraries.
+- Room as the sole persistence layer — no separate cache, no ORM.
+
+### YAGNI (You Aren't Gonna Need It)
+- No repository abstraction until a second data source is introduced.
+- Interfaces declared only when substitution (testing, alternate impl) is actually required.
+- No feature flags, dead code, or speculative navigation routes.
+
+### Error Handling & Robustness
+- All async operations return sealed `UiState` (Loading / Success / Error).
+- Input validated at the UI boundary; encryption failures surfaced as explicit `EncryptionResult` types.
+- No silent exception swallowing — every `catch` either logs or re‑wraps.
+- Room I/O and file operations run on `Dispatchers.IO`; crypto failures never crash the UI.
+
+---
+
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para obtener más detalles.
