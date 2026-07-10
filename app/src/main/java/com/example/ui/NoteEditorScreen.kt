@@ -42,7 +42,7 @@ import com.example.data.model.Note
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.createRawContent
 import com.example.data.model.parseNoteContentAndAttachments
-import com.example.getNoteBackgroundColor
+import com.example.util.getNoteBackgroundColor
 import com.example.ui.viewmodel.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.ExportUtils

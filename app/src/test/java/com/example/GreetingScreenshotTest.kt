@@ -2,6 +2,7 @@ package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import com.example.ui.LockScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.NotesViewModel
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
