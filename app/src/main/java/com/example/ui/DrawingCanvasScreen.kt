@@ -93,34 +93,6 @@ fun createRawContent(text: String, attachments: List<Attachment>): String {
     }
     return text + delimiter + arr.toString()
 }
-
-fun parseTags(rawContent: String): List<String> {
-    val tags = mutableListOf<String>()
-    try {
-        val tagDelimiter = "\n\n---Tags---\n"
-        if (rawContent.contains(tagDelimiter)) {
-            val parts = rawContent.split(tagDelimiter)
-            if (parts.size > 1) {
-                val jsonArr = JSONArray(parts[1])
-                for (i in 0 until jsonArr.length()) {
-                    tags.add(jsonArr.getString(i))
-                }
-            }
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-    return tags
-}
-
-fun createRawTags(tags: List<String>): String {
-    if (tags.isEmpty()) return ""
-    val delimiter = "\n\n---Tags---\n"
-    val arr = JSONArray()
-    tags.forEach { tag -> arr.put(tag) }
-    return delimiter + arr.toString()
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawingCanvasScreen(

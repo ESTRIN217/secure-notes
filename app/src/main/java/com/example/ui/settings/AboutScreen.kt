@@ -33,12 +33,6 @@ import coil.compose.AsyncImage
 import com.example.BuildConfig
 import com.example.R
 
-data class AppSystemInfo(
-    val platformLabel: String = "",
-    val version: String = "...",
-    val archLabel: String = "..."
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
@@ -50,16 +44,13 @@ fun AboutScreen(
 
     val platformLabel = stringResource(R.string.platform_android)
     val unknownLabel = stringResource(R.string.platform_unknown)
-    val systemInfo = remember {
-        AppSystemInfo(
-            platformLabel = platformLabel,
-            version = BuildConfig.VERSION_NAME,
-            archLabel = if (Build.SUPPORTED_ABIS.isNotEmpty()) {
-                Build.SUPPORTED_ABIS[0].uppercase()
-            } else {
-                unknownLabel
-            }
-        )
+    val version = remember { BuildConfig.VERSION_NAME }
+    val archLabel = remember {
+        if (Build.SUPPORTED_ABIS.isNotEmpty()) {
+            Build.SUPPORTED_ABIS[0].uppercase()
+        } else {
+            unknownLabel
+        }
     }
 
     val openUrl = { url: String ->
@@ -94,7 +85,7 @@ fun AboutScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                HeaderCard(systemInfo = systemInfo)
+                HeaderCard(platformLabel = platformLabel, version = version, archLabel = archLabel)
             }
 
             item {
@@ -111,8 +102,7 @@ fun AboutScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.about_developer))
                 DeveloperCard(
-                    onGithubClick = { openUrl("https://github.com/ESTRIN217") },
-                    onWebClick = { }
+                    onGithubClick = { openUrl("https://github.com/ESTRIN217") }
                 )
             }
 
@@ -155,7 +145,7 @@ fun AboutScreen(
 }
 
 @Composable
-private fun HeaderCard(systemInfo: AppSystemInfo) {
+private fun HeaderCard(platformLabel: String, version: String, archLabel: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -191,9 +181,9 @@ private fun HeaderCard(systemInfo: AppSystemInfo) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SettingsBadge(text = systemInfo.platformLabel)
-                    SettingsBadge(text = "v${systemInfo.version}")
-                    SettingsBadge(text = systemInfo.archLabel)
+                    SettingsBadge(text = platformLabel)
+                    SettingsBadge(text = "v$version")
+                    SettingsBadge(text = archLabel)
                 }
             }
         }
@@ -202,8 +192,7 @@ private fun HeaderCard(systemInfo: AppSystemInfo) {
 
 @Composable
 private fun DeveloperCard(
-    onGithubClick: () -> Unit,
-    onWebClick: () -> Unit
+    onGithubClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -250,20 +239,13 @@ private fun DeveloperCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 SocialButton(
                     icon = Icons.Default.Code,
                     label = stringResource(R.string.about_github),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = onGithubClick
-                )
-                SocialButton(
-                    icon = Icons.Default.Language,
-                    label = stringResource(R.string.about_web),
-                    modifier = Modifier.weight(1f),
-                    onClick = onWebClick
                 )
             }
         }
