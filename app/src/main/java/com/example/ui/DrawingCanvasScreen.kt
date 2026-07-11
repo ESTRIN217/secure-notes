@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.util.Log
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -95,7 +96,7 @@ fun DrawingCanvasScreen(
                     strokes.addAll(loadedStrokes)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("DrawingCanvasScreen", "load drawing failed", e)
                 Toast.makeText(context, context.getString(R.string.toast_drawing_load_error), Toast.LENGTH_SHORT).show()
             }
         }
@@ -278,7 +279,7 @@ fun DrawingCanvasScreen(
                                     }
                                     onBack()
                                 } catch (e: Exception) {
-                                    e.printStackTrace()
+                                    Log.e("DrawingCanvasScreen", "save drawing failed", e)
                                     Toast.makeText(context, context.getString(R.string.toast_drawing_save_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
                                 }
                             },
