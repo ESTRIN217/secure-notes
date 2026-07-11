@@ -187,7 +187,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return BackupViewModel(context.applicationContext as android.app.Application, viewModel) as T
+                return BackupViewModel(context.applicationContext as android.app.Application, viewModel as com.example.data.sync.CloudSyncManager) as T
             }
         }
     )

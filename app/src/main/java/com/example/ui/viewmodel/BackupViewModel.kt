@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import com.example.data.model.toJson
+import com.example.data.sync.CloudSyncManager
 
 data class BackupUiState(
     val isDriveLinked: Boolean = false,
@@ -25,7 +26,7 @@ data class BackupUiState(
 
 class BackupViewModel(
     application: Application,
-    private val notesViewModel: NotesViewModel
+    private val cloudSyncManager: CloudSyncManager
 ) : AndroidViewModel(application) {
 
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
@@ -42,20 +43,20 @@ class BackupViewModel(
 
     private fun observeNotesViewModel() {
         viewModelScope.launch {
-            notesViewModel.isDriveLinked.collect { linked ->
+            cloudSyncManager.isDriveLinked.collect { linked ->
                 _uiState.update { it.copy(isDriveLinked = linked) }
             }
         }
         viewModelScope.launch {
-            notesViewModel.lastSyncTime.collect { time ->
+            cloudSyncManager.lastSyncTime.collect { time ->
                 _uiState.update { it.copy(lastSyncTime = time) }
             }
         }
         viewModelScope.launch {
-            notesViewModel.syncStatusMessage.collect { msg ->
+            cloudSyncManager.syncStatusMessage.collect { msg ->
                 msg?.let {
                     _snackbarMessage.value = it
-                    notesViewModel.clearStatusMessage()
+                    cloudSyncManager.clearStatusMessage()
                 }
             }
         }
@@ -66,18 +67,18 @@ class BackupViewModel(
     }
 
     fun linkGoogleDrive(token: String) {
-        notesViewModel.linkGoogleDrive(token)
+        cloudSyncManager.linkGoogleDrive(token)
     }
 
     fun unlinkDrive() {
-        notesViewModel.unlinkGoogleDrive()
+        cloudSyncManager.unlinkGoogleDrive()
     }
 
     fun backupToCloud() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                notesViewModel.forceSyncCloud()
+                cloudSyncManager.forceSyncCloud()
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -88,7 +89,7 @@ class BackupViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                notesViewModel.restoreSyncCloud()
+                cloudSyncManager.restoreSyncCloud()
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -97,10 +98,10 @@ class BackupViewModel(
 
     fun buildBackupJson(): String {
         val notesArray = JSONArray()
-        notesViewModel.rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
+        cloudSyncManager.rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
 
         val tagsArray = JSONArray()
-        notesViewModel.availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
+        cloudSyncManager.availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
 
         return JSONObject().apply {
             put("version", 3)
@@ -125,7 +126,7 @@ class BackupViewModel(
                 emptyList()
             }
 
-            notesViewModel.saveNote(
+            cloudSyncManager.saveNote(
                 id = 0,
                 title = noteObj.getString("title"),
                 content = noteObj.getString("content"),
@@ -142,7 +143,7 @@ class BackupViewModel(
 
         for (i in 0 until tagsArr.length()) {
             val tagObj = tagsArr.getJSONObject(i)
-            notesViewModel.createTag(tagObj.getString("name"), tagObj.getString("colorHex"))
+            cloudSyncManager.createTag(tagObj.getString("name"), tagObj.getString("colorHex"))
         }
     }
 

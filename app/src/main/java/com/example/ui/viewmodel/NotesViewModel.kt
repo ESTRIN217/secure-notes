@@ -15,6 +15,7 @@ import com.example.data.model.toJson
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.data.sync.CloudSyncManager
 import com.example.data.sync.SyncService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,7 +43,7 @@ class NotesViewModel(
     application: Application,
     private val cipherService: CipherService = EncryptionServiceImpl(),
     private val syncService: SyncService = com.example.data.sync.GoogleDriveSyncService()
-) : AndroidViewModel(application) {
+) : AndroidViewModel(application), CloudSyncManager {
     private val noteDao: NoteDao
     private val tagDao: TagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
@@ -76,14 +77,14 @@ class NotesViewModel(
     val selectedTagFilter = MutableStateFlow<String?>(null)
 
     // Google Drive state
-    val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false))
+    override val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false))
     val driveAccessToken = MutableStateFlow(sharedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
-    val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never))
-    val syncStatusMessage = MutableStateFlow<String?>(null)
+    override val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never))
+    override val syncStatusMessage = MutableStateFlow<String?>(null)
 
     // Data lists from Room
-    val availableTags: StateFlow<List<Tag>>
-    val rawNotes: StateFlow<List<Note>>
+    override val availableTags: StateFlow<List<Tag>>
+    override val rawNotes: StateFlow<List<Note>>
 
     // Main UI Decrypted Notes state
     val notesList: StateFlow<List<DecryptedNote>>
@@ -288,17 +289,17 @@ class NotesViewModel(
         }
     }
 
-    fun saveNote(
+    override fun saveNote(
         id: Int,
         title: String,
         content: String,
         isEncrypted: Boolean,
         tagsList: List<String>,
-        backgroundColor: Int? = null,
-        backgroundImagePath: String? = null,
-        isPinned: Boolean = false,
-        isFavorite: Boolean = false,
-        isArchived: Boolean = false
+        backgroundColor: Int?,
+        backgroundImagePath: String?,
+        isPinned: Boolean,
+        isFavorite: Boolean,
+        isArchived: Boolean
     ) {
         viewModelScope.launch {
             saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived)
@@ -472,7 +473,7 @@ class NotesViewModel(
         }
     }
 
-    fun createTag(name: String, colorHex: String) {
+    override fun createTag(name: String, colorHex: String) {
         viewModelScope.launch {
             tagDao.insertTag(Tag(name, colorHex))
         }
@@ -524,7 +525,7 @@ class NotesViewModel(
     }
 
     // Google Drive Integration
-    fun linkGoogleDrive(token: String) {
+    override fun linkGoogleDrive(token: String) {
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
             .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
@@ -535,7 +536,7 @@ class NotesViewModel(
         syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_connected)
     }
 
-    fun unlinkGoogleDrive() {
+    override fun unlinkGoogleDrive() {
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, false)
             .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
@@ -546,7 +547,7 @@ class NotesViewModel(
         syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_disconnected)
     }
 
-    fun forceSyncCloud() {
+    override fun forceSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
             syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
@@ -614,7 +615,7 @@ class NotesViewModel(
         }
     }
 
-    fun restoreSyncCloud() {
+    override fun restoreSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
             syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
@@ -699,7 +700,7 @@ class NotesViewModel(
         }
     }
 
-    fun clearStatusMessage() {
+    override fun clearStatusMessage() {
         syncStatusMessage.value = null
     }
 }
