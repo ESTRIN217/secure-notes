@@ -203,8 +203,8 @@ fun NoteEditorScreen(
                     regex.findAll(cleanText).forEach { matchResult ->
                         val cleanStart = matchResult.range.first
                         val cleanEnd = matchResult.range.last + 1
-                        val rawStart = parseResult.transformedToSource.getOrElse(cleanStart) { cleanStart }
-                        val rawEnd = parseResult.transformedToSource.getOrElse(cleanEnd) { cleanEnd }
+                        val rawStart = parseResult.transformedToOriginal(cleanStart)
+                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
                         ranges.add(TextRange(rawStart, rawEnd))
                     }
                 } catch (e: Exception) {
@@ -212,8 +212,8 @@ fun NoteEditorScreen(
                     while (idx != -1) {
                         val cleanStart = idx
                         val cleanEnd = idx + searchQuery.length
-                        val rawStart = parseResult.transformedToSource.getOrElse(cleanStart) { cleanStart }
-                        val rawEnd = parseResult.transformedToSource.getOrElse(cleanEnd) { cleanEnd }
+                        val rawStart = parseResult.transformedToOriginal(cleanStart)
+                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
                         ranges.add(TextRange(rawStart, rawEnd))
                         idx = cleanText.indexOf(searchQuery, idx + 1, ignoreCase = !searchCaseSensitive)
                     }
@@ -223,10 +223,10 @@ fun NoteEditorScreen(
                 while (idx != -1) {
                     val cleanStart = idx
                     val cleanEnd = idx + searchQuery.length
-                    val rawStart = parseResult.transformedToSource.getOrElse(cleanStart) { cleanStart }
-                    val rawEnd = parseResult.transformedToSource.getOrElse(cleanEnd) { cleanEnd }
-                    ranges.add(TextRange(rawStart, rawEnd))
-                    idx = cleanText.indexOf(searchQuery, idx + 1, ignoreCase = !searchCaseSensitive)
+                        val rawStart = parseResult.transformedToOriginal(cleanStart)
+                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
+                        ranges.add(TextRange(rawStart, rawEnd))
+                        idx = cleanText.indexOf(searchQuery, idx + 1, ignoreCase = !searchCaseSensitive)
                 }
             }
             matchRanges = ranges
@@ -670,7 +670,7 @@ fun NoteEditorScreen(
                     val toolbarState = remember(toolbarParseResult, contentValue.selection) {
                         val parsed = toolbarParseResult
                         val cursorIndex = contentValue.selection.start
-                        val transformedIndex = parsed.sourceToTransformed.getOrNull(cursorIndex) ?: 0
+                        val transformedIndex = parsed.originalToTransformed(cursorIndex)
                         val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
                         val activeStyles = buildSet {
                             for (range in parsed.text.spanStyles) {
@@ -1535,15 +1535,11 @@ fun NoteEditorScreen(
                             }
                             val offsetMapping = object : OffsetMapping {
                                 override fun originalToTransformed(offset: Int): Int {
-                                    val N = text.text.length
-                                    val clamped = offset.coerceIn(0, N)
-                                    return parseResult.sourceToTransformed[clamped]
+                                    return parseResult.originalToTransformed(offset)
                                 }
 
                                 override fun transformedToOriginal(offset: Int): Int {
-                                    val M = parseResult.text.length
-                                    val clamped = offset.coerceIn(0, M)
-                                    return parseResult.transformedToSource[clamped]
+                                    return parseResult.transformedToOriginal(offset)
                                 }
                             }
                             TransformedText(annotated, offsetMapping)

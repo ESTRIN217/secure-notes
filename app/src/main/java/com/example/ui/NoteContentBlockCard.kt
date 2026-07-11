@@ -67,7 +67,7 @@ fun NoteContentBlockCard(
                         onClick = { offset ->
                             block.annotatedString.getStringAnnotations("URL", offset, offset)
                                 .firstOrNull()?.let { annotation ->
-                                    val rawOffset = block.rawStart + block.parseResult.transformedToSource[offset.coerceIn(0, block.parseResult.transformedToSource.lastIndex)]
+                                    val rawOffset = block.rawStart + block.parseResult.transformedToOriginal(offset)
                                     onUrlClicked(annotation.item, rawOffset)
                                 }
                         }
@@ -95,7 +95,7 @@ fun NoteContentBlockCard(
                         onClick = { offset ->
                             block.text.getStringAnnotations("URL", offset, offset)
                                 .firstOrNull()?.let { annotation ->
-                                    val rawOffset = block.rawStart + block.parseResult.transformedToSource[offset.coerceIn(0, block.parseResult.transformedToSource.lastIndex)]
+                                    val rawOffset = block.rawStart + block.parseResult.transformedToOriginal(offset)
                                     onUrlClicked(annotation.item, rawOffset)
                                 }
                         }

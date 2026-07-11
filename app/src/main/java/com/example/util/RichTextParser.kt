@@ -12,11 +12,22 @@ import androidx.compose.ui.graphics.Color
 
 object RichTextParser {
     
-    data class ParseResult(
+    class ParseResult(
         val text: AnnotatedString,
-        val sourceToTransformed: IntArray,
-        val transformedToSource: IntArray
-    )
+        sourceToTransformed: IntArray,
+        transformedToSource: IntArray
+    ) {
+        private val stt = sourceToTransformed
+        private val tts = transformedToSource
+
+        fun originalToTransformed(originalIndex: Int): Int {
+            return stt.getOrElse(originalIndex) { originalIndex.coerceIn(0, stt.lastIndex) }
+        }
+
+        fun transformedToOriginal(transformedIndex: Int): Int {
+            return tts.getOrElse(transformedIndex) { transformedIndex.coerceIn(0, tts.lastIndex) }
+        }
+    }
 
     fun isJson(text: String): Boolean {
         val trimmed = text.trim()
