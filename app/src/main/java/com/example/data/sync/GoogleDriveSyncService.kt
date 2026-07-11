@@ -10,6 +10,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class GoogleDriveSyncService : SyncService {
     private companion object {
@@ -35,7 +36,7 @@ class GoogleDriveSyncService : SyncService {
                 client.newCall(request).enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed searching for backup file", e)
-                        continuation.resume(null)
+                        continuation.resumeWithException(e)
                     }
 
                     override fun onResponse(call: Call, response: Response) {
@@ -53,9 +54,13 @@ class GoogleDriveSyncService : SyncService {
                                 }
                             } else {
                                 Log.e(TAG, "Search file failed: Code ${response.code} ${response.message}")
+                                continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
+                                return
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Exception parsing search file response", e)
+                            continuation.resumeWithException(e)
+                            return
                         }
                         continuation.resume(null)
                     }
@@ -84,7 +89,8 @@ class GoogleDriveSyncService : SyncService {
             val fileId = suspendCancellableCoroutine<String?> { continuation ->
                 client.newCall(metadataRequest).enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        continuation.resume(null)
+                        Log.e(TAG, "Failed creating backup file", e)
+                        continuation.resumeWithException(e)
                     }
 
                     override fun onResponse(call: Call, response: Response) {
@@ -96,9 +102,15 @@ class GoogleDriveSyncService : SyncService {
                                     continuation.resume(id)
                                     return
                                 }
+                            } else {
+                                Log.e(TAG, "Create file failed: Code ${response.code} ${response.message}")
+                                continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
+                                return
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Exception creating file", e)
+                            continuation.resumeWithException(e)
+                            return
                         }
                         continuation.resume(null)
                     }
@@ -107,8 +119,7 @@ class GoogleDriveSyncService : SyncService {
 
             if (fileId != null) {
                 val uploadResult = uploadFileContent(accessToken, fileId, fileContent)
-                val uploadSuccess = uploadResult.getOrDefault(false)
-                Result.success(if (uploadSuccess) fileId else null)
+                uploadResult.map { if (it) fileId else null }
             } else {
                 Result.success(null)
             }
@@ -130,11 +141,17 @@ class GoogleDriveSyncService : SyncService {
             suspendCancellableCoroutine<Boolean> { continuation ->
                 client.newCall(uploadRequest).enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        continuation.resume(false)
+                        Log.e(TAG, "Failed uploading file content", e)
+                        continuation.resumeWithException(e)
                     }
 
                     override fun onResponse(call: Call, response: Response) {
-                        continuation.resume(response.isSuccessful)
+                        if (response.isSuccessful) {
+                            continuation.resume(true)
+                        } else {
+                            Log.e(TAG, "Upload failed: Code ${response.code} ${response.message}")
+                            continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
+                        }
                     }
                 })
             }.let { Result.success(it) }
@@ -155,7 +172,8 @@ class GoogleDriveSyncService : SyncService {
             suspendCancellableCoroutine<String?> { continuation ->
                 client.newCall(request).enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        continuation.resume(null)
+                        Log.e(TAG, "Failed downloading backup file", e)
+                        continuation.resumeWithException(e)
                     }
 
                     override fun onResponse(call: Call, response: Response) {
@@ -163,10 +181,12 @@ class GoogleDriveSyncService : SyncService {
                             if (response.isSuccessful) {
                                 continuation.resume(response.body?.string())
                             } else {
-                                continuation.resume(null)
+                                Log.e(TAG, "Download failed: Code ${response.code} ${response.message}")
+                                continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
                             }
                         } catch (e: Exception) {
-                            continuation.resume(null)
+                            Log.e(TAG, "Exception parsing download response", e)
+                            continuation.resumeWithException(e)
                         }
                     }
                 })
