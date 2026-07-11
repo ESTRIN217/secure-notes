@@ -1457,41 +1457,48 @@ fun NoteEditorScreen(
                                             content = currentContentForPreview,
                                             noteId = noteId,
                                             onDeleteBlock = { deletedBlock ->
+                                                val onSavedBlock: (List<Attachment>) -> Unit = { updatedAttachments ->
+                                                    val raw = createRawContent(content.trim(), updatedAttachments)
+                                                    scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                }
                                                 when (deletedBlock) {
                                                     is NoteContentBlock.ImageBlock -> {
                                                         val newText = removeMediaFromContent(content, deletedBlock.src, "image")
-                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
+                                                        content = newText
+                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                        saveToHistory(newText)
                                                     }
                                                     is NoteContentBlock.VideoBlock -> {
                                                         val newText = removeMediaFromContent(content, deletedBlock.src, "video")
-                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
+                                                        content = newText
+                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                        saveToHistory(newText)
                                                     }
                                                     is NoteContentBlock.AudioBlock -> {
                                                         val newText = removeMediaFromContent(content, deletedBlock.src, "audio")
-                                                        content = newText; contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length)); saveToHistory(newText)
+                                                        content = newText
+                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                        saveToHistory(newText)
                                                     }
                                                     is NoteContentBlock.DrawingBlock -> {
                                                         val target = attachments.find { it.type == "drawing" && it.path == deletedBlock.jsonPath }
                                                         if (target != null) {
                                                             attachments = attachments - target
-                                                            val raw = createRawContent(content.trim(), attachments - target)
-                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                            onSavedBlock(attachments - target)
                                                         }
                                                     }
                                                     is NoteContentBlock.VoiceBlock -> {
                                                         val target = attachments.find { it.type == "voice" && it.path == deletedBlock.path }
                                                         if (target != null) {
                                                             attachments = attachments - target
-                                                            val raw = createRawContent(content.trim(), attachments - target)
-                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                            onSavedBlock(attachments - target)
                                                         }
                                                     }
                                                     is NoteContentBlock.FileBlock -> {
                                                         val target = attachments.find { it.type != "drawing" && it.type != "voice" && it.name == deletedBlock.name }
                                                         if (target != null) {
                                                             attachments = attachments - target
-                                                            val raw = createRawContent(content.trim(), attachments - target)
-                                                            scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
+                                                            onSavedBlock(attachments - target)
                                                         }
                                                     }
                                                     is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock -> { }
@@ -1571,7 +1578,10 @@ fun NoteEditorScreen(
                 // Insert Image Dialog
                 InsertMediaDialog(
                     show = showInsertImageDialog,
-                    onDismiss = { showInsertImageDialog = false; isImageLinkExpanded = false },
+                    onDismiss = {
+                        showInsertImageDialog = false
+                        isImageLinkExpanded = false
+                    },
                     titleResId = R.string.dialog_insert_image_title,
                     mediaType = "image",
                     galleryMime = "image/*",
@@ -1601,7 +1611,10 @@ fun NoteEditorScreen(
                 // Insert Video Dialog
                 InsertMediaDialog(
                     show = showInsertVideoDialog,
-                    onDismiss = { showInsertVideoDialog = false; isVideoLinkExpanded = false },
+                    onDismiss = {
+                        showInsertVideoDialog = false
+                        isVideoLinkExpanded = false
+                    },
                     titleResId = R.string.dialog_insert_video_title,
                     mediaType = "video",
                     galleryMime = "video/*",
