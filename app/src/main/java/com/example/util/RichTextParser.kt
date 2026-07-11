@@ -10,7 +10,7 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 
-object RichTextParser {
+class RichTextParser {
     
     class ParseResult(
         val text: AnnotatedString,
@@ -864,6 +864,21 @@ object RichTextParser {
         }
 
         return blocks.ifEmpty { listOf(MediaBlock.TextBlock(preprocessed)) }
+    }
+
+    companion object {
+        private val default = RichTextParser()
+
+        fun isJson(text: String) = default.isJson(text)
+        fun isSecureNotesJson(text: String) = default.isSecureNotesJson(text)
+        fun parseSecureNotesJson(text: String, defaultTitle: String = "Imported Note") = default.parseSecureNotesJson(text, defaultTitle)
+        fun parseWithMapping(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false) = default.parseWithMapping(rawText, hideTags, showTagsGray)
+        fun parse(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false) = default.parse(rawText, hideTags, showTagsGray)
+        fun stripTags(raw: String) = default.stripTags(raw)
+        fun convertToMarkdown(raw: String) = default.convertToMarkdown(raw)
+        fun convertToHtml(raw: String) = default.convertToHtml(raw)
+        fun convertHtmlToSecureNotes(html: String) = default.convertHtmlToSecureNotes(html)
+        fun parseMediaBlocks(rawText: String) = default.parseMediaBlocks(rawText)
     }
 }
 
