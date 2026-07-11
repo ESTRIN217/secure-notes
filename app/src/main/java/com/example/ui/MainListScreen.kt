@@ -59,8 +59,9 @@ import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.DecryptedNote
-import com.example.ui.viewmodel.NotesViewModel
 import com.example.data.model.NavigationSection
+import com.example.data.model.parseTags
+import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.MoveDirection
 import com.example.util.RichTextParser
 import com.example.util.SortOption
@@ -1116,18 +1117,7 @@ fun NoteCardItem(
     val note = decryptedNote.note
     val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
     
-    val tagsList = remember(note.tagsJson) {
-        try {
-            val arr = JSONArray(note.tagsJson)
-            val list = mutableListOf<String>()
-            for (i in 0 until arr.length()) {
-                list.add(arr.optString(i))
-            }
-            list
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
+    val tagsList = remember(note.tagsJson) { note.parseTags() }
 
     OutlinedCard(
         modifier = Modifier

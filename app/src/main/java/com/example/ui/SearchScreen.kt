@@ -43,6 +43,7 @@ import com.example.AppConstants
 import com.example.ui.NoteCardItem
 import com.example.R
 import com.example.data.model.DecryptedNote
+import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.util.getColorName
 import com.example.util.getNoteBackgroundColor
@@ -93,21 +94,7 @@ fun SearchScreen(
 
             val matchesArchived = !filterArchived || note.isArchived
 
-            val matchesTag = filterTag == null || run {
-                try {
-                    val arr = JSONArray(note.tagsJson)
-                    var found = false
-                    for (i in 0 until arr.length()) {
-                        if (arr.optString(i) == filterTag) {
-                            found = true
-                            break
-                        }
-                    }
-                    found
-                } catch (e: Exception) {
-                    false
-                }
-            }
+            val matchesTag = filterTag == null || note.parseTags().contains(filterTag)
 
             val matchesColor = filterColorId == null || (note.backgroundColor == filterColorId)
 

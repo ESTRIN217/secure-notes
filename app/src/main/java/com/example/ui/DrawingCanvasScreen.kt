@@ -43,6 +43,7 @@ import com.example.R
 import com.example.data.model.Attachment
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.createRawContent
+import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
 import org.json.JSONArray
 import java.io.File
@@ -267,10 +268,7 @@ fun DrawingCanvasScreen(
                                             title = match.title,
                                             content = rawContent,
                                             isEncrypted = match.note.isEncrypted,
-                                            tagsList = try {
-                                                val arr = JSONArray(match.note.tagsJson)
-                                                List(arr.length()) { arr.getString(it) }
-                                            } catch (e: Exception) { emptyList() },
+                                            tagsList = match.note.parseTags(),
                                             backgroundColor = match.note.backgroundColor,
                                             backgroundImagePath = match.note.backgroundImagePath,
                                             isPinned = match.note.isPinned,

@@ -42,9 +42,10 @@ import com.example.data.model.Note
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.createRawContent
 import com.example.data.model.parseNoteContentAndAttachments
-import com.example.util.getNoteBackgroundColor
 import com.example.data.model.DecryptedNote
+import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.util.getNoteBackgroundColor
 import com.example.util.ExportUtils
 import com.example.util.MediaBlock
 import com.example.util.RichTextParser
@@ -433,17 +434,7 @@ fun NoteEditorScreen(
                 isFavorite = match.note.isFavorite
                 isArchived = match.note.isArchived
                 
-                // Read original note tags
-                try {
-                    val arr = JSONArray(match.note.tagsJson)
-                    val out = mutableListOf<String>()
-                    for (i in 0 until arr.length()) {
-                        out.add(arr.optString(i))
-                    }
-                    selectedNoteTags = out
-                } catch (e: Exception) {
-                    selectedNoteTags = emptyList()
-                }
+                selectedNoteTags = match.note.parseTags()
             }
         }
     }

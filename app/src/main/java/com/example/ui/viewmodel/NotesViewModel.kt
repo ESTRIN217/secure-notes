@@ -9,6 +9,8 @@ import com.example.data.local.NoteDatabase
 import com.example.data.local.TagDao
 import com.example.data.model.Note
 import com.example.data.model.Tag
+import com.example.data.model.parseTags
+import com.example.data.model.toJson
 
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
@@ -133,21 +135,7 @@ class NotesViewModel(
                         decryptedNote.title.contains(query, ignoreCase = true) ||
                         decryptedNote.content.contains(query, ignoreCase = true)
 
-                val matchesTag = tag == null || run {
-                    try {
-                        val tagsArr = JSONArray(decryptedNote.note.tagsJson)
-                        var found = false
-                        for (i in 0 until tagsArr.length()) {
-                            if (tagsArr.optString(i) == tag) {
-                                found = true
-                                break
-                            }
-                        }
-                        found
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
+                val matchesTag = tag == null || decryptedNote.note.parseTags().contains(tag)
 
                 matchesQuery && matchesTag
             }
@@ -439,17 +427,7 @@ class NotesViewModel(
                 val allAvailTags = availableTags.value.map { it.name }
                 selected.forEach { note ->
                     val existingTags = mutableListOf<String>()
-                    try {
-                        val arr = JSONArray(note.tagsJson)
-                        for (i in 0 until arr.length()) {
-                            val tag = arr.optString(i)
-                            if (tag.isNotEmpty()) {
-                                existingTags.add(tag)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotesViewModel", "batch tag update failed", e)
-                    }
+                    existingTags.addAll(note.parseTags())
 
                     allAvailTags.forEach { availTag ->
                         if (availTag in tagNames) {
@@ -506,24 +484,9 @@ class NotesViewModel(
             try {
                 val allNotes = noteDao.getAllNotesFlow().first()
                 allNotes.forEach { note ->
-                    try {
-                        val arr = JSONArray(note.tagsJson)
-                        val existingTags = mutableListOf<String>()
-                        var modified = false
-                        for (i in 0 until arr.length()) {
-                            val tagName = arr.optString(i)
-                            if (tagName == tag.name) {
-                                modified = true
-                            } else if (tagName.isNotEmpty()) {
-                                existingTags.add(tagName)
-                            }
-                        }
-                        if (modified) {
-                            val updatedTagsJson = JSONArray(existingTags).toString()
-                            noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
-                        }
-                        } catch (e: Exception) {
-                            Log.e("NotesViewModel", "rename tag update failed", e)
+                    val filtered = note.parseTags().filter { it != tag.name }
+                    if (filtered.size != note.parseTags().size) {
+                        noteDao.updateNote(note.copy(tagsJson = JSONArray(filtered).toString(), lastModified = System.currentTimeMillis()))
                     }
                 }
             } catch (e: Exception) {
@@ -545,26 +508,10 @@ class NotesViewModel(
                 try {
                     val allNotes = noteDao.getAllNotesFlow().first()
                     allNotes.forEach { note ->
-                        try {
-                            val arr = JSONArray(note.tagsJson)
-                            val existingTags = mutableListOf<String>()
-                            var modified = false
-                            for (i in 0 until arr.length()) {
-                                val tagName = arr.optString(i)
-                                if (tagName == oldTag.name) {
-                                    existingTags.add(newName)
-                                    modified = true
-                                } else if (tagName.isNotEmpty()) {
-                                    existingTags.add(tagName)
-                                }
-                            }
-                            if (modified) {
-                                val updatedTagsJson = JSONArray(existingTags).toString()
-                                noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
-                            }
-                    } catch (e: Exception) {
-                        Log.e("NotesViewModel", "parse existing tags failed", e)
-                    }
+                        val updated = note.parseTags().map { if (it == oldTag.name) newName else it }
+                        if (updated != note.parseTags()) {
+                            noteDao.updateNote(note.copy(tagsJson = JSONArray(updated).toString(), lastModified = System.currentTimeMillis()))
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -609,30 +556,11 @@ class NotesViewModel(
         viewModelScope.launch {
             syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_syncing)
             try {
-                // 1. Pack all notes & tags into a solid encrypted transport JSON format
                 val notesArray = JSONArray()
-                rawNotes.value.forEach { note ->
-                    val noteObj = JSONObject().apply {
-                        put("id", note.id)
-                        put("title", note.title)
-                        put("content", note.content)
-                        put("isEncrypted", note.isEncrypted)
-                        put("salt", note.salt)
-                        put("iv", note.iv)
-                        put("lastModified", note.lastModified)
-                        put("tagsJson", note.tagsJson)
-                    }
-                    notesArray.put(noteObj)
-                }
+                rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
 
                 val tagsArray = JSONArray()
-                availableTags.value.forEach { tag ->
-                    val tagObj = JSONObject().apply {
-                        put("name", tag.name)
-                        put("colorHex", tag.colorHex)
-                    }
-                    tagsArray.put(tagObj)
-                }
+                availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
 
                 val syncPayload = JSONObject().apply {
                     put("notes", notesArray)

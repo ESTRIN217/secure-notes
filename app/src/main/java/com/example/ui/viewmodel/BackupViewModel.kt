@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import com.example.data.model.toJson
 
 data class BackupUiState(
     val isDriveLinked: Boolean = false,
@@ -95,39 +96,11 @@ class BackupViewModel(
     }
 
     fun buildBackupJson(): String {
-        val notes = notesViewModel.rawNotes.value
-        val tags = notesViewModel.availableTags.value
-
         val notesArray = JSONArray()
-        notes.forEach { note ->
-            val noteObj = JSONObject().apply {
-                put("id", note.id)
-                put("title", note.title)
-                put("content", note.content)
-                put("isEncrypted", note.isEncrypted)
-                put("salt", note.salt)
-                put("iv", note.iv)
-                put("lastModified", note.lastModified)
-                put("tagsJson", note.tagsJson)
-                put("isArchived", note.isArchived)
-                put("isFavorite", note.isFavorite)
-                put("isPinned", note.isPinned)
-                put("isDeleted", note.isDeleted)
-                put("backgroundColor", note.backgroundColor)
-                put("backgroundImagePath", note.backgroundImagePath ?: "")
-                put("categoryId", note.categoryId)
-            }
-            notesArray.put(noteObj)
-        }
+        notesViewModel.rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
 
         val tagsArray = JSONArray()
-        tags.forEach { tag ->
-            val tagObj = JSONObject().apply {
-                put("name", tag.name)
-                put("colorHex", tag.colorHex)
-            }
-            tagsArray.put(tagObj)
-        }
+        notesViewModel.availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
 
         return JSONObject().apply {
             put("version", 3)

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.DecryptedNote
+import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
 import org.json.JSONArray
 
@@ -34,16 +35,7 @@ fun BatchTagDialog(
     val initialSelectedTags: Set<String> = remember(selectedNoteIds, notes) {
         val selectedNotes = notes.filter { it.note.id in selectedNoteIds }
         val tags = mutableSetOf<String>()
-        selectedNotes.forEach { decNote ->
-            try {
-                val arr = JSONArray(decNote.note.tagsJson)
-                for (i in 0 until arr.length()) {
-                    tags.add(arr.optString(i))
-                }
-            } catch (e: Exception) {
-                Log.e("BatchTagDialog", "parse tags failed", e)
-            }
-        }
+        selectedNotes.forEach { decNote -> tags.addAll(decNote.note.parseTags()) }
         tags
     }
     var selectedTags by remember(initialSelectedTags) { mutableStateOf(initialSelectedTags) }

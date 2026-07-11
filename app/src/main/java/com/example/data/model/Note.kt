@@ -2,6 +2,8 @@ package com.example.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import org.json.JSONArray
+import org.json.JSONObject
 
 @Entity(tableName = "notes")
 data class Note(
@@ -12,7 +14,7 @@ data class Note(
     val salt: String = "",
     val iv: String = "",
     val lastModified: Long = System.currentTimeMillis(),
-    val tagsJson: String = "[]", // JSON array of tag names, e.g., ["Work", "Personal"]
+    val tagsJson: String = "[]",
     val backgroundColor: Int? = null,
     val backgroundImagePath: String? = null,
     val isArchived: Boolean = false,
@@ -22,6 +24,32 @@ data class Note(
     val isDeleted: Boolean = false
 )
 
+fun Note.parseTags(): List<String> {
+    return try {
+        val arr = JSONArray(tagsJson)
+        List(arr.length()) { arr.optString(it) }
+    } catch (e: Exception) {
+        emptyList()
+    }
+}
+
+fun Note.toJson(): JSONObject = JSONObject().apply {
+    put("id", id)
+    put("title", title)
+    put("content", content)
+    put("isEncrypted", isEncrypted)
+    put("salt", salt)
+    put("iv", iv)
+    put("lastModified", lastModified)
+    put("tagsJson", tagsJson)
+    put("isArchived", isArchived)
+    put("isFavorite", isFavorite)
+    put("isPinned", isPinned)
+    put("isDeleted", isDeleted)
+    put("backgroundColor", backgroundColor)
+    put("backgroundImagePath", backgroundImagePath ?: "")
+    put("categoryId", categoryId)
+}
 
 fun Note.cleanedTags(): List<String> = tagsJson
     .replace("[", "")
@@ -34,5 +62,10 @@ fun Note.cleanedTags(): List<String> = tagsJson
 @Entity(tableName = "tags")
 data class Tag(
     @PrimaryKey val name: String,
-    val colorHex: String = "#7E57C2" // Standard light purple/violet accent
+    val colorHex: String = "#7E57C2"
 )
+
+fun Tag.toJson(): JSONObject = JSONObject().apply {
+    put("name", name)
+    put("colorHex", colorHex)
+}
