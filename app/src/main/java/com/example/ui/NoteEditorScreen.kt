@@ -109,6 +109,14 @@ fun NoteEditorScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
+    val acquireUriPermission: (Uri) -> Unit = { uri ->
+        try {
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+        } catch (e: Exception) {
+            Log.e("NoteEditorScreen", "acquireUriPermission failed", e)
+        }
+    }
     
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
     var isSpeaking by remember { mutableStateOf(false) }
@@ -246,6 +254,17 @@ fun NoteEditorScreen(
             historyIndex = history.size - 1
         }
     }
+
+    val insertAtCursor: (String) -> Unit = { tag ->
+        val selStart = contentValue.selection.start
+        val selEnd = contentValue.selection.end
+        val text = contentValue.text
+        val newText = text.substring(0, selStart) + tag + text.substring(selEnd)
+        val newCursor = selStart + tag.length
+        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+        content = newText
+        saveToHistory(newText)
+    }
     
     val allTags by viewModel.availableTags.collectAsState()
     var selectedNoteTags by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -266,12 +285,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(it, takeFlags)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            acquireUriPermission(it)
             selectedBgImagePath = it.toString()
         }
     }
@@ -284,17 +298,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
-            cameraImageUri?.let { uri ->
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                val mediaTag = "<img src=\"$uri\" />"
-                val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                val newCursor = selStart + mediaTag.length
-                contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                content = newText
-                saveToHistory(newText)
-            }
+            cameraImageUri?.let { uri -> insertAtCursor("<img src=\"$uri\" />") }
         }
     }
 
@@ -302,17 +306,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.CaptureVideo()
     ) { success: Boolean ->
         if (success) {
-            cameraVideoUri?.let { uri ->
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                val mediaTag = "<video src=\"$uri\" />"
-                val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                val newCursor = selStart + mediaTag.length
-                contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                content = newText
-                saveToHistory(newText)
-            }
+            cameraVideoUri?.let { uri -> insertAtCursor("<video src=\"$uri\" />") }
         }
     }
 
@@ -365,21 +359,8 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(it, takeFlags)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            val selStart = contentValue.selection.start
-            val selEnd = contentValue.selection.end
-            val text = contentValue.text
-            val mediaTag = "<img src=\"$it\" />"
-            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-            val newCursor = selStart + mediaTag.length
-            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-            content = newText
-            saveToHistory(newText)
+            acquireUriPermission(it)
+            insertAtCursor("<img src=\"$it\" />")
         }
     }
 
@@ -387,21 +368,8 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            try {
-                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(it, takeFlags)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            val selStart = contentValue.selection.start
-            val selEnd = contentValue.selection.end
-            val text = contentValue.text
-            val mediaTag = "<video src=\"$it\" />"
-            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-            val newCursor = selStart + mediaTag.length
-            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-            content = newText
-            saveToHistory(newText)
+            acquireUriPermission(it)
+            insertAtCursor("<video src=\"$it\" />")
         }
     }
 
@@ -1627,17 +1595,7 @@ fun NoteEditorScreen(
                         isImageLinkExpanded = false
                     },
                     onInsertLink = { url ->
-                        if (url.isNotBlank()) {
-                            val selStart = contentValue.selection.start
-                            val selEnd = contentValue.selection.end
-                            val text = contentValue.text
-                            val mediaTag = "<img src=\"$url\" />"
-                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                            val newCursor = selStart + mediaTag.length
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            content = newText
-                            saveToHistory(newText)
-                        }
+                        if (url.isNotBlank()) insertAtCursor("<img src=\"$url\" />")
                         imageInputUrl = ""
                         showInsertImageDialog = false
                         isImageLinkExpanded = false
@@ -1667,17 +1625,7 @@ fun NoteEditorScreen(
                         isVideoLinkExpanded = false
                     },
                     onInsertLink = { url ->
-                        if (url.isNotBlank()) {
-                            val selStart = contentValue.selection.start
-                            val selEnd = contentValue.selection.end
-                            val text = contentValue.text
-                            val mediaTag = "<video src=\"$url\" />"
-                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                            val newCursor = selStart + mediaTag.length
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            content = newText
-                            saveToHistory(newText)
-                        }
+                        if (url.isNotBlank()) insertAtCursor("<video src=\"$url\" />")
                         videoInputUrl = ""
                         showInsertVideoDialog = false
                         isVideoLinkExpanded = false
@@ -1711,16 +1659,8 @@ fun NoteEditorScreen(
                             Button(
                                 onClick = {
                                     if (urlInputAddress.isNotBlank()) {
-                                        val selStart = contentValue.selection.start
-                                        val selEnd = contentValue.selection.end
-                                        val text = contentValue.text
                                         val display = urlInputText.ifEmpty { urlInputAddress }
-                                        val urlTag = "<url=$urlInputAddress>$display</url>"
-                                        val newText = text.substring(0, selStart) + urlTag + text.substring(selEnd)
-                                        val newCursor = selStart + urlTag.length
-                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                        content = newText
-                                        saveToHistory(newText)
+                                        insertAtCursor("<url=$urlInputAddress>$display</url>")
                                     }
                                     urlInputAddress = ""
                                     urlInputText = ""
@@ -2662,22 +2602,13 @@ fun NoteEditorScreen(
 
                                     Button(
                                         onClick = {
-                                            // Insert audio tag in the content
-                                            val selStart = contentValue.selection.start
-                                            val selEnd = contentValue.selection.end
-                                            val text = contentValue.text
-                                            val mediaTag = "<audio src=\"${recordedFile!!.absolutePath}\" />"
-                                            val newText = text.substring(0, selStart) + mediaTag + text.substring(selEnd)
-                                            val newCursor = selStart + mediaTag.length
-                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                            content = newText
-                                            saveToHistory(newText)
+                                            insertAtCursor("<audio src=\"${recordedFile!!.absolutePath}\" />")
 
                                             scope.launch {
                                                 viewModel.saveNote(
                                                     id = noteId,
                                                     title = title.trim(),
-                                                    content = createRawContent(newText.trim(), attachments),
+                                                    content = createRawContent(content.trim(), attachments),
                                                     isEncrypted = isEncrypted,
                                                     tagsList = selectedNoteTags,
                                                     backgroundColor = selectedBgColorId,
