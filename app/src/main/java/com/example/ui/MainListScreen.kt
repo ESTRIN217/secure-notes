@@ -691,59 +691,58 @@ fun MainListScreen(
                                         
                                         val dragModifier = if (isCustomOrderActive) {
                                             Modifier.pointerInput(decryptedNote.note.id) {
+                                                fun resetDrag() {
+                                                    draggedNoteId = null
+                                                    dragOffsetX = 0f
+                                                    dragOffsetY = 0f
+                                                }
+
+                                                fun handleSwap() {
+                                                    val currentIndex = sortedNotes.indexOfFirst { it.note.id == decryptedNote.note.id }
+                                                    if (currentIndex == -1) return
+                                                    val density = this.density
+                                                    val xThreshold = with(density) { 130.dp.toPx() }
+                                                    val yThreshold = with(density) { 150.dp.toPx() }
+
+                                                    var swapped = false
+                                                    if (dragOffsetX > xThreshold && currentIndex % 2 == 0 && currentIndex + 1 < sortedNotes.size) {
+                                                        swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 1].note.id, sortedNotes, context)
+                                                        dragOffsetX -= xThreshold
+                                                        swapped = true
+                                                    } else if (dragOffsetX < -xThreshold && currentIndex % 2 == 1 && currentIndex - 1 >= 0) {
+                                                        swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 1].note.id, sortedNotes, context)
+                                                        dragOffsetX += xThreshold
+                                                        swapped = true
+                                                    }
+
+                                                    if (dragOffsetY > yThreshold && currentIndex + 2 < sortedNotes.size) {
+                                                        swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 2].note.id, sortedNotes, context)
+                                                        dragOffsetY -= yThreshold
+                                                        swapped = true
+                                                    } else if (dragOffsetY < -yThreshold && currentIndex - 2 >= 0) {
+                                                        swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 2].note.id, sortedNotes, context)
+                                                        dragOffsetY += yThreshold
+                                                        swapped = true
+                                                    }
+
+                                                    if (swapped) {
+                                                        customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
+                                                    }
+                                                }
+
                                                 detectDragGesturesAfterLongPress(
-                                                    onDragStart = { offset ->
+                                                    onDragStart = {
                                                         draggedNoteId = decryptedNote.note.id
                                                         dragOffsetX = 0f
                                                         dragOffsetY = 0f
                                                     },
-                                                    onDragEnd = {
-                                                        draggedNoteId = null
-                                                        dragOffsetX = 0f
-                                                        dragOffsetY = 0f
-                                                    },
-                                                    onDragCancel = {
-                                                        draggedNoteId = null
-                                                        dragOffsetX = 0f
-                                                        dragOffsetY = 0f
-                                                    },
+                                                    onDragEnd = { resetDrag() },
+                                                    onDragCancel = { resetDrag() },
                                                     onDrag = { change, dragAmount ->
                                                         change.consume()
                                                         dragOffsetX += dragAmount.x
                                                         dragOffsetY += dragAmount.y
-                                                        
-                                                        val currentIndex = sortedNotes.indexOfFirst { it.note.id == decryptedNote.note.id }
-                                                        if (currentIndex != -1) {
-                                                            val density = this.density
-                                                            val xThreshold = with(density) { 130.dp.toPx() }
-                                                            val yThreshold = with(density) { 150.dp.toPx() }
-                                                            
-                                                            var swapped = false
-                                                            
-                                                            if (dragOffsetX > xThreshold && currentIndex % 2 == 0 && currentIndex + 1 < sortedNotes.size) {
-                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 1].note.id, sortedNotes, context)
-                                                                dragOffsetX -= xThreshold
-                                                                swapped = true
-                                                            } else if (dragOffsetX < -xThreshold && currentIndex % 2 == 1 && currentIndex - 1 >= 0) {
-                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 1].note.id, sortedNotes, context)
-                                                                dragOffsetX += xThreshold
-                                                                swapped = true
-                                                            }
-                                                            
-                                                            if (dragOffsetY > yThreshold && currentIndex + 2 < sortedNotes.size) {
-                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex + 2].note.id, sortedNotes, context)
-                                                                dragOffsetY -= yThreshold
-                                                                swapped = true
-                                                            } else if (dragOffsetY < -yThreshold && currentIndex - 2 >= 0) {
-                                                                swapNotes(sortedNotes[currentIndex].note.id, sortedNotes[currentIndex - 2].note.id, sortedNotes, context)
-                                                                dragOffsetY += yThreshold
-                                                                swapped = true
-                                                            }
-                                                            
-                                                            if (swapped) {
-                                                                customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
-                                                            }
-                                                        }
+                                                        handleSwap()
                                                     }
                                                 )
                                             }
