@@ -203,7 +203,7 @@ class NotesViewModel(
                     noteDao.insertNote(workoutNote)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
         }
     }
@@ -357,7 +357,7 @@ class NotesViewModel(
             }
             result
         } catch (e: Exception) {
-            android.util.Log.e("NotesViewModel", "saveNoteAndGetId failed", e)
+            Log.e("NotesViewModel", "saveNoteAndGetId failed", e)
             id
         }
     }
@@ -384,7 +384,7 @@ class NotesViewModel(
                     noteDao.updateNote(note.copy(isPinned = hasUnpinned, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
         }
     }
@@ -399,7 +399,7 @@ class NotesViewModel(
                     noteDao.updateNote(note.copy(isFavorite = hasUnfav, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
         }
     }
@@ -414,7 +414,7 @@ class NotesViewModel(
                     noteDao.updateNote(note.copy(isArchived = hasUnarchived, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
         }
     }
@@ -443,7 +443,7 @@ class NotesViewModel(
                     noteDao.updateNote(note.copy(tagsJson = updatedTagsJson, lastModified = System.currentTimeMillis()))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
         }
     }
@@ -490,7 +490,7 @@ class NotesViewModel(
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
             }
             if (selectedTagFilter.value == tag.name) {
                 selectedTagFilter.value = null
@@ -514,7 +514,7 @@ class NotesViewModel(
                         }
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e("NotesViewModel", "operation failed", e)
                 }
                 if (selectedTagFilter.value == oldTag.name) {
                     selectedTagFilter.value = newName
@@ -608,7 +608,7 @@ class NotesViewModel(
                     unlinkGoogleDrive()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
                 syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)
             }
         }
@@ -693,7 +693,7 @@ class NotesViewModel(
                 syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_success)
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NotesViewModel", "operation failed", e)
                 syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)
             }
         }

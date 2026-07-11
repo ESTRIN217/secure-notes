@@ -3,6 +3,7 @@ package com.example.ui.settings
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -57,7 +58,9 @@ fun AboutScreen(
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            Log.e("AboutScreen", "openUrl failed", e)
+        }
     }
 
     Scaffold(
