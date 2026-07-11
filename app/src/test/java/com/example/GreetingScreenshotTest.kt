@@ -26,7 +26,7 @@ class GreetingScreenshotTest {
     val application = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
     composeTestRule.setContent { 
       MyApplicationTheme { 
-        LockScreen(viewModel = NotesViewModel(application)) 
+        LockScreen(viewModel = NotesViewModel(application, com.example.data.local.NoteDatabase.getDatabase(application))) 
       } 
     }
 

@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
 import com.example.R
+import com.example.data.model.SyncState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,19 +44,10 @@ class BackupViewModel(
 
     private fun observeNotesViewModel() {
         viewModelScope.launch {
-            cloudSyncManager.isDriveLinked.collect { linked ->
-                _uiState.update { it.copy(isDriveLinked = linked) }
-            }
-        }
-        viewModelScope.launch {
-            cloudSyncManager.lastSyncTime.collect { time ->
-                _uiState.update { it.copy(lastSyncTime = time) }
-            }
-        }
-        viewModelScope.launch {
-            cloudSyncManager.syncStatusMessage.collect { msg ->
-                msg?.let {
-                    _snackbarMessage.value = it
+            cloudSyncManager.syncState.collect { state ->
+                _uiState.update { it.copy(isDriveLinked = state.isDriveLinked, lastSyncTime = state.lastSyncTime) }
+                state.syncStatusMessage?.let { msg ->
+                    _snackbarMessage.value = msg
                     cloudSyncManager.clearStatusMessage()
                 }
             }

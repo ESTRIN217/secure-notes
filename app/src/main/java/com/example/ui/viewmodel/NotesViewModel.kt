@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ import com.example.AppConstants
 import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.NavigationSection
+import com.example.data.model.SyncState
 
 class NotesViewModel(
     application: Application,
@@ -78,10 +80,13 @@ class NotesViewModel(
     val selectedTagFilter = MutableStateFlow<String?>(null)
 
     // Google Drive state
-    override val isDriveLinked = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false))
+    override val syncState = MutableStateFlow(
+        SyncState(
+            isDriveLinked = sharedPrefs.getBoolean(AppConstants.DRIVE_LINKED_KEY, false),
+            lastSyncTime = sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never)
+        )
+    )
     val driveAccessToken = MutableStateFlow(sharedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
-    override val lastSyncTime = MutableStateFlow(sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never))
-    override val syncStatusMessage = MutableStateFlow<String?>(null)
 
     // Data lists from Room
     override val availableTags: StateFlow<List<Tag>>
@@ -528,9 +533,8 @@ class NotesViewModel(
             .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
             .apply()
         
-        isDriveLinked.value = true
+        syncState.update { it.copy(isDriveLinked = true, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_connected)) }
         driveAccessToken.value = token
-        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_connected)
     }
 
     override fun unlinkGoogleDrive() {
@@ -539,20 +543,19 @@ class NotesViewModel(
             .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
             .apply()
         
-        isDriveLinked.value = false
+        syncState.update { it.copy(isDriveLinked = false, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_disconnected)) }
         driveAccessToken.value = ""
-        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_disconnected)
     }
 
     override fun forceSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
-            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
+            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_auth_first)) }
             return
         }
 
         viewModelScope.launch {
-            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_syncing)
+            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_syncing)) }
             try {
                 val notesArray = JSONArray()
                 rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
@@ -566,7 +569,6 @@ class NotesViewModel(
                     put("timestamp", System.currentTimeMillis())
                 }.toString()
 
-                // Encrypt payload if app security features are set up
                 val finalPayload: String = if (isPasswordSet.value && masterPassword.value != null) {
                     val pass = masterPassword.value ?: return@launch
                     val salt = cipherService.generateSalt()
@@ -585,7 +587,6 @@ class NotesViewModel(
                     }.toString()
                 }
 
-                // 2. Execute backup to Drive API
                 val existingFileId = syncService.searchBackupFile(token).getOrNull()
                 val success: Boolean
                 if (existingFileId != null) {
@@ -599,15 +600,14 @@ class NotesViewModel(
                     val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timeStr = formatter.format(Date())
                     sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                    lastSyncTime.value = getApplication<Application>().getString(R.string.label_today_at, timeStr)
-                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_success)
+                    syncState.update { it.copy(lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
                 } else {
-                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_auth_expired)
+                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_auth_expired)) }
                     unlinkGoogleDrive()
                 }
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "operation failed", e)
-                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)
+                syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)) }
             }
         }
     }
@@ -615,22 +615,22 @@ class NotesViewModel(
     override fun restoreSyncCloud() {
         val token = driveAccessToken.value
         if (token.isEmpty()) {
-            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_drive_auth_first)
+            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_auth_first)) }
             return
         }
 
         viewModelScope.launch {
-            syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_searching_backup)
+            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_searching_backup)) }
             try {
                 val fileId = syncService.searchBackupFile(token).getOrNull()
                 if (fileId == null) {
-                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_no_backup_found)
+                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_no_backup_found)) }
                     return@launch
                 }
 
                 val backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
                 if (backupContent.isNullOrEmpty()) {
-                    syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_backup_download_failed)
+                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
                     return@launch
                 }
 
@@ -641,7 +641,7 @@ class NotesViewModel(
                 if (isBackupEncrypted) {
                     val pass = masterPassword.value
                     if (pass.isNullOrEmpty()) {
-                        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_unlock_first)
+                        syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_unlock_first)) }
                         return@launch
                     }
                     val salt = container.getString("salt")
@@ -649,14 +649,13 @@ class NotesViewModel(
                     val cipherData = container.getString("data")
                     decryptedPayload = cipherService.decrypt(cipherData, pass, salt, iv).getOrDefault("")
                     if (decryptedPayload.isEmpty()) {
-                        syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_decrypt_failed)
+                        syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
                         return@launch
                     }
                 } else {
                     decryptedPayload = container.getString("data")
                 }
 
-                // Parse decrypted backup payload and save to Room
                 val payloadObj = JSONObject(decryptedPayload)
                 val notesArr = payloadObj.getJSONArray("notes")
                 for (i in 0 until notesArr.length()) {
@@ -687,17 +686,16 @@ class NotesViewModel(
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 val timeStr = formatter.format(Date())
                 sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                lastSyncTime.value = getApplication<Application>().getString(R.string.label_today_at, timeStr)
-                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_success)
+                syncState.update { it.copy(lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
 
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "operation failed", e)
-                syncStatusMessage.value = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)
+                syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }
             }
         }
     }
 
     override fun clearStatusMessage() {
-        syncStatusMessage.value = null
+        syncState.update { it.copy(syncStatusMessage = null) }
     }
 }

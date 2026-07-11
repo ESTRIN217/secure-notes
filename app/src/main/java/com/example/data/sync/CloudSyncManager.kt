@@ -1,13 +1,12 @@
 package com.example.data.sync
 
 import com.example.data.model.Note
+import com.example.data.model.SyncState
 import com.example.data.model.Tag
 import kotlinx.coroutines.flow.StateFlow
 
 interface CloudSyncManager {
-    val isDriveLinked: StateFlow<Boolean>
-    val lastSyncTime: StateFlow<String>
-    val syncStatusMessage: StateFlow<String?>
+    val syncState: StateFlow<SyncState>
     val rawNotes: StateFlow<List<Note>>
     val availableTags: StateFlow<List<Tag>>
 

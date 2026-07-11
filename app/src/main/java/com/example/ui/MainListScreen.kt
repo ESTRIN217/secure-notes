@@ -95,8 +95,8 @@ fun MainListScreen(
     val tags by viewModel.availableTags.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
-    val isDriveLinked by viewModel.isDriveLinked.collectAsState()
-
+    val syncState by viewModel.syncState.collectAsState()
+    val isDriveLinked = syncState.isDriveLinked
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE) }
     
