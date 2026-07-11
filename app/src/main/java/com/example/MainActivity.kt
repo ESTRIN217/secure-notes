@@ -112,6 +112,7 @@ import com.example.util.borderStrokeHelper
 import com.example.util.fillPackageNameOrScope
 import com.example.util.getColorName
 import com.example.util.getNoteBackgroundColor
+import com.example.data.SharedPreferencesRepository
 import com.example.util.reorderNote
 import com.example.util.swapNotes
 import com.example.ui.LockScreen
@@ -154,7 +155,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             )
-            val themeViewModel: ThemeViewModel = viewModel()
+            val themeViewModel: ThemeViewModel = viewModel(
+                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return ThemeViewModel(SharedPreferencesRepository(this@MainActivity.applicationContext)) as T
+                    }
+                }
+            )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
             val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
 
