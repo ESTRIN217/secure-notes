@@ -41,11 +41,12 @@ import com.example.data.model.NavigationSection
 
 class NotesViewModel(
     application: Application,
+    private val noteDatabase: NoteDatabase,
     private val cipherService: CipherService = EncryptionServiceImpl(),
     private val syncService: SyncService = com.example.data.sync.GoogleDriveSyncService()
 ) : AndroidViewModel(application), CloudSyncManager {
-    private val noteDao: NoteDao
-    private val tagDao: TagDao
+    private val noteDao: NoteDao = noteDatabase.noteDao
+    private val tagDao: TagDao = noteDatabase.tagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
 
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
@@ -91,10 +92,6 @@ class NotesViewModel(
     val searchResults: StateFlow<List<DecryptedNote>>
 
     init {
-        val database = NoteDatabase.getDatabase(application)
-        noteDao = database.noteDao
-        tagDao = database.tagDao
-
         availableTags = tagDao.getAllTagsFlow().stateIn(
             viewModelScope,
             SharingStarted.Lazily,
