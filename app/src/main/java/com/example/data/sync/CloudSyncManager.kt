@@ -14,6 +14,7 @@ interface CloudSyncManager {
     fun unlinkGoogleDrive()
     fun forceSyncCloud()
     fun restoreSyncCloud()
+    fun provideRestorePassword(password: String)
     fun saveNote(
         id: Int = 0,
         title: String = "",

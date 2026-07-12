@@ -26,7 +26,7 @@ class GoogleDriveSyncService : SyncService {
 
     override suspend fun searchBackupFile(accessToken: String): Result<String?> {
         val request = Request.Builder()
-            .url("$FILES_URL?q=name='secure_notes_backup.json' and trashed=false&fields=files(id)")
+            .url("$FILES_URL?q=name='secure_notes_backup.json' and trashed=false&fields=files(id)&spaces=appDataFolder")
             .addHeader("Authorization", "Bearer $accessToken")
             .get()
             .build()

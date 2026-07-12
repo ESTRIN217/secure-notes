@@ -316,6 +316,12 @@
     <string name="toast_drive_connected">Google Drive connected!</string>
     <string name="toast_drive_disconnected">Google Drive disconnected.</string>
     <string name="toast_drive_auth_first">Authorize Google Drive first!</string>
+    <string name="password_hint">Password</string>
+    <string name="restore_password_required">This backup is encrypted. Enter the master password to restore.</string>
+    <string name="restore_password_dialog_title">Backup Password Required</string>
+    <string name="restore_password_dialog_message">Enter the master password that was used when this backup was created.</string>
+    <string name="restore_password_dialog_confirm">Decrypt &amp; Restore</string>
+    <string name="restore_password_dialog_cancel">Cancel</string>
     <string name="sync_encrypting">Encrypting data…</string>
     <string name="sync_searching">Searching backup file…</string>
     <string name="sync_uploading">Uploading to Drive…</string>

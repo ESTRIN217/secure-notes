@@ -62,6 +62,7 @@ class NotesViewModel(
     private val noteDao: NoteDao = noteDatabase.noteDao
     private val tagDao: TagDao = noteDatabase.tagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+    private var pendingRestoreContainer: JSONObject? = null
     private val encryptedPrefs = run {
         val masterKey = MasterKey.Builder(application)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -732,73 +733,111 @@ class NotesViewModel(
 
                 val container = JSONObject(backupContent)
                 val isBackupEncrypted = container.optBoolean("encrypted", false)
-                
-                val decryptedPayload: String
+
                 if (isBackupEncrypted) {
                     val pass = masterPassword.value
                     if (pass.isNullOrEmpty()) {
-                        syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_unlock_first)) }
+                        pendingRestoreContainer = container
+                        syncState.update { it.copy(syncStage = SyncStage.PASSWORD_REQUIRED, syncStatusMessage = getApplication<Application>().getString(R.string.restore_password_required)) }
                         return@launch
                     }
-                    val salt = container.getString("salt")
-                    val iv = container.getString("iv")
-                    val cipherData = container.getString("data")
-                    decryptedPayload = cipherService.decrypt(cipherData, pass, salt, iv).getOrDefault("")
-                    if (decryptedPayload.isEmpty()) {
-                        syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
+                    val decrypted = decryptRestoreContainer(container, pass)
+                    if (decrypted == null) {
+                        syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
                         return@launch
                     }
+                    finalizeRestore(decrypted)
                 } else {
-                    decryptedPayload = container.getString("data")
+                    finalizeRestore(container.getString("data"))
                 }
-
-                syncState.update { it.copy(syncStage = SyncStage.RESTORING) }
-                val payloadObj = JSONObject(decryptedPayload)
-
-                val localNotes = noteDao.getAllNotesFlow().first().associateBy { it.id }
-                val notesArr = payloadObj.getJSONArray("notes")
-                for (i in 0 until notesArr.length()) {
-                    val noteObj = notesArr.getJSONObject(i)
-                    val backupId = noteObj.optInt("id", 0)
-                    val backupModified = noteObj.getLong("lastModified")
-                    val localNote = localNotes[backupId]
-
-                    if (localNote == null || backupModified > localNote.lastModified) {
-                        val note = Note(
-                            id = backupId,
-                            title = noteObj.getString("title"),
-                            content = noteObj.getString("content"),
-                            isEncrypted = noteObj.getBoolean("isEncrypted"),
-                            salt = noteObj.optString("salt", ""),
-                            iv = noteObj.optString("iv", ""),
-                            lastModified = backupModified,
-                            tagsJson = noteObj.getString("tagsJson")
-                        )
-                        noteDao.insertNote(note)
-                    }
-                }
-
-                val localTags = tagDao.getAllTagsFlow().first().associateBy { it.name }
-                val tagsArr = payloadObj.getJSONArray("tags")
-                for (i in 0 until tagsArr.length()) {
-                    val tagObj = tagsArr.getJSONObject(i)
-                    val tagName = tagObj.getString("name")
-                    if (!localTags.containsKey(tagName)) {
-                        val tag = Tag(
-                            name = tagName,
-                            colorHex = tagObj.getString("colorHex")
-                        )
-                        tagDao.insertTag(tag)
-                    }
-                }
-
-                val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                val timeStr = formatter.format(Date())
-                sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
 
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "operation failed", e)
+                syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }
+            }
+        }
+    }
+
+    private fun decryptRestoreContainer(container: JSONObject, password: String): String? {
+        return try {
+            val salt = container.getString("salt")
+            val iv = container.getString("iv")
+            val cipherData = container.getString("data")
+            val decrypted = cipherService.decrypt(cipherData, password, salt, iv).getOrDefault("")
+            if (decrypted.isEmpty()) null else decrypted
+        } catch (e: Exception) {
+            Log.e("NotesViewModel", "Decrypt failed", e)
+            null
+        }
+    }
+
+    private suspend fun finalizeRestore(decryptedPayload: String) {
+        syncState.update { it.copy(syncStage = SyncStage.RESTORING) }
+        val payloadObj = JSONObject(decryptedPayload)
+
+        val localNotes = noteDao.getAllNotesFlow().first().associateBy { it.id }
+        val notesArr = payloadObj.getJSONArray("notes")
+        for (i in 0 until notesArr.length()) {
+            val noteObj = notesArr.getJSONObject(i)
+            val backupId = noteObj.optInt("id", 0)
+            val backupModified = noteObj.getLong("lastModified")
+            val localNote = localNotes[backupId]
+
+            if (localNote == null || backupModified > localNote.lastModified) {
+                val note = Note(
+                    id = backupId,
+                    title = noteObj.getString("title"),
+                    content = noteObj.getString("content"),
+                    isEncrypted = noteObj.getBoolean("isEncrypted"),
+                    salt = noteObj.optString("salt", ""),
+                    iv = noteObj.optString("iv", ""),
+                    lastModified = backupModified,
+                    tagsJson = noteObj.getString("tagsJson"),
+                    isArchived = noteObj.optBoolean("isArchived", false),
+                    isFavorite = noteObj.optBoolean("isFavorite", false),
+                    isPinned = noteObj.optBoolean("isPinned", false),
+                    isDeleted = noteObj.optBoolean("isDeleted", false),
+                    backgroundColor = if (noteObj.has("backgroundColor") && !noteObj.isNull("backgroundColor")) noteObj.optInt("backgroundColor") else null,
+                    backgroundImagePath = noteObj.optString("backgroundImagePath", "").ifEmpty { null },
+                    categoryId = noteObj.optString("categoryId", null)
+                )
+                noteDao.insertNote(note)
+            }
+        }
+
+        val localTags = tagDao.getAllTagsFlow().first().associateBy { it.name }
+        val tagsArr = payloadObj.getJSONArray("tags")
+        for (i in 0 until tagsArr.length()) {
+            val tagObj = tagsArr.getJSONObject(i)
+            val tagName = tagObj.getString("name")
+            if (!localTags.containsKey(tagName)) {
+                val tag = Tag(
+                    name = tagName,
+                    colorHex = tagObj.getString("colorHex")
+                )
+                tagDao.insertTag(tag)
+            }
+        }
+
+        val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val timeStr = formatter.format(Date())
+        sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
+        syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
+    }
+
+    override fun provideRestorePassword(password: String) {
+        val container = pendingRestoreContainer ?: return
+        pendingRestoreContainer = null
+        viewModelScope.launch {
+            try {
+                val decrypted = decryptRestoreContainer(container, password)
+                if (decrypted == null) {
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
+                    return@launch
+                }
+                finalizeRestore(decrypted)
+            } catch (e: Exception) {
+                Log.e("NotesViewModel", "Restore with password failed", e)
                 syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }
             }
         }

@@ -37,6 +37,7 @@ import com.example.ui.viewmodel.BackupViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -172,6 +173,51 @@ fun BackupRestoreScreen(
                 }
             }
         }
+    }
+
+    var restorePassword by remember { mutableStateOf("") }
+    if (uiState.restorePasswordRequired) {
+        AlertDialog(
+            onDismissRequest = {
+                restorePassword = ""
+                viewModel.provideRestorePassword("")
+            },
+            title = { Text(stringResource(R.string.restore_password_dialog_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.restore_password_dialog_message))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = restorePassword,
+                        onValueChange = { restorePassword = it },
+                        label = { Text(stringResource(R.string.password_hint)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.provideRestorePassword(restorePassword)
+                        restorePassword = ""
+                    }
+                ) {
+                    Text(stringResource(R.string.restore_password_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        restorePassword = ""
+                        viewModel.provideRestorePassword("")
+                    }
+                ) {
+                    Text(stringResource(R.string.restore_password_dialog_cancel))
+                }
+            }
+        )
     }
 }
 

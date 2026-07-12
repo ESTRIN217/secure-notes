@@ -24,7 +24,8 @@ data class BackupUiState(
     val isLoading: Boolean = false,
     val lastSyncTime: String = "",
     val lastLocalBackup: String = "",
-    val syncStage: SyncStage = SyncStage.IDLE
+    val syncStage: SyncStage = SyncStage.IDLE,
+    val restorePasswordRequired: Boolean = false
 )
 
 class BackupViewModel(
@@ -47,7 +48,7 @@ class BackupViewModel(
     private fun observeNotesViewModel() {
         viewModelScope.launch {
             cloudSyncManager.syncState.collect { state ->
-                _uiState.update { it.copy(isDriveLinked = state.isDriveLinked, lastSyncTime = state.lastSyncTime, syncStage = state.syncStage) }
+                _uiState.update { it.copy(isDriveLinked = state.isDriveLinked, lastSyncTime = state.lastSyncTime, syncStage = state.syncStage, restorePasswordRequired = state.syncStage == SyncStage.PASSWORD_REQUIRED) }
                 state.syncStatusMessage?.let { msg ->
                     _snackbarMessage.value = msg
                     cloudSyncManager.clearStatusMessage()
@@ -88,6 +89,11 @@ class BackupViewModel(
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
+    }
+
+    fun provideRestorePassword(password: String) {
+        _uiState.update { it.copy(restorePasswordRequired = false) }
+        cloudSyncManager.provideRestorePassword(password)
     }
 
     fun buildBackupJson(): String {
