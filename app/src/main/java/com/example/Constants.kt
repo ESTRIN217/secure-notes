@@ -3,6 +3,7 @@ package com.example
 import androidx.compose.ui.graphics.Color
 
 object AppConstants {
+    const val WEB_CLIENT_ID = "53440468121-eba9s7mkgrl8958p7grusf7vmgtsgihq.apps.googleusercontent.com"
     const val PREFS_NAME = "secure_notes_prefs"
     const val CUSTOM_ORDER_KEY = "custom_order_ids"
     const val MASTER_PASSWORD_HASH_KEY = "master_password_hash"

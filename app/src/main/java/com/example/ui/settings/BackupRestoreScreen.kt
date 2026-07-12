@@ -1,9 +1,6 @@
-@file:Suppress("DEPRECATION")
-
 package com.example.ui.settings
 
 import android.accounts.Account
-import android.app.Activity
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -29,15 +26,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.AppConstants
 import com.example.R
 import com.example.data.model.SyncStage
 import com.example.ui.viewmodel.BackupViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,37 +54,40 @@ fun BackupRestoreScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val signInClient: GoogleSignInClient = remember {
-        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
-            .requestEmail()
-            .build()
-            .let { GoogleSignIn.getClient(context, it) }
-    }
+    val credentialManager = remember { CredentialManager.create(context) }
 
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            scope.launch(Dispatchers.IO) {
-                try {
-                    val signedInAccount = GoogleSignIn.getLastSignedInAccount(context)
-                    if (signedInAccount == null) return@launch
-                    val accountEmail = signedInAccount.email
-                    if (accountEmail == null) return@launch
-                    val token = GoogleAuthUtil.getToken(
-                        context,
-                        Account(accountEmail, "com.google"),
-                        "oauth2:https://www.googleapis.com/auth/drive.appdata"
-                    )
-                    withContext(Dispatchers.Main) {
-                        viewModel.linkGoogleDrive(token, accountEmail)
+    val signIn: () -> Unit = {
+        scope.launch {
+            try {
+                val googleIdOption = GetSignInWithGoogleOption.Builder(
+                    AppConstants.WEB_CLIENT_ID
+                ).build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val response = credentialManager.getCredential(context, request)
+                val credential = response.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential
+                        .createFrom(credential.data)
+                    val accountEmail = googleIdTokenCredential.id
+                    withContext(Dispatchers.IO) {
+                        val token = GoogleAuthUtil.getToken(
+                            context,
+                            Account(accountEmail, "com.google"),
+                            "oauth2:https://www.googleapis.com/auth/drive.appdata"
+                        )
+                        withContext(Dispatchers.Main) {
+                            viewModel.linkGoogleDrive(token, accountEmail)
+                        }
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e("CloudSync", "Failed to get Drive token", e)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
-                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CloudSync", "Credential Manager failed", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -138,7 +140,7 @@ fun BackupRestoreScreen(
                         syncStage = uiState.syncStage,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
-                        onLinkDrive = { signInLauncher.launch(signInClient.signInIntent) },
+                        onLinkDrive = signIn,
                         onUnlinkDrive = { viewModel.unlinkDrive() }
                     )
                 }
