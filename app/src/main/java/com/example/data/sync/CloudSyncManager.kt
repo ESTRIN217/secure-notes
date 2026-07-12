@@ -10,7 +10,7 @@ interface CloudSyncManager {
     val rawNotes: StateFlow<List<Note>>
     val availableTags: StateFlow<List<Tag>>
 
-    fun linkGoogleDrive(token: String)
+    fun linkGoogleDrive(token: String, accountEmail: String = "")
     fun unlinkGoogleDrive()
     fun forceSyncCloud()
     fun restoreSyncCloud()

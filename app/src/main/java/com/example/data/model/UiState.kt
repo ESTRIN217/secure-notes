@@ -11,8 +11,11 @@ data class ListState(
     val currentSection: NavigationSection = NavigationSection.HOME
 )
 
+enum class SyncStage { IDLE, ENCRYPTING, SEARCHING, UPLOADING, DOWNLOADING, RESTORING }
+
 data class SyncState(
     val isDriveLinked: Boolean = false,
     val lastSyncTime: String = "",
-    val syncStatusMessage: String? = null
+    val syncStatusMessage: String? = null,
+    val syncStage: SyncStage = SyncStage.IDLE
 )

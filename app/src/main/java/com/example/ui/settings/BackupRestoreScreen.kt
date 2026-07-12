@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.ui.settings
 
 import android.accounts.Account
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.model.SyncStage
 import com.example.ui.viewmodel.BackupViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -54,7 +57,7 @@ fun BackupRestoreScreen(
 
     val signInClient: GoogleSignInClient = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestScopes(Scope("https://www.googleapis.com/auth/drive.file"))
+            .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
             .requestEmail()
             .build()
             .let { GoogleSignIn.getClient(context, it) }
@@ -73,10 +76,10 @@ fun BackupRestoreScreen(
                     val token = GoogleAuthUtil.getToken(
                         context,
                         Account(accountEmail, "com.google"),
-                        "oauth2:https://www.googleapis.com/auth/drive.file"
+                        "oauth2:https://www.googleapis.com/auth/drive.appdata"
                     )
                     withContext(Dispatchers.Main) {
-                        viewModel.linkGoogleDrive(token)
+                        viewModel.linkGoogleDrive(token, accountEmail)
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("CloudSync", "Failed to get Drive token", e)
@@ -132,6 +135,7 @@ fun BackupRestoreScreen(
                     CloudSection(
                         isDriveLinked = uiState.isDriveLinked,
                         lastSyncTime = uiState.lastSyncTime,
+                        syncStage = uiState.syncStage,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
                         onLinkDrive = { signInLauncher.launch(signInClient.signInIntent) },
@@ -177,6 +181,7 @@ fun BackupRestoreScreen(
 fun CloudSection(
     isDriveLinked: Boolean,
     lastSyncTime: String,
+    syncStage: SyncStage = SyncStage.IDLE,
     onBackupCloud: () -> Unit,
     onRestoreCloud: () -> Unit,
     onLinkDrive: () -> Unit,
@@ -184,6 +189,7 @@ fun CloudSection(
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val isSyncing = syncStage != SyncStage.IDLE
 
     SettingsCardGroup(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -212,6 +218,27 @@ fun CloudSection(
                 color = colorScheme.onSurfaceVariant
             )
 
+            if (isSyncing) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = when (syncStage) {
+                        SyncStage.ENCRYPTING -> stringResource(R.string.sync_encrypting)
+                        SyncStage.SEARCHING -> stringResource(R.string.sync_searching)
+                        SyncStage.UPLOADING -> stringResource(R.string.sync_uploading)
+                        SyncStage.DOWNLOADING -> stringResource(R.string.sync_downloading)
+                        SyncStage.RESTORING -> stringResource(R.string.sync_restoring)
+                        else -> ""
+                    },
+                    fontSize = 11.sp,
+                    color = colorScheme.primary
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isDriveLinked) {
@@ -221,7 +248,8 @@ fun CloudSection(
                 ) {
                     OutlinedButton(
                         onClick = onBackupCloud,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSyncing
                     ) {
                         Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -229,7 +257,8 @@ fun CloudSection(
                     }
                     OutlinedButton(
                         onClick = onRestoreCloud,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSyncing
                     ) {
                         Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -240,7 +269,8 @@ fun CloudSection(
                 OutlinedButton(
                     onClick = onUnlinkDrive,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.error)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.error),
+                    enabled = !isSyncing
                 ) {
                     Icon(Icons.Outlined.LinkOff, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))

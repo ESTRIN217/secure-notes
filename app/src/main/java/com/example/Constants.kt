@@ -16,6 +16,7 @@ object AppConstants {
     const val UPDATE_NOTIFICATIONS_KEY = "update_notifications"
     const val DRIVE_LINKED_KEY = "drive_linked"
     const val DRIVE_ACCESS_TOKEN_KEY = "drive_access_token"
+    const val DRIVE_ACCOUNT_EMAIL_KEY = "drive_account_email"
     const val LAST_SYNC_TIME_KEY = "last_sync_time"
 
     val SecurityGreen = Color(0xFF43A047)

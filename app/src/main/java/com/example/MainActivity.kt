@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.app.Application
-import android.accounts.Account
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
@@ -94,10 +93,6 @@ import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.util.ExportUtils
-import com.google.android.gms.auth.GoogleAuthUtil
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
 import java.text.SimpleDateFormat

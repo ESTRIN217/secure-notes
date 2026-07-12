@@ -7,6 +7,7 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.secrets)
+  alias(libs.plugins.google.services)
 }
 
 val keystoreProperties = Properties()
@@ -98,12 +99,15 @@ dependencies {
   implementation(libs.coil.compose)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
+  implementation(libs.firebase.analytics)
   implementation(libs.compose.markdown)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
+  implementation(libs.androidx.security.crypto)
+  implementation(libs.androidx.work.ktx)
   // implementation(libs.play.services.location)
   implementation(libs.play.services.auth)
   implementation(libs.retrofit)

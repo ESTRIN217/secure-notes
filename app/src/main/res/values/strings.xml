@@ -316,6 +316,11 @@
     <string name="toast_drive_connected">Google Drive connected!</string>
     <string name="toast_drive_disconnected">Google Drive disconnected.</string>
     <string name="toast_drive_auth_first">Authorize Google Drive first!</string>
+    <string name="sync_encrypting">Encrypting data…</string>
+    <string name="sync_searching">Searching backup file…</string>
+    <string name="sync_uploading">Uploading to Drive…</string>
+    <string name="sync_downloading">Downloading from Drive…</string>
+    <string name="sync_restoring">Restoring notes…</string>
     <string name="toast_syncing">Syncing with Google Drive…</string>
     <string name="toast_sync_success">Successfully synced to Google Drive!</string>
     <string name="toast_sync_auth_expired">Authentication expired. Disconnecting Drive.</string>

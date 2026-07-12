@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
 import com.example.R
+import com.example.data.model.SyncStage
 import com.example.data.model.SyncState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ data class BackupUiState(
     val isDriveLinked: Boolean = false,
     val isLoading: Boolean = false,
     val lastSyncTime: String = "",
-    val lastLocalBackup: String = ""
+    val lastLocalBackup: String = "",
+    val syncStage: SyncStage = SyncStage.IDLE
 )
 
 class BackupViewModel(
@@ -45,7 +47,7 @@ class BackupViewModel(
     private fun observeNotesViewModel() {
         viewModelScope.launch {
             cloudSyncManager.syncState.collect { state ->
-                _uiState.update { it.copy(isDriveLinked = state.isDriveLinked, lastSyncTime = state.lastSyncTime) }
+                _uiState.update { it.copy(isDriveLinked = state.isDriveLinked, lastSyncTime = state.lastSyncTime, syncStage = state.syncStage) }
                 state.syncStatusMessage?.let { msg ->
                     _snackbarMessage.value = msg
                     cloudSyncManager.clearStatusMessage()
@@ -58,8 +60,8 @@ class BackupViewModel(
         _snackbarMessage.value = null
     }
 
-    fun linkGoogleDrive(token: String) {
-        cloudSyncManager.linkGoogleDrive(token)
+    fun linkGoogleDrive(token: String, accountEmail: String = "") {
+        cloudSyncManager.linkGoogleDrive(token, accountEmail)
     }
 
     fun unlinkDrive() {

@@ -1,10 +1,18 @@
 package com.example.ui.viewmodel
 
+import android.accounts.Account
 import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.data.local.NoteDatabase
 import com.example.data.local.TagDao
 import com.example.data.model.Note
@@ -18,6 +26,8 @@ import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
 import com.example.data.sync.CloudSyncManager
 import com.example.data.sync.SyncService
+import com.example.data.sync.SyncWorker
+import com.google.android.gms.auth.GoogleAuthUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +50,7 @@ import com.example.AppConstants
 import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.NavigationSection
+import com.example.data.model.SyncStage
 import com.example.data.model.SyncState
 
 class NotesViewModel(
@@ -51,6 +62,18 @@ class NotesViewModel(
     private val noteDao: NoteDao = noteDatabase.noteDao
     private val tagDao: TagDao = noteDatabase.tagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+    private val encryptedPrefs = run {
+        val masterKey = MasterKey.Builder(application)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            application,
+            "secure_notes_secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
         if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
@@ -87,7 +110,7 @@ class NotesViewModel(
             lastSyncTime = sharedPrefs.getString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_never)) ?: getApplication<Application>().getString(R.string.label_never)
         )
     )
-    val driveAccessToken = MutableStateFlow(sharedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
+    val driveAccessToken = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
 
     // Data lists from Room
     override val availableTags: StateFlow<List<Tag>>
@@ -518,36 +541,91 @@ class NotesViewModel(
         }
     }
 
+    // Periodic background sync
+    private fun schedulePeriodicSync() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(6, java.util.concurrent.TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .build()
+        WorkManager.getInstance(getApplication())
+            .enqueueUniquePeriodicWork(
+                "secure_notes_cloud_sync",
+                ExistingPeriodicWorkPolicy.KEEP,
+                syncRequest
+            )
+    }
+
+    private fun cancelPeriodicSync() {
+        WorkManager.getInstance(getApplication())
+            .cancelUniqueWork("secure_notes_cloud_sync")
+    }
+
     // Google Drive Integration
-    override fun linkGoogleDrive(token: String) {
+    override fun linkGoogleDrive(token: String, accountEmail: String) {
+        encryptedPrefs.edit()
+            .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
+            .putString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, accountEmail)
+            .apply()
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
-            .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
             .apply()
         
         syncState.update { it.copy(isDriveLinked = true, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_connected)) }
         driveAccessToken.value = token
+        schedulePeriodicSync()
     }
 
     override fun unlinkGoogleDrive() {
+        encryptedPrefs.edit()
+            .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
+            .remove(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY)
+            .apply()
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, false)
-            .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
             .apply()
         
         syncState.update { it.copy(isDriveLinked = false, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_disconnected)) }
         driveAccessToken.value = ""
+        cancelPeriodicSync()
+    }
+
+    private suspend fun refreshAccessToken(): String? {
+        val email = encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null) ?: return null
+        return try {
+            withContext(Dispatchers.IO) {
+                GoogleAuthUtil.getToken(
+                    getApplication<Application>(),
+                    Account(email, "com.google"),
+                    "oauth2:https://www.googleapis.com/auth/drive.appdata"
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("NotesViewModel", "Token refresh failed", e)
+            null
+        }
+    }
+
+    private suspend fun performSyncWithToken(currentToken: String, finalPayload: String): Boolean {
+        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()
+        return if (existingFileId != null) {
+            syncService.uploadFileContent(currentToken, existingFileId, finalPayload).getOrDefault(false)
+        } else {
+            val createdFileId = syncService.createBackupFile(currentToken, finalPayload).getOrNull()
+            createdFileId != null
+        }
     }
 
     override fun forceSyncCloud() {
-        val token = driveAccessToken.value
+        var token = driveAccessToken.value
         if (token.isEmpty()) {
             syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_auth_first)) }
             return
         }
 
         viewModelScope.launch {
-            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_syncing)) }
+            syncState.update { it.copy(syncStage = SyncStage.ENCRYPTING, syncStatusMessage = getApplication<Application>().getString(R.string.toast_syncing)) }
             try {
                 val notesArray = JSONArray()
                 rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
@@ -579,50 +657,76 @@ class NotesViewModel(
                     }.toString()
                 }
 
-                val existingFileId = syncService.searchBackupFile(token).getOrNull()
-                val success: Boolean
-                if (existingFileId != null) {
-                    success = syncService.uploadFileContent(token, existingFileId, finalPayload).getOrDefault(false)
-                } else {
-                    val createdFileId = syncService.createBackupFile(token, finalPayload).getOrNull()
-                    success = createdFileId != null
+                syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
+                var success = performSyncWithToken(token, finalPayload)
+
+                if (!success) {
+                    val newToken = refreshAccessToken()
+                    if (newToken != null) {
+                        token = newToken
+                        driveAccessToken.value = newToken
+                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                        success = performSyncWithToken(token, finalPayload)
+                    }
                 }
 
                 if (success) {
                     val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timeStr = formatter.format(Date())
                     sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                    syncState.update { it.copy(lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
                 } else {
-                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_auth_expired)) }
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_auth_expired)) }
                     unlinkGoogleDrive()
                 }
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "operation failed", e)
-                syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)) }
+                syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_error, e.localizedMessage)) }
             }
         }
     }
 
     override fun restoreSyncCloud() {
-        val token = driveAccessToken.value
+        var token = driveAccessToken.value
         if (token.isEmpty()) {
             syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_auth_first)) }
             return
         }
 
         viewModelScope.launch {
-            syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_searching_backup)) }
+            syncState.update { it.copy(syncStage = SyncStage.SEARCHING, syncStatusMessage = getApplication<Application>().getString(R.string.toast_searching_backup)) }
             try {
-                val fileId = syncService.searchBackupFile(token).getOrNull()
+                var fileId = syncService.searchBackupFile(token).getOrNull()
+
                 if (fileId == null) {
-                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_no_backup_found)) }
+                    val newToken = refreshAccessToken()
+                    if (newToken != null) {
+                        token = newToken
+                        driveAccessToken.value = newToken
+                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                        fileId = syncService.searchBackupFile(token).getOrNull()
+                    }
+                }
+
+                if (fileId == null) {
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_no_backup_found)) }
                     return@launch
                 }
 
-                val backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
+                syncState.update { it.copy(syncStage = SyncStage.DOWNLOADING) }
+                var backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
                 if (backupContent.isNullOrEmpty()) {
-                    syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
+                    val newToken = refreshAccessToken()
+                    if (newToken != null) {
+                        token = newToken
+                        driveAccessToken.value = newToken
+                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                        backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
+                    }
+                }
+
+                if (backupContent.isNullOrEmpty()) {
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
                     return@launch
                 }
 
@@ -648,41 +752,54 @@ class NotesViewModel(
                     decryptedPayload = container.getString("data")
                 }
 
+                syncState.update { it.copy(syncStage = SyncStage.RESTORING) }
                 val payloadObj = JSONObject(decryptedPayload)
+
+                val localNotes = noteDao.getAllNotesFlow().first().associateBy { it.id }
                 val notesArr = payloadObj.getJSONArray("notes")
                 for (i in 0 until notesArr.length()) {
                     val noteObj = notesArr.getJSONObject(i)
-                    val note = Note(
-                        id = noteObj.optInt("id", 0),
-                        title = noteObj.getString("title"),
-                        content = noteObj.getString("content"),
-                        isEncrypted = noteObj.getBoolean("isEncrypted"),
-                        salt = noteObj.optString("salt", ""),
-                        iv = noteObj.optString("iv", ""),
-                        lastModified = noteObj.getLong("lastModified"),
-                        tagsJson = noteObj.getString("tagsJson")
-                    )
-                    noteDao.insertNote(note)
+                    val backupId = noteObj.optInt("id", 0)
+                    val backupModified = noteObj.getLong("lastModified")
+                    val localNote = localNotes[backupId]
+
+                    if (localNote == null || backupModified > localNote.lastModified) {
+                        val note = Note(
+                            id = backupId,
+                            title = noteObj.getString("title"),
+                            content = noteObj.getString("content"),
+                            isEncrypted = noteObj.getBoolean("isEncrypted"),
+                            salt = noteObj.optString("salt", ""),
+                            iv = noteObj.optString("iv", ""),
+                            lastModified = backupModified,
+                            tagsJson = noteObj.getString("tagsJson")
+                        )
+                        noteDao.insertNote(note)
+                    }
                 }
 
+                val localTags = tagDao.getAllTagsFlow().first().associateBy { it.name }
                 val tagsArr = payloadObj.getJSONArray("tags")
                 for (i in 0 until tagsArr.length()) {
                     val tagObj = tagsArr.getJSONObject(i)
-                    val tag = Tag(
-                        name = tagObj.getString("name"),
-                        colorHex = tagObj.getString("colorHex")
-                    )
-                    tagDao.insertTag(tag)
+                    val tagName = tagObj.getString("name")
+                    if (!localTags.containsKey(tagName)) {
+                        val tag = Tag(
+                            name = tagName,
+                            colorHex = tagObj.getString("colorHex")
+                        )
+                        tagDao.insertTag(tag)
+                    }
                 }
 
                 val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                 val timeStr = formatter.format(Date())
                 sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                syncState.update { it.copy(lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
+                syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
 
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "operation failed", e)
-                syncState.update { it.copy(syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }
+                syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }
             }
         }
     }
