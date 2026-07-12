@@ -120,17 +120,7 @@ fun DrawingCanvasScreen(
 
     Scaffold(
         topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(canvasCardBorderStroke, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
+            CustomTopBar(borderStroke = canvasCardBorderStroke) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

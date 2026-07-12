@@ -229,15 +229,7 @@ fun MainListScreen(
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Scaffold(
                     topBar = {
-                        OutlinedCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .statusBarsPadding()
-                                .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
+                        CustomTopBar {
                             if (selectedNoteIds.isNotEmpty()) {
                                 Row(
                                     modifier = Modifier

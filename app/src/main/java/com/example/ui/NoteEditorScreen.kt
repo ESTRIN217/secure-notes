@@ -45,6 +45,8 @@ import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.DecryptedNote
 import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.ui.settings.SettingsCardGroup
+import com.example.ui.settings.SettingsSwitchTile
 import com.example.util.getNoteBackgroundColor
 import com.example.util.ExportUtils
 import com.example.util.MediaBlock
@@ -460,14 +462,7 @@ fun NoteEditorScreen(
 
     Scaffold(
         topBar = {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .statusBarsPadding()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
+            CustomTopBar {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -528,6 +523,7 @@ fun NoteEditorScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
                     .padding(top = 16.dp)
+                    .padding(bottom = 72.dp)
             ) {
                 if (isPreviewMode) {
                     Text(
@@ -2132,84 +2128,43 @@ fun NoteEditorScreen(
                     }
 
                     // Encryption properties Card
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 20.dp)
-                            .border(
-                                width = 1.dp,
-                                color = if (isEncrypted) Color(0xFF43A047) else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(10.dp)
-                            ),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = if (isEncrypted) Color(0xFF43A047).copy(alpha = 0.05f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(id = R.string.label_e2e_encryption),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isEncrypted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = stringResource(id = if (isPasswordSet) R.string.desc_e2e_encryption_enabled else R.string.desc_e2e_encryption_disabled),
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                    SettingsCardGroup(modifier = Modifier.padding(bottom = 20.dp)) {
+                        SettingsSwitchTile(
+                            icon = Icons.Default.Shield,
+                            title = stringResource(id = R.string.label_e2e_encryption),
+                            subtitle = stringResource(id = if (isPasswordSet) R.string.desc_e2e_encryption_enabled else R.string.desc_e2e_encryption_disabled),
+                            checked = isEncrypted,
+                            onCheckedChange = {
+                                if (!isPasswordSet) {
+                                    Toast.makeText(context, context.getString(R.string.toast_setup_password_first), Toast.LENGTH_LONG).show()
+                                } else {
+                                    isEncrypted = it
+                                }
                             }
-                            Switch(
-                                checked = isEncrypted,
-                                onCheckedChange = {
-                                    if (!isPasswordSet) {
-                                        Toast.makeText(context, context.getString(R.string.toast_setup_password_first), Toast.LENGTH_LONG).show()
-                                    } else {
-                                        isEncrypted = it
-                                    }
-                                },
-                                enabled = isPasswordSet,
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF43A047))
-                            )
-                        }
+                        )
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    OutlinedCard(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth().clickable { isPinned = !isPinned }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin, contentDescription = null, tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = stringResource(if (isPinned) R.string.tooltip_unpin else R.string.tooltip_pin), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                Switch(checked = isPinned, onCheckedChange = { isPinned = it })
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
-                            Row(modifier = Modifier.fillMaxWidth().clickable { isFavorite = !isFavorite }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star, contentDescription = null, tint = if (isFavorite) Color(0xFFFBC02D) else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = stringResource(if (isFavorite) R.string.tooltip_unfavorite else R.string.tooltip_favorite), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                Switch(checked = isFavorite, onCheckedChange = { isFavorite = it })
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
-                            Row(modifier = Modifier.fillMaxWidth().clickable { isArchived = !isArchived }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = if (isArchived) Icons.Default.Archive else Icons.Outlined.Archive, contentDescription = null, tint = if (isArchived) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = stringResource(if (isArchived) R.string.tooltip_unarchive else R.string.tooltip_archive), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                Switch(checked = isArchived, onCheckedChange = { isArchived = it })
-                            }
-                        }
+                    SettingsCardGroup(modifier = Modifier.padding(bottom = 16.dp)) {
+                        SettingsSwitchTile(
+                            icon = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                            title = stringResource(if (isPinned) R.string.tooltip_unpin else R.string.tooltip_pin),
+                            checked = isPinned,
+                            onCheckedChange = { isPinned = it }
+                        )
+                        SettingsSwitchTile(
+                            icon = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,
+                            title = stringResource(if (isFavorite) R.string.tooltip_unfavorite else R.string.tooltip_favorite),
+                            checked = isFavorite,
+                            onCheckedChange = { isFavorite = it }
+                        )
+                        SettingsSwitchTile(
+                            icon = if (isArchived) Icons.Default.Archive else Icons.Outlined.Archive,
+                            title = stringResource(if (isArchived) R.string.tooltip_unarchive else R.string.tooltip_archive),
+                            checked = isArchived,
+                            onCheckedChange = { isArchived = it }
+                        )
                     }
                     
                     // SHARE section
