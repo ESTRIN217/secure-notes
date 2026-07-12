@@ -106,6 +106,8 @@ import java.util.Locale
 
 import com.example.ui.Screen
 import com.example.ui.ScreenSaver
+import com.example.ui.Navigator
+import com.example.ui.ScreenContext
 import com.example.util.MoveDirection
 import com.example.util.SortOption
 import com.example.util.borderStrokeHelper
@@ -207,17 +209,30 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
     )
     val updaterViewModel: UpdaterViewModel = viewModel()
 
-    fun navigateTo(screen: Screen) {
-        isBackNavigation = false
-        currentScreen = screen
+    val navigator = remember {
+        Navigator(
+            onNavigateTo = { screen ->
+                isBackNavigation = false
+                currentScreen = screen
+            },
+            onNavigateBack = { to ->
+                isBackNavigation = true
+                currentScreen = to
+            }
+        )
     }
 
-    fun navigateBack(to: Screen) {
-        isBackNavigation = true
-        currentScreen = to
+    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, navigator, currentScreen) {
+        ScreenContext(
+            viewModel = viewModel,
+            themeViewModel = themeViewModel,
+            backupViewModel = backupViewModel,
+            updaterViewModel = updaterViewModel,
+            navigator = navigator,
+            currentScreen = currentScreen
+        )
     }
 
-    // Lock Screen integration
     if (isPasswordSet && !isUnlocked) {
         LockScreen(viewModel)
     } else {
@@ -234,69 +249,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
             },
             label = "ScreenTransition"
         ) { screen ->
-            when (screen) {
-                is Screen.MainList -> MainListScreen(
-                    viewModel = viewModel,
-                    onNavigateToEditor = { noteId -> navigateTo(Screen.NoteEditor(noteId)) },
-                    onNavigateToCloud = { navigateTo(Screen.BackupRestore) },
-                    onNavigateToPrivacy = { navigateTo(Screen.PrivacySettings) },
-                    onNavigateToSearch = { navigateTo(Screen.Search) },
-                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
-                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) },
-                    onNavigateToSettingsHub = { navigateTo(Screen.SettingsHub) },
-                    onNavigateToBackupRestore = { navigateTo(Screen.BackupRestore) },
-                    onNavigateToUpdateInfo = { navigateTo(Screen.UpdateInfo) },
-                    onNavigateToAbout = { navigateTo(Screen.About) }
-                )
-                is Screen.Search -> SearchScreen(
-                    viewModel = viewModel,
-                    onNavigateToEditor = { noteId -> navigateTo(Screen.NoteEditor(noteId)) },
-                    onBack = { navigateBack(Screen.MainList) },
-                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
-                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) }
-                )
-                is Screen.NoteEditor -> NoteEditorScreen(
-                    noteId = screen.noteId,
-                    viewModel = viewModel,
-                    onBack = { navigateBack(Screen.MainList) },
-                    onNavigateToDrawing = { id, path -> navigateTo(Screen.DrawingCanvas(id, path)) },
-                    onNavigateToMediaViewer = { type, src -> navigateTo(Screen.MediaViewer(type, src, currentScreen)) }
-                )
-                is Screen.DrawingCanvas -> DrawingCanvasScreen(
-                    noteId = screen.noteId,
-                    jsonPath = screen.jsonPath,
-                    viewModel = viewModel,
-                    onBack = { navigateBack(Screen.NoteEditor(screen.noteId)) }
-                )
-                is Screen.PrivacySettings -> PrivacySettingsScreen(
-                    viewModel = viewModel,
-                    onBack = { navigateBack(Screen.SettingsHub) }
-                )
-                is Screen.MediaViewer -> MediaViewerScreen(
-                    type = screen.type,
-                    src = screen.src,
-                    onBack = { navigateBack(screen.previousScreen) },
-                )
-                is Screen.SettingsHub -> SettingsScreen(
-                    themeViewModel = themeViewModel,
-                    onBack = { navigateBack(Screen.MainList) },
-                    onNavigateToBackupRestore = { navigateTo(Screen.BackupRestore) },
-                    onNavigateToUpdateInfo = { navigateTo(Screen.UpdateInfo) },
-                    onNavigateToAbout = { navigateTo(Screen.About) },
-                    onNavigateToPrivacy = { navigateTo(Screen.PrivacySettings) }
-                )
-                is Screen.BackupRestore -> BackupRestoreScreen(
-                    viewModel = backupViewModel,
-                    onBack = { navigateBack(Screen.SettingsHub) }
-                )
-                is Screen.UpdateInfo -> UpdateInfoScreen(
-                    viewModel = updaterViewModel,
-                    onBack = { navigateBack(Screen.SettingsHub) }
-                )
-                is Screen.About -> AboutScreen(
-                    onBack = { navigateBack(Screen.SettingsHub) }
-                )
-            }
+            screen.render(screenContext)
         }
     }
 }

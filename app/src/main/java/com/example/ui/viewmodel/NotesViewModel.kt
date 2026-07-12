@@ -11,6 +11,7 @@ import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.data.model.parseTags
 import com.example.data.model.toJson
+import com.example.data.model.sectionFilters
 
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
@@ -122,17 +123,8 @@ class NotesViewModel(
             // Filter by search query, tag and section
             decryptedList.filter { decryptedNote ->
                 val note = decryptedNote.note
-
-                // Section Filter
-                val matchesSection = when (section) {
-                    NavigationSection.HOME -> !note.isArchived && !note.isDeleted
-                    NavigationSection.FAVORITES -> note.isFavorite && !note.isArchived && !note.isDeleted
-                    NavigationSection.ARCHIVED -> note.isArchived && !note.isDeleted
-                    NavigationSection.TRASH -> note.isDeleted
-                    NavigationSection.SETTINGS -> false
-                }
-
-                if (!matchesSection) return@filter false
+                val sectionFilter = sectionFilters[section] ?: return@filter false
+                if (!sectionFilter.matches(note)) return@filter false
 
                 val matchesQuery = query.isEmpty() ||
                         decryptedNote.title.contains(query, ignoreCase = true) ||
