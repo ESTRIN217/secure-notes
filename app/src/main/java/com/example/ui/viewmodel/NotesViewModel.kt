@@ -760,9 +760,21 @@ class NotesViewModel(
                 val tagsArray = JSONArray()
                 availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
 
+                val settingsObj = JSONObject().apply {
+                    put(AppConstants.DARK_MODE_OPTION_KEY, sharedPrefs.getString(AppConstants.DARK_MODE_OPTION_KEY, "SYSTEM"))
+                    put(AppConstants.DYNAMIC_COLORS_KEY, sharedPrefs.getBoolean(AppConstants.DYNAMIC_COLORS_KEY, true))
+                    put(AppConstants.LANGUAGE_KEY, sharedPrefs.getString(AppConstants.LANGUAGE_KEY, "") ?: "")
+                    put(AppConstants.AUTO_UPDATE_CHECK_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
+                    put(AppConstants.UPDATE_NOTIFICATIONS_KEY, sharedPrefs.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, true))
+                    put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
+                    put(AppConstants.INCLUDE_ATTACHMENTS_KEY, sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
+                    put(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
+                }
+
                 val syncPayload = JSONObject().apply {
                     put("notes", notesArray)
                     put("tags", tagsArray)
+                    put("settings", settingsObj)
                     put("timestamp", System.currentTimeMillis())
                 }.toString()
 
@@ -1010,6 +1022,28 @@ class NotesViewModel(
                 )
                 tagDao.insertTag(tag)
             }
+        }
+
+        if (payloadObj.has("settings")) {
+            val settings = payloadObj.getJSONObject("settings")
+            val editor = sharedPrefs.edit()
+            if (settings.has(AppConstants.DARK_MODE_OPTION_KEY))
+                editor.putString(AppConstants.DARK_MODE_OPTION_KEY, settings.getString(AppConstants.DARK_MODE_OPTION_KEY))
+            if (settings.has(AppConstants.DYNAMIC_COLORS_KEY))
+                editor.putBoolean(AppConstants.DYNAMIC_COLORS_KEY, settings.getBoolean(AppConstants.DYNAMIC_COLORS_KEY))
+            if (settings.has(AppConstants.LANGUAGE_KEY))
+                editor.putString(AppConstants.LANGUAGE_KEY, settings.getString(AppConstants.LANGUAGE_KEY))
+            if (settings.has(AppConstants.AUTO_UPDATE_CHECK_KEY))
+                editor.putBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, settings.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY))
+            if (settings.has(AppConstants.UPDATE_NOTIFICATIONS_KEY))
+                editor.putBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, settings.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY))
+            if (settings.has(AppConstants.CUSTOM_ORDER_KEY))
+                editor.putString(AppConstants.CUSTOM_ORDER_KEY, settings.getString(AppConstants.CUSTOM_ORDER_KEY))
+            if (settings.has(AppConstants.INCLUDE_ATTACHMENTS_KEY))
+                editor.putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, settings.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY))
+            if (settings.has(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
+                editor.putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, settings.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
+            editor.apply()
         }
 
         val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
