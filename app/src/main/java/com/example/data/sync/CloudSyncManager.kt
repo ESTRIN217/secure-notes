@@ -25,7 +25,12 @@ interface CloudSyncManager {
         backgroundImagePath: String? = null,
         isPinned: Boolean = false,
         isFavorite: Boolean = false,
-        isArchived: Boolean = false
+        isArchived: Boolean = false,
+        categoryId: String? = null,
+        isDeleted: Boolean = false,
+        lastModified: Long = System.currentTimeMillis(),
+        salt: String = "",
+        iv: String = ""
     )
     fun createTag(name: String, colorHex: String)
     fun clearStatusMessage()

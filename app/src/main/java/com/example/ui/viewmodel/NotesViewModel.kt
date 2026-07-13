@@ -401,10 +401,15 @@ class NotesViewModel(
         backgroundImagePath: String?,
         isPinned: Boolean,
         isFavorite: Boolean,
-        isArchived: Boolean
+        isArchived: Boolean,
+        categoryId: String?,
+        isDeleted: Boolean,
+        lastModified: Long,
+        salt: String,
+        iv: String
     ) {
         viewModelScope.launch {
-            saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived)
+            saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived, categoryId, isDeleted, lastModified, salt, iv)
         }
     }
 
@@ -418,7 +423,12 @@ class NotesViewModel(
         backgroundImagePath: String? = null,
         isPinned: Boolean = false,
         isFavorite: Boolean = false,
-        isArchived: Boolean = false
+        isArchived: Boolean = false,
+        categoryId: String? = null,
+        isDeleted: Boolean = false,
+        lastModified: Long = System.currentTimeMillis(),
+        salt: String = "",
+        iv: String = ""
     ): Int = withContext(Dispatchers.IO) {
         try {
             // Copy content:// URIs to local storage if setting is enabled
@@ -441,12 +451,12 @@ class NotesViewModel(
                 content
             }
 
-            val salt = if (isEncrypted) cipherService.generateSalt() else ""
-            val iv = if (isEncrypted) cipherService.generateIv() else ""
+            val effectiveSalt = if (salt.isNotEmpty()) salt else if (isEncrypted) cipherService.generateSalt() else ""
+            val effectiveIv = if (iv.isNotEmpty()) iv else if (isEncrypted) cipherService.generateIv() else ""
 
             val pass = if (isEncrypted) masterPassword.value ?: "" else ""
-            val storedTitle = if (isEncrypted) cipherService.encrypt(title, pass, salt, iv).getOrDefault("") else title
-            val storedContent = if (isEncrypted) cipherService.encrypt(finalContent, pass, salt, iv).getOrDefault("") else finalContent
+            val storedTitle = if (isEncrypted) cipherService.encrypt(title, pass, effectiveSalt, effectiveIv).getOrDefault("") else title
+            val storedContent = if (isEncrypted) cipherService.encrypt(finalContent, pass, effectiveSalt, effectiveIv).getOrDefault("") else finalContent
 
             val tagsJson = JSONArray(tagsList).toString()
 
@@ -459,17 +469,17 @@ class NotesViewModel(
                 title = storedTitle,
                 content = storedContent,
                 isEncrypted = isEncrypted,
-                salt = salt,
-                iv = iv,
+                salt = effectiveSalt,
+                iv = effectiveIv,
                 tagsJson = tagsJson,
-                lastModified = System.currentTimeMillis(),
+                lastModified = lastModified,
                 isArchived = isArchived,
                 isFavorite = isFavorite,
                 isPinned = isPinned,
-                isDeleted = existing?.isDeleted ?: false,
+                isDeleted = if (id != 0) existing?.isDeleted ?: isDeleted else isDeleted,
                 backgroundColor = backgroundColor,
                 backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
-                categoryId = existing?.categoryId
+                categoryId = categoryId ?: existing?.categoryId
             )
 
             val result = if (id == 0) {
