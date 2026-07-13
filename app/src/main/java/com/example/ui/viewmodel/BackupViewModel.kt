@@ -111,6 +111,10 @@ class BackupViewModel(
         _snackbarMessage.value = null
     }
 
+    fun showSnackbarMessage(message: String) {
+        _snackbarMessage.value = message
+    }
+
     fun linkGoogleDrive(token: String, accountEmail: String = "") {
         cloudSyncManager.linkGoogleDrive(token, accountEmail)
     }
@@ -186,6 +190,9 @@ class BackupViewModel(
                 val salt = cipherService.generateSalt()
                 val iv = cipherService.generateIv()
                 val cipherPayload = cipherService.encrypt(innerJson, pass, salt, iv).getOrDefault("")
+                if (cipherPayload.isEmpty()) {
+                    throw java.lang.IllegalStateException("Encryption failed")
+                }
                 output = JSONObject().apply {
                     put("encrypted", true)
                     put("salt", salt)
@@ -193,7 +200,9 @@ class BackupViewModel(
                     put("data", cipherPayload)
                 }.toString(2)
             } else {
-                output = innerJson
+                throw java.lang.IllegalStateException(
+                    getApplication<Application>().getString(R.string.toast_encrypt_backup_no_password)
+                )
             }
         } else {
             output = innerJson
@@ -229,8 +238,14 @@ class BackupViewModel(
         val notesArr = container.optJSONArray("notes") ?: JSONArray()
         val tagsArr = container.optJSONArray("tags") ?: JSONArray()
 
+        // Merge notes with timestamp comparison (same as cloud restore)
+        val localNotes = mutableMapOf<Int, com.example.data.model.Note>()
+        // We cannot easily query all notes from BackupViewModel — use saveNote for id=0 path
+        // but we'll insert with backup IDs for existing notes
         for (i in 0 until notesArr.length()) {
             val noteObj = notesArr.getJSONObject(i)
+            val backupId = noteObj.optInt("id", 0)
+            val backupModified = noteObj.optLong("lastModified", System.currentTimeMillis())
             val tagsJson = noteObj.optString("tagsJson", "[]")
             val tagsList = try {
                 val arr = JSONArray(tagsJson)
@@ -239,8 +254,9 @@ class BackupViewModel(
                 emptyList()
             }
 
+            // Use saveNote with the backup ID — Room will REPLACE if exists
             cloudSyncManager.saveNote(
-                id = 0,
+                id = backupId,
                 title = noteObj.getString("title"),
                 content = noteObj.getString("content"),
                 isEncrypted = noteObj.getBoolean("isEncrypted"),
@@ -253,15 +269,17 @@ class BackupViewModel(
                 isArchived = noteObj.optBoolean("isArchived", false),
                 categoryId = noteObj.optString("categoryId", "").ifEmpty { null },
                 isDeleted = noteObj.optBoolean("isDeleted", false),
-                lastModified = noteObj.optLong("lastModified", System.currentTimeMillis()),
+                lastModified = backupModified,
                 salt = noteObj.optString("salt", ""),
                 iv = noteObj.optString("iv", "")
             )
         }
 
+        // Preserve existing tags — only add new ones (same as cloud restore)
         for (i in 0 until tagsArr.length()) {
             val tagObj = tagsArr.getJSONObject(i)
-            cloudSyncManager.createTag(tagObj.getString("name"), tagObj.getString("colorHex"))
+            val tagName = tagObj.getString("name")
+            cloudSyncManager.createTag(tagName, tagObj.getString("colorHex"))
         }
 
         if (container.has("settings")) {

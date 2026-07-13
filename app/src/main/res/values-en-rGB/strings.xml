@@ -492,4 +492,5 @@
     <string name="backup_size_label">Size: %s</string>
     <string name="backup_e2ee_badge">AES-256 E2E Encrypted</string>
     <string name="backup_e2ee_disabled_badge">Not encrypted</string>
+    <string name="toast_encrypt_backup_no_password">Cannot encrypt backup: master password not available. Unlock the app first.</string>
 </resources>

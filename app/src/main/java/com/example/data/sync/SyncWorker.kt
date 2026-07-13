@@ -8,12 +8,18 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.example.AppConstants
 import com.example.data.local.NoteDatabase
+import com.example.data.model.Note
 import com.example.data.model.toJson
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.util.BackupAttachmentHelper
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SyncWorker(
     appContext: Context,
@@ -43,6 +49,9 @@ class SyncWorker(
         val token = encryptedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, null)
         if (token.isNullOrEmpty()) return Result.failure()
 
+        val hasPassword = applicationContext.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+            .contains(AppConstants.MASTER_PASSWORD_HASH_KEY)
+
         try {
             val rawNotes = noteDao.getAllNotesFlow().first()
             val tags = tagDao.getAllTagsFlow().first()
@@ -65,14 +74,16 @@ class SyncWorker(
             }
 
             val syncPayload = JSONObject().apply {
+                put("version", 4)
                 put("notes", notesArray)
                 put("tags", tagsArray)
                 put("settings", settingsObj)
                 put("timestamp", System.currentTimeMillis())
             }.toString()
 
-            val encryptBackups = sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, false)
+            val encryptBackups = sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, hasPassword)
             val cachedPassword = encryptedPrefs.getString(AppConstants.CACHED_MASTER_PASSWORD_KEY, null)
+            val includeAttachments = sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false)
 
             val finalPayload: String
             if (encryptBackups && !cachedPassword.isNullOrEmpty()) {
@@ -93,13 +104,57 @@ class SyncWorker(
             }
 
             val existingFileId = syncService.searchBackupFile(token).getOrNull()
-            val success = if (existingFileId != null) {
-                syncService.uploadFileContent(token, existingFileId, finalPayload).getOrDefault(false)
+
+            var backupSize = 0L
+            val success: Boolean
+
+            if (includeAttachments) {
+                val context = applicationContext
+                val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                tempDir.mkdirs()
+                val tempAttachmentsDir = File(tempDir, "attachments")
+                try {
+                    val allPathMaps = mutableMapOf<String, String>()
+                    rawNotes.forEach { note ->
+                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                        )
+                        allPathMaps.putAll(pathMap)
+                    }
+                    val zipFile = File(tempDir, "backup.zip")
+                    BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
+                    val zipBytes = zipFile.readBytes()
+                    backupSize = zipFile.length()
+
+                    success = if (existingFileId != null) {
+                        syncService.uploadFileBytes(token, existingFileId, zipBytes).getOrDefault(false)
+                    } else {
+                        val newId = syncService.createBackupFile(token, "placeholder").getOrNull()
+                        newId != null && syncService.uploadFileBytes(token, newId, zipBytes).getOrDefault(false)
+                    }
+                } finally {
+                    tempDir.deleteRecursively()
+                }
             } else {
-                syncService.createBackupFile(token, finalPayload).getOrNull() != null
+                backupSize = finalPayload.toByteArray().size.toLong()
+                success = if (existingFileId != null) {
+                    syncService.uploadFileContent(token, existingFileId, finalPayload).getOrDefault(false)
+                } else {
+                    syncService.createBackupFile(token, finalPayload).getOrNull() != null
+                }
             }
 
-            return if (success) Result.success() else Result.retry()
+            if (!success) return Result.retry()
+
+            sharedPrefs.edit()
+                .putLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, backupSize)
+                .putString(AppConstants.LAST_SYNC_TIME_KEY,
+                    SimpleDateFormat("HH:mm:ss", Locale.getDefault()).let { fmt ->
+                        applicationContext.getString(com.example.R.string.label_today_at, fmt.format(Date()))
+                    })
+                .apply()
+
+            return Result.success()
         } catch (e: Exception) {
             Log.e("SyncWorker", "Background sync failed", e)
             return Result.retry()

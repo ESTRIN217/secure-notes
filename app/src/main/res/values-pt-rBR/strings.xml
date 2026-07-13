@@ -492,4 +492,5 @@
     <string name="backup_size_label">Tamanho: %s</string>
     <string name="backup_e2ee_badge">Criptografado AES-256 E2E</string>
     <string name="backup_e2ee_disabled_badge">Não criptografado</string>
+    <string name="toast_encrypt_backup_no_password">Não é possível criptografar o backup: senha mestra indisponível. Desbloqueie o app primeiro.</string>
 </resources>

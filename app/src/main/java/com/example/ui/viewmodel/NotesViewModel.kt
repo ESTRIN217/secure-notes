@@ -649,7 +649,10 @@ class NotesViewModel(
 
     override fun createTag(name: String, colorHex: String) {
         viewModelScope.launch {
-            tagDao.insertTag(Tag(name, colorHex))
+            val existing = tagDao.getAllTagsFlow().first()
+            if (!existing.any { it.name == name }) {
+                tagDao.insertTag(Tag(name, colorHex))
+            }
         }
     }
 
@@ -803,6 +806,14 @@ class NotesViewModel(
         viewModelScope.launch {
             syncState.update { it.copy(syncStage = SyncStage.ENCRYPTING, syncStatusMessage = getApplication<Application>().getString(R.string.toast_syncing)) }
             try {
+                // Refresh token if expired before starting
+                val newToken = refreshAccessToken()
+                if (newToken != null) {
+                    token = newToken
+                    driveAccessToken.value = newToken
+                    encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                }
+
                 val notesArray = JSONArray()
                 rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
 
@@ -821,6 +832,7 @@ class NotesViewModel(
                 }
 
                 val syncPayload = JSONObject().apply {
+                    put("version", 4)
                     put("notes", notesArray)
                     put("tags", tagsArray)
                     put("settings", settingsObj)

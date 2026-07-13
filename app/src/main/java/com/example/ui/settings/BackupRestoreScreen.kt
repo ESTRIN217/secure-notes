@@ -175,45 +175,51 @@ fun BackupRestoreScreen(
                         isEncrypted = uiState.isPasswordSet && uiState.encryptBackups,
                         backupSize = uiState.lastBackupSizeLocal,
                         onCreateBackup = {
-                            try {
-                                val includeAttachments = viewModel.cloudSyncManagerPublic.includeAttachments.value
-                                val encrypt = uiState.encryptBackups && uiState.isPasswordSet
-                                if (includeAttachments) {
-                                    val json = viewModel.buildBackupJson(encrypt)
-                                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
-                                    tempDir.mkdirs()
-                                    val tempAttachmentsDir = File(tempDir, "attachments")
-                                    val rawNotes = viewModel.cloudSyncManagerPublic.rawNotes.value
-                                    val allPathMaps = mutableMapOf<String, String>()
-                                    rawNotes.forEach { note ->
-                                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
-                                        )
-                                        allPathMaps.putAll(pathMap)
+                            scope.launch {
+                                try {
+                                    val includeAttachments = viewModel.cloudSyncManagerPublic.includeAttachments.value
+                                    val encrypt = uiState.encryptBackups && uiState.isPasswordSet
+                                    if (includeAttachments) {
+                                        val json = viewModel.buildBackupJson(encrypt)
+                                        val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                                        tempDir.mkdirs()
+                                        val tempAttachmentsDir = File(tempDir, "attachments")
+                                        try {
+                                            val rawNotes = viewModel.cloudSyncManagerPublic.rawNotes.value
+                                            val allPathMaps = mutableMapOf<String, String>()
+                                            rawNotes.forEach { note ->
+                                                val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                                                    note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                                                )
+                                                allPathMaps.putAll(pathMap)
+                                            }
+                                            val zipFile = File(tempDir, "secure_notes_backup.zip")
+                                            BackupAttachmentHelper.buildBackupZip(json, allPathMaps, tempAttachmentsDir, zipFile)
+                                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
+                                                    context, "${context.packageName}.fileprovider", zipFile
+                                                ))
+                                                type = "application/zip"
+                                            }
+                                            context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
+                                        } finally {
+                                            tempDir.deleteRecursively()
+                                        }
+                                    } else {
+                                        val json = viewModel.buildBackupJson(encrypt)
+                                        val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
+                                        cacheFile.writeText(json)
+                                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                            putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
+                                                context, "${context.packageName}.fileprovider", cacheFile
+                                            ))
+                                            type = "application/json"
+                                        }
+                                        context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
                                     }
-                                    val zipFile = File(tempDir, "secure_notes_backup.zip")
-                                    BackupAttachmentHelper.buildBackupZip(json, allPathMaps, tempAttachmentsDir, zipFile)
-                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
-                                            context, "${context.packageName}.fileprovider", zipFile
-                                        ))
-                                        type = "application/zip"
-                                    }
-                                    context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
-                                } else {
-                                    val json = viewModel.buildBackupJson(encrypt)
-                                    val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
-                                    cacheFile.writeText(json)
-                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                        putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
-                                            context, "${context.packageName}.fileprovider", cacheFile
-                                        ))
-                                        type = "application/json"
-                                    }
-                                    context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
+                                } catch (e: Exception) {
+                                    viewModel.showSnackbarMessage(e.message ?: context.getString(R.string.toast_export_backup_error))
                                 }
-                            } catch (e: Exception) {
-                                // handled by snackbar
                             }
                         },
                         onRestoreBackup = { filePickerLauncher.launch("application/json") }
