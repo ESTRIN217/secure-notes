@@ -38,6 +38,8 @@ import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.example.util.BackupAttachmentHelper
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,22 +156,74 @@ fun BackupRestoreScreen(
                     LocalSection(
                         onCreateBackup = {
                             try {
-                                val json = viewModel.buildBackupJson()
-                                val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
-                                cacheFile.writeText(json)
-                                val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                    putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
-                                        context, "${context.packageName}.fileprovider", cacheFile
-                                    ))
-                                    type = "application/json"
+                                val includeAttachments = viewModel.cloudSyncManagerPublic.includeAttachments.value
+                                if (includeAttachments) {
+                                    val json = viewModel.buildBackupJson()
+                                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                                    tempDir.mkdirs()
+                                    val tempAttachmentsDir = File(tempDir, "attachments")
+                                    val rawNotes = viewModel.cloudSyncManagerPublic.rawNotes.value
+                                    val allPathMaps = mutableMapOf<String, String>()
+                                    rawNotes.forEach { note ->
+                                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                                        )
+                                        allPathMaps.putAll(pathMap)
+                                    }
+                                    val zipFile = File(tempDir, "secure_notes_backup.zip")
+                                    BackupAttachmentHelper.buildBackupZip(json, allPathMaps, tempAttachmentsDir, zipFile)
+                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
+                                            context, "${context.packageName}.fileprovider", zipFile
+                                        ))
+                                        type = "application/zip"
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
+                                } else {
+                                    val json = viewModel.buildBackupJson()
+                                    val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
+                                    cacheFile.writeText(json)
+                                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
+                                            context, "${context.packageName}.fileprovider", cacheFile
+                                        ))
+                                        type = "application/json"
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
                                 }
-                                context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
                             } catch (e: Exception) {
                                 // handled by snackbar
                             }
                         },
                         onRestoreBackup = { filePickerLauncher.launch("application/json") }
                     )
+                }
+
+                // Attachment Settings
+                item {
+                    SettingsSectionTitle(title = stringResource(R.string.attachment_settings_title))
+                }
+                item {
+                    val includeAttachments by viewModel.cloudSyncManagerPublic.includeAttachments.collectAsState()
+                    val copyAttachmentsLocal by viewModel.cloudSyncManagerPublic.copyAttachmentsLocal.collectAsState()
+                    SettingsCardGroup {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            SettingsSwitchTile(
+                                title = stringResource(R.string.include_attachments_backup),
+                                subtitle = stringResource(R.string.include_attachments_backup_desc),
+                                icon = Icons.Outlined.CloudUpload,
+                                checked = includeAttachments,
+                                onCheckedChange = { viewModel.cloudSyncManagerPublic.setIncludeAttachments(it) }
+                            )
+                            SettingsSwitchTile(
+                                title = stringResource(R.string.copy_attachments_local),
+                                subtitle = stringResource(R.string.copy_attachments_local_desc),
+                                icon = Icons.Outlined.CloudDownload,
+                                checked = copyAttachmentsLocal,
+                                onCheckedChange = { viewModel.cloudSyncManagerPublic.setCopyAttachmentsLocal(it) }
+                            )
+                        }
+                    }
                 }
             }
         }

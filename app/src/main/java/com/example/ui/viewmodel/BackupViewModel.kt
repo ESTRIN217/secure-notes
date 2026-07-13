@@ -34,6 +34,7 @@ class BackupViewModel(
 ) : AndroidViewModel(application) {
 
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+    val cloudSyncManagerPublic: CloudSyncManager get() = cloudSyncManager
 
     private val _uiState = MutableStateFlow(BackupUiState())
     val uiState: StateFlow<BackupUiState> = _uiState.asStateFlow()

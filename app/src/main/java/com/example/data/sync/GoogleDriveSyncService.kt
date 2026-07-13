@@ -196,4 +196,72 @@ class GoogleDriveSyncService : SyncService {
             Result.failure(e)
         }
     }
+
+    override suspend fun uploadFileBytes(accessToken: String, fileId: String, data: ByteArray): Result<Boolean> {
+        val contentBody = data.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        val uploadRequest = Request.Builder()
+            .url("$UPLOAD_URL/$fileId?uploadType=media")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .patch(contentBody)
+            .build()
+
+        return try {
+            suspendCancellableCoroutine<Boolean> { continuation ->
+                client.newCall(uploadRequest).enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        Log.e(TAG, "Failed uploading file bytes", e)
+                        continuation.resumeWithException(e)
+                    }
+
+                    override fun onResponse(call: Call, response: Response) {
+                        if (response.isSuccessful) {
+                            continuation.resume(true)
+                        } else {
+                            Log.e(TAG, "Bytes upload failed: Code ${response.code} ${response.message}")
+                            continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
+                        }
+                    }
+                })
+            }.let { Result.success(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadFileBytes failed", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun downloadFileBytes(accessToken: String, fileId: String): Result<ByteArray?> {
+        val request = Request.Builder()
+            .url("$FILES_URL/$fileId?alt=media")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .get()
+            .build()
+
+        return try {
+            suspendCancellableCoroutine<ByteArray?> { continuation ->
+                client.newCall(request).enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        Log.e(TAG, "Failed downloading file bytes", e)
+                        continuation.resumeWithException(e)
+                    }
+
+                    override fun onResponse(call: Call, response: Response) {
+                        try {
+                            if (response.isSuccessful) {
+                                continuation.resume(response.body?.bytes())
+                            } else {
+                                Log.e(TAG, "Download bytes failed: Code ${response.code} ${response.message}")
+                                continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Exception parsing download bytes response", e)
+                            continuation.resumeWithException(e)
+                        }
+                    }
+                })
+            }.let { Result.success(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "downloadFileBytes failed", e)
+            Result.failure(e)
+        }
+    }
 }

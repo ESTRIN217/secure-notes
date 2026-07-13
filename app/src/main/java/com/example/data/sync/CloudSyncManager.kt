@@ -29,4 +29,8 @@ interface CloudSyncManager {
     )
     fun createTag(name: String, colorHex: String)
     fun clearStatusMessage()
+    val includeAttachments: StateFlow<Boolean>
+    val copyAttachmentsLocal: StateFlow<Boolean>
+    fun setIncludeAttachments(enabled: Boolean)
+    fun setCopyAttachmentsLocal(enabled: Boolean)
 }

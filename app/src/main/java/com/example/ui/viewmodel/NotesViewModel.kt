@@ -48,6 +48,7 @@ import java.util.Locale
 import com.example.AppConstants
 import com.example.PasswordType
 import com.example.util.BiometricAuthManager
+import com.example.util.BackupAttachmentHelper
 
 import com.example.R
 import com.example.data.model.DecryptedNote
@@ -65,6 +66,7 @@ class NotesViewModel(
     private val tagDao: TagDao = noteDatabase.tagDao
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
     private var pendingRestoreContainer: JSONObject? = null
+    private var pendingAttachmentRestoreDir: java.io.File? = null
     private val encryptedPrefs = run {
         val masterKey = MasterKey.Builder(application)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -107,6 +109,8 @@ class NotesViewModel(
     )
     val isBiometricEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
     private val biometricAuthManager = BiometricAuthManager(getApplication())
+    override val includeAttachments = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
+    override val copyAttachmentsLocal = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
 
     // Navigation and Filtering state
     val currentSection = MutableStateFlow(NavigationSection.HOME)
@@ -344,6 +348,16 @@ class NotesViewModel(
         }
     }
 
+    override fun setIncludeAttachments(enabled: Boolean) {
+        includeAttachments.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, enabled).apply()
+    }
+
+    override fun setCopyAttachmentsLocal(enabled: Boolean) {
+        copyAttachmentsLocal.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, enabled).apply()
+    }
+
     fun saveBiometricEncryptedPassword(cipher: javax.crypto.Cipher) {
         val password = masterPassword.value ?: return
         try {
@@ -407,12 +421,32 @@ class NotesViewModel(
         isArchived: Boolean = false
     ): Int = withContext(Dispatchers.IO) {
         try {
+            // Copy content:// URIs to local storage if setting is enabled
+            val finalContent = if (copyAttachmentsLocal.value) {
+                val context = getApplication<Application>().applicationContext
+                val nextId = if (id != 0) id else (rawNotes.value.maxOfOrNull { it.id } ?: 0) + 1
+                var updatedContent = content
+                var updatedBgPath = backgroundImagePath
+                if (updatedContent.contains("content://")) {
+                    updatedContent = com.example.util.BackupAttachmentHelper.copyUrisToLocalStorage(updatedContent, nextId, context)
+                }
+                if (updatedBgPath?.startsWith("content://") == true) {
+                    val bgMap = com.example.util.BackupAttachmentHelper.collectAndCopyAttachments("", updatedBgPath, context, java.io.File(context.cacheDir, "tmp_attachments").also { it.mkdirs() })
+                    bgMap[updatedBgPath]?.let { relPath ->
+                        updatedBgPath = java.io.File(context.filesDir, relPath).absolutePath
+                    }
+                }
+                updatedContent
+            } else {
+                content
+            }
+
             val salt = if (isEncrypted) cipherService.generateSalt() else ""
             val iv = if (isEncrypted) cipherService.generateIv() else ""
 
             val pass = if (isEncrypted) masterPassword.value ?: "" else ""
             val storedTitle = if (isEncrypted) cipherService.encrypt(title, pass, salt, iv).getOrDefault("") else title
-            val storedContent = if (isEncrypted) cipherService.encrypt(content, pass, salt, iv).getOrDefault("") else content
+            val storedContent = if (isEncrypted) cipherService.encrypt(finalContent, pass, salt, iv).getOrDefault("") else finalContent
 
             val tagsJson = JSONArray(tagsList).toString()
 
@@ -688,6 +722,18 @@ class NotesViewModel(
         }
     }
 
+    private suspend fun performSyncWithTokenBytes(currentToken: String, data: ByteArray): Boolean {
+        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()
+        return if (existingFileId != null) {
+            syncService.uploadFileBytes(currentToken, existingFileId, data).getOrDefault(false)
+        } else {
+            val createdFileId = syncService.createBackupFile(currentToken, "placeholder").getOrNull()
+            if (createdFileId != null) {
+                syncService.uploadFileBytes(currentToken, createdFileId, data).getOrDefault(false)
+            } else false
+        }
+    }
+
     override fun forceSyncCloud() {
         var token = driveAccessToken.value
         if (token.isEmpty()) {
@@ -728,17 +774,36 @@ class NotesViewModel(
                     }.toString()
                 }
 
-                syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
-                var success = performSyncWithToken(token, finalPayload)
-
-                if (!success) {
-                    val newToken = refreshAccessToken()
-                    if (newToken != null) {
-                        token = newToken
-                        driveAccessToken.value = newToken
-                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
-                        success = performSyncWithToken(token, finalPayload)
+                val success = if (includeAttachments.value) {
+                    syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
+                    val app = getApplication<Application>()
+                    val context = app.applicationContext
+                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                    tempDir.mkdirs()
+                    val tempAttachmentsDir = File(tempDir, "attachments")
+                    try {
+                        val allPathMaps = mutableMapOf<String, String>()
+                        rawNotes.value.forEach { note ->
+                            val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                                note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                            )
+                            allPathMaps.putAll(pathMap)
+                        }
+                        val backupJson = if (isPasswordSet.value && masterPassword.value != null) {
+                            finalPayload
+                        } else {
+                            finalPayload
+                        }
+                        val zipFile = File(tempDir, "backup.zip")
+                        BackupAttachmentHelper.buildBackupZip(backupJson, allPathMaps, tempAttachmentsDir, zipFile)
+                        val zipBytes = zipFile.readBytes()
+                        performSyncWithTokenBytes(token, zipBytes)
+                    } finally {
+                        tempDir.deleteRecursively()
                     }
+                } else {
+                    syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
+                    performSyncWithToken(token, finalPayload)
                 }
 
                 if (success) {
@@ -785,40 +850,88 @@ class NotesViewModel(
                 }
 
                 syncState.update { it.copy(syncStage = SyncStage.DOWNLOADING) }
-                var backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
-                if (backupContent.isNullOrEmpty()) {
+
+                // Try bytes first (ZIP format), fall back to string (JSON)
+                var backupBytes = syncService.downloadFileBytes(token, fileId).getOrNull()
+                if (backupBytes == null || backupBytes.isEmpty()) {
                     val newToken = refreshAccessToken()
                     if (newToken != null) {
                         token = newToken
                         driveAccessToken.value = newToken
                         encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
-                        backupContent = syncService.downloadBackupFile(token, fileId).getOrNull()
+                        backupBytes = syncService.downloadFileBytes(token, fileId).getOrNull()
                     }
                 }
 
-                if (backupContent.isNullOrEmpty()) {
+                if (backupBytes == null || backupBytes.isEmpty()) {
                     syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
                     return@launch
+                }
+
+                val app = getApplication<Application>()
+                val context = app.applicationContext
+                var backupContent: String
+                var attachmentRestoreDir: File? = null
+
+                if (BackupAttachmentHelper.isZipBytes(backupBytes)) {
+                    val tempDir = File(context.cacheDir, "restore_attachments_${System.currentTimeMillis()}")
+                    tempDir.mkdirs()
+                    attachmentRestoreDir = File(tempDir, "attachments")
+                    val json = BackupAttachmentHelper.extractBackupZip(backupBytes, tempDir, context)
+                    if (json == null) {
+                        syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
+                        tempDir.deleteRecursively()
+                        return@launch
+                    }
+                    backupContent = json.toString()
+                } else {
+                    // Try as plain JSON string
+                    backupContent = backupBytes.toString(Charsets.UTF_8)
                 }
 
                 val container = JSONObject(backupContent)
                 val isBackupEncrypted = container.optBoolean("encrypted", false)
 
+                val finalPayload: String
                 if (isBackupEncrypted) {
                     val pass = masterPassword.value
                     if (pass.isNullOrEmpty()) {
                         pendingRestoreContainer = container
+                        pendingAttachmentRestoreDir = attachmentRestoreDir
                         syncState.update { it.copy(syncStage = SyncStage.PASSWORD_REQUIRED, syncStatusMessage = getApplication<Application>().getString(R.string.restore_password_required)) }
                         return@launch
                     }
                     val decrypted = decryptRestoreContainer(container, pass)
                     if (decrypted == null) {
                         syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
+                        attachmentRestoreDir?.deleteRecursively()
                         return@launch
                     }
-                    finalizeRestore(decrypted)
+                    finalPayload = decrypted
                 } else {
-                    finalizeRestore(container.getString("data"))
+                    finalPayload = container.getString("data")
+                }
+
+                finalizeRestore(finalPayload)
+
+                // Restore attachment files
+                if (attachmentRestoreDir != null && attachmentRestoreDir.exists()) {
+                    val restoreDir = File(context.filesDir, "restored_attachments")
+                    restoreDir.mkdirs()
+                    attachmentRestoreDir.copyRecursively(restoreDir, overwrite = true)
+
+                    // Rewrite paths in restored notes
+                    val allNotes = noteDao.getAllNotesFlow().first()
+                    allNotes.forEach { note ->
+                        val rewritten = BackupAttachmentHelper.rewriteRestoredPaths(note.content, restoreDir)
+                        if (rewritten != note.content) {
+                            val bgRewritten = note.backgroundImagePath?.let {
+                                BackupAttachmentHelper.rewriteRestoredPaths(it, restoreDir)
+                            }
+                            noteDao.updateNote(note.copy(content = rewritten, backgroundImagePath = bgRewritten))
+                        }
+                    }
+                    attachmentRestoreDir.deleteRecursively()
                 }
 
             } catch (e: Exception) {
@@ -869,7 +982,7 @@ class NotesViewModel(
                     isDeleted = noteObj.optBoolean("isDeleted", false),
                     backgroundColor = if (noteObj.has("backgroundColor") && !noteObj.isNull("backgroundColor")) noteObj.optInt("backgroundColor") else null,
                     backgroundImagePath = noteObj.optString("backgroundImagePath", "").ifEmpty { null },
-                    categoryId = noteObj.optString("categoryId", null)
+                    categoryId = noteObj.optString("categoryId", "").ifEmpty { null }
                 )
                 noteDao.insertNote(note)
             }
@@ -898,14 +1011,42 @@ class NotesViewModel(
     override fun provideRestorePassword(password: String) {
         val container = pendingRestoreContainer ?: return
         pendingRestoreContainer = null
+        val attachmentDir = pendingAttachmentRestoreDir
+        pendingAttachmentRestoreDir = null
+
+        // If user has no master password yet, set it from the restore password
+        if (!isPasswordSet.value && password.isNotEmpty()) {
+            setMasterPassword(password)
+        }
+
         viewModelScope.launch {
             try {
                 val decrypted = decryptRestoreContainer(container, password)
                 if (decrypted == null) {
                     syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_decrypt_failed)) }
+                    attachmentDir?.deleteRecursively()
                     return@launch
                 }
                 finalizeRestore(decrypted)
+
+                // Restore attachment files after password decryption
+                if (attachmentDir != null && attachmentDir.exists()) {
+                    val context = getApplication<Application>().applicationContext
+                    val restoreDir = java.io.File(context.filesDir, "restored_attachments")
+                    restoreDir.mkdirs()
+                    attachmentDir.copyRecursively(restoreDir, overwrite = true)
+                    val allNotes = noteDao.getAllNotesFlow().first()
+                    allNotes.forEach { note ->
+                        val rewritten = com.example.util.BackupAttachmentHelper.rewriteRestoredPaths(note.content, restoreDir)
+                        if (rewritten != note.content) {
+                            val bgRewritten = note.backgroundImagePath?.let {
+                                com.example.util.BackupAttachmentHelper.rewriteRestoredPaths(it, restoreDir)
+                            }
+                            noteDao.updateNote(note.copy(content = rewritten, backgroundImagePath = bgRewritten))
+                        }
+                    }
+                    attachmentDir.deleteRecursively()
+                }
             } catch (e: Exception) {
                 Log.e("NotesViewModel", "Restore with password failed", e)
                 syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_error, e.localizedMessage)) }

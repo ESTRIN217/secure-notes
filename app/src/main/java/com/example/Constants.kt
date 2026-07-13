@@ -25,6 +25,7 @@ object AppConstants {
     const val BIOMETRIC_ENCRYPTED_PASSWORD_KEY = "biometric_encrypted_password"
     const val BIOMETRIC_IV_KEY = "biometric_iv"
     const val INCLUDE_ATTACHMENTS_KEY = "include_attachments"
+    const val COPY_ATTACHMENTS_LOCAL_KEY = "copy_attachments_local"
 
     val SecurityGreen = Color(0xFF43A047)
 }
