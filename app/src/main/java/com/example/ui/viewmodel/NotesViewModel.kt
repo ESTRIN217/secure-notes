@@ -738,7 +738,7 @@ class NotesViewModel(
         
         syncState.update { it.copy(isDriveLinked = true, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_connected)) }
         driveAccessToken.value = token
-        schedulePeriodicSync()
+        if (autoBackupEnabled.value) schedulePeriodicSync()
     }
 
     override fun unlinkGoogleDrive() {
