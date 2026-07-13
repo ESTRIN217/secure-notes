@@ -74,6 +74,9 @@ import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.animation.core.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -96,6 +99,7 @@ fun MainListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTagFilter by viewModel.selectedTagFilter.collectAsState()
     val syncState by viewModel.syncState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val isDriveLinked = syncState.isDriveLinked
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE) }
@@ -634,7 +638,9 @@ fun MainListScreen(
                         }
 
                         // Notes grid/list scrollarea
-                        if (notes.isEmpty()) {
+                        if (isLoading) {
+                            LoadingShimmer(modifier = Modifier.weight(1f))
+                        } else if (notes.isEmpty()) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1552,3 +1558,60 @@ fun NoteCardItem(
             } }
         }
     }
+
+@Composable
+fun LoadingShimmer(modifier: Modifier = Modifier) {
+    val shimmerColors = listOf(
+        Color.LightGray.copy(alpha = 0.6f),
+        Color.LightGray.copy(alpha = 0.2f),
+        Color.LightGray.copy(alpha = 0.6f)
+    )
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer"
+    )
+    val brush = Brush.linearGradient(
+        colors = shimmerColors,
+        start = Offset.Zero,
+        end = Offset(x = translateAnim.value, y = translateAnim.value)
+    )
+
+    LazyColumn(
+        modifier = modifier.padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(6) {
+            ShimmerCard(brush)
+        }
+    }
+}
+
+@Composable
+private fun ShimmerCard(brush: Brush) {
+    Card(
+        modifier = Modifier.fillMaxWidth().height(120.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Box(
+                modifier = Modifier.fillMaxWidth(0.7f).height(16.dp).background(brush, RoundedCornerShape(4.dp))
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(0.9f).height(12.dp).background(brush, RoundedCornerShape(4.dp))
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(0.5f).height(12.dp).background(brush, RoundedCornerShape(4.dp))
+            )
+        }
+    }
+}

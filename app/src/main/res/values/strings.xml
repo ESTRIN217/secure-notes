@@ -485,4 +485,33 @@
 
     <!-- v4.0 Search counter -->
     <string name="search_match_counter">%1$d/%2$d</string>
+
+    <!-- v4.0 Password type -->
+    <string name="password_type_label">Security Type</string>
+    <string name="password_type_pin">PIN (digits only)</string>
+    <string name="password_type_password">Strong Password</string>
+    <string name="label_setup_pin">Create PIN</string>
+    <string name="security_pin_type">PIN Mode — simple numeric code</string>
+    <string name="security_password_type">Password Mode — strong alphanumeric</string>
+
+    <!-- v4.0 Password strength -->
+    <string name="password_strength">Password Strength</string>
+    <string name="password_weak">Weak</string>
+    <string name="password_medium">Medium</string>
+    <string name="password_strong">Strong</string>
+    <string name="password_very_strong">Very Strong</string>
+    <string name="password_suggestion">Tip: use uppercase, lowercase, numbers and symbols for a stronger password</string>
+
+    <!-- v4.0 Biometric -->
+    <string name="biometric_not_available">Biometric authentication is not available on this device</string>
+    <string name="biometric_enabled">Biometric unlock enabled</string>
+    <string name="biometric_enable_title">Enable Biometric Unlock</string>
+    <string name="biometric_enable_subtitle">Authenticate to enable biometric unlock for Secure Notes</string>
+    <string name="biometric_unlock_label">Biometric Unlock</string>
+    <string name="biometric_unlock_title">Unlock Secure Notes</string>
+    <string name="biometric_unlock_subtitle">Authenticate to unlock the app</string>
+    <string name="biometric_unlock_button">Unlock with Biometrics</string>
+    <string name="biometric_enabled_desc">Fingerprint or face recognition enabled</string>
+    <string name="biometric_disabled_desc">Use fingerprint or face to unlock</string>
+    <string name="biometric_key_error">Biometric key is invalid. Please re-enable in settings.</string>
 </resources>

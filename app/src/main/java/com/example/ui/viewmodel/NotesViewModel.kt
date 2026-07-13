@@ -46,6 +46,8 @@ import java.time.Instant
 import java.util.Date
 import java.util.Locale
 import com.example.AppConstants
+import com.example.PasswordType
+import com.example.util.BiometricAuthManager
 
 import com.example.R
 import com.example.data.model.DecryptedNote
@@ -92,10 +94,19 @@ class NotesViewModel(
     // Auto update check
     val autoUpdateCheck = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
 
+    // Loading state for initial DB load
+    val isLoading = MutableStateFlow(true)
+
     // Password credentials state
     val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
     val isUnlocked = MutableStateFlow(!sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
     private val masterPassword = MutableStateFlow<String?>(null)
+    val passwordType = MutableStateFlow(
+        try { PasswordType.valueOf(sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, PasswordType.PASSWORD.name) ?: PasswordType.PASSWORD.name) }
+        catch (e: Exception) { PasswordType.PASSWORD }
+    )
+    val isBiometricEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
+    private val biometricAuthManager = BiometricAuthManager(getApplication())
 
     // Navigation and Filtering state
     val currentSection = MutableStateFlow(NavigationSection.HOME)
@@ -133,6 +144,12 @@ class NotesViewModel(
             SharingStarted.Lazily,
             emptyList()
         )
+
+        // Mark loading done after first Room emission
+        viewModelScope.launch {
+            noteDao.getAllNotesFlow().first()
+            isLoading.value = false
+        }
 
         // Combine notes processing
         notesList = combine(
@@ -247,6 +264,8 @@ class NotesViewModel(
         masterPassword.value = password
         isPasswordSet.value = true
         isUnlocked.value = true
+        // Clear biometric data since password changed
+        setBiometricEnabled(false)
     }
 
     fun unlockApp(password: String): Boolean {
@@ -277,6 +296,7 @@ class NotesViewModel(
             .remove(AppConstants.MASTER_PASSWORD_SALT_KEY)
             .remove(AppConstants.MASTER_PASSWORD_IV_KEY)
             .apply()
+        setBiometricEnabled(false)
         
         // Convert all currently encrypted notes back to plain text if unlocked,
         // or just clean up master pass
@@ -305,6 +325,56 @@ class NotesViewModel(
             isPasswordSet.value = false
             isUnlocked.value = true
         }
+    }
+
+    fun setPasswordType(type: PasswordType) {
+        passwordType.value = type
+        sharedPrefs.edit().putString(AppConstants.PASSWORD_TYPE_KEY, type.name).apply()
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        isBiometricEnabled.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, enabled).apply()
+        if (!enabled) {
+            biometricAuthManager.deleteKey(AppConstants.BIOMETRIC_KEY_ALIAS)
+            sharedPrefs.edit()
+                .remove(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY)
+                .remove(AppConstants.BIOMETRIC_IV_KEY)
+                .apply()
+        }
+    }
+
+    fun saveBiometricEncryptedPassword(cipher: javax.crypto.Cipher) {
+        val password = masterPassword.value ?: return
+        try {
+            val encrypted = cipher.doFinal(password.toByteArray(Charsets.UTF_8))
+            val iv = cipher.iv
+            sharedPrefs.edit()
+                .putString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, android.util.Base64.encodeToString(encrypted, android.util.Base64.NO_WRAP))
+                .putString(AppConstants.BIOMETRIC_IV_KEY, android.util.Base64.encodeToString(iv, android.util.Base64.NO_WRAP))
+                .apply()
+        } catch (e: Exception) {
+            android.util.Log.e("NotesViewModel", "saveBiometricEncryptedPassword failed", e)
+        }
+    }
+
+    fun unlockWithBiometricCipher(cipher: javax.crypto.Cipher): Boolean {
+        return try {
+            val encB64 = sharedPrefs.getString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, "") ?: ""
+            val ivB64 = sharedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
+            if (encB64.isEmpty() || ivB64.isEmpty()) return false
+            val encrypted = android.util.Base64.decode(encB64, android.util.Base64.NO_WRAP)
+            val decrypted = cipher.doFinal(encrypted)
+            val password = String(decrypted, Charsets.UTF_8)
+            unlockApp(password)
+        } catch (e: Exception) {
+            android.util.Log.e("NotesViewModel", "unlockWithBiometricCipher failed", e)
+            false
+        }
+    }
+
+    fun getBiometricIv(): String {
+        return sharedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
     }
 
     override fun saveNote(

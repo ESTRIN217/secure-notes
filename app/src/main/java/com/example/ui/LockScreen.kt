@@ -1,11 +1,17 @@
 package com.example.ui
 
+import android.app.Activity
 import android.widget.Toast
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,14 +26,70 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import com.example.AppConstants
+import com.example.PasswordType
 import com.example.R
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.util.BiometricAuthManager
 
 @Composable
 fun LockScreen(viewModel: NotesViewModel) {
     var password by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+    val passwordType by viewModel.passwordType.collectAsState()
+    val biometricManager = remember { BiometricAuthManager(context) }
+
+    fun triggerBiometric() {
+        val activity = context as? FragmentActivity ?: return
+        if (!biometricManager.isBiometricAvailable()) {
+            Toast.makeText(context, context.getString(R.string.biometric_not_available), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val cipher = biometricManager.getDecryptCipher(
+            AppConstants.BIOMETRIC_KEY_ALIAS,
+            android.util.Base64.decode(
+                viewModel.getBiometricIv(),
+                android.util.Base64.NO_WRAP
+            )
+        )
+        if (cipher == null) {
+            Toast.makeText(context, context.getString(R.string.biometric_key_error), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val prompt = BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(activity),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    result.cryptoObject?.cipher?.let { c ->
+                        if (viewModel.unlockWithBiometricCipher(c)) {
+                            Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
+                        } else {
+                            hasError = true
+                        }
+                    }
+                }
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    Toast.makeText(context, errString, Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+        prompt.authenticate(
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle(context.getString(R.string.biometric_unlock_title))
+                .setSubtitle(context.getString(R.string.biometric_unlock_subtitle))
+                .setAllowedAuthenticators(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+                .build(),
+            BiometricPrompt.CryptoObject(cipher)
+        )
+    }
 
     Scaffold { innerPadding ->
         Box(
@@ -82,7 +144,9 @@ fun LockScreen(viewModel: NotesViewModel) {
                         },
                         label = { Text(stringResource(id = R.string.label_enter_password)) },
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("password_input"),
@@ -123,6 +187,30 @@ fun LockScreen(viewModel: NotesViewModel) {
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    // Biometric unlock button
+                    if (isBiometricEnabled) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = { triggerBiometric() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = stringResource(R.string.biometric_unlock_button),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.biometric_unlock_button),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }

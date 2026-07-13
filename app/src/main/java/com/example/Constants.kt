@@ -19,8 +19,15 @@ object AppConstants {
     const val DRIVE_ACCESS_TOKEN_KEY = "drive_access_token"
     const val DRIVE_ACCOUNT_EMAIL_KEY = "drive_account_email"
     const val LAST_SYNC_TIME_KEY = "last_sync_time"
+    const val PASSWORD_TYPE_KEY = "password_type"
+    const val BIOMETRIC_ENABLED_KEY = "biometric_enabled"
+    const val BIOMETRIC_KEY_ALIAS = "secure_notes_biometric_key"
+    const val BIOMETRIC_ENCRYPTED_PASSWORD_KEY = "biometric_encrypted_password"
+    const val BIOMETRIC_IV_KEY = "biometric_iv"
+    const val INCLUDE_ATTACHMENTS_KEY = "include_attachments"
 
     val SecurityGreen = Color(0xFF43A047)
 }
 
 enum class DarkModeOption { SYSTEM, OFF, ON }
+enum class PasswordType { PIN, PASSWORD }
