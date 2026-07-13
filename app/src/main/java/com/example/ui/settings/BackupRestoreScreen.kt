@@ -141,10 +141,28 @@ fun BackupRestoreScreen(
                         isDriveLinked = uiState.isDriveLinked,
                         lastSyncTime = uiState.lastSyncTime,
                         syncStage = uiState.syncStage,
+                        isEncrypted = uiState.isPasswordSet && uiState.encryptBackups,
+                        backupSize = uiState.lastBackupSizeCloud,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
                         onLinkDrive = signIn,
                         onUnlinkDrive = { viewModel.unlinkDrive() }
+                    )
+                }
+
+                // Encryption & Auto-Backup Section
+                item {
+                    SettingsSectionTitle(title = stringResource(R.string.backup_encrypt_title))
+                }
+                item {
+                    EncryptionSection(
+                        isPasswordSet = uiState.isPasswordSet,
+                        encryptBackups = uiState.encryptBackups,
+                        onEncryptBackupsChange = { viewModel.cloudSyncManagerPublic.setEncryptBackups(it) },
+                        autoBackupEnabled = uiState.autoBackupEnabled,
+                        onAutoBackupEnabledChange = { viewModel.cloudSyncManagerPublic.setAutoBackupEnabled(it) },
+                        autoBackupInterval = uiState.autoBackupInterval,
+                        onAutoBackupIntervalChange = { viewModel.cloudSyncManagerPublic.setAutoBackupInterval(it) }
                     )
                 }
 
@@ -154,11 +172,14 @@ fun BackupRestoreScreen(
                 }
                 item {
                     LocalSection(
+                        isEncrypted = uiState.isPasswordSet && uiState.encryptBackups,
+                        backupSize = uiState.lastBackupSizeLocal,
                         onCreateBackup = {
                             try {
                                 val includeAttachments = viewModel.cloudSyncManagerPublic.includeAttachments.value
+                                val encrypt = uiState.encryptBackups && uiState.isPasswordSet
                                 if (includeAttachments) {
-                                    val json = viewModel.buildBackupJson()
+                                    val json = viewModel.buildBackupJson(encrypt)
                                     val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
                                     tempDir.mkdirs()
                                     val tempAttachmentsDir = File(tempDir, "attachments")
@@ -180,7 +201,7 @@ fun BackupRestoreScreen(
                                     }
                                     context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
                                 } else {
-                                    val json = viewModel.buildBackupJson()
+                                    val json = viewModel.buildBackupJson(encrypt)
                                     val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
                                     cacheFile.writeText(json)
                                     val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
@@ -284,6 +305,8 @@ fun CloudSection(
     isDriveLinked: Boolean,
     lastSyncTime: String,
     syncStage: SyncStage = SyncStage.IDLE,
+    isEncrypted: Boolean = false,
+    backupSize: Long = 0L,
     onBackupCloud: () -> Unit,
     onRestoreCloud: () -> Unit,
     onLinkDrive: () -> Unit,
@@ -298,12 +321,19 @@ fun CloudSection(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SettingsIconContainer(icon = Icons.Outlined.Cloud)
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.title_cloud_sync),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.title_cloud_sync),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SettingsBadge(
+                            text = if (isEncrypted) stringResource(R.string.backup_e2ee_badge)
+                                   else stringResource(R.string.backup_e2ee_disabled_badge)
+                        )
+                    }
                     Text(
                         text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
                         color = if (isDriveLinked) Color(0xFF42A5F5) else colorScheme.onSurfaceVariant,
@@ -319,6 +349,13 @@ fun CloudSection(
                 fontSize = 12.sp,
                 color = colorScheme.onSurfaceVariant
             )
+            if (backupSize > 0L) {
+                Text(
+                    text = stringResource(R.string.backup_size_label, formatSize(backupSize)),
+                    fontSize = 12.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
 
             if (isSyncing) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -393,11 +430,125 @@ fun CloudSection(
 }
 
 // ---------------------------------------------------------------------------
+// Encryption & Auto-Backup Section
+// ---------------------------------------------------------------------------
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EncryptionSection(
+    isPasswordSet: Boolean,
+    encryptBackups: Boolean,
+    onEncryptBackupsChange: (Boolean) -> Unit,
+    autoBackupEnabled: Boolean,
+    onAutoBackupEnabledChange: (Boolean) -> Unit,
+    autoBackupInterval: String,
+    onAutoBackupIntervalChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    SettingsCardGroup(modifier = modifier) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            if (isPasswordSet) {
+                SettingsSwitchTile(
+                    title = stringResource(R.string.backup_encrypt_title),
+                    subtitle = stringResource(R.string.backup_encrypt_desc),
+                    icon = Icons.Outlined.Lock,
+                    checked = encryptBackups,
+                    onCheckedChange = onEncryptBackupsChange
+                )
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SettingsIconContainer(icon = Icons.Outlined.Lock)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = stringResource(R.string.desc_e2e_encryption_disabled),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (isPasswordSet && encryptBackups) {
+                SettingsSwitchTile(
+                    title = stringResource(R.string.backup_auto_title),
+                    subtitle = stringResource(R.string.backup_auto_desc),
+                    icon = Icons.Outlined.Schedule,
+                    checked = autoBackupEnabled,
+                    onCheckedChange = onAutoBackupEnabledChange
+                )
+            }
+
+            if (isPasswordSet && encryptBackups && autoBackupEnabled) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.backup_interval_label),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    val intervals = listOf("6h", "12h", "24h", "weekly")
+                    val labels = mapOf(
+                        "6h" to stringResource(R.string.backup_interval_6h),
+                        "12h" to stringResource(R.string.backup_interval_12h),
+                        "24h" to stringResource(R.string.backup_interval_24h),
+                        "weekly" to stringResource(R.string.backup_interval_weekly)
+                    )
+                    var expanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = labels[autoBackupInterval] ?: autoBackupInterval,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier
+                                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .width(160.dp),
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            singleLine = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            intervals.forEach { interval ->
+                                DropdownMenuItem(
+                                    text = { Text(labels[interval] ?: interval) },
+                                    onClick = {
+                                        onAutoBackupIntervalChange(interval)
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Local Section
 // ---------------------------------------------------------------------------
 
 @Composable
 fun LocalSection(
+    isEncrypted: Boolean = false,
+    backupSize: Long = 0L,
     onCreateBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
     modifier: Modifier = Modifier
@@ -409,11 +560,20 @@ fun LocalSection(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SettingsIconContainer(icon = Icons.Outlined.PhoneAndroid)
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.backup_local_section),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.backup_local_section),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        SettingsBadge(
+                            text = if (isEncrypted) stringResource(R.string.backup_e2ee_badge)
+                                   else stringResource(R.string.backup_e2ee_disabled_badge)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -423,6 +583,13 @@ fun LocalSection(
                 fontSize = 12.sp,
                 color = colorScheme.onSurfaceVariant
             )
+            if (backupSize > 0L) {
+                Text(
+                    text = stringResource(R.string.backup_size_label, formatSize(backupSize)),
+                    fontSize = 12.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -477,6 +644,14 @@ fun SkeletonBody(modifier: Modifier = Modifier) {
         SkeletonCard()
         Spacer(modifier = Modifier.height(16.dp))
         SkeletonCard()
+    }
+}
+
+private fun formatSize(bytes: Long): String {
+    return when {
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
+        else -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
     }
 }
 

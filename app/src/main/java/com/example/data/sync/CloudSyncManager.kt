@@ -35,7 +35,18 @@ interface CloudSyncManager {
     fun createTag(name: String, colorHex: String)
     fun clearStatusMessage()
     val includeAttachments: StateFlow<Boolean>
+    val isPasswordSet: StateFlow<Boolean>
     val copyAttachmentsLocal: StateFlow<Boolean>
     fun setIncludeAttachments(enabled: Boolean)
     fun setCopyAttachmentsLocal(enabled: Boolean)
+
+    val encryptBackups: StateFlow<Boolean>
+    val autoBackupEnabled: StateFlow<Boolean>
+    val autoBackupInterval: StateFlow<String>
+    val lastBackupSizeCloud: StateFlow<Long>
+    val lastBackupSizeLocal: StateFlow<Long>
+    fun setEncryptBackups(enabled: Boolean)
+    fun setAutoBackupEnabled(enabled: Boolean)
+    fun setAutoBackupInterval(interval: String)
+    fun clearCachedPassword()
 }

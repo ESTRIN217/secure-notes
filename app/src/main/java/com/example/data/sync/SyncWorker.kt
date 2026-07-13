@@ -9,6 +9,8 @@ import androidx.security.crypto.MasterKey
 import com.example.AppConstants
 import com.example.data.local.NoteDatabase
 import com.example.data.model.toJson
+import com.example.data.security.CipherService
+import com.example.data.security.EncryptionServiceImpl
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,6 +24,7 @@ class SyncWorker(
     private val noteDao = noteDatabase.noteDao
     private val tagDao = noteDatabase.tagDao
     private val syncService: SyncService = GoogleDriveSyncService()
+    private val cipherService: CipherService = EncryptionServiceImpl()
 
     override suspend fun doWork(): Result {
         val encryptedPrefs = run {
@@ -68,10 +71,26 @@ class SyncWorker(
                 put("timestamp", System.currentTimeMillis())
             }.toString()
 
-            val finalPayload = JSONObject().apply {
-                put("encrypted", false)
-                put("data", syncPayload)
-            }.toString()
+            val encryptBackups = sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, false)
+            val cachedPassword = encryptedPrefs.getString(AppConstants.CACHED_MASTER_PASSWORD_KEY, null)
+
+            val finalPayload: String
+            if (encryptBackups && !cachedPassword.isNullOrEmpty()) {
+                val salt = cipherService.generateSalt()
+                val iv = cipherService.generateIv()
+                val cipherPayload = cipherService.encrypt(syncPayload, cachedPassword, salt, iv).getOrDefault("")
+                finalPayload = JSONObject().apply {
+                    put("encrypted", true)
+                    put("salt", salt)
+                    put("iv", iv)
+                    put("data", cipherPayload)
+                }.toString()
+            } else {
+                finalPayload = JSONObject().apply {
+                    put("encrypted", false)
+                    put("data", syncPayload)
+                }.toString()
+            }
 
             val existingFileId = syncService.searchBackupFile(token).getOrNull()
             val success = if (existingFileId != null) {

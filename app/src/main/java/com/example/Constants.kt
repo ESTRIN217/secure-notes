@@ -27,7 +27,21 @@ object AppConstants {
     const val INCLUDE_ATTACHMENTS_KEY = "include_attachments"
     const val COPY_ATTACHMENTS_LOCAL_KEY = "copy_attachments_local"
 
+    const val ENCRYPT_BACKUPS_KEY = "encrypt_backups"
+    const val AUTO_BACKUP_ENABLED_KEY = "auto_backup_enabled"
+    const val AUTO_BACKUP_INTERVAL_KEY = "auto_backup_interval"
+    const val LAST_BACKUP_SIZE_CLOUD_KEY = "last_backup_size_cloud"
+    const val LAST_BACKUP_SIZE_LOCAL_KEY = "last_backup_size_local"
+    const val CACHED_MASTER_PASSWORD_KEY = "cached_master_password"
+
     val SecurityGreen = Color(0xFF43A047)
+}
+
+enum class BackupInterval(val hours: Long) {
+    HOURS_6(6),
+    HOURS_12(12),
+    HOURS_24(24),
+    WEEKLY(168)
 }
 
 enum class DarkModeOption { SYSTEM, OFF, ON }

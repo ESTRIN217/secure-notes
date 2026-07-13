@@ -478,4 +478,18 @@
 
     <!-- v4.0 Search counter -->
     <string name="search_match_counter">%1$d/%2$d</string>
+
+    <!-- Backup encryption & auto-backup -->
+    <string name="backup_encrypt_title">Criptografar backups</string>
+    <string name="backup_encrypt_desc">Proteger backups com sua senha mestra (AES-256 GCM)</string>
+    <string name="backup_auto_title">Backup automático</string>
+    <string name="backup_auto_desc">Sincronizar backups periodicamente ao Google Drive</string>
+    <string name="backup_interval_label">Intervalo de backup</string>
+    <string name="backup_interval_6h">A cada 6 horas</string>
+    <string name="backup_interval_12h">A cada 12 horas</string>
+    <string name="backup_interval_24h">A cada 24 horas</string>
+    <string name="backup_interval_weekly">Semanal</string>
+    <string name="backup_size_label">Tamanho: %s</string>
+    <string name="backup_e2ee_badge">Criptografado AES-256 E2E</string>
+    <string name="backup_e2ee_disabled_badge">Não criptografado</string>
 </resources>

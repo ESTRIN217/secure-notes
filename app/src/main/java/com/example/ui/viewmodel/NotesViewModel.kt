@@ -100,7 +100,7 @@ class NotesViewModel(
     val isLoading = MutableStateFlow(true)
 
     // Password credentials state
-    val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
+    override val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
     val isUnlocked = MutableStateFlow(!sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
     private val masterPassword = MutableStateFlow<String?>(null)
     val passwordType = MutableStateFlow(
@@ -111,6 +111,12 @@ class NotesViewModel(
     private val biometricAuthManager = BiometricAuthManager(getApplication())
     override val includeAttachments = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
     override val copyAttachmentsLocal = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
+
+    override val encryptBackups = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY)))
+    override val autoBackupEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, false))
+    override val autoBackupInterval = MutableStateFlow(sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
+    override val lastBackupSizeCloud = MutableStateFlow(sharedPrefs.getLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, 0L))
+    override val lastBackupSizeLocal = MutableStateFlow(sharedPrefs.getLong(AppConstants.LAST_BACKUP_SIZE_LOCAL_KEY, 0L))
 
     // Navigation and Filtering state
     val currentSection = MutableStateFlow(NavigationSection.HOME)
@@ -268,6 +274,7 @@ class NotesViewModel(
         masterPassword.value = password
         isPasswordSet.value = true
         isUnlocked.value = true
+        if (encryptBackups.value) cacheMasterPassword()
         // Clear biometric data since password changed
         setBiometricEnabled(false)
     }
@@ -281,6 +288,7 @@ class NotesViewModel(
         return if (result == "VALID") {
             masterPassword.value = password
             isUnlocked.value = true
+            if (encryptBackups.value) cacheMasterPassword()
             true
         } else {
             false
@@ -291,6 +299,7 @@ class NotesViewModel(
         if (isPasswordSet.value) {
             masterPassword.value = null
             isUnlocked.value = false
+            clearCachedPassword()
         }
     }
 
@@ -328,6 +337,7 @@ class NotesViewModel(
             masterPassword.value = null
             isPasswordSet.value = false
             isUnlocked.value = true
+            clearCachedPassword()
         }
     }
 
@@ -356,6 +366,38 @@ class NotesViewModel(
     override fun setCopyAttachmentsLocal(enabled: Boolean) {
         copyAttachmentsLocal.value = enabled
         sharedPrefs.edit().putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, enabled).apply()
+    }
+
+    override fun setEncryptBackups(enabled: Boolean) {
+        encryptBackups.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, enabled).apply()
+        if (enabled) cacheMasterPassword() else clearCachedPassword()
+    }
+
+    override fun setAutoBackupEnabled(enabled: Boolean) {
+        autoBackupEnabled.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, enabled).apply()
+        if (enabled && syncState.value.isDriveLinked) schedulePeriodicSync() else cancelPeriodicSync()
+    }
+
+    override fun setAutoBackupInterval(interval: String) {
+        autoBackupInterval.value = interval
+        sharedPrefs.edit().putString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, interval).apply()
+        if (autoBackupEnabled.value && syncState.value.isDriveLinked) {
+            cancelPeriodicSync()
+            schedulePeriodicSync()
+        }
+    }
+
+    override fun clearCachedPassword() {
+        encryptedPrefs.edit().remove(AppConstants.CACHED_MASTER_PASSWORD_KEY).apply()
+    }
+
+    private fun cacheMasterPassword() {
+        val pass = masterPassword.value
+        if (!pass.isNullOrEmpty()) {
+            encryptedPrefs.edit().putString(AppConstants.CACHED_MASTER_PASSWORD_KEY, pass).apply()
+        }
     }
 
     fun saveBiometricEncryptedPassword(cipher: javax.crypto.Cipher) {
@@ -661,13 +703,20 @@ class NotesViewModel(
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(6, java.util.concurrent.TimeUnit.HOURS)
+        val hours = when (autoBackupInterval.value) {
+            "6h" -> 6L
+            "12h" -> 12L
+            "24h" -> 24L
+            "weekly" -> 168L
+            else -> 6L
+        }
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(hours, java.util.concurrent.TimeUnit.HOURS)
             .setConstraints(constraints)
             .build()
         WorkManager.getInstance(getApplication())
             .enqueueUniquePeriodicWork(
                 "secure_notes_cloud_sync",
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 syncRequest
             )
     }
@@ -778,7 +827,8 @@ class NotesViewModel(
                     put("timestamp", System.currentTimeMillis())
                 }.toString()
 
-                val finalPayload: String = if (isPasswordSet.value && masterPassword.value != null) {
+                val shouldEncrypt = encryptBackups.value && isPasswordSet.value && masterPassword.value != null
+                val finalPayload: String = if (shouldEncrypt) {
                     val pass = masterPassword.value ?: return@launch
                     val salt = cipherService.generateSalt()
                     val iv = cipherService.generateIv()
@@ -796,6 +846,7 @@ class NotesViewModel(
                     }.toString()
                 }
 
+                var backupSize = 0L
                 val success = if (includeAttachments.value) {
                     syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
                     val app = getApplication<Application>()
@@ -811,24 +862,24 @@ class NotesViewModel(
                             )
                             allPathMaps.putAll(pathMap)
                         }
-                        val backupJson = if (isPasswordSet.value && masterPassword.value != null) {
-                            finalPayload
-                        } else {
-                            finalPayload
-                        }
                         val zipFile = File(tempDir, "backup.zip")
-                        BackupAttachmentHelper.buildBackupZip(backupJson, allPathMaps, tempAttachmentsDir, zipFile)
+                        BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
                         val zipBytes = zipFile.readBytes()
+                        backupSize = zipFile.length()
                         performSyncWithTokenBytes(token, zipBytes)
                     } finally {
                         tempDir.deleteRecursively()
                     }
                 } else {
                     syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
+                    backupSize = finalPayload.toByteArray().size.toLong()
                     performSyncWithToken(token, finalPayload)
                 }
 
                 if (success) {
+                    lastBackupSizeCloud.value = backupSize
+                    sharedPrefs.edit().putLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, backupSize).apply()
+
                     val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timeStr = formatter.format(Date())
                     sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
