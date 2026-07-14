@@ -25,38 +25,32 @@ class BiometricAuthManager(private val context: Context) {
         }
     }
 
-    fun createKey(alias: String): Boolean {
-        return try {
+    fun createKey(alias: String) {
+        try {
             if (keyStore.containsAlias(alias)) {
                 keyStore.deleteEntry(alias)
             }
-            val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-            keyGenerator.init(
-                KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                    .setUserAuthenticationRequired(true)
-                    .setInvalidatedByBiometricEnrollment(true)
-                    .build()
-            )
-            keyGenerator.generateKey()
-            true
         } catch (e: Exception) {
-            Log.e("BiometricAuthManager", "createKey failed", e)
-            false
+            Log.e("BiometricAuthManager", "createKey cleanup failed", e)
         }
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        keyGenerator.init(
+            KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setUserAuthenticationRequired(true)
+                .setInvalidatedByBiometricEnrollment(true)
+                .build()
+        )
+        keyGenerator.generateKey()
     }
 
-    fun getEncryptCipher(alias: String): Cipher? {
-        return try {
-            val secretKey = (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.secretKey ?: return null
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-            cipher
-        } catch (e: Exception) {
-            Log.e("BiometricAuthManager", "getEncryptCipher failed", e)
-            null
-        }
+    fun getEncryptCipher(alias: String): Cipher {
+        val secretKey = keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry
+            ?: throw IllegalStateException("Biometric key not found in keystore")
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey.secretKey)
+        return cipher
     }
 
     fun getDecryptCipher(alias: String, iv: ByteArray): Cipher? {

@@ -14,6 +14,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -142,6 +146,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val prefs = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false)) {
+            window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
         setContent {
             val cipherService = com.example.data.security.EncryptionServiceImpl()
             val syncService = com.example.data.sync.GoogleDriveSyncService()
@@ -191,9 +199,32 @@ class MainActivity : ComponentActivity() {
 fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.onAppBackgrounded()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     var currentScreen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.MainList) }
     var isBackNavigation by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val activity = context as? Activity
+    val screenshotEnabled by viewModel.screenshotEnabled.collectAsState()
+    LaunchedEffect(screenshotEnabled) {
+        activity?.window?.let { win ->
+            if (screenshotEnabled) {
+                win.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            } else {
+                win.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
     val backupViewModel: BackupViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {

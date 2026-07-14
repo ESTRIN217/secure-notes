@@ -536,4 +536,31 @@
     <string name="backup_e2ee_badge">AES-256 E2E Encrypted</string>
     <string name="backup_e2ee_disabled_badge">Not encrypted</string>
     <string name="toast_encrypt_backup_no_password">Cannot encrypt backup: master password not available. Unlock the app first.</string>
+
+    <!-- Security improvements -->
+    <string name="auto_lock_title">Auto-lock</string>
+    <string name="auto_lock_disabled">Disabled</string>
+    <string name="auto_lock_timeout_desc">Lock after %1$d minutes of inactivity</string>
+    <string name="auto_lock_off">Off</string>
+    <string name="auto_lock_immediately">Immediately</string>
+    <string name="auto_lock_1min">1 minute</string>
+    <string name="auto_lock_5min">5 minutes</string>
+    <string name="auto_lock_15min">15 minutes</string>
+    <string name="auto_lock_30min">30 minutes</string>
+    <string name="btn_enable">Enable</string>
+    <string name="btn_change">Change</string>
+    <string name="error_rate_limit">Too many attempts. Try again in %1$d seconds</string>
+
+    <!-- Screenshot / Recents -->
+    <string name="screenshot_toggle_label">Allow Screenshots &amp; Show in Recents</string>
+    <string name="screenshot_toggle_desc">When disabled, screenshots are blocked and the app is hidden from the task switcher</string>
+
+    <!-- Change password -->
+    <string name="change_password">Change Master Password</string>
+    <string name="change_password_current">Current Password</string>
+    <string name="change_password_new">New Password</string>
+    <string name="change_password_confirm">Confirm New Password</string>
+    <string name="change_password_dialog_title">Change Master Password</string>
+    <string name="toast_password_changed">Master password changed successfully</string>
+    <string name="toast_wrong_current_password">Current password is incorrect</string>
 </resources>

@@ -1,10 +1,16 @@
 package com.example.ui.settings
 
-import android.app.Activity
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.biometric.AuthenticationRequest
+import androidx.biometric.AuthenticationResult
+import androidx.biometric.AuthenticationResultCallback
+import androidx.biometric.AuthenticationRequest.Biometric.Strength
+import androidx.biometric.AuthenticationRequest.Companion.biometricRequest
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.biometric.compose.rememberAuthenticationLauncher
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
@@ -26,10 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.AppConstants
+import com.example.AutoLockTimeout
 import com.example.PasswordType
 import com.example.R
 import com.example.ui.viewmodel.NotesViewModel
@@ -49,56 +54,63 @@ fun PrivacySettingsScreen(
     val isPasswordSet by viewModel.isPasswordSet.collectAsStateWithLifecycle()
     val passwordType by viewModel.passwordType.collectAsStateWithLifecycle()
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
+    val screenshotEnabled by viewModel.screenshotEnabled.collectAsStateWithLifecycle()
     var passwordInput by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
     var pendingEnableBiometric by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val biometricManager = remember { BiometricAuthManager(context) }
-    val activity = remember { context as? Activity }
+    val enrollCipher = remember { mutableStateOf<javax.crypto.Cipher?>(null) }
+
+    val enrollLauncher = rememberAuthenticationLauncher(
+        object : AuthenticationResultCallback {
+            override fun onAuthResult(result: AuthenticationResult) {
+                when (result) {
+                    is AuthenticationResult.Success -> {
+                        result.crypto?.cipher?.let { c ->
+                            viewModel.saveBiometricEncryptedPassword(c)
+                            viewModel.setBiometricEnabled(true)
+                            Toast.makeText(context, context.getString(R.string.biometric_enabled), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    is AuthenticationResult.Error -> {
+                        Toast.makeText(context, result.errString, Toast.LENGTH_SHORT).show()
+                    }
+                    is AuthenticationResult.CustomFallbackSelected -> { }
+                }
+                enrollCipher.value = null
+                pendingEnableBiometric = false
+            }
+
+            override fun onAuthAttemptFailed() { }
+        }
+    )
 
     // Handle pending biometric enrollment
     LaunchedEffect(pendingEnableBiometric) {
-        if (pendingEnableBiometric && activity is FragmentActivity) {
-            if (!biometricManager.isBiometricAvailable()) {
-                Toast.makeText(context, context.getString(R.string.biometric_not_available), Toast.LENGTH_SHORT).show()
-                pendingEnableBiometric = false
-                return@LaunchedEffect
-            }
+        if (!pendingEnableBiometric) return@LaunchedEffect
+        if (!biometricManager.isBiometricAvailable()) {
+            Toast.makeText(context, context.getString(R.string.biometric_not_available), Toast.LENGTH_SHORT).show()
+            pendingEnableBiometric = false
+            return@LaunchedEffect
+        }
+        try {
             biometricManager.createKey(AppConstants.BIOMETRIC_KEY_ALIAS)
             val cipher = biometricManager.getEncryptCipher(AppConstants.BIOMETRIC_KEY_ALIAS)
-            if (cipher != null) {
-                val prompt = BiometricPrompt(
-                    activity,
-                    ContextCompat.getMainExecutor(activity),
-                    object : BiometricPrompt.AuthenticationCallback() {
-                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            result.cryptoObject?.cipher?.let { c ->
-                                viewModel.saveBiometricEncryptedPassword(c)
-                                viewModel.setBiometricEnabled(true)
-                                Toast.makeText(context, context.getString(R.string.biometric_enabled), Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                            pendingEnableBiometric = false
-                        }
-                        override fun onAuthenticationFailed() {
-                            pendingEnableBiometric = false
-                        }
-                    }
-                )
-                prompt.authenticate(
-                    BiometricPrompt.PromptInfo.Builder()
-                        .setTitle(context.getString(R.string.biometric_enable_title))
-                        .setSubtitle(context.getString(R.string.biometric_enable_subtitle))
-                        .setAllowedAuthenticators(
-                            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                        )
-                        .build(),
-                    BiometricPrompt.CryptoObject(cipher)
-                )
+            enrollCipher.value = cipher
+            val request = biometricRequest(
+                title = context.getString(R.string.biometric_enable_title),
+                AuthenticationRequest.Biometric.Fallback.DeviceCredential,
+            ) {
+                setSubtitle(context.getString(R.string.biometric_enable_subtitle))
+                setMinStrength(Strength.Class3(BiometricPrompt.CryptoObject(cipher)))
             }
+            enrollLauncher.launch(request)
+        } catch (e: Exception) {
+            Log.e("PrivacySettings", "biometric enrollment failed", e)
+            Toast.makeText(context, context.getString(R.string.biometric_key_error), Toast.LENGTH_LONG).show()
+            enrollCipher.value = null
             pendingEnableBiometric = false
         }
     }
@@ -393,6 +405,249 @@ fun PrivacySettingsScreen(
                                             pendingEnableBiometric = true
                                         } else {
                                             viewModel.setBiometricEnabled(false)
+                                        }
+                                    }
+                                )
+                            }
+
+                            // Screenshot / Recents toggle
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SettingsIconContainer(
+                                    icon = Icons.Default.PhotoCamera,
+                                    isSelected = screenshotEnabled
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.screenshot_toggle_label),
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.screenshot_toggle_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = screenshotEnabled,
+                                    onCheckedChange = { viewModel.setScreenshotEnabled(it) }
+                                )
+                            }
+
+                            // Auto-lock timeout
+                            val autoLockTimeout by viewModel.autoLockTimeout.collectAsStateWithLifecycle()
+                            var showAutoLockDialog by remember { mutableStateOf(false) }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SettingsIconContainer(
+                                    icon = Icons.Default.Timer,
+                                    isSelected = autoLockTimeout != 0L
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.auto_lock_title),
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    Text(
+                                        text = when {
+                                            autoLockTimeout < 0 -> stringResource(R.string.auto_lock_immediately)
+                                            autoLockTimeout == 0L -> stringResource(R.string.auto_lock_disabled)
+                                            else -> stringResource(R.string.auto_lock_timeout_desc, autoLockTimeout)
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                TextButton(onClick = { showAutoLockDialog = true }) {
+                                    Text(
+                                        text = if (autoLockTimeout == 0L) stringResource(R.string.btn_enable) else stringResource(R.string.btn_change),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            if (showAutoLockDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showAutoLockDialog = false },
+                                    title = { Text(stringResource(R.string.auto_lock_title)) },
+                                    text = {
+                                        Column {
+                                            AutoLockTimeout.entries.forEach { option ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .selectable(
+                                                            selected = autoLockTimeout == option.minutes,
+                                                            onClick = {
+                                                                viewModel.setAutoLockTimeout(option.minutes)
+                                                                showAutoLockDialog = false
+                                                            },
+                                                            role = Role.RadioButton
+                                                        )
+                                                        .padding(vertical = 8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    RadioButton(
+                                                        selected = autoLockTimeout == option.minutes,
+                                                        onClick = null
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = when (option) {
+                                                        AutoLockTimeout.IMMEDIATELY -> stringResource(R.string.auto_lock_immediately)
+                                                        AutoLockTimeout.DISABLED -> stringResource(R.string.auto_lock_off)
+                                                        AutoLockTimeout.MINUTE_1 -> stringResource(R.string.auto_lock_1min)
+                                                        AutoLockTimeout.MINUTES_5 -> stringResource(R.string.auto_lock_5min)
+                                                        AutoLockTimeout.MINUTES_15 -> stringResource(R.string.auto_lock_15min)
+                                                        AutoLockTimeout.MINUTES_30 -> stringResource(R.string.auto_lock_30min)
+                                                    },
+                                                        style = MaterialTheme.typography.bodyMedium
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = { showAutoLockDialog = false }) {
+                                            Text(stringResource(R.string.btn_cancel))
+                                        }
+                                    }
+                                )
+                            }
+
+                            // Change password dialog
+                            var showChangePasswordDialog by remember { mutableStateOf(false) }
+                            var changePasswordInput by remember { mutableStateOf("") }
+                            var changeNewPasswordInput by remember { mutableStateOf("") }
+                            var changeConfirmPasswordInput by remember { mutableStateOf("") }
+                            var changePasswordError by remember { mutableStateOf<String?>(null) }
+
+                            Button(
+                                onClick = { showChangePasswordDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.change_password))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.change_password), fontWeight = FontWeight.Bold)
+                            }
+
+                            if (showChangePasswordDialog) {
+                                AlertDialog(
+                                    onDismissRequest = {
+                                        showChangePasswordDialog = false
+                                        changePasswordError = null
+                                    },
+                                    title = { Text(stringResource(R.string.change_password_dialog_title)) },
+                                    text = {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            OutlinedTextField(
+                                                value = changePasswordInput,
+                                                onValueChange = { changePasswordInput = it; changePasswordError = null },
+                                                label = { Text(stringResource(R.string.change_password_current)) },
+                                                visualTransformation = PasswordVisualTransformation(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
+                                                ),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            OutlinedTextField(
+                                                value = changeNewPasswordInput,
+                                                onValueChange = { changeNewPasswordInput = it; changePasswordError = null },
+                                                label = { Text(stringResource(R.string.change_password_new)) },
+                                                visualTransformation = PasswordVisualTransformation(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
+                                                ),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            if (passwordType == PasswordType.PASSWORD && changeNewPasswordInput.isNotEmpty()) {
+                                                val strength = remember(changeNewPasswordInput) { checkPasswordStrength(changeNewPasswordInput) }
+                                                val strengthColor = strength.toColor()
+                                                val strengthLabel = stringResource(strength.toLabelRes())
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = stringResource(R.string.password_strength),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        text = strengthLabel,
+                                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = strengthColor
+                                                    )
+                                                }
+                                            }
+                                            OutlinedTextField(
+                                                value = changeConfirmPasswordInput,
+                                                onValueChange = { changeConfirmPasswordInput = it; changePasswordError = null },
+                                                label = { Text(stringResource(R.string.change_password_confirm)) },
+                                                visualTransformation = PasswordVisualTransformation(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
+                                                ),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            changePasswordError?.let {
+                                                Text(
+                                                    text = it,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            val minLen = if (passwordType == PasswordType.PIN) 4 else 6
+                                            if (changePasswordInput.isEmpty()) {
+                                                changePasswordError = context.getString(R.string.toast_password_too_short)
+                                                return@TextButton
+                                            }
+                                            if (changeNewPasswordInput.length < minLen || changeNewPasswordInput != changeConfirmPasswordInput) {
+                                                changePasswordError = if (changeNewPasswordInput.length < minLen) {
+                                                    context.getString(R.string.toast_password_too_short)
+                                                } else {
+                                                    context.getString(R.string.toast_passwords_do_not_match)
+                                                }
+                                                return@TextButton
+                                            }
+                                            if (viewModel.changePassword(changePasswordInput, changeNewPasswordInput)) {
+                                                Toast.makeText(context, context.getString(R.string.toast_password_changed), Toast.LENGTH_SHORT).show()
+                                                showChangePasswordDialog = false
+                                                changePasswordError = null
+                                            } else {
+                                                changePasswordError = context.getString(R.string.toast_wrong_current_password)
+                                            }
+                                        }) {
+                                            Text(stringResource(R.string.btn_save))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = {
+                                            showChangePasswordDialog = false
+                                            changePasswordError = null
+                                        }) {
+                                            Text(stringResource(R.string.btn_cancel))
                                         }
                                     }
                                 )

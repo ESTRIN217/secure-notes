@@ -1,9 +1,13 @@
 package com.example.ui
 
-import android.app.Activity
 import android.widget.Toast
-import androidx.biometric.BiometricManager
+import androidx.biometric.AuthenticationRequest
+import androidx.biometric.AuthenticationResult
+import androidx.biometric.AuthenticationResultCallback
+import androidx.biometric.AuthenticationRequest.Biometric.Strength
+import androidx.biometric.AuthenticationRequest.Companion.biometricRequest
 import androidx.biometric.BiometricPrompt
+import androidx.biometric.compose.rememberAuthenticationLauncher
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -26,8 +30,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import com.example.AppConstants
 import com.example.PasswordType
 import com.example.R
@@ -41,10 +43,34 @@ fun LockScreen(viewModel: NotesViewModel) {
     val context = LocalContext.current
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
     val passwordType by viewModel.passwordType.collectAsState()
+    val isRateLimited by viewModel.isRateLimited.collectAsState()
+    val rateLimitRemaining by viewModel.rateLimitRemainingSeconds.collectAsState()
     val biometricManager = remember { BiometricAuthManager(context) }
 
+    val authLauncher = rememberAuthenticationLauncher(
+        object : AuthenticationResultCallback {
+            override fun onAuthResult(result: AuthenticationResult) {
+                when (result) {
+                    is AuthenticationResult.Success -> {
+                        val cipher = result.crypto?.cipher
+                        if (cipher != null && viewModel.unlockWithBiometricCipher(cipher)) {
+                            Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
+                        } else {
+                            hasError = true
+                        }
+                    }
+                    is AuthenticationResult.Error -> {
+                        Toast.makeText(context, result.errString, Toast.LENGTH_SHORT).show()
+                    }
+                    is AuthenticationResult.CustomFallbackSelected -> { }
+                }
+            }
+
+            override fun onAuthAttemptFailed() { }
+        }
+    )
+
     fun triggerBiometric() {
-        val activity = context as? FragmentActivity ?: return
         if (!biometricManager.isBiometricAvailable()) {
             Toast.makeText(context, context.getString(R.string.biometric_not_available), Toast.LENGTH_SHORT).show()
             return
@@ -60,35 +86,18 @@ fun LockScreen(viewModel: NotesViewModel) {
             Toast.makeText(context, context.getString(R.string.biometric_key_error), Toast.LENGTH_SHORT).show()
             return
         }
-        val prompt = BiometricPrompt(
-            activity,
-            ContextCompat.getMainExecutor(activity),
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    result.cryptoObject?.cipher?.let { c ->
-                        if (viewModel.unlockWithBiometricCipher(c)) {
-                            Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
-                        } else {
-                            hasError = true
-                        }
-                    }
-                }
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    Toast.makeText(context, errString, Toast.LENGTH_SHORT).show()
-                }
-            }
-        )
-        prompt.authenticate(
-            BiometricPrompt.PromptInfo.Builder()
-                .setTitle(context.getString(R.string.biometric_unlock_title))
-                .setSubtitle(context.getString(R.string.biometric_unlock_subtitle))
-                .setAllowedAuthenticators(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                )
-                .build(),
-            BiometricPrompt.CryptoObject(cipher)
-        )
+        val request = biometricRequest(
+            title = context.getString(R.string.biometric_unlock_title),
+            AuthenticationRequest.Biometric.Fallback.DeviceCredential,
+        ) {
+            setSubtitle(context.getString(R.string.biometric_unlock_subtitle))
+            setMinStrength(Strength.Class3(BiometricPrompt.CryptoObject(cipher)))
+        }
+        authLauncher.launch(request)
+    }
+
+    LaunchedEffect(Unit) {
+        if (isBiometricEnabled) triggerBiometric()
     }
 
     Scaffold { innerPadding ->
@@ -167,15 +176,27 @@ fun LockScreen(viewModel: NotesViewModel) {
                                 .padding(top = 4.dp)
                         )
                     }
+                    if (isRateLimited) {
+                        Text(
+                            text = stringResource(R.string.error_rate_limit, rateLimitRemaining),
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(top = 4.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
                             if (viewModel.unlockApp(password)) {
+                                hasError = false
                                 Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
                             } else {
                                 hasError = true
                             }
                         },
+                        enabled = !isRateLimited,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)

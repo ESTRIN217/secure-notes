@@ -5,10 +5,17 @@ import androidx.compose.ui.graphics.Color
 object AppConstants {
     const val WEB_CLIENT_ID = "53440468121-eba9s7mkgrl8958p7grusf7vmgtsgihq.apps.googleusercontent.com"
     const val PREFS_NAME = "secure_notes_prefs"
+    const val SECURE_PREFS_NAME = "secure_notes_secure_prefs"
     const val CUSTOM_ORDER_KEY = "custom_order_ids"
+
+    // Master password verification — stored in EncryptedSharedPreferences
     const val MASTER_PASSWORD_HASH_KEY = "master_password_hash"
     const val MASTER_PASSWORD_SALT_KEY = "master_password_salt"
     const val MASTER_PASSWORD_IV_KEY = "master_password_iv"
+
+    // Migration flag: true once data moved from regular -> encrypted prefs
+    const val MIGRATED_ENCRYPTED_PREFS = "migrated_encrypted_prefs"
+
     const val DARK_MODE_KEY = "dark_mode"
     const val DARK_MODE_OPTION_KEY = "dark_mode_option"
     const val DYNAMIC_COLORS_KEY = "dynamic_colors"
@@ -34,7 +41,22 @@ object AppConstants {
     const val LAST_BACKUP_SIZE_LOCAL_KEY = "last_backup_size_local"
     const val CACHED_MASTER_PASSWORD_KEY = "cached_master_password"
 
+    // Auto-lock timeout in minutes (0 = disabled)
+    const val SCREENSHOT_ENABLED_KEY = "screenshot_enabled"
+
+    const val AUTO_LOCK_TIMEOUT_KEY = "auto_lock_timeout"
+    const val AUTO_LOCK_TIMEOUT_DEFAULT = 5L
+
     val SecurityGreen = Color(0xFF43A047)
+}
+
+enum class AutoLockTimeout(val minutes: Long) {
+    IMMEDIATELY(-1),
+    DISABLED(0),
+    MINUTE_1(1),
+    MINUTES_5(5),
+    MINUTES_15(15),
+    MINUTES_30(30)
 }
 
 enum class BackupInterval(val hours: Long) {

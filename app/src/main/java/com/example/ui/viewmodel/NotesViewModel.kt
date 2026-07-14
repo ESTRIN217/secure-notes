@@ -29,6 +29,8 @@ import com.example.data.sync.SyncService
 import com.example.data.sync.SyncWorker
 import com.google.android.gms.auth.GoogleAuthUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -100,8 +102,11 @@ class NotesViewModel(
     val isLoading = MutableStateFlow(true)
 
     // Password credentials state
-    override val isPasswordSet = MutableStateFlow(sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
-    val isUnlocked = MutableStateFlow(!sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY))
+    private val hasPasswordInPrefs: Boolean
+        get() = encryptedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY) || sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY)
+
+    override val isPasswordSet = MutableStateFlow(hasPasswordInPrefs)
+    val isUnlocked = MutableStateFlow(!hasPasswordInPrefs)
     private val masterPassword = MutableStateFlow<String?>(null)
     val passwordType = MutableStateFlow(
         try { PasswordType.valueOf(sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, PasswordType.PASSWORD.name) ?: PasswordType.PASSWORD.name) }
@@ -112,7 +117,22 @@ class NotesViewModel(
     override val includeAttachments = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
     override val copyAttachmentsLocal = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
 
-    override val encryptBackups = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, sharedPrefs.contains(AppConstants.MASTER_PASSWORD_HASH_KEY)))
+    override val encryptBackups = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, hasPasswordInPrefs))
+
+    // Screenshot / Recents (default = blocked)
+    val screenshotEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
+
+    // Auto-lock
+    val autoLockTimeout = MutableStateFlow(
+        sharedPrefs.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, AppConstants.AUTO_LOCK_TIMEOUT_DEFAULT)
+    )
+    private var autoLockJob: Job? = null
+
+    // Rate limiting
+    private var failedAttempts = 0
+    private var lastFailedAttemptTime = 0L
+    val isRateLimited = MutableStateFlow(false)
+    val rateLimitRemainingSeconds = MutableStateFlow(0L)
     override val autoBackupEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, false))
     override val autoBackupInterval = MutableStateFlow(sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
     override val lastBackupSizeCloud = MutableStateFlow(sharedPrefs.getLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, 0L))
@@ -143,6 +163,9 @@ class NotesViewModel(
     val searchResults: StateFlow<List<DecryptedNote>>
 
     init {
+        migrateToEncryptedPrefs()
+        scheduleAutoLock()
+
         availableTags = tagDao.getAllTagsFlow().stateIn(
             viewModelScope,
             SharingStarted.Lazily,
@@ -260,12 +283,11 @@ class NotesViewModel(
     }
 
     fun setMasterPassword(password: String) {
-        // Compute pseudo-hash to store in preference for validation
         val salt = cipherService.generateSalt()
         val iv = cipherService.generateIv()
         val validationHash = cipherService.encrypt("VALID", password, salt, iv).getOrDefault("")
         
-        sharedPrefs.edit()
+        encryptedPrefs.edit()
             .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
             .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
             .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
@@ -275,24 +297,31 @@ class NotesViewModel(
         isPasswordSet.value = true
         isUnlocked.value = true
         if (encryptBackups.value) cacheMasterPassword()
-        // Clear biometric data since password changed
         setBiometricEnabled(false)
     }
 
     fun unlockApp(password: String): Boolean {
-        val hash = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_HASH_KEY, "") ?: ""
-        val salt = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_SALT_KEY, "") ?: ""
-        val iv = sharedPrefs.getString(AppConstants.MASTER_PASSWORD_IV_KEY, "") ?: ""
+        if (isRateLimited.value) return false
+
+        val hash = encryptedPrefs.getString(AppConstants.MASTER_PASSWORD_HASH_KEY, "") ?: ""
+        val salt = encryptedPrefs.getString(AppConstants.MASTER_PASSWORD_SALT_KEY, "") ?: ""
+        val iv = encryptedPrefs.getString(AppConstants.MASTER_PASSWORD_IV_KEY, "") ?: ""
 
         val result = cipherService.decrypt(hash, password, salt, iv).getOrDefault("")
-        return if (result == "VALID") {
+        if (result == "VALID") {
+            failedAttempts = 0
+            isRateLimited.value = false
+            rateLimitRemainingSeconds.value = 0L
             masterPassword.value = password
             isUnlocked.value = true
+            resetAutoLockTimer()
             if (encryptBackups.value) cacheMasterPassword()
-            true
-        } else {
-            false
+            return true
         }
+        failedAttempts++
+        lastFailedAttemptTime = System.currentTimeMillis()
+        applyRateLimit()
+        return false
     }
 
     fun lockApp() {
@@ -300,11 +329,28 @@ class NotesViewModel(
             masterPassword.value = null
             isUnlocked.value = false
             clearCachedPassword()
+            autoLockJob?.cancel()
+            autoLockJob = null
+        }
+    }
+
+    private fun applyRateLimit() {
+        val delays = listOf(1L, 2L, 4L, 8L, 15L, 30L)
+        val index = (failedAttempts - 1).coerceAtMost(delays.size - 1)
+        val delaySeconds = delays[index]
+        isRateLimited.value = true
+        rateLimitRemainingSeconds.value = delaySeconds
+        viewModelScope.launch {
+            for (remaining in delaySeconds downTo 0) {
+                rateLimitRemainingSeconds.value = remaining
+                delay(1000L)
+            }
+            isRateLimited.value = false
         }
     }
 
     fun deletePassword() {
-        sharedPrefs.edit()
+        encryptedPrefs.edit()
             .remove(AppConstants.MASTER_PASSWORD_HASH_KEY)
             .remove(AppConstants.MASTER_PASSWORD_SALT_KEY)
             .remove(AppConstants.MASTER_PASSWORD_IV_KEY)
@@ -341,9 +387,71 @@ class NotesViewModel(
         }
     }
 
+    // ── Migration from insecure SharedPrefs to EncryptedSharedPrefs ──
+    private fun migrateToEncryptedPrefs() {
+        if (sharedPrefs.getBoolean(AppConstants.MIGRATED_ENCRYPTED_PREFS, false)) return
+
+        val keys = listOf(
+            AppConstants.MASTER_PASSWORD_HASH_KEY,
+            AppConstants.MASTER_PASSWORD_SALT_KEY,
+            AppConstants.MASTER_PASSWORD_IV_KEY,
+            AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY,
+            AppConstants.BIOMETRIC_IV_KEY
+        )
+        var migrated = false
+        keys.forEach { key ->
+            sharedPrefs.getString(key, null)?.let { value ->
+                encryptedPrefs.edit().putString(key, value).apply()
+                sharedPrefs.edit().remove(key).apply()
+                migrated = true
+            }
+        }
+        if (migrated) {
+            sharedPrefs.edit().putBoolean(AppConstants.MIGRATED_ENCRYPTED_PREFS, true).apply()
+            // Refresh state that depends on password presence
+            isPasswordSet.value = hasPasswordInPrefs
+            isUnlocked.value = !hasPasswordInPrefs
+        }
+    }
+
+    // ── Auto-lock ──
+    fun setAutoLockTimeout(minutes: Long) {
+        autoLockTimeout.value = minutes
+        sharedPrefs.edit().putLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, minutes).apply()
+        if (isUnlocked.value) resetAutoLockTimer()
+    }
+
+    fun resetAutoLockTimer() {
+        autoLockJob?.cancel()
+        val timeoutMinutes = autoLockTimeout.value
+        if (timeoutMinutes < 0 || !isPasswordSet.value) return
+        if (timeoutMinutes == 0L) return
+        autoLockJob = viewModelScope.launch {
+            delay(timeoutMinutes * 60 * 1000L)
+            if (isUnlocked.value && isPasswordSet.value) {
+                lockApp()
+            }
+        }
+    }
+
+    private fun scheduleAutoLock() {
+        if (isUnlocked.value) resetAutoLockTimer()
+    }
+
+    fun onAppBackgrounded() {
+        if (autoLockTimeout.value == -1L && isPasswordSet.value && isUnlocked.value) {
+            lockApp()
+        }
+    }
+
     fun setPasswordType(type: PasswordType) {
         passwordType.value = type
         sharedPrefs.edit().putString(AppConstants.PASSWORD_TYPE_KEY, type.name).apply()
+    }
+
+    fun setScreenshotEnabled(enabled: Boolean) {
+        screenshotEnabled.value = enabled
+        sharedPrefs.edit().putBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, enabled).apply()
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
@@ -351,7 +459,7 @@ class NotesViewModel(
         sharedPrefs.edit().putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, enabled).apply()
         if (!enabled) {
             biometricAuthManager.deleteKey(AppConstants.BIOMETRIC_KEY_ALIAS)
-            sharedPrefs.edit()
+            encryptedPrefs.edit()
                 .remove(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY)
                 .remove(AppConstants.BIOMETRIC_IV_KEY)
                 .apply()
@@ -405,7 +513,7 @@ class NotesViewModel(
         try {
             val encrypted = cipher.doFinal(password.toByteArray(Charsets.UTF_8))
             val iv = cipher.iv
-            sharedPrefs.edit()
+            encryptedPrefs.edit()
                 .putString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, android.util.Base64.encodeToString(encrypted, android.util.Base64.NO_WRAP))
                 .putString(AppConstants.BIOMETRIC_IV_KEY, android.util.Base64.encodeToString(iv, android.util.Base64.NO_WRAP))
                 .apply()
@@ -416,8 +524,8 @@ class NotesViewModel(
 
     fun unlockWithBiometricCipher(cipher: javax.crypto.Cipher): Boolean {
         return try {
-            val encB64 = sharedPrefs.getString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, "") ?: ""
-            val ivB64 = sharedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
+            val encB64 = encryptedPrefs.getString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, "") ?: ""
+            val ivB64 = encryptedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
             if (encB64.isEmpty() || ivB64.isEmpty()) return false
             val encrypted = android.util.Base64.decode(encB64, android.util.Base64.NO_WRAP)
             val decrypted = cipher.doFinal(encrypted)
@@ -430,7 +538,49 @@ class NotesViewModel(
     }
 
     fun getBiometricIv(): String {
-        return sharedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
+        return encryptedPrefs.getString(AppConstants.BIOMETRIC_IV_KEY, "") ?: ""
+    }
+
+    fun changePassword(oldPassword: String, newPassword: String): Boolean {
+        if (!unlockApp(oldPassword)) return false
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                rawNotes.value.forEach { note ->
+                    if (note.isEncrypted) {
+                        val decTitle = cipherService.decrypt(note.title, oldPassword, note.salt, note.iv).getOrDefault("")
+                        val decContent = cipherService.decrypt(note.content, oldPassword, note.salt, note.iv).getOrDefault("")
+                        if (decTitle.isNotEmpty() || decContent.isNotEmpty()) {
+                            val newSalt = cipherService.generateSalt()
+                            val newIv = cipherService.generateIv()
+                            val encTitle = cipherService.encrypt(decTitle, newPassword, newSalt, newIv).getOrDefault("")
+                            val encContent = cipherService.encrypt(decContent, newPassword, newSalt, newIv).getOrDefault("")
+                            noteDao.updateNote(note.copy(
+                                title = encTitle,
+                                content = encContent,
+                                salt = newSalt,
+                                iv = newIv
+                            ))
+                        }
+                    }
+                }
+                val salt = cipherService.generateSalt()
+                val iv = cipherService.generateIv()
+                val validationHash = cipherService.encrypt("VALID", newPassword, salt, iv).getOrDefault("")
+                encryptedPrefs.edit()
+                    .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
+                    .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
+                    .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
+                    .apply()
+                masterPassword.value = newPassword
+                if (isBiometricEnabled.value && biometricAuthManager.hasKey(AppConstants.BIOMETRIC_KEY_ALIAS)) {
+                    val cipher = biometricAuthManager.getEncryptCipher(AppConstants.BIOMETRIC_KEY_ALIAS)
+                    saveBiometricEncryptedPassword(cipher)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("NotesViewModel", "changePassword failed", e)
+            }
+        }
+        return true
     }
 
     override fun saveNote(

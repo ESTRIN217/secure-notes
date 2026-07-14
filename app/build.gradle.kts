@@ -111,6 +111,8 @@ dependencies {
   implementation(libs.googleid)
   implementation(libs.androidx.security.crypto)
   implementation(libs.androidx.work.ktx)
+  implementation(libs.androidx.biometric)
+  implementation(libs.androidx.biometric.compose)
   // implementation(libs.play.services.location)
   implementation(libs.play.services.auth)
   implementation(libs.retrofit)
