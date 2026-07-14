@@ -1,0 +1,7 @@
+# Keystore configuration for release builds.
+# Copy this file to key.properties and fill in your values.
+# NEVER commit key.properties to version control.
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=/path/to/your/keystore.jks

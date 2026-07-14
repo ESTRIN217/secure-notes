@@ -8,7 +8,7 @@ import javax.crypto.spec.SecretKeySpec
 
 object KeyDerivation {
     private const val ALGORITHM = "PBKDF2WithHmacSHA256"
-    private const val ITERATION_COUNT = 10000
+    private const val ITERATION_COUNT = 600000
     private const val KEY_LENGTH = 256
 
     fun deriveKey(password: String, saltBase64: String): SecretKeySpec {
