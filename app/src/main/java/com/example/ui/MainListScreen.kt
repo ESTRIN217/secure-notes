@@ -52,8 +52,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.AppConstants
 import com.example.NavigationRailContent
@@ -490,15 +489,6 @@ fun MainListScreen(
                                         val profilePictureUri by viewModel.driveProfilePictureUri.collectAsState()
                                         if (accountEmail != null) {
                                             val email = accountEmail!!
-                                            val context = LocalContext.current
-                                            val imageRequest = remember(profilePictureUri) {
-                                                ImageRequest.Builder(context)
-                                                    .data(profilePictureUri)
-                                                    .crossfade(true)
-                                                    .build()
-                                            }
-                                            val profilePainter = rememberAsyncImagePainter(model = imageRequest)
-                                            val imageState = profilePainter.state
                                             Surface(
                                                 onClick = onNavigateToBackupRestore,
                                                 shape = CircleShape,
@@ -506,23 +496,31 @@ fun MainListScreen(
                                                 modifier = Modifier.size(36.dp)
                                             ) {
                                                 Box(contentAlignment = Alignment.Center) {
-                                                    when (imageState) {
-                                                        is AsyncImagePainter.State.Success -> {
-                                                            Image(
-                                                                painter = profilePainter,
-                                                                contentDescription = stringResource(R.string.cd_account_avatar),
-                                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                                                contentScale = ContentScale.Crop
-                                                            )
-                                                        }
-                                                        else -> {
-                                                            Text(
-                                                                text = email.first().uppercase(),
-                                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 16.sp
-                                                            )
-                                                        }
+                                                    if (profilePictureUri != null) {
+                                                        SubcomposeAsyncImage(
+                                                            model = ImageRequest.Builder(LocalContext.current)
+                                                                .data(profilePictureUri)
+                                                                .crossfade(true)
+                                                                .build(),
+                                                            contentDescription = stringResource(R.string.cd_account_avatar),
+                                                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                            contentScale = ContentScale.Crop,
+                                                            error = {
+                                                                Text(
+                                                                    text = email.first().uppercase(),
+                                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 16.sp
+                                                                )
+                                                            }
+                                                        )
+                                                    } else {
+                                                        Text(
+                                                            text = email.first().uppercase(),
+                                                            color = MaterialTheme.colorScheme.onPrimary,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 16.sp
+                                                        )
                                                     }
                                                 }
                                             }
