@@ -499,4 +499,67 @@
     <string name="backup_e2ee_badge">Cifrado AES-256 E2E</string>
     <string name="backup_e2ee_disabled_badge">No cifrado</string>
     <string name="toast_encrypt_backup_no_password">No se puede cifrar la copia: contraseña maestra no disponible. Desbloquea la app primero.</string>
+
+    <!-- v4.0 Password type -->
+    <string name="password_type_label">Tipo de seguridad</string>
+    <string name="password_type_pin">PIN (solo dígitos)</string>
+    <string name="password_type_password">Contraseña segura</string>
+    <string name="label_setup_pin">Crear PIN</string>
+    <string name="security_pin_type">Modo PIN — código numérico simple</string>
+    <string name="security_password_type">Modo Contraseña — alfanumérico seguro</string>
+
+    <!-- v4.0 Password strength -->
+    <string name="password_strength">Fortaleza de la contraseña</string>
+    <string name="password_weak">Débil</string>
+    <string name="password_medium">Media</string>
+    <string name="password_strong">Fuerte</string>
+    <string name="password_very_strong">Muy fuerte</string>
+    <string name="password_suggestion">Consejo: usa mayúsculas, minúsculas, números y símbolos para una contraseña más segura</string>
+
+    <!-- v4.0 Biometric -->
+    <string name="biometric_not_available">La autenticación biométrica no está disponible en este dispositivo</string>
+    <string name="biometric_enabled">Desbloqueo biométrico activado</string>
+    <string name="biometric_enable_title">Activar desbloqueo biométrico</string>
+    <string name="biometric_enable_subtitle">Autentícate para activar el desbloqueo biométrico en Secure Notes</string>
+    <string name="biometric_unlock_label">Desbloqueo biométrico</string>
+    <string name="biometric_unlock_title">Desbloquear Secure Notes</string>
+    <string name="biometric_unlock_subtitle">Autentícate para desbloquear la aplicación</string>
+    <string name="biometric_unlock_button">Desbloquear con biometría</string>
+    <string name="biometric_enabled_desc">Huella digital o reconocimiento facial activado</string>
+    <string name="biometric_disabled_desc">Usa huella digital o rostro para desbloquear</string>
+    <string name="biometric_key_error">La clave biométrica no es válida. Vuelve a activarla en ajustes.</string>
+
+    <!-- v4.0 Attachment Settings -->
+    <string name="attachment_settings_title">Archivos adjuntos</string>
+    <string name="include_attachments_backup">Incluir archivos adjuntos en la copia de seguridad</string>
+    <string name="include_attachments_backup_desc">Incluir imágenes, dibujos y archivos en tu copia de seguridad</string>
+    <string name="copy_attachments_local">Copiar archivos adjuntos al almacenamiento interno</string>
+    <string name="copy_attachments_local_desc">Guardar automáticamente imágenes externas como archivos locales para que persistan</string>
+
+    <!-- Security improvements -->
+    <string name="auto_lock_title">Bloqueo automático</string>
+    <string name="auto_lock_disabled">Desactivado</string>
+    <string name="auto_lock_timeout_desc">Bloquear tras %1$d minutos de inactividad</string>
+    <string name="auto_lock_off">No</string>
+    <string name="auto_lock_immediately">Inmediatamente</string>
+    <string name="auto_lock_1min">1 minuto</string>
+    <string name="auto_lock_5min">5 minutos</string>
+    <string name="auto_lock_15min">15 minutos</string>
+    <string name="auto_lock_30min">30 minutos</string>
+    <string name="btn_enable">Activar</string>
+    <string name="btn_change">Cambiar</string>
+    <string name="error_rate_limit">Demasiados intentos. Intenta de nuevo en %1$d segundos</string>
+
+    <!-- Screenshot / Recents -->
+    <string name="screenshot_toggle_label">Permitir capturas de pantalla y mostrar en recientes</string>
+    <string name="screenshot_toggle_desc">Al desactivar, se bloquean las capturas y la app se oculta del selector de tareas</string>
+
+    <!-- Change password -->
+    <string name="change_password">Cambiar contraseña maestra</string>
+    <string name="change_password_current">Contraseña actual</string>
+    <string name="change_password_new">Nueva contraseña</string>
+    <string name="change_password_confirm">Confirmar nueva contraseña</string>
+    <string name="change_password_dialog_title">Cambiar contraseña maestra</string>
+    <string name="toast_password_changed">Contraseña maestra cambiada correctamente</string>
+    <string name="toast_wrong_current_password">La contraseña actual es incorrecta</string>
 </resources>

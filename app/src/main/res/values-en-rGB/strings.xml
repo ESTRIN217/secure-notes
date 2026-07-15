@@ -499,4 +499,67 @@
     <string name="backup_e2ee_badge">AES-256 E2E Encrypted</string>
     <string name="backup_e2ee_disabled_badge">Not encrypted</string>
     <string name="toast_encrypt_backup_no_password">Cannot encrypt backup: master password not available. Unlock the app first.</string>
+
+    <!-- v4.0 Password type -->
+    <string name="password_type_label">Security Type</string>
+    <string name="password_type_pin">PIN (digits only)</string>
+    <string name="password_type_password">Strong Password</string>
+    <string name="label_setup_pin">Create PIN</string>
+    <string name="security_pin_type">PIN Mode — simple numeric code</string>
+    <string name="security_password_type">Password Mode — strong alphanumeric</string>
+
+    <!-- v4.0 Password strength -->
+    <string name="password_strength">Password Strength</string>
+    <string name="password_weak">Weak</string>
+    <string name="password_medium">Medium</string>
+    <string name="password_strong">Strong</string>
+    <string name="password_very_strong">Very Strong</string>
+    <string name="password_suggestion">Tip: use uppercase, lowercase, numbers and symbols for a stronger password</string>
+
+    <!-- v4.0 Biometric -->
+    <string name="biometric_not_available">Biometric authentication is not available on this device</string>
+    <string name="biometric_enabled">Biometric unlock enabled</string>
+    <string name="biometric_enable_title">Enable Biometric Unlock</string>
+    <string name="biometric_enable_subtitle">Authenticate to enable biometric unlock for Secure Notes</string>
+    <string name="biometric_unlock_label">Biometric Unlock</string>
+    <string name="biometric_unlock_title">Unlock Secure Notes</string>
+    <string name="biometric_unlock_subtitle">Authenticate to unlock the app</string>
+    <string name="biometric_unlock_button">Unlock with Biometrics</string>
+    <string name="biometric_enabled_desc">Fingerprint or face recognition enabled</string>
+    <string name="biometric_disabled_desc">Use fingerprint or face to unlock</string>
+    <string name="biometric_key_error">Biometric key is invalid. Please re-enable in settings.</string>
+
+    <!-- v4.0 Attachment Settings -->
+    <string name="attachment_settings_title">Attachments</string>
+    <string name="include_attachments_backup">Include attachments in backup</string>
+    <string name="include_attachments_backup_desc">Bundle images, drawings and files with your backup</string>
+    <string name="copy_attachments_local">Copy attachments to internal storage</string>
+    <string name="copy_attachments_local_desc">Automatically save external images as local files so they persist</string>
+
+    <!-- Security improvements -->
+    <string name="auto_lock_title">Auto-lock</string>
+    <string name="auto_lock_disabled">Disabled</string>
+    <string name="auto_lock_timeout_desc">Lock after %1$d minutes of inactivity</string>
+    <string name="auto_lock_off">Off</string>
+    <string name="auto_lock_immediately">Immediately</string>
+    <string name="auto_lock_1min">1 minute</string>
+    <string name="auto_lock_5min">5 minutes</string>
+    <string name="auto_lock_15min">15 minutes</string>
+    <string name="auto_lock_30min">30 minutes</string>
+    <string name="btn_enable">Enable</string>
+    <string name="btn_change">Change</string>
+    <string name="error_rate_limit">Too many attempts. Try again in %1$d seconds</string>
+
+    <!-- Screenshot / Recents -->
+    <string name="screenshot_toggle_label">Allow Screenshots &amp; Show in Recents</string>
+    <string name="screenshot_toggle_desc">When disabled, screenshots are blocked and the app is hidden from the task switcher</string>
+
+    <!-- Change password -->
+    <string name="change_password">Change Master Password</string>
+    <string name="change_password_current">Current Password</string>
+    <string name="change_password_new">New Password</string>
+    <string name="change_password_confirm">Confirm New Password</string>
+    <string name="change_password_dialog_title">Change Master Password</string>
+    <string name="toast_password_changed">Master password changed successfully</string>
+    <string name="toast_wrong_current_password">Current password is incorrect</string>
 </resources>

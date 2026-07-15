@@ -499,4 +499,67 @@
     <string name="backup_e2ee_badge">Criptografado AES-256 E2E</string>
     <string name="backup_e2ee_disabled_badge">Não criptografado</string>
     <string name="toast_encrypt_backup_no_password">Não é possível criptografar o backup: palavra-passe mestra indisponível. Desbloqueie o app primeiro.</string>
+
+    <!-- v4.0 Password type -->
+    <string name="password_type_label">Tipo de segurança</string>
+    <string name="password_type_pin">PIN (apenas dígitos)</string>
+    <string name="password_type_password">Palavra-passe segura</string>
+    <string name="label_setup_pin">Criar PIN</string>
+    <string name="security_pin_type">Modo PIN — código numérico simples</string>
+    <string name="security_password_type">Modo Palavra-passe — alfanumérico seguro</string>
+
+    <!-- v4.0 Password strength -->
+    <string name="password_strength">Força da palavra-passe</string>
+    <string name="password_weak">Fraca</string>
+    <string name="password_medium">Média</string>
+    <string name="password_strong">Forte</string>
+    <string name="password_very_strong">Muito forte</string>
+    <string name="password_suggestion">Dica: use maiúsculas, minúsculas, números e símbolos para uma palavra-passe mais segura</string>
+
+    <!-- v4.0 Biometric -->
+    <string name="biometric_not_available">A autenticação biométrica não está disponível neste dispositivo</string>
+    <string name="biometric_enabled">Desbloqueio biométrico ativado</string>
+    <string name="biometric_enable_title">Ativar desbloqueio biométrico</string>
+    <string name="biometric_enable_subtitle">Autentique-se para ativar o desbloqueio biométrico no Secure Notes</string>
+    <string name="biometric_unlock_label">Desbloqueio biométrico</string>
+    <string name="biometric_unlock_title">Desbloquear Secure Notes</string>
+    <string name="biometric_unlock_subtitle">Autentique-se para desbloquear a aplicação</string>
+    <string name="biometric_unlock_button">Desbloquear com biometria</string>
+    <string name="biometric_enabled_desc">Reconhecimento de impressão digital ou facial ativado</string>
+    <string name="biometric_disabled_desc">Use impressão digital ou rosto para desbloquear</string>
+    <string name="biometric_key_error">A chave biométrica é inválida. Reative-a nas definições.</string>
+
+    <!-- v4.0 Attachment Settings -->
+    <string name="attachment_settings_title">Anexos</string>
+    <string name="include_attachments_backup">Incluir anexos no backup</string>
+    <string name="include_attachments_backup_desc">Incluir imagens, desenhos e ficheiros no seu backup</string>
+    <string name="copy_attachments_local">Copiar anexos para o armazenamento interno</string>
+    <string name="copy_attachments_local_desc">Guardar automaticamente imagens externas como ficheiros locais para que persistam</string>
+
+    <!-- Security improvements -->
+    <string name="auto_lock_title">Bloqueio automático</string>
+    <string name="auto_lock_disabled">Desativado</string>
+    <string name="auto_lock_timeout_desc">Bloquear após %1$d minutos de inatividade</string>
+    <string name="auto_lock_off">Não</string>
+    <string name="auto_lock_immediately">Imediatamente</string>
+    <string name="auto_lock_1min">1 minuto</string>
+    <string name="auto_lock_5min">5 minutos</string>
+    <string name="auto_lock_15min">15 minutos</string>
+    <string name="auto_lock_30min">30 minutos</string>
+    <string name="btn_enable">Ativar</string>
+    <string name="btn_change">Alterar</string>
+    <string name="error_rate_limit">Muitas tentativas. Tente novamente em %1$d segundos</string>
+
+    <!-- Screenshot / Recents -->
+    <string name="screenshot_toggle_label">Permitir capturas de ecrã e mostrar em recentes</string>
+    <string name="screenshot_toggle_desc">Ao desativar, as capturas são bloqueadas e a app fica oculta no seletor de tarefas</string>
+
+    <!-- Change password -->
+    <string name="change_password">Alterar palavra-passe mestre</string>
+    <string name="change_password_current">Palavra-passe atual</string>
+    <string name="change_password_new">Nova palavra-passe</string>
+    <string name="change_password_confirm">Confirmar nova palavra-passe</string>
+    <string name="change_password_dialog_title">Alterar palavra-passe mestre</string>
+    <string name="toast_password_changed">Palavra-passe mestre alterada com sucesso</string>
+    <string name="toast_wrong_current_password">A palavra-passe atual está incorreta</string>
 </resources>
