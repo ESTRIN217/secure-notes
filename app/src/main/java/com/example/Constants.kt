@@ -25,6 +25,7 @@ object AppConstants {
     const val DRIVE_LINKED_KEY = "drive_linked"
     const val DRIVE_ACCESS_TOKEN_KEY = "drive_access_token"
     const val DRIVE_ACCOUNT_EMAIL_KEY = "drive_account_email"
+    const val DRIVE_PROFILE_PICTURE_KEY = "drive_profile_picture"
     const val LAST_SYNC_TIME_KEY = "last_sync_time"
     const val PASSWORD_TYPE_KEY = "password_type"
     const val BIOMETRIC_ENABLED_KEY = "biometric_enabled"
@@ -46,6 +47,8 @@ object AppConstants {
 
     const val AUTO_LOCK_TIMEOUT_KEY = "auto_lock_timeout"
     const val AUTO_LOCK_TIMEOUT_DEFAULT = 5L
+
+    const val TRASH_RETENTION_DAYS = 90L
 
     val SecurityGreen = Color(0xFF43A047)
 }

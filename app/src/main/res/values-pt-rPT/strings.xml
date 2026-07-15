@@ -19,6 +19,10 @@
     <string name="title_tags">Filtrar por Etiquetas</string>
     <string name="status_encrypted">Criptografia de Ponta a Ponta (E2EE)</string>
     <string name="status_empty">Nenhuma nota encontrada. Crie sua primeira nota segura!</string>
+    <string name="status_empty_favorites">Nenhuma nota favorita ainda</string>
+    <string name="status_empty_archived">Nenhuma nota arquivada</string>
+    <string name="status_empty_trash">A reciclagem está vazia</string>
+    <string name="status_empty_trash_subtitle">Notas eliminadas há mais de 90 dias são eliminadas permanentemente</string>
     <string name="label_title">Título</string>
     <string name="label_content">Digite algo…</string>
     <string name="label_tags">Etiquetas</string>
@@ -421,6 +425,7 @@
     <!-- v4.0 contentDescription strings -->
     <string name="cd_secure_notes_logo">Secure Notes Logo</string>
     <string name="cd_empty_notes_banner">Fundo de notas vazias</string>
+    <string name="cd_account_avatar">Avatar da conta</string>
     <string name="cd_play_video">Reproduzir vídeo</string>
     <string name="cd_txt_icon">Ícone TXT</string>
     <string name="cd_markdown_icon">Ícone Markdown</string>

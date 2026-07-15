@@ -47,6 +47,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import com.example.AppConstants
 import com.example.PasswordType
 import com.example.util.BiometricAuthManager
@@ -153,6 +154,8 @@ class NotesViewModel(
         )
     )
     val driveAccessToken = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
+    val driveAccountEmail = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null))
+    val driveProfilePictureUri = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, null))
 
     // Data lists from Room
     override val availableTags: StateFlow<List<Tag>>
@@ -182,6 +185,12 @@ class NotesViewModel(
         viewModelScope.launch {
             noteDao.getAllNotesFlow().first()
             isLoading.value = false
+        }
+
+        // Clean up old trashed notes on startup
+        viewModelScope.launch(Dispatchers.IO) {
+            val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(AppConstants.TRASH_RETENTION_DAYS)
+            noteDao.deleteOldTrashedNotes(cutoff)
         }
 
         // Combine notes processing
@@ -596,12 +605,13 @@ class NotesViewModel(
         isArchived: Boolean,
         categoryId: String?,
         isDeleted: Boolean,
+        deletedAt: Long,
         lastModified: Long,
         salt: String,
         iv: String
     ) {
         viewModelScope.launch {
-            saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived, categoryId, isDeleted, lastModified, salt, iv)
+            saveNoteAndGetId(id, title, content, isEncrypted, tagsList, backgroundColor, backgroundImagePath, isPinned, isFavorite, isArchived, categoryId, isDeleted, deletedAt, lastModified, salt, iv)
         }
     }
 
@@ -618,6 +628,7 @@ class NotesViewModel(
         isArchived: Boolean = false,
         categoryId: String? = null,
         isDeleted: Boolean = false,
+        deletedAt: Long = 0,
         lastModified: Long = System.currentTimeMillis(),
         salt: String = "",
         iv: String = ""
@@ -669,6 +680,7 @@ class NotesViewModel(
                 isFavorite = isFavorite,
                 isPinned = isPinned,
                 isDeleted = if (id != 0) existing?.isDeleted ?: isDeleted else isDeleted,
+                deletedAt = if (id != 0) (existing?.deletedAt ?: deletedAt) else deletedAt,
                 backgroundColor = backgroundColor,
                 backgroundImagePath = backgroundImagePath ?: existing?.backgroundImagePath,
                 categoryId = categoryId ?: existing?.categoryId
@@ -781,7 +793,7 @@ class NotesViewModel(
 
     fun moveToTrash(note: Note) {
         viewModelScope.launch {
-            noteDao.updateNote(note.copy(isDeleted = true, lastModified = System.currentTimeMillis()))
+            noteDao.updateNote(note.copy(isDeleted = true, deletedAt = System.currentTimeMillis(), lastModified = System.currentTimeMillis()))
         }
     }
 
@@ -881,9 +893,11 @@ class NotesViewModel(
 
     // Google Drive Integration
     override fun linkGoogleDrive(token: String, accountEmail: String) {
+        val pictureUri = "https://www.google.com/s2/photos/profile/$accountEmail"
         encryptedPrefs.edit()
             .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
             .putString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, accountEmail)
+            .putString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, pictureUri)
             .apply()
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
@@ -891,6 +905,8 @@ class NotesViewModel(
         
         syncState.update { it.copy(isDriveLinked = true, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_connected)) }
         driveAccessToken.value = token
+        driveAccountEmail.value = accountEmail
+        driveProfilePictureUri.value = pictureUri
         if (autoBackupEnabled.value) schedulePeriodicSync()
     }
 
@@ -898,6 +914,7 @@ class NotesViewModel(
         encryptedPrefs.edit()
             .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
             .remove(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY)
+            .remove(AppConstants.DRIVE_PROFILE_PICTURE_KEY)
             .apply()
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, false)
@@ -905,6 +922,8 @@ class NotesViewModel(
         
         syncState.update { it.copy(isDriveLinked = false, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_disconnected)) }
         driveAccessToken.value = ""
+        driveAccountEmail.value = null
+        driveProfilePictureUri.value = null
         cancelPeriodicSync()
     }
 
@@ -1215,6 +1234,7 @@ class NotesViewModel(
                     isFavorite = noteObj.optBoolean("isFavorite", false),
                     isPinned = noteObj.optBoolean("isPinned", false),
                     isDeleted = noteObj.optBoolean("isDeleted", false),
+                    deletedAt = noteObj.optLong("deletedAt", 0),
                     backgroundColor = if (noteObj.has("backgroundColor") && !noteObj.isNull("backgroundColor")) noteObj.optInt("backgroundColor") else null,
                     backgroundImagePath = noteObj.optString("backgroundImagePath", "").ifEmpty { null },
                     categoryId = noteObj.optString("categoryId", "").ifEmpty { null }

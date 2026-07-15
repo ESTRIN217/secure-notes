@@ -21,4 +21,7 @@ interface NoteDao {
     @Delete
     suspend fun deleteNote(note: Note)
 
+    @Query("DELETE FROM notes WHERE isDeleted = 1 AND deletedAt > 0 AND deletedAt < :cutoff")
+    suspend fun deleteOldTrashedNotes(cutoff: Long)
+
 }

@@ -269,6 +269,7 @@ class BackupViewModel(
                 isArchived = noteObj.optBoolean("isArchived", false),
                 categoryId = noteObj.optString("categoryId", "").ifEmpty { null },
                 isDeleted = noteObj.optBoolean("isDeleted", false),
+                deletedAt = noteObj.optLong("deletedAt", 0),
                 lastModified = backupModified,
                 salt = noteObj.optString("salt", ""),
                 iv = noteObj.optString("iv", "")

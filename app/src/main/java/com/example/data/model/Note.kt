@@ -21,7 +21,8 @@ data class Note(
     val isFavorite: Boolean = false,
     val categoryId: String? = null,
     val isPinned: Boolean = false,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val deletedAt: Long = 0
 )
 
 fun Note.parseTags(): List<String> {
@@ -46,6 +47,7 @@ fun Note.toJson(): JSONObject = JSONObject().apply {
     put("isFavorite", isFavorite)
     put("isPinned", isPinned)
     put("isDeleted", isDeleted)
+    put("deletedAt", deletedAt)
     put("backgroundColor", backgroundColor)
     put("backgroundImagePath", backgroundImagePath ?: "")
     put("categoryId", categoryId)

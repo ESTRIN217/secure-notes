@@ -19,6 +19,10 @@
     <string name="title_tags">Filtrar por Etiquetas</string>
     <string name="status_encrypted">Cifrado de Extremo a Extremo (E2EE)</string>
     <string name="status_empty">No se encontraron notas. ¡Crea tu primera nota segura!</string>
+    <string name="status_empty_favorites">No hay notas favoritas aún</string>
+    <string name="status_empty_archived">No hay notas archivadas</string>
+    <string name="status_empty_trash">La papelera está vacía</string>
+    <string name="status_empty_trash_subtitle">Las notas eliminadas hace más de 90 días se eliminan permanentemente</string>
     <string name="label_title">Título</string>
     <string name="label_content">Escribe algo aquí…</string>
     <string name="label_tags">Etiquetas</string>
@@ -421,6 +425,7 @@
     <!-- v4.0 contentDescription strings -->
     <string name="cd_secure_notes_logo">Secure Notes Logo</string>
     <string name="cd_empty_notes_banner">Fondo de pantalla de notas vacías</string>
+    <string name="cd_account_avatar">Avatar de la cuenta</string>
     <string name="cd_play_video">Reproducir video</string>
     <string name="cd_txt_icon">Icono TXT</string>
     <string name="cd_markdown_icon">Icono Markdown</string>

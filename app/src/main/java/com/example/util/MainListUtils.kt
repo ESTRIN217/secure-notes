@@ -71,7 +71,7 @@ fun Modifier.fillPackageNameOrScope(): Modifier = this.fillMaxWidth()
 
 fun borderStrokeHelper(isSelected: Boolean, activeColor: Color): BorderStroke {
     return if (isSelected) {
-        BorderStroke(2.dp, activeColor)
+        BorderStroke(3.dp, activeColor)
     } else {
         BorderStroke(1.dp, Color.Gray.copy(alpha = 0.5f))
     }

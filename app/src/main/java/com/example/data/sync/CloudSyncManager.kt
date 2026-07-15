@@ -28,6 +28,7 @@ interface CloudSyncManager {
         isArchived: Boolean = false,
         categoryId: String? = null,
         isDeleted: Boolean = false,
+        deletedAt: Long = 0,
         lastModified: Long = System.currentTimeMillis(),
         salt: String = "",
         iv: String = ""

@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CustomTopBar(
     modifier: Modifier = Modifier,
-    borderStroke: BorderStroke = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+    borderStroke: BorderStroke = BorderStroke(3.dp, MaterialTheme.colorScheme.primary),
     containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable () -> Unit
 ) {

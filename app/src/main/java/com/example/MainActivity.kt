@@ -129,6 +129,13 @@ import com.example.ui.NoteCardItem
 import com.example.ui.SortOptionRow
 
 class MainActivity : ComponentActivity() {
+    private var notesViewModel: NotesViewModel? = null
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        notesViewModel?.resetAutoLockTimer()
+    }
+
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
         val lang = prefs.getString(AppConstants.LANGUAGE_KEY, "") ?: ""
@@ -166,6 +173,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             )
+            notesViewModel = viewModel
             val themeViewModel: ThemeViewModel = viewModel(
                 factory = object : androidx.lifecycle.ViewModelProvider.Factory {
                     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
@@ -286,7 +294,9 @@ fun NavigationRailContent(
     onSectionSelected: (com.example.data.model.NavigationSection) -> Unit,
     isExtended: Boolean,
     onToggleExtend: () -> Unit,
-    widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact
+    widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
+    onCreateTag: () -> Unit = {},
+    onManageTags: () -> Unit = {}
 ) {
     val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
 
@@ -356,7 +366,8 @@ fun NavigationRailContent(
             Column(
                 modifier = Modifier
                     .fillPackageNameOrScope()
-                    .weight(1f),
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -377,7 +388,7 @@ fun NavigationRailContent(
                             }
                         ),
                         border = if (isSelected) {
-                            BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
                         } else {
                             null
                         },
@@ -417,6 +428,69 @@ fun NavigationRailContent(
                     }
                 }
             }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            if (isExtended) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCreateTag,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddCircle,
+                            contentDescription = stringResource(R.string.create_tag),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.create_tag), fontSize = 11.sp)
+                    }
+                    OutlinedButton(
+                        onClick = onManageTags,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.manage_tags),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.manage_tags), fontSize = 11.sp)
+                    }
+                }
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(onClick = onCreateTag) {
+                        Icon(
+                            imageVector = Icons.Default.AddCircle,
+                            contentDescription = stringResource(R.string.create_tag),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(onClick = onManageTags) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.manage_tags),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

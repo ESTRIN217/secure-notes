@@ -19,6 +19,10 @@
     <string name="title_tags">Filter by Tags</string>
     <string name="status_encrypted">Encrypted (E2EE)</string>
     <string name="status_empty">No notes found. Create your first secure note!</string>
+    <string name="status_empty_favorites">No favourite notes yet</string>
+    <string name="status_empty_archived">No archived notes</string>
+    <string name="status_empty_trash">Trash is empty</string>
+    <string name="status_empty_trash_subtitle">Notes deleted more than 90 days ago are permanently deleted</string>
     <string name="label_title">Title</string>
     <string name="label_content">Type something…</string>
     <string name="label_tags">Tags</string>
@@ -421,6 +425,7 @@
     <!-- v4.0 contentDescription strings -->
     <string name="cd_secure_notes_logo">Secure Notes Logo</string>
     <string name="cd_empty_notes_banner">Empty notes background banner</string>
+    <string name="cd_account_avatar">Account avatar</string>
     <string name="cd_play_video">Play Video</string>
     <string name="cd_txt_icon">TXT Icon</string>
     <string name="cd_markdown_icon">Markdown Icon</string>

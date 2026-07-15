@@ -52,6 +52,9 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImagePainter
+import coil.request.ImageRequest
 import com.example.AppConstants
 import com.example.NavigationRailContent
 import com.example.R
@@ -171,6 +174,7 @@ fun MainListScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showBatchTagDialog by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
+    var showEmptyTrashAlert by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -196,7 +200,9 @@ fun MainListScreen(
                         },
                         isExtended = true,
                         onToggleExtend = {},
-                        widthClass = widthClass
+                        widthClass = widthClass,
+                        onCreateTag = { showCreateTagDialog = true },
+                        onManageTags = { showManageTagsDialog = true }
                     )
                 }
             }
@@ -217,7 +223,9 @@ fun MainListScreen(
                     },
                     isExtended = isNavExtended,
                     onToggleExtend = { isNavExtended = !isNavExtended },
-                    widthClass = widthClass
+                    widthClass = widthClass,
+                    onCreateTag = { showCreateTagDialog = true },
+                    onManageTags = { showManageTagsDialog = true }
                 )
 
                 // Custom division line
@@ -351,118 +359,189 @@ fun MainListScreen(
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            IconButton(
-                                                onClick = {
-                                                    if (isLargeScreen) {
-                                                        isNavExtended = !isNavExtended
-                                                    } else {
-                                                        scope.launch { drawerState.open() }
-                                                    }
-                                                },
-                                                modifier = Modifier.testTag("toggle_rail_btn")
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
-                                                    contentDescription = stringResource(R.string.toggle_navigation_rail)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Column {
+                                        IconButton(
+                                            onClick = {
+                                                if (isLargeScreen) {
+                                                    isNavExtended = !isNavExtended
+                                                } else {
+                                                    scope.launch { drawerState.open() }
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("toggle_rail_btn")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
+                                                contentDescription = stringResource(R.string.toggle_navigation_rail)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                        when (currentSection) {
+                                            com.example.data.model.NavigationSection.TRASH -> {
                                                 Text(
-                                                    text = when (currentSection) {
-                                                        com.example.data.model.NavigationSection.HOME -> stringResource(id = R.string.app_name)
-                                                        com.example.data.model.NavigationSection.FAVORITES -> stringResource(id = R.string.nav_favorites_title)
-                                                        com.example.data.model.NavigationSection.ARCHIVED -> stringResource(id = R.string.nav_archived_title)
-                                                        com.example.data.model.NavigationSection.TRASH -> stringResource(id = R.string.nav_trash_title)
-                                                        else -> stringResource(id = R.string.app_name)
-                                                    },
+                                                    text = stringResource(id = R.string.nav_trash_title),
                                                     fontSize = 20.sp,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                if (notes.isNotEmpty()) {
+                                                    OutlinedButton(
+                                                        onClick = { showEmptyTrashAlert = true },
+                                                        colors = ButtonDefaults.outlinedButtonColors(
+                                                            contentColor = MaterialTheme.colorScheme.error
+                                                        ),
+                                                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                                                        modifier = Modifier.testTag("empty_trash_btn")
+                                                    ) {
+                                                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(stringResource(id = R.string.action_empty_trash), fontSize = 12.sp)
+                                                    }
+                                                }
+                                            }
+                                            com.example.data.model.NavigationSection.ARCHIVED -> {
+                                                Text(
+                                                    text = stringResource(id = R.string.nav_archived_title),
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                IconButton(
+                                                    onClick = onNavigateToSearch,
+                                                    modifier = Modifier.testTag("archived_search_btn")
+                                                ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Shield,
-                                                        contentDescription = stringResource(R.string.security_active),
-                                                        tint = Color(0xFF43A047),
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = stringResource(R.string.e2ee_active),
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF43A047)
+                                                        imageVector = Icons.Default.Search,
+                                                        contentDescription = stringResource(R.string.search_icon),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
-                                        }
-                                        if (currentSection != com.example.data.model.NavigationSection.ARCHIVED &&
-                                            currentSection != com.example.data.model.NavigationSection.TRASH
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                            IconButton(
-                                                onClick = {
-                                                    isGridView = !isGridView
-                                                    prefs.edit().putBoolean("is_grid_view", isGridView).apply()
-                                                },
-                                                modifier = Modifier.testTag("toggle_view_mode_btn")
-                                            ) {
-                                                Icon(
-                                                    imageVector = if (isGridView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.GridView,
-                                                    contentDescription = stringResource(id = R.string.menu_toggle_view),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                            else -> {
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .testTag("search_field"),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                                                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.outlineVariant)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .padding(horizontal = 4.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        IconButton(
+                                                            onClick = onNavigateToSearch,
+                                                            modifier = Modifier.testTag("search_icon_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Search,
+                                                                contentDescription = stringResource(R.string.search_icon),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        Text(
+                                                            text = stringResource(id = R.string.search_placeholder),
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .clickable { onNavigateToSearch() },
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                        )
+                                                        IconButton(
+                                                            onClick = {
+                                                                isGridView = !isGridView
+                                                                prefs.edit().putBoolean("is_grid_view", isGridView).apply()
+                                                            },
+                                                            modifier = Modifier.testTag("toggle_view_mode_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = if (isGridView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.GridView,
+                                                                contentDescription = stringResource(id = R.string.menu_toggle_view),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        IconButton(
+                                                            onClick = { showSortBottomSheet = true },
+                                                            modifier = Modifier.testTag("sort_options_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                                                contentDescription = stringResource(id = R.string.menu_sort_options),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
+                                        }
 
-                                            IconButton(
-                                                onClick = { showSortBottomSheet = true },
-                                                modifier = Modifier.testTag("sort_options_btn")
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                                                    contentDescription = stringResource(id = R.string.menu_sort_options),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                        val accountEmail by viewModel.driveAccountEmail.collectAsState()
+                                        val profilePictureUri by viewModel.driveProfilePictureUri.collectAsState()
+                                        if (accountEmail != null) {
+                                            val email = accountEmail!!
+                                            val context = LocalContext.current
+                                            val imageRequest = remember(profilePictureUri) {
+                                                ImageRequest.Builder(context)
+                                                    .data(profilePictureUri)
+                                                    .crossfade(true)
+                                                    .build()
                                             }
-                                        }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp)
-                                            .testTag("search_field")
-                                            .clickable { onNavigateToSearch() },
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-                                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(horizontal = 14.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Search,
-                                                contentDescription = stringResource(R.string.search_icon),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Text(
-                                                text = stringResource(id = R.string.search_placeholder),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                modifier = Modifier.weight(1f)
-                                            )
+                                            val profilePainter = rememberAsyncImagePainter(model = imageRequest)
+                                            val imageState = profilePainter.state
+                                            Surface(
+                                                onClick = onNavigateToBackupRestore,
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    when (imageState) {
+                                                        is AsyncImagePainter.State.Success -> {
+                                                            Image(
+                                                                painter = profilePainter,
+                                                                contentDescription = stringResource(R.string.cd_account_avatar),
+                                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                                contentScale = ContentScale.Crop
+                                                            )
+                                                        }
+                                                        else -> {
+                                                            Text(
+                                                                text = email.first().uppercase(),
+                                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 16.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            Surface(
+                                                onClick = onNavigateToBackupRestore,
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.AccountCircle,
+                                                        contentDescription = stringResource(R.string.cd_account_avatar),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -547,95 +626,10 @@ fun MainListScreen(
                                     }
                                 }
 
-                                IconButton(onClick = { showCreateTagDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.AddCircle,
-                                        contentDescription = stringResource(R.string.create_tag),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                IconButton(onClick = { showManageTagsDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Settings,
-                                        contentDescription = stringResource(R.string.manage_tags),
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
                             }
                         }
 
-                        // Banner to empty trash
-                        if (currentSection == com.example.data.model.NavigationSection.TRASH && notes.isNotEmpty()) {
-                            var showEmptyTrashAlert by remember { mutableStateOf(false) }
 
-                            if (showEmptyTrashAlert) {
-                                AlertDialog(
-                                    onDismissRequest = { showEmptyTrashAlert = false },
-                                    title = { Text(stringResource(id = R.string.action_empty_trash)) },
-                                    text = { Text(stringResource(id = R.string.alert_empty_trash_msg)) },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                notes.forEach { viewModel.deletePermanently(it.note) }
-                                                showEmptyTrashAlert = false
-                                                selectedNoteIds = emptySet()
-                                            },
-                                            modifier = Modifier.testTag("confirm_empty_trash_ok")
-                                        ) {
-                                            Text(stringResource(id = R.string.action_delete_perm), color = MaterialTheme.colorScheme.error)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showEmptyTrashAlert = false }) {
-                                            Text(stringResource(id = R.string.btn_cancel))
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                            }
-
-                            OutlinedCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .border(1.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
-                                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f)),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = stringResource(id = R.string.nav_trash_title),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.error
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.deleted_notes_info),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { showEmptyTrashAlert = true },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        modifier = Modifier.testTag("empty_trash_btn")
-                                    ) {
-                                        Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.empty_trash), modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(id = R.string.action_empty_trash), fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
 
                         // Notes grid/list scrollarea
                         if (isLoading) {
@@ -648,28 +642,134 @@ fun MainListScreen(
                                     .padding(24.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.img_notes_empty),
-                                        contentDescription = stringResource(id = R.string.cd_empty_notes_banner),
-                                        modifier = Modifier
-                                            .size(180.dp)
-                                            .clip(RoundedCornerShape(24.dp))
-                                            .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                    Text(
-                                        text = stringResource(id = R.string.status_empty),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(horizontal = 16.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
+                                when (currentSection) {
+                                    com.example.data.model.NavigationSection.FAVORITES -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(24.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                                border = BorderStroke(3.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                modifier = Modifier.size(180.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.FavoriteBorder,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        modifier = Modifier.size(80.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(24.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.status_empty_favorites),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                    com.example.data.model.NavigationSection.ARCHIVED -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(24.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                                border = BorderStroke(3.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                modifier = Modifier.size(180.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Archive,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        modifier = Modifier.size(80.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(24.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.status_empty_archived),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                    com.example.data.model.NavigationSection.TRASH -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(24.dp),
+                                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                                border = BorderStroke(3.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                                                modifier = Modifier.size(180.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DeleteSweep,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                                                        modifier = Modifier.size(80.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(24.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.status_empty_trash),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.status_empty_trash_subtitle),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Normal,
+                                                modifier = Modifier.padding(horizontal = 32.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                    else -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.img_notes_empty),
+                                                contentDescription = stringResource(id = R.string.cd_empty_notes_banner),
+                                                modifier = Modifier
+                                                    .size(180.dp)
+                                                    .clip(RoundedCornerShape(24.dp))
+                                                    .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.height(24.dp))
+                                            Text(
+                                                text = stringResource(id = R.string.status_empty),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         } else {
@@ -961,6 +1061,32 @@ fun MainListScreen(
         ShareFormatSheet(
             selectedNotes = selectedNotesList,
             onDismiss = { showShareSheet = false }
+        )
+    }
+
+    if (showEmptyTrashAlert) {
+        AlertDialog(
+            onDismissRequest = { showEmptyTrashAlert = false },
+            title = { Text(stringResource(id = R.string.action_empty_trash)) },
+            text = { Text(stringResource(id = R.string.alert_empty_trash_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        notes.forEach { viewModel.deletePermanently(it.note) }
+                        showEmptyTrashAlert = false
+                        selectedNoteIds = emptySet()
+                    },
+                    modifier = Modifier.testTag("confirm_empty_trash_ok")
+                ) {
+                    Text(stringResource(id = R.string.action_delete_perm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEmptyTrashAlert = false }) {
+                    Text(stringResource(id = R.string.btn_cancel))
+                }
+            },
+            shape = RoundedCornerShape(12.dp)
         )
     }
 
