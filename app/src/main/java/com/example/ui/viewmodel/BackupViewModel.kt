@@ -20,6 +20,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.example.data.model.toJson
 import com.example.data.sync.CloudSyncManager
+import com.example.util.BackupAttachmentHelper
 
 data class BackupUiState(
     val isDriveLinked: Boolean = false,
@@ -33,7 +34,9 @@ data class BackupUiState(
     val autoBackupEnabled: Boolean = false,
     val autoBackupInterval: String = "6h",
     val lastBackupSizeLocal: Long = 0L,
-    val lastBackupSizeCloud: Long = 0L
+    val lastBackupSizeCloud: Long = 0L,
+    val driveAccountEmail: String? = null,
+    val driveProfilePictureUri: String? = null
 )
 
 class BackupViewModel(
@@ -105,6 +108,16 @@ class BackupViewModel(
                 _uiState.update { it.copy(lastBackupSizeCloud = v) }
             }
         }
+        viewModelScope.launch {
+            cloudSyncManager.driveAccountEmail.collect { v ->
+                _uiState.update { it.copy(driveAccountEmail = v) }
+            }
+        }
+        viewModelScope.launch {
+            cloudSyncManager.driveProfilePictureUri.collect { v ->
+                _uiState.update { it.copy(driveProfilePictureUri = v) }
+            }
+        }
     }
 
     fun clearSnackbar() {
@@ -115,8 +128,8 @@ class BackupViewModel(
         _snackbarMessage.value = message
     }
 
-    fun linkGoogleDrive(token: String, accountEmail: String = "") {
-        cloudSyncManager.linkGoogleDrive(token, accountEmail)
+    fun linkGoogleDrive(token: String, accountEmail: String = "", pictureUri: String = "") {
+        cloudSyncManager.linkGoogleDrive(token, accountEmail, pictureUri)
     }
 
     fun unlinkDrive() {
@@ -173,6 +186,13 @@ class BackupViewModel(
             put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
             put(AppConstants.INCLUDE_ATTACHMENTS_KEY, sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
             put(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
+            put(AppConstants.PASSWORD_TYPE_KEY, sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, com.example.PasswordType.PASSWORD.name))
+            put(AppConstants.BIOMETRIC_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
+            put(AppConstants.SCREENSHOT_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
+            put(AppConstants.AUTO_LOCK_TIMEOUT_KEY, sharedPrefs.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, AppConstants.AUTO_LOCK_TIMEOUT_DEFAULT))
+            put(AppConstants.ENCRYPT_BACKUPS_KEY, sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, false))
+            put(AppConstants.AUTO_BACKUP_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, false))
+            put(AppConstants.AUTO_BACKUP_INTERVAL_KEY, sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
         }
 
         val innerJson = JSONObject().apply {
@@ -302,6 +322,20 @@ class BackupViewModel(
                 editor.putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, settings.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY))
             if (settings.has(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
                 editor.putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, settings.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
+            if (settings.has(AppConstants.PASSWORD_TYPE_KEY))
+                editor.putString(AppConstants.PASSWORD_TYPE_KEY, settings.getString(AppConstants.PASSWORD_TYPE_KEY))
+            if (settings.has(AppConstants.BIOMETRIC_ENABLED_KEY))
+                editor.putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, settings.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY))
+            if (settings.has(AppConstants.SCREENSHOT_ENABLED_KEY))
+                editor.putBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, settings.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY))
+            if (settings.has(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
+                editor.putLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, settings.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
+            if (settings.has(AppConstants.ENCRYPT_BACKUPS_KEY))
+                editor.putBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, settings.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY))
+            if (settings.has(AppConstants.AUTO_BACKUP_ENABLED_KEY))
+                editor.putBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, settings.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY))
+            if (settings.has(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
+                editor.putString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, settings.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
             editor.apply()
         }
     }
@@ -309,9 +343,52 @@ class BackupViewModel(
     fun restoreFromUri(uri: Uri, context: Context) {
         viewModelScope.launch {
             try {
-                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
-                restoreFromJson(json)
-                _snackbarMessage.value = context.getString(R.string.toast_import_backup_success)
+                val inputStream = context.contentResolver.openInputStream(uri) ?: return@launch
+                val bytes = inputStream.use { it.readBytes() }
+
+                if (BackupAttachmentHelper.isZipBytes(bytes)) {
+                    val tempDir = java.io.File(context.cacheDir, "restore_${System.currentTimeMillis()}")
+                    tempDir.mkdirs()
+                    try {
+                        val json = BackupAttachmentHelper.extractBackupZip(bytes, tempDir, context)
+                        if (json == null) {
+                            _snackbarMessage.value = context.getString(R.string.toast_import_backup_error)
+                            return@launch
+                        }
+
+                        // Copy attachments to persistent location
+                        val restoreDir = java.io.File(context.filesDir, "restored_attachments")
+                        restoreDir.mkdirs()
+                        val attachmentsDir = java.io.File(tempDir, "attachments")
+                        if (attachmentsDir.exists()) {
+                            attachmentsDir.copyRecursively(restoreDir, overwrite = true)
+                        }
+
+                        // Rewrite attachment paths in notes before restoring
+                        val notesArr = json.optJSONArray("notes") ?: org.json.JSONArray()
+                        for (i in 0 until notesArr.length()) {
+                            val noteObj = notesArr.getJSONObject(i)
+                            val content = noteObj.optString("content", "")
+                            val rewrittenContent = BackupAttachmentHelper.rewriteRestoredPaths(content, restoreDir)
+                            noteObj.put("content", rewrittenContent)
+
+                            val bgPath = noteObj.optString("backgroundImagePath", "")
+                            if (bgPath.isNotEmpty()) {
+                                val rewrittenBg = BackupAttachmentHelper.rewriteRestoredPaths(bgPath, restoreDir)
+                                noteObj.put("backgroundImagePath", rewrittenBg)
+                            }
+                        }
+
+                        restoreFromJson(json.toString())
+                        _snackbarMessage.value = context.getString(R.string.toast_import_backup_success)
+                    } finally {
+                        tempDir.deleteRecursively()
+                    }
+                } else {
+                    val json = bytes.toString(Charsets.UTF_8)
+                    restoreFromJson(json)
+                    _snackbarMessage.value = context.getString(R.string.toast_import_backup_success)
+                }
             } catch (e: Exception) {
                 _snackbarMessage.value = context.getString(R.string.toast_import_backup_error)
             }

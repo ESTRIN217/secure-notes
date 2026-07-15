@@ -25,7 +25,8 @@ object BackupAttachmentHelper {
         content: String,
         backgroundImagePath: String?,
         context: Context,
-        tempAttachmentsDir: File
+        tempAttachmentsDir: File,
+        warnings: MutableList<String>? = null
     ): Map<String, String> {
         val pathMap = mutableMapOf<String, String>()
         if (!tempAttachmentsDir.exists()) tempAttachmentsDir.mkdirs()
@@ -35,13 +36,14 @@ object BackupAttachmentHelper {
         uriPattern.findAll(content).forEach { match ->
             val uriStr = match.groupValues[1]
             if (uriStr.isNotEmpty() && !pathMap.containsKey(uriStr)) {
-                copyToAttachmentDir(uriStr, context, tempAttachmentsDir)?.let { relPath ->
+                copyToAttachmentDir(uriStr, context, tempAttachmentsDir, warnings)?.let { relPath ->
                     pathMap[uriStr] = relPath
                 }
             }
         }
 
         // Scan for ---Attachments--- section paths
+        // Also copy the "name" field (PNG preview for drawings, display file for others)
         val delimiter = "\n\n---Attachments---\n"
         if (content.contains(delimiter)) {
             try {
@@ -52,9 +54,13 @@ object BackupAttachmentHelper {
                     val obj = arr.getJSONObject(i)
                     val path = obj.optString("path", "")
                     if (path.isNotEmpty() && !pathMap.containsKey(path)) {
-                        copyToAttachmentDir(path, context, tempAttachmentsDir)?.let { relPath ->
+                        copyToAttachmentDir(path, context, tempAttachmentsDir, warnings)?.let { relPath ->
                             pathMap[path] = relPath
                         }
+                    }
+                    val name = obj.optString("name", "")
+                    if (name.isNotEmpty() && name != path && !pathMap.containsKey(name)) {
+                        copyToAttachmentDir(name, context, tempAttachmentsDir, warnings)
                     }
                 }
             } catch (e: Exception) {
@@ -64,7 +70,7 @@ object BackupAttachmentHelper {
 
         // Background image
         if (!backgroundImagePath.isNullOrEmpty() && !pathMap.containsKey(backgroundImagePath)) {
-            copyToAttachmentDir(backgroundImagePath, context, tempAttachmentsDir)?.let { relPath ->
+            copyToAttachmentDir(backgroundImagePath, context, tempAttachmentsDir, warnings)?.let { relPath ->
                 pathMap[backgroundImagePath] = relPath
             }
         }
@@ -75,7 +81,8 @@ object BackupAttachmentHelper {
     private fun copyToAttachmentDir(
         uriStr: String,
         context: Context,
-        tempAttachmentsDir: File
+        tempAttachmentsDir: File,
+        warnings: MutableList<String>? = null
     ): String? {
         return try {
             val uri = Uri.parse(uriStr)
@@ -87,6 +94,9 @@ object BackupAttachmentHelper {
                     FileOutputStream(destFile).use { output ->
                         input.copyTo(output)
                     }
+                } ?: run {
+                    warnings?.add("Could not read content URI: $uriStr")
+                    return null
                 }
             } else {
                 // Absolute file path
@@ -99,12 +109,14 @@ object BackupAttachmentHelper {
                     }
                 } else {
                     Log.w(TAG, "File not found: $uriStr")
+                    warnings?.add("File not found: $uriStr")
                     return null
                 }
             }
             "$ATTACHMENTS_DIR/$fileName"
         } catch (e: Exception) {
             Log.w(TAG, "Failed to copy attachment: $uriStr", e)
+            warnings?.add("Failed to copy: $uriStr (${e.localizedMessage})")
             null
         }
     }

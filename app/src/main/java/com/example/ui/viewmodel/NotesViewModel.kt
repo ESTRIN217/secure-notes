@@ -24,6 +24,7 @@ import com.example.data.model.sectionFilters
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.data.security.KeyDerivation
 import com.example.data.sync.CloudSyncManager
 import com.example.data.sync.SyncService
 import com.example.data.sync.SyncWorker
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -154,8 +156,8 @@ class NotesViewModel(
         )
     )
     val driveAccessToken = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, "") ?: "")
-    val driveAccountEmail = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null))
-    val driveProfilePictureUri = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, null))
+    override val driveAccountEmail = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null))
+    override val driveProfilePictureUri = MutableStateFlow(encryptedPrefs.getString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, null))
 
     // Data lists from Room
     override val availableTags: StateFlow<List<Tag>>
@@ -217,7 +219,7 @@ class NotesViewModel(
 
                 matchesQuery && matchesTag
             }
-        }.stateIn(
+        }.flowOn(Dispatchers.IO).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
@@ -230,7 +232,7 @@ class NotesViewModel(
             notes.map { decryptNote(it, password) }.filter { decryptedNote ->
                 !decryptedNote.note.isDeleted
             }
-        }.stateIn(
+        }.flowOn(Dispatchers.IO).stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyList()
@@ -338,6 +340,7 @@ class NotesViewModel(
             masterPassword.value = null
             isUnlocked.value = false
             clearCachedPassword()
+            KeyDerivation.clearCache()
             autoLockJob?.cancel()
             autoLockJob = null
         }
@@ -368,7 +371,7 @@ class NotesViewModel(
         
         // Convert all currently encrypted notes back to plain text if unlocked,
         // or just clean up master pass
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val password = masterPassword.value ?: ""
             if (password.isNotEmpty()) {
                 rawNotes.value.forEach { note ->
@@ -892,12 +895,12 @@ class NotesViewModel(
     }
 
     // Google Drive Integration
-    override fun linkGoogleDrive(token: String, accountEmail: String) {
-        val pictureUri = "https://www.google.com/s2/photos/profile/$accountEmail"
+    override fun linkGoogleDrive(token: String, accountEmail: String, pictureUri: String) {
+        val uri = pictureUri.ifEmpty { "https://www.google.com/s2/photos/profile/$accountEmail" }
         encryptedPrefs.edit()
             .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
             .putString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, accountEmail)
-            .putString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, pictureUri)
+            .putString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, uri)
             .apply()
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
@@ -906,7 +909,7 @@ class NotesViewModel(
         syncState.update { it.copy(isDriveLinked = true, syncStatusMessage = getApplication<Application>().getString(R.string.toast_drive_connected)) }
         driveAccessToken.value = token
         driveAccountEmail.value = accountEmail
-        driveProfilePictureUri.value = pictureUri
+        driveProfilePictureUri.value = uri
         if (autoBackupEnabled.value) schedulePeriodicSync()
     }
 
@@ -998,6 +1001,13 @@ class NotesViewModel(
                     put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
                     put(AppConstants.INCLUDE_ATTACHMENTS_KEY, sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
                     put(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
+                    put(AppConstants.PASSWORD_TYPE_KEY, sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, com.example.PasswordType.PASSWORD.name))
+                    put(AppConstants.BIOMETRIC_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
+                    put(AppConstants.SCREENSHOT_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
+                    put(AppConstants.AUTO_LOCK_TIMEOUT_KEY, sharedPrefs.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, AppConstants.AUTO_LOCK_TIMEOUT_DEFAULT))
+                    put(AppConstants.ENCRYPT_BACKUPS_KEY, sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, false))
+                    put(AppConstants.AUTO_BACKUP_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, false))
+                    put(AppConstants.AUTO_BACKUP_INTERVAL_KEY, sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
                 }
 
                 val syncPayload = JSONObject().apply {
@@ -1276,6 +1286,20 @@ class NotesViewModel(
                 editor.putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, settings.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY))
             if (settings.has(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
                 editor.putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, settings.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
+            if (settings.has(AppConstants.PASSWORD_TYPE_KEY))
+                editor.putString(AppConstants.PASSWORD_TYPE_KEY, settings.getString(AppConstants.PASSWORD_TYPE_KEY))
+            if (settings.has(AppConstants.BIOMETRIC_ENABLED_KEY))
+                editor.putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, settings.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY))
+            if (settings.has(AppConstants.SCREENSHOT_ENABLED_KEY))
+                editor.putBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, settings.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY))
+            if (settings.has(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
+                editor.putLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, settings.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
+            if (settings.has(AppConstants.ENCRYPT_BACKUPS_KEY))
+                editor.putBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, settings.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY))
+            if (settings.has(AppConstants.AUTO_BACKUP_ENABLED_KEY))
+                editor.putBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, settings.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY))
+            if (settings.has(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
+                editor.putString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, settings.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
             editor.apply()
         }
 

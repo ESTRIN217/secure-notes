@@ -419,6 +419,7 @@
     <string name="toast_export_backup_error">Error exporting backup</string>
     <string name="toast_import_backup_success">Backup imported successfully!</string>
     <string name="toast_import_backup_error">Error importing backup</string>
+    <string name="backup_attachments_warnings">Backup completed with %d attachment warnings</string>
     <string name="toast_language_changed">Language changed</string>
     <string name="cancel">Cancel</string>
 

@@ -39,6 +39,10 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.util.BackupAttachmentHelper
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -76,6 +80,7 @@ fun BackupRestoreScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential
                         .createFrom(credential.data)
                     val accountEmail = googleIdTokenCredential.id
+                    val pictureUri = googleIdTokenCredential.profilePictureUri?.toString() ?: ""
                     withContext(Dispatchers.IO) {
                         val token = GoogleAuthUtil.getToken(
                             context,
@@ -83,7 +88,7 @@ fun BackupRestoreScreen(
                             "oauth2:https://www.googleapis.com/auth/drive.appdata"
                         )
                         withContext(Dispatchers.Main) {
-                            viewModel.linkGoogleDrive(token, accountEmail)
+                            viewModel.linkGoogleDrive(token, accountEmail, pictureUri)
                         }
                     }
                 }
@@ -97,7 +102,7 @@ fun BackupRestoreScreen(
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let { viewModel.restoreFromUri(it, context) }
     }
@@ -143,6 +148,8 @@ fun BackupRestoreScreen(
                         syncStage = uiState.syncStage,
                         isEncrypted = uiState.isPasswordSet && uiState.encryptBackups,
                         backupSize = uiState.lastBackupSizeCloud,
+                        accountEmail = uiState.driveAccountEmail,
+                        profilePictureUri = uiState.driveProfilePictureUri,
                         onBackupCloud = { viewModel.backupToCloud() },
                         onRestoreCloud = { viewModel.restoreFromCloud() },
                         onLinkDrive = signIn,
@@ -184,12 +191,13 @@ fun BackupRestoreScreen(
                                         val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
                                         tempDir.mkdirs()
                                         val tempAttachmentsDir = File(tempDir, "attachments")
+                                        val warnings = mutableListOf<String>()
                                         try {
                                             val rawNotes = viewModel.cloudSyncManagerPublic.rawNotes.value
                                             val allPathMaps = mutableMapOf<String, String>()
                                             rawNotes.forEach { note ->
                                                 val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                                                    note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                                                    note.content, note.backgroundImagePath, context, tempAttachmentsDir, warnings
                                                 )
                                                 allPathMaps.putAll(pathMap)
                                             }
@@ -202,6 +210,9 @@ fun BackupRestoreScreen(
                                                 type = "application/zip"
                                             }
                                             context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.backup_restore_title)))
+                                            if (warnings.isNotEmpty()) {
+                                                viewModel.showSnackbarMessage(context.getString(R.string.backup_attachments_warnings, warnings.size))
+                                            }
                                         } finally {
                                             tempDir.deleteRecursively()
                                         }
@@ -222,7 +233,7 @@ fun BackupRestoreScreen(
                                 }
                             }
                         },
-                        onRestoreBackup = { filePickerLauncher.launch("application/json") }
+                        onRestoreBackup = { filePickerLauncher.launch(arrayOf("application/json", "application/zip")) }
                     )
                 }
 
@@ -313,6 +324,8 @@ fun CloudSection(
     syncStage: SyncStage = SyncStage.IDLE,
     isEncrypted: Boolean = false,
     backupSize: Long = 0L,
+    accountEmail: String? = null,
+    profilePictureUri: String? = null,
     onBackupCloud: () -> Unit,
     onRestoreCloud: () -> Unit,
     onLinkDrive: () -> Unit,
@@ -340,10 +353,35 @@ fun CloudSection(
                                    else stringResource(R.string.backup_e2ee_disabled_badge)
                         )
                     }
-                    Text(
-                        text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
-                        color = if (isDriveLinked) Color(0xFF42A5F5) else colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
+                    if (isDriveLinked && accountEmail != null) {
+                        Text(
+                            text = accountEmail,
+                            color = colorScheme.onSurface,
+                            fontSize = 13.sp
+                        )
+                    } else {
+                        Text(
+                            text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
+                            color = if (isDriveLinked) Color(0xFF42A5F5) else colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                if (isDriveLinked && accountEmail != null) {
+                    val context = LocalContext.current
+                    val imageRequest = remember(profilePictureUri) {
+                        ImageRequest.Builder(context)
+                            .data(profilePictureUri)
+                            .crossfade(true)
+                            .build()
+                    }
+                    AsyncImage(
+                        model = imageRequest,
+                        contentDescription = accountEmail,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
