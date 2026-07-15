@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -147,11 +148,19 @@ fun MediaViewerScreen(
             } else {
                 AndroidView(
                     factory = { ctx ->
-                        android.widget.VideoView(ctx).apply {
-                            setVideoPath(src)
-                            val mc = android.widget.MediaController(ctx)
-                            setMediaController(mc)
-                            start()
+                        try {
+                            android.widget.VideoView(ctx).apply {
+                                setVideoPath(src)
+                                val mc = android.widget.MediaController(ctx)
+                                setMediaController(mc)
+                                start()
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MediaViewer", "VideoView creation failed", e)
+                            android.widget.TextView(ctx).apply {
+                                text = context.getString(R.string.toast_video_play_error)
+                                textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
+                            }
                         }
                     },
                     modifier = Modifier

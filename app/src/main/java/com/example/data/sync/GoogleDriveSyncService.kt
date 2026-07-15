@@ -33,7 +33,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             suspendCancellableCoroutine<String?> { continuation ->
-                client.newCall(request).enqueue(object : Callback {
+                val call = client.newCall(request)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed searching for backup file", e)
                         continuation.resumeWithException(e)
@@ -87,7 +89,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             val fileId = suspendCancellableCoroutine<String?> { continuation ->
-                client.newCall(metadataRequest).enqueue(object : Callback {
+                val call = client.newCall(metadataRequest)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed creating backup file", e)
                         continuation.resumeWithException(e)
@@ -139,7 +143,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             suspendCancellableCoroutine<Boolean> { continuation ->
-                client.newCall(uploadRequest).enqueue(object : Callback {
+                val call = client.newCall(uploadRequest)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed uploading file content", e)
                         continuation.resumeWithException(e)
@@ -170,7 +176,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             suspendCancellableCoroutine<String?> { continuation ->
-                client.newCall(request).enqueue(object : Callback {
+                val call = client.newCall(request)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed downloading backup file", e)
                         continuation.resumeWithException(e)
@@ -207,7 +215,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             suspendCancellableCoroutine<Boolean> { continuation ->
-                client.newCall(uploadRequest).enqueue(object : Callback {
+                val call = client.newCall(uploadRequest)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed uploading file bytes", e)
                         continuation.resumeWithException(e)
@@ -238,7 +248,9 @@ class GoogleDriveSyncService : SyncService {
 
         return try {
             suspendCancellableCoroutine<ByteArray?> { continuation ->
-                client.newCall(request).enqueue(object : Callback {
+                val call = client.newCall(request)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         Log.e(TAG, "Failed downloading file bytes", e)
                         continuation.resumeWithException(e)

@@ -270,6 +270,7 @@
     <string name="toast_file_select_error">Error selecting file</string>
     <string name="toast_recording_error">Failed to start recording</string>
     <string name="toast_audio_play_error">Error playing audio</string>
+    <string name="toast_video_play_error">Error playing video</string>
     <string name="toast_audio_preview_error">Error playing preview</string>
     <string name="toast_voice_note_attached">Voice note attached</string>
     <string name="toast_camera_error">Error starting camera</string>

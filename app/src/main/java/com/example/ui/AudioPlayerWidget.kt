@@ -24,9 +24,14 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
     var isPlayingAudio by remember { mutableStateOf(false) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
+    var disposed by remember { mutableStateOf(false) }
+
     DisposableEffect(path) {
         onDispose {
-            mediaPlayer?.let { mp ->
+            disposed = true
+            val mp = mediaPlayer
+            if (mp != null) {
+                mediaPlayer = null
                 try {
                     if (mp.isPlaying) {
                         mp.stop()
@@ -73,6 +78,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                             prepare()
                             start()
                             setOnCompletionListener {
+                                if (disposed) return@setOnCompletionListener
                                 isPlayingAudio = false
                                 try {
                                     release()
@@ -91,6 +97,7 @@ fun AudioPlayerWidget(path: String, modifier: Modifier = Modifier) {
                                 prepare()
                                 start()
                                 setOnCompletionListener {
+                                    if (disposed) return@setOnCompletionListener
                                     isPlayingAudio = false
                                     try {
                                         release()

@@ -38,6 +38,11 @@
     volatile <fields>;
 }
 
+# Keep all R classes to prevent resource shrinker from stripping library resources
+-keep class com.example.R { *; }
+-keep class com.example.R$drawable { *; }
+-keep class com.example.R$string { *; }
+
 # Compose
 -dontwarn androidx.compose.**
 
