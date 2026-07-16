@@ -360,6 +360,8 @@
     <string name="settings_language_desc">Change app language</string>
     <string name="settings_lang_default">Default (System)</string>
     <string name="settings_lang_en">English</string>
+    <string name="settings_lang_en_gb">English (UK)</string>
+    <string name="settings_lang_es_419">Spanish (Latin America)</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
     <string name="settings_lang_es_es">Español (España)</string>

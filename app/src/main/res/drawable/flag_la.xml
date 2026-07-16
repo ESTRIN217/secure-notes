@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="32dp"
+    android:viewportWidth="108"
+    android:viewportHeight="72">
+    <!-- Flag of the Hispanic Peoples (Bandera de la Hispanidad) -->
+    <!-- White background -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,0h108v72h-108z"/>
+
+    <!-- Stylized Sun of May (Sol de Mayo) - common Latin American independence symbol -->
+    <!-- Sun center -->
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,36 A14,14 0,1,1 54,35.9 Z"/>
+
+    <!-- Sun face (simplified) - inner circle -->
+    <path
+        android:fillColor="#FFA500"
+        android:pathData="M54,36 A10,10 0,1,1 54,35.9 Z"/>
+
+    <!-- Sun rays (16 alternating straight and wavy rays) -->
+    <!-- Straight rays -->
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,18 L56,22 L52,22 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,54 L56,50 L52,50 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M36,36 L40,38 L40,34 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M72,36 L68,38 L68,34 Z"/>
+
+    <!-- Diagonal straight rays -->
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M40.5,22.5 L43.5,25.5 L37.5,25.5 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M67.5,49.5 L64.5,46.5 L70.5,46.5 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M67.5,22.5 L64.5,25.5 L70.5,25.5 Z"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M40.5,49.5 L43.5,46.5 L37.5,46.5 Z"/>
+
+    <!-- Wavy rays -->
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,16 Q56,15 56,17 Q56,19 54,18"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,56 Q52,57 52,55 Q52,53 54,54"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M34,36 Q33,34 35,34 Q37,34 36,36"/>
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M74,36 Q75,38 73,38 Q71,38 72,36"/>
+</vector>

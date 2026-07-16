@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="32dp"
+    android:viewportWidth="216"
+    android:viewportHeight="108">
+    <!-- Blue field -->
+    <path
+        android:fillColor="#012169"
+        android:pathData="M0,0h216v108h-216z"/>
+
+    <!-- White St. George's Cross (vertical + horizontal) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M97.2,0 h21.6 v108 h-21.6 z M0,43.2 h216 v21.6 h-216 z"/>
+
+    <!-- Red St. George's Cross (narrower, centered) -->
+    <path
+        android:fillColor="#C8102E"
+        android:pathData="M100.8,0 h14.4 v108 h-14.4 z M0,46.8 h216 v14.4 h-216 z"/>
+
+    <!-- White St. Andrew's Saltire (diagonal cross) - TL-BR band -->
+    <!-- Using rotation groups centered at (108,54) -->
+    <group android:translateX="108" android:translateY="54">
+        <!-- White diagonal bands - rotated ±26.565° -->
+        <group android:rotation="-26.565">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M-10.8,-54 h21.6 v108 h-21.6 z"/>
+        </group>
+        <group android:rotation="26.565">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M-10.8,-54 h21.6 v108 h-21.6 z"/>
+        </group>
+
+        <!-- Red St. Patrick's Saltire (narrower, offset) -->
+        <!-- The red diagonal is offset by 5.4 units (half of 1/10 of hoist) -->
+        <!-- Counterchanged: red sits alongside edge of white -->
+        <group android:rotation="-26.565">
+            <group android:translateX="0" android:translateY="-5.4">
+                <path
+                    android:fillColor="#C8102E"
+                    android:pathData="M-3.6,-54 h7.2 v108 h-7.2 z"/>
+            </group>
+        </group>
+        <group android:rotation="26.565">
+            <group android:translateX="0" android:translateY="-5.4">
+                <path
+                    android:fillColor="#C8102E"
+                    android:pathData="M-3.6,-54 h7.2 v108 h-7.2 z"/>
+            </group>
+        </group>
+    </group>
+</vector>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="32dp"
+    android:viewportWidth="108"
+    android:viewportHeight="72">
+    <!-- Green left field (2/5) -->
+    <path
+        android:fillColor="#006600"
+        android:pathData="M0,0h43.2v72h-43.2z"/>
+    <!-- Red right field (3/5) -->
+    <path
+        android:fillColor="#FF0000"
+        android:pathData="M43.2,0h64.8v72h-64.8z"/>
+    <!-- Armillary sphere - simplified circle with bands -->
+    <group android:translateX="50" android:translateY="36">
+        <!-- Outer sphere circle -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:strokeColor="#FFD700"
+            android:strokeWidth="1.5"
+            android:pathData="M0,-14 A14,14 0,1,1 0,14 A14,14 0,1,1 0,-14 Z"/>
+        <!-- Horizontal band -->
+        <path
+            android:strokeColor="#FFD700"
+            android:strokeWidth="1"
+            android:pathData="M-14,0 h28"/>
+        <!-- Vertical band -->
+        <path
+            android:strokeColor="#FFD700"
+            android:strokeWidth="1"
+            android:pathData="M0,-14 v28"/>
+        <!-- Diagonal bands -->
+        <path
+            android:strokeColor="#FFD700"
+            android:strokeWidth="0.8"
+            android:pathData="M-9.9,-9.9 l19.8,19.8 M9.9,-9.9 l-19.8,19.8"/>
+        <!-- Inner shield -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-5,-5 h10 v12 h-10 z"/>
+        <path
+            android:fillColor="#FF0000"
+            android:pathData="M-4,-4 h3 v3 h-3 z M1,-4 h3 v3 h-3 z M-4,-1 h3 v3 h-3 z M1,-1 h3 v3 h-3 z"/>
+        <!-- Central castles -->
+        <path
+            android:fillColor="#006600"
+            android:pathData="M-1.5,2 h3 v5 h-3 z"/>
+        <path
+            android:fillColor="#FFD700"
+            android:pathData="M-1.5,2 v5 h3 v-5 z M-1.5,4.5 h3 M0.5,2 v5"
+            android:strokeWidth="0.5"/>
+    </group>
+</vector>

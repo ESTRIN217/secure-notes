@@ -360,6 +360,8 @@
     <string name="settings_language_desc">Alterar idioma do aplicativo</string>
     <string name="settings_lang_default">Padrão (Sistema)</string>
     <string name="settings_lang_en">English</string>
+    <string name="settings_lang_en_gb">Inglês (Reino Unido)</string>
+    <string name="settings_lang_es_419">Espanhol (América Latina)</string>
     <string name="settings_lang_es">Español (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
     <string name="settings_lang_es_es">Español (España)</string>

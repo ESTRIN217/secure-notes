@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="32dp"
+    android:viewportWidth="108"
+    android:viewportHeight="72">
+    <!-- Red top stripe -->
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M0,0h108v18h-108z"/>
+    <!-- Yellow middle stripe (double height) -->
+    <path
+        android:fillColor="#FFC400"
+        android:pathData="M0,18h108v36h-108z"/>
+    <!-- Red bottom stripe -->
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M0,54h108v18h-108z"/>
+    <!-- Shield - simplified coat of arms centered in yellow stripe -->
+    <!-- Outer shield shape -->
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M39,24 h30 v16 c0,4 -15,8 -15,8 c0,0 -15,-4 -15,-8 z"/>
+    <!-- Inner shield -->
+    <path
+        android:fillColor="#FFC400"
+        android:pathData="M42,26 h24 v13 c0,3 -12,6 -12,6 c0,0 -12,-3 -12,-6 z"/>
+    <!-- Quarter 1: Castle (Castile) -->
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M42,26 h7 v7 h-7 z"/>
+    <path
+        android:fillColor="#FFC400"
+        android:pathData="M43.5,27 h4 v1 h-4 z M43.5,30.5 h4 v1 h-4 z M45.5,27 v3"/>
+    <!-- Quarter 2: Lion (Leon) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,26 h7 v7 h-7 z"/>
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M50.5,27 h4 v2 h-4 z"/>
+    <!-- Quarter 3: Stripes (Aragon) -->
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M42,33 h7 v6 h-7 z"/>
+    <path
+        android:fillColor="#FFC400"
+        android:pathData="M44,33 v6h1v-6z M46,33 v6h1v-6z"/>
+    <!-- Quarter 4: Chains (Navarre) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,33 h7 v6 h-7 z"/>
+    <path
+        android:fillColor="#C60B1E"
+        android:pathData="M51,35 h3 v3 h-3 z"/>
+    <!-- Bottom: Pomegranate (Granada) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M51,39 h3 v2 h-3 z"/>
+    <path
+        android:fillColor="#008000"
+        android:pathData="M52.5,39 v-2"/>
+</vector>

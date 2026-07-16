@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="32dp"
+    android:viewportWidth="390"
+    android:viewportHeight="260">
+    <!-- Blue background as full field (will be overlaid by stripes) -->
+
+    <!-- 13 alternating red and white horizontal stripes -->
+    <!-- Stripe 1 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,0 h390 v20 h-390 z"/>
+    <!-- Stripe 2 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,20 h390 v20 h-390 z"/>
+    <!-- Stripe 3 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,40 h390 v20 h-390 z"/>
+    <!-- Stripe 4 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,60 h390 v20 h-390 z"/>
+    <!-- Stripe 5 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,80 h390 v20 h-390 z"/>
+    <!-- Stripe 6 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,100 h390 v20 h-390 z"/>
+    <!-- Stripe 7 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,120 h390 v20 h-390 z"/>
+    <!-- Stripe 8 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,140 h390 v20 h-390 z"/>
+    <!-- Stripe 9 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,160 h390 v20 h-390 z"/>
+    <!-- Stripe 10 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,180 h390 v20 h-390 z"/>
+    <!-- Stripe 11 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,200 h390 v20 h-390 z"/>
+    <!-- Stripe 12 (white) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M0,220 h390 v20 h-390 z"/>
+    <!-- Stripe 13 (red) -->
+    <path
+        android:fillColor="#B22234"
+        android:pathData="M0,240 h390 v20 h-390 z"/>
+
+    <!-- Dark blue canton (union) spanning first 7 stripes -->
+    <path
+        android:fillColor="#3C3B6E"
+        android:pathData="M0,0 h156 v140 h-156 z"/>
+
+    <!-- 50 white 5-pointed stars: 9 rows alternating 6 and 5 stars -->
+    <!-- Star: outer radius 4.5, inner radius ~1.72. Center at (0,0) -->
+    <!-- Row 1: 6 stars -->
+    <group android:translateX="13" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="39" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="65" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="91" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="117" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="143" android:translateY="14">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+
+    <!-- Row 2: 5 stars -->
+    <group android:translateX="26" android:translateY="42">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="52" android:translateY="42">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="78" android:translateY="42">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="104" android:translateY="42">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="130" android:translateY="42">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+
+    <!-- Row 3: 6 stars -->
+    <group android:translateX="13" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="39" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="65" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="91" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="117" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="143" android:translateY="70">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+
+    <!-- Row 4: 5 stars -->
+    <group android:translateX="26" android:translateY="98">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="52" android:translateY="98">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="78" android:translateY="98">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="104" android:translateY="98">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="130" android:translateY="98">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+
+    <!-- Row 5: 6 stars -->
+    <group android:translateX="13" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="39" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="65" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="91" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="117" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+    <group android:translateX="143" android:translateY="126">
+        <path android:fillColor="#FFFFFF" android:pathData="M0,-4.5 L1.01,-1.39 L4.28,-1.39 L1.64,0.53 L2.65,3.64 L0,1.72 L-2.65,3.64 L-1.64,0.53 L-4.28,-1.39 L-1.01,-1.39 Z"/>
+    </group>
+</vector>

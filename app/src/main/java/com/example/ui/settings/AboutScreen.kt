@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.BuildConfig
 import com.example.R
+import com.example.ui.CustomTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,17 +66,25 @@ fun AboutScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.about_title)) },
-                navigationIcon = {
+            CustomTopBar {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back)
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.about_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
-            )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()

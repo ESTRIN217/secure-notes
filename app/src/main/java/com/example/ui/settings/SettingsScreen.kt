@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,12 +18,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.DarkModeOption
 import com.example.R
+import com.example.ui.CustomTopBar
 import com.example.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,14 +52,22 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.nav_settings)) },
-                navigationIcon = {
+            CustomTopBar {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
+                    Text(
+                        text = stringResource(R.string.nav_settings),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
-            )
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
@@ -111,6 +122,8 @@ fun SettingsScreen(
                     val currentLangLabel = when (language) {
                         "" -> stringResource(R.string.settings_lang_default)
                         "en" -> stringResource(R.string.settings_lang_en)
+                        "en-GB" -> stringResource(R.string.settings_lang_en_gb)
+                        "es-419" -> stringResource(R.string.settings_lang_es_419)
                         "es-VE" -> stringResource(R.string.settings_lang_es)
                         "es-ES" -> stringResource(R.string.settings_lang_es_es)
                         "pt-BR" -> stringResource(R.string.settings_lang_pt)
@@ -368,7 +381,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flag = "\uD83C\uDDFA\uD83C\uDDF8",
+                    flagRes = R.drawable.flag_us,
                     label = stringResource(R.string.settings_lang_en),
                     isSelected = currentLanguage == "en",
                     onClick = { onLocaleSelected("en"); onDismiss() }
@@ -378,7 +391,27 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flag = "\uD83C\uDDFB\uD83C\uDDEA",
+                    flagRes = R.drawable.flag_gb,
+                    label = stringResource(R.string.settings_lang_en_gb),
+                    isSelected = currentLanguage == "en-GB",
+                    onClick = { onLocaleSelected("en-GB"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flagRes = R.drawable.flag_la,
+                    label = stringResource(R.string.settings_lang_es_419),
+                    isSelected = currentLanguage == "es-419",
+                    onClick = { onLocaleSelected("es-419"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flagRes = R.drawable.flag_ve,
                     label = stringResource(R.string.settings_lang_es),
                     isSelected = currentLanguage == "es-VE",
                     onClick = { onLocaleSelected("es-VE"); onDismiss() }
@@ -388,7 +421,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flag = "\uD83C\uDDEA\uD83C\uDDF8",
+                    flagRes = R.drawable.flag_es,
                     label = stringResource(R.string.settings_lang_es_es),
                     isSelected = currentLanguage == "es-ES",
                     onClick = { onLocaleSelected("es-ES"); onDismiss() }
@@ -398,7 +431,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flag = "\uD83C\uDDFE\uD83C\uDDF7",
+                    flagRes = R.drawable.flag_br,
                     label = stringResource(R.string.settings_lang_pt),
                     isSelected = currentLanguage == "pt-BR",
                     onClick = { onLocaleSelected("pt-BR"); onDismiss() }
@@ -408,7 +441,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flag = "\uD83C\uDDF5\uD83C\uDDF9",
+                    flagRes = R.drawable.flag_pt,
                     label = stringResource(R.string.settings_lang_pt_pt),
                     isSelected = currentLanguage == "pt-PT",
                     onClick = { onLocaleSelected("pt-PT"); onDismiss() }
@@ -422,6 +455,7 @@ fun LanguageBottomSheet(
 private fun LanguageOption(
     icon: ImageVector? = null,
     flag: String? = null,
+    flagRes: Int? = null,
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -450,6 +484,12 @@ private fun LanguageOption(
                     tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                            else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
+                )
+            } else if (flagRes != null) {
+                Image(
+                    painter = painterResource(id = flagRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
                 )
             } else {
                 Text(
