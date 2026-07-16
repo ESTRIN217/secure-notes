@@ -354,10 +354,12 @@ fun PrivacySettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
@@ -375,6 +377,7 @@ fun PrivacySettingsScreen(
                             }
 
                             Text(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                 text = stringResource(
                                     if (passwordType == PasswordType.PIN) R.string.security_pin_type else R.string.security_password_type
                                 ),
@@ -383,70 +386,30 @@ fun PrivacySettingsScreen(
                             )
 
                             // Biometric toggle
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                SettingsIconContainer(
-                                    icon = Icons.Default.Fingerprint,
-                                    isSelected = isBiometricEnabled
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(R.string.biometric_unlock_label),
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                    Text(
-                                        text = stringResource(
-                                            if (isBiometricEnabled) R.string.biometric_enabled_desc else R.string.biometric_disabled_desc
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Switch(
-                                    checked = isBiometricEnabled,
-                                    onCheckedChange = { enabled ->
-                                        if (enabled) {
-                                            pendingEnableBiometric = true
-                                        } else {
-                                            viewModel.setBiometricEnabled(false)
-                                        }
+                            SettingsSwitchTile(
+                                icon = Icons.Default.Fingerprint,
+                                title = stringResource(R.string.biometric_unlock_label),
+                                subtitle = stringResource(
+                                    if (isBiometricEnabled) R.string.biometric_enabled_desc else R.string.biometric_disabled_desc
+                                ),
+                                checked = isBiometricEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        pendingEnableBiometric = true
+                                    } else {
+                                        viewModel.setBiometricEnabled(false)
                                     }
-                                )
-                            }
+                                }
+                            )
 
                             // Screenshot / Recents toggle
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                SettingsIconContainer(
-                                    icon = Icons.Default.PhotoCamera,
-                                    isSelected = screenshotEnabled
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(R.string.screenshot_toggle_label),
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.screenshot_toggle_desc),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Switch(
-                                    checked = screenshotEnabled,
-                                    onCheckedChange = { viewModel.setScreenshotEnabled(it) }
-                                )
-                            }
+                            SettingsSwitchTile(
+                                icon = Icons.Default.PhotoCamera,
+                                title = stringResource(R.string.screenshot_toggle_label),
+                                subtitle = stringResource(R.string.screenshot_toggle_desc),
+                                checked = screenshotEnabled,
+                                onCheckedChange = { viewModel.setScreenshotEnabled(it) }
+                            )
 
                             // Auto-lock timeout
                             val autoLockTimeout by viewModel.autoLockTimeout.collectAsStateWithLifecycle()
@@ -455,7 +418,7 @@ fun PrivacySettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                    .padding(horizontal = 20.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 SettingsIconContainer(
@@ -546,7 +509,8 @@ fun PrivacySettingsScreen(
                                 onClick = { showChangePasswordDialog = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp),
+                                    .height(50.dp)
+                                    .padding(horizontal = 12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.change_password))
@@ -662,6 +626,8 @@ fun PrivacySettingsScreen(
                                 )
                             }
 
+                            Spacer(modifier = Modifier.height(8.dp))
+
                             Button(
                                 onClick = {
                                     viewModel.deletePassword()
@@ -670,6 +636,7 @@ fun PrivacySettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp)
+                                    .padding(horizontal = 12.dp)
                                     .testTag("remove_password_btn"),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                             ) {
