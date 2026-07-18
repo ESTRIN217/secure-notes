@@ -24,5 +24,5 @@ fun NoteContentBlockCard(
         onNavigateToDrawing = onNavigateToDrawing,
         onUrlClicked = onUrlClicked
     )
-    block.render(context, modifier)
+    block.RenderContent(context, modifier)
 }

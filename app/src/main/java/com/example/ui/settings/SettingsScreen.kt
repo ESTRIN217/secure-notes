@@ -36,7 +36,9 @@ fun SettingsScreen(
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToUpdateInfo: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    onNavigateToPrivacy: () -> Unit
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToLegalInfo: () -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {}
 ) {
     BackHandler(onBack = onBack)
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
@@ -128,6 +130,7 @@ fun SettingsScreen(
                         "es-ES" -> stringResource(R.string.settings_lang_es_es)
                         "pt-BR" -> stringResource(R.string.settings_lang_pt)
                         "pt-PT" -> stringResource(R.string.settings_lang_pt_pt)
+                        "fr" -> stringResource(R.string.settings_lang_fr)
                         else -> language.uppercase()
                     }
                     SettingsListTile(
@@ -170,6 +173,35 @@ fun SettingsScreen(
                         subtitle = stringResource(R.string.settings_backup_restore_desc),
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = onNavigateToBackupRestore
+                    )
+                }
+            }
+
+            // --- LEGAL ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_legal))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Description,
+                        title = stringResource(R.string.settings_terms_privacy),
+                        subtitle = stringResource(R.string.settings_legal_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToLegalInfo
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Code,
+                        title = stringResource(R.string.settings_licenses),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToLicenses
                     )
                 }
             }
@@ -445,6 +477,16 @@ fun LanguageBottomSheet(
                     label = stringResource(R.string.settings_lang_pt_pt),
                     isSelected = currentLanguage == "pt-PT",
                     onClick = { onLocaleSelected("pt-PT"); onDismiss() }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = dividerColor
+                )
+                LanguageOption(
+                    flagRes = R.drawable.flag_fr,
+                    label = stringResource(R.string.settings_lang_fr),
+                    isSelected = currentLanguage == "fr",
+                    onClick = { onLocaleSelected("fr"); onDismiss() }
                 )
             }
         }

@@ -33,9 +33,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
@@ -288,16 +291,44 @@ class NotesViewModel(
         }
     }
 
+    private fun setBooleanPref(flow: MutableStateFlow<Boolean>, key: String, value: Boolean) {
+        flow.value = value
+        sharedPrefs.edit().putBoolean(key, value).apply()
+    }
+
+    private fun setStringPref(flow: MutableStateFlow<String>, key: String, value: String) {
+        flow.value = value
+        sharedPrefs.edit().putString(key, value).apply()
+    }
+
+    private fun setLongPref(flow: MutableStateFlow<Long>, key: String, value: Long) {
+        flow.value = value
+        sharedPrefs.edit().putLong(key, value).apply()
+    }
+
+    // Signal emitted when a note is modified from a sub-screen (DrawingCanvas, etc.)
+    // NoteEditorScreen observes this to reload its state with fresh data.
+    private val _noteExternallyUpdated = MutableSharedFlow<Int>(extraBufferCapacity = 8)
+    val noteExternallyUpdated: SharedFlow<Int> = _noteExternallyUpdated.asSharedFlow()
+
+    fun notifyNoteExternallyUpdated(noteId: Int) {
+        _noteExternallyUpdated.tryEmit(noteId)
+    }
+
     fun setAutoUpdateCheck(enabled: Boolean) {
-        autoUpdateCheck.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, enabled).apply()
+        setBooleanPref(autoUpdateCheck, AppConstants.AUTO_UPDATE_CHECK_KEY, enabled)
     }
 
     fun setMasterPassword(password: String) {
         val salt = cipherService.generateSalt()
         val iv = cipherService.generateIv()
-        val validationHash = cipherService.encrypt("VALID", password, salt, iv).getOrDefault("")
-        
+        val validationResult = cipherService.encrypt("VALID", password, salt, iv)
+        if (validationResult.isFailure) {
+            Log.e("NotesViewModel", "setMasterPassword: encryption failed", validationResult.exceptionOrNull())
+            return
+        }
+        val validationHash = validationResult.getOrDefault("")
+
         encryptedPrefs.edit()
             .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
             .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
@@ -428,8 +459,7 @@ class NotesViewModel(
 
     // ── Auto-lock ──
     fun setAutoLockTimeout(minutes: Long) {
-        autoLockTimeout.value = minutes
-        sharedPrefs.edit().putLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, minutes).apply()
+        setLongPref(autoLockTimeout, AppConstants.AUTO_LOCK_TIMEOUT_KEY, minutes)
         if (isUnlocked.value) resetAutoLockTimer()
     }
 
@@ -462,13 +492,11 @@ class NotesViewModel(
     }
 
     fun setScreenshotEnabled(enabled: Boolean) {
-        screenshotEnabled.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, enabled).apply()
+        setBooleanPref(screenshotEnabled, AppConstants.SCREENSHOT_ENABLED_KEY, enabled)
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
-        isBiometricEnabled.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, enabled).apply()
+        setBooleanPref(isBiometricEnabled, AppConstants.BIOMETRIC_ENABLED_KEY, enabled)
         if (!enabled) {
             biometricAuthManager.deleteKey(AppConstants.BIOMETRIC_KEY_ALIAS)
             encryptedPrefs.edit()
@@ -479,30 +507,25 @@ class NotesViewModel(
     }
 
     override fun setIncludeAttachments(enabled: Boolean) {
-        includeAttachments.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, enabled).apply()
+        setBooleanPref(includeAttachments, AppConstants.INCLUDE_ATTACHMENTS_KEY, enabled)
     }
 
     override fun setCopyAttachmentsLocal(enabled: Boolean) {
-        copyAttachmentsLocal.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, enabled).apply()
+        setBooleanPref(copyAttachmentsLocal, AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, enabled)
     }
 
     override fun setEncryptBackups(enabled: Boolean) {
-        encryptBackups.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, enabled).apply()
+        setBooleanPref(encryptBackups, AppConstants.ENCRYPT_BACKUPS_KEY, enabled)
         if (enabled) cacheMasterPassword() else clearCachedPassword()
     }
 
     override fun setAutoBackupEnabled(enabled: Boolean) {
-        autoBackupEnabled.value = enabled
-        sharedPrefs.edit().putBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, enabled).apply()
+        setBooleanPref(autoBackupEnabled, AppConstants.AUTO_BACKUP_ENABLED_KEY, enabled)
         if (enabled && syncState.value.isDriveLinked) schedulePeriodicSync() else cancelPeriodicSync()
     }
 
     override fun setAutoBackupInterval(interval: String) {
-        autoBackupInterval.value = interval
-        sharedPrefs.edit().putString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, interval).apply()
+        setStringPref(autoBackupInterval, AppConstants.AUTO_BACKUP_INTERVAL_KEY, interval)
         if (autoBackupEnabled.value && syncState.value.isDriveLinked) {
             cancelPeriodicSync()
             schedulePeriodicSync()
@@ -559,30 +582,43 @@ class NotesViewModel(
             try {
                 rawNotes.value.forEach { note ->
                     if (note.isEncrypted) {
-                        val decTitle = cipherService.decrypt(note.title, oldPassword, note.salt, note.iv).getOrDefault("")
-                        val decContent = cipherService.decrypt(note.content, oldPassword, note.salt, note.iv).getOrDefault("")
-                        if (decTitle.isNotEmpty() || decContent.isNotEmpty()) {
-                            val newSalt = cipherService.generateSalt()
-                            val newIv = cipherService.generateIv()
-                            val encTitle = cipherService.encrypt(decTitle, newPassword, newSalt, newIv).getOrDefault("")
-                            val encContent = cipherService.encrypt(decContent, newPassword, newSalt, newIv).getOrDefault("")
-                            noteDao.updateNote(note.copy(
-                                title = encTitle,
-                                content = encContent,
-                                salt = newSalt,
-                                iv = newIv
-                            ))
-                        }
+                        val decTitle = cipherService.decrypt(note.title, oldPassword, note.salt, note.iv)
+                            .getOrDefault("")
+                        val decContent = cipherService.decrypt(note.content, oldPassword, note.salt, note.iv)
+                            .getOrDefault("")
+                        if (decTitle.isEmpty() && decContent.isEmpty()) return@launch
+                        val newSalt = cipherService.generateSalt()
+                        val newIv = cipherService.generateIv()
+                        cipherService.encrypt(decTitle, newPassword, newSalt, newIv)
+                            .getOrDefault("")
+                            .takeIf { it.isNotEmpty() }
+                            ?.let { encTitle ->
+                                cipherService.encrypt(decContent, newPassword, newSalt, newIv)
+                                    .getOrDefault("")
+                                    .takeIf { it.isNotEmpty() }
+                                    ?.let { encContent ->
+                                        noteDao.updateNote(note.copy(
+                                            title = encTitle,
+                                            content = encContent,
+                                            salt = newSalt,
+                                            iv = newIv
+                                        ))
+                                    }
+                            }
                     }
                 }
                 val salt = cipherService.generateSalt()
                 val iv = cipherService.generateIv()
-                val validationHash = cipherService.encrypt("VALID", newPassword, salt, iv).getOrDefault("")
-                encryptedPrefs.edit()
-                    .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
-                    .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
-                    .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
-                    .apply()
+                cipherService.encrypt("VALID", newPassword, salt, iv)
+                    .getOrDefault("")
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { validationHash ->
+                        encryptedPrefs.edit()
+                            .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
+                            .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
+                            .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
+                            .apply()
+                    }
                 masterPassword.value = newPassword
                 if (isBiometricEnabled.value && biometricAuthManager.hasKey(AppConstants.BIOMETRIC_KEY_ALIAS)) {
                     val cipher = biometricAuthManager.getEncryptCipher(AppConstants.BIOMETRIC_KEY_ALIAS)

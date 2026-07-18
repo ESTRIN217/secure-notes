@@ -15,8 +15,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -96,7 +96,7 @@ import com.example.ui.viewmodel.NotesViewModel
 import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
-import com.example.util.ExportUtils
+
 import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
 import java.text.SimpleDateFormat

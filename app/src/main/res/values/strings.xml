@@ -572,4 +572,30 @@
     <string name="change_password_dialog_title">Change Master Password</string>
     <string name="toast_password_changed">Master password changed successfully</string>
     <string name="toast_wrong_current_password">Current password is incorrect</string>
+
+    <!-- Legal & Privacy -->
+    <string name="legal_title">Terms &amp; Privacy</string>
+    <string name="legal_section_terms">Terms of Use</string>
+    <string name="legal_section_terms_content">Secure Notes is provided "as is" without warranty of any kind. Google OAuth authentication is handled by Google and governed by its own Terms of Service. By using this application, you agree that:\n\n1. You are solely responsible for your master password confidentiality.\n2. Notes are stored locally on your device.\n3. Cloud backups are optional and encrypted before upload.\n4. The developer is not liable for any data loss.\n5. This application is provided free of charge and may be modified without prior notice.</string>
+    <string name="legal_section_ai">AI Disclosure</string>
+    <string name="legal_section_ai_content">Secure Notes plans to integrate Google Gemini API (via Firebase AI) for writing assistance features: drafting, summarizing, and rewriting content.\n\n- AI features are OPTIONAL and opt-in only.\n- Data sent to the API is NOT used by Google for model training.\n- Future AI models will run LOCALLY on device for maximum privacy.\n- You can disable AI at any time in settings.</string>
+    <string name="legal_section_sovereignty">Absolute Client-Side Data Sovereignty</string>
+    <string name="legal_section_sovereignty_content">All encryption and decryption happens EXCLUSIVELY on your device:\n\n🔐 **AES-256-GCM Encryption** — Military-grade with built-in authentication.\n🔑 **PBKDF2 with HMAC-SHA256** — 200,000 iterations, 256-bit key.\n🧂 **Random Salt &amp; IV** — Generated per-note via SecureRandom.\n🔒 **Local Master Password** — Never transmitted, never stored in plaintext, only in memory during session.\n\nWithout the master password, it is MATHEMATICALLY IMPOSSIBLE to decrypt your notes. Neither the developer, Google, nor any third party can access them.</string>
+    <string name="legal_section_drive">Google Drive Integration</string>
+    <string name="legal_section_drive_content">Cloud backups via Google Drive are OPTIONAL:\n\n☁️ **Private Storage** — Data stored in AppData folder (user-inaccessible).\n🔐 **Encrypted Before Upload** — Backups encrypted with your master password.\n🔑 **OAuth 2.0 Authentication** — via Credential Manager and Play Services.\n🔌 **Disconnect Anytime** — Revoke access from settings.\n\nNo data is shared without your explicit consent.</string>
+    <string name="legal_google_oauth_note">Google OAuth handles authentication only. Google Drive API is used solely for backup storage.</string>
+
+    <string name="licenses_title">Open Source Licenses</string>
+    <string name="licenses_app_license">MIT License (App)</string>
+
+    <string name="settings_legal">Legal</string>
+    <string name="settings_legal_desc">Terms, privacy, licenses</string>
+    <string name="settings_terms_privacy">Terms &amp; Privacy</string>
+    <string name="settings_licenses">Open Source Licenses</string>
+    <string name="settings_lang_fr">Français</string>
+
+    <string name="about_terms">Terms &amp; Privacy</string>
+    <string name="about_terms_desc">Terms of use, AI, data sovereignty</string>
+    <string name="about_licenses">Open Source Licenses</string>
+    <string name="about_licenses_desc">Third-party libraries</string>
 </resources>

@@ -564,4 +564,30 @@
     <string name="change_password_dialog_title">Cambiar contraseña maestra</string>
     <string name="toast_password_changed">Contraseña maestra cambiada correctamente</string>
     <string name="toast_wrong_current_password">La contraseña actual es incorrecta</string>
+
+    <!-- Legal & Privacy -->
+    <string name="legal_title">Términos y Privacidad</string>
+    <string name="legal_section_terms">Términos de Uso</string>
+    <string name="legal_section_terms_content">Secure Notes se proporciona "tal cual" sin garantía de ningún tipo. La autenticación con Google OAuth es gestionada por Google y se rige por sus propios Términos de Servicio. Al usar esta aplicación, aceptas que:\n\n1. Eres el único responsable de la confidencialidad de tu contraseña maestra.\n2. Las notas se almacenan localmente en tu dispositivo.\n3. Las copias de seguridad en la nube son opcionales y se cifran antes de subirse.\n4. El desarrollador no es responsable por ninguna pérdida de datos.\n5. Esta aplicación se proporciona gratuitamente y puede modificarse sin previo aviso.</string>
+    <string name="legal_section_ai">Declaración de IA</string>
+    <string name="legal_section_ai_content">Secure Notes planea integrar Google Gemini API (via Firebase AI) para funciones de asistencia de escritura: redacción, resumen y reescritura de contenido.\n\n- Las funciones de IA son OPCIONALES y solo se activan con consentimiento explícito.\n- Los datos enviados a la API NO son utilizados por Google para entrenar modelos.\n- En el futuro, los modelos de IA se ejecutarán LOCALMENTE en el dispositivo para máxima privacidad.\n- Puedes desactivar la IA en cualquier momento en los ajustes.</string>
+    <string name="legal_section_sovereignty">Soberanía Absoluta de Datos (Client-Side)</string>
+    <string name="legal_section_sovereignty_content">Todo el cifrado y descifrado ocurre EXCLUSIVAMENTE en tu dispositivo:\n\n🔐 **Cifrado AES-256-GCM** — Grado militar con autenticación incorporada.\n🔑 **Derivación PBKDF2 con HMAC-SHA256** — 200.000 iteraciones, clave de 256 bits.\n🧂 **Salt e IV aleatorios** — Generados por nota mediante SecureRandom.\n🔒 **Contraseña Maestra Local** — Nunca transmitida, nunca almacenada en texto plano, solo en memoria durante la sesión.\n\nSin la contraseña maestra, es MATEMÁTICAMENTE IMPOSIBLE descifrar tus notas. Ni el desarrollador, ni Google, ni ningún tercero puede acceder a ellas.</string>
+    <string name="legal_section_drive">Integración con Google Drive</string>
+    <string name="legal_section_drive_content">Las copias de seguridad en la nube via Google Drive son OPCIONALES:\n\n☁️ **Almacenamiento Privado** — Datos guardados en la carpeta AppData (inaccesible para el usuario).\n🔐 **Cifrado antes de subir** — Las copias se cifran con tu contraseña maestra.\n🔑 **Autenticación OAuth 2.0** — via Credential Manager y Play Services.\n🔌 **Desconexión en cualquier momento** — Revoca el acceso desde los ajustes.\n\nNingún dato se comparte sin tu consentimiento explícito.</string>
+    <string name="legal_google_oauth_note">Google OAuth solo gestiona la autenticación. La API de Google Drive se usa exclusivamente para almacenar copias de seguridad.</string>
+
+    <string name="licenses_title">Licencias de Código Abierto</string>
+    <string name="licenses_app_license">Licencia MIT (App)</string>
+
+    <string name="settings_legal">Legal</string>
+    <string name="settings_legal_desc">Términos, privacidad, licencias</string>
+    <string name="settings_terms_privacy">Términos y Privacidad</string>
+    <string name="settings_licenses">Licencias de Código Abierto</string>
+    <string name="settings_lang_fr">Français</string>
+
+    <string name="about_terms">Términos y Privacidad</string>
+    <string name="about_terms_desc">Términos de uso, IA, datos</string>
+    <string name="about_licenses">Licencias de Código Abierto</string>
+    <string name="about_licenses_desc">Bibliotecas de terceros</string>
 </resources>

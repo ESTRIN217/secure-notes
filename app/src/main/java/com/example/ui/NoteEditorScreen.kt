@@ -48,7 +48,11 @@ import com.example.ui.viewmodel.NotesViewModel
 import com.example.ui.settings.SettingsCardGroup
 import com.example.ui.settings.SettingsSwitchTile
 import com.example.util.getNoteBackgroundColor
-import com.example.util.ExportUtils
+import com.example.util.exportMultipleToHtml
+import com.example.util.exportMultipleToTxt
+import com.example.util.exportToMarkdown
+import com.example.util.exportToPdf
+import com.example.util.exportSingleNoteToJson
 import com.example.util.MediaBlock
 import com.example.util.RichTextParser
 import com.example.util.buildPreviewBlocks
@@ -89,6 +93,8 @@ import java.io.FileOutputStream
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
@@ -376,37 +382,55 @@ fun NoteEditorScreen(
     }
 
     var originalNote: Note? by remember { mutableStateOf(null) }
+    var hasNavigatingToDrawing by remember { mutableStateOf(false) }
 
-    // Recover note details if editing
+    // Load note data initially, and reactively reload when externally updated
     LaunchedEffect(noteId) {
-        if (noteId != 0) {
-            val list = viewModel.notesList.value
-            val match = list.find { it.note.id == noteId }
+        if (noteId == 0) return@LaunchedEffect
+
+        suspend fun loadNoteFromList() {
+            val match = viewModel.notesList.value.find { it.note.id == noteId }
             if (match != null) {
                 originalNote = match.note
                 title = match.title
-                
-                // Parse content and attachments
+
                 val (cleanText, parsedAttachments) = parseNoteContentAndAttachments(match.content)
                 content = cleanText
                 contentValue = TextFieldValue(text = cleanText, selection = TextRange(cleanText.length))
                 attachments = parsedAttachments
-                
-                // Initialize history
+
                 history.clear()
                 history.add(cleanText)
                 historyIndex = 0
-                
+
                 isEncrypted = match.note.isEncrypted
                 selectedBgColorId = match.note.backgroundColor
                 selectedBgImagePath = match.note.backgroundImagePath
                 isPinned = match.note.isPinned
                 isFavorite = match.note.isFavorite
                 isArchived = match.note.isArchived
-                
+
                 selectedNoteTags = match.note.parseTags()
             }
         }
+
+        // If note not immediately available (race with Room Flow), wait for it
+        var match = viewModel.notesList.value.find { it.note.id == noteId }
+        if (match == null) {
+            match = viewModel.notesList.first { list ->
+                list.any { it.note.id == noteId }
+            }.find { it.note.id == noteId }
+        }
+        if (match != null) {
+            loadNoteFromList()
+        }
+
+        // React to external modifications (DrawingCanvas, etc.)
+        viewModel.noteExternallyUpdated
+            .filter { it == noteId }
+            .collect {
+                loadNoteFromList()
+            }
     }
 
     LaunchedEffect(content) {
@@ -440,7 +464,7 @@ fun NoteEditorScreen(
     }
 
     val handleSaveAndExit = {
-        if (title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()) {
+        if (!hasNavigatingToDrawing && (title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty())) {
             viewModel.saveNote(
                 id = noteId,
                 title = title.trim(),
@@ -1860,6 +1884,7 @@ fun NoteEditorScreen(
 
                     IconButton(
                         onClick = {
+                            hasNavigatingToDrawing = true
                             scope.launch {
                                 val savedId = viewModel.saveNoteAndGetId(
                                     id = noteId,
@@ -2091,162 +2116,31 @@ fun NoteEditorScreen(
             }
         }
 
-        // More Options Bottom Sheet
         if (showMoreSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showMoreSheet = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.more_options),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp).align(Alignment.CenterHorizontally)
-                    )
-                    
-                    val lastModifiedTime = originalNote?.lastModified ?: System.currentTimeMillis()
-                    val formattedDate = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(lastModifiedTime))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(stringResource(id = R.string.label_last_modified, formattedDate), fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
-                            icon = { Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-                            )
-                        )
+            MoreOptionsDialog(
+                noteId = noteId,
+                originalNote = originalNote,
+                title = title,
+                content = content,
+                isEncrypted = isEncrypted,
+                isPinned = isPinned,
+                isFavorite = isFavorite,
+                isArchived = isArchived,
+                isPasswordSet = isPasswordSet,
+                onEncryptionChange = { isEncrypted = it },
+                onPinChange = { isPinned = it },
+                onFavoriteChange = { isFavorite = it },
+                onArchiveChange = { isArchived = it },
+                onDelete = {
+                    originalNote?.let { note ->
+                        viewModel.moveToTrash(note)
+                        Toast.makeText(context, context.getString(R.string.toast_moved_trash), Toast.LENGTH_SHORT).show()
+                        showMoreSheet = false
+                        onBack()
                     }
-
-                    // Encryption properties Card
-                    SettingsCardGroup(modifier = Modifier.padding(bottom = 20.dp)) {
-                        SettingsSwitchTile(
-                            icon = Icons.Default.Shield,
-                            title = stringResource(id = R.string.label_e2e_encryption),
-                            subtitle = stringResource(id = if (isPasswordSet) R.string.desc_e2e_encryption_enabled else R.string.desc_e2e_encryption_disabled),
-                            checked = isEncrypted,
-                            onCheckedChange = {
-                                if (!isPasswordSet) {
-                                    Toast.makeText(context, context.getString(R.string.toast_setup_password_first), Toast.LENGTH_LONG).show()
-                                } else {
-                                    isEncrypted = it
-                                }
-                            }
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    SettingsCardGroup(modifier = Modifier.padding(bottom = 16.dp)) {
-                        SettingsSwitchTile(
-                            icon = if (isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
-                            title = stringResource(if (isPinned) R.string.tooltip_unpin else R.string.tooltip_pin),
-                            checked = isPinned,
-                            onCheckedChange = { isPinned = it }
-                        )
-                        SettingsSwitchTile(
-                            icon = if (isFavorite) Icons.Default.Star else Icons.Outlined.Star,
-                            title = stringResource(if (isFavorite) R.string.tooltip_unfavorite else R.string.tooltip_favorite),
-                            checked = isFavorite,
-                            onCheckedChange = { isFavorite = it }
-                        )
-                        SettingsSwitchTile(
-                            icon = if (isArchived) Icons.Default.Archive else Icons.Outlined.Archive,
-                            title = stringResource(if (isArchived) R.string.tooltip_unarchive else R.string.tooltip_archive),
-                            checked = isArchived,
-                            onCheckedChange = { isArchived = it }
-                        )
-                    }
-                    
-                    // SHARE section
-                    Text(
-                        text = stringResource(id = R.string.option_share),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    val formats = listOf(
-                        Triple("TXT", Icons.Default.Description, R.string.share_format_txt),
-                        Triple("MD", Icons.Default.Share, R.string.share_format_md),
-                        Triple("PDF", Icons.Default.PictureAsPdf, R.string.share_format_pdf),
-                        Triple("HTML", Icons.Default.Html, R.string.share_format_html),
-                        Triple("JSON", Icons.Default.Code, R.string.share_format_json)
-                    )
-                    
-                    val decryptedNoteForShare = DecryptedNote(
-                        note = originalNote ?: Note(title = title, content = content),
-                        title = title,
-                        content = content,
-                        isDecryptionSuccessful = true
-                    )
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        formats.forEach { (formatKey, icon, labelResId) ->
-                            OutlinedButton(
-                                onClick = {
-                                    val notesToShare = listOf(decryptedNoteForShare)
-                                    when (formatKey) {
-                                        "TXT" -> ExportUtils.exportMultipleToTxt(context, notesToShare)
-                                        "MD" -> ExportUtils.exportToMarkdown(context, decryptedNoteForShare.note, title, content)
-                                        "PDF" -> ExportUtils.exportToPdf(context, decryptedNoteForShare.note, title, content)
-                                        "HTML" -> ExportUtils.exportMultipleToHtml(context, notesToShare)
-                                        "JSON" -> ExportUtils.exportSingleNoteToJson(context, decryptedNoteForShare.note, title, content)
-                                    }
-                                    showMoreSheet = false
-                                },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(id = labelResId), fontSize = 11.sp)
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // DELETE option
-                    if (noteId != 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Button(
-                            onClick = {
-                                originalNote?.let {
-                                    viewModel.moveToTrash(it)
-                                    Toast.makeText(context, context.getString(R.string.toast_moved_trash), Toast.LENGTH_SHORT).show()
-                                    showMoreSheet = false
-                                    onBack()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("delete_note_btn_more"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(id = R.string.option_delete))
-                        }
-                    }
-                }
-            }
+                },
+                onDismiss = { showMoreSheet = false }
+            )
         }
 
         // Voice and File Attachment Bottom Sheet

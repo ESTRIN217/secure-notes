@@ -20,7 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.DecryptedNote
-import com.example.util.ExportUtils
+import com.example.util.exportMultipleToHtml
+import com.example.util.exportMultipleToJson
+import com.example.util.exportMultipleToMarkdown
+import com.example.util.exportMultipleToPdf
+import com.example.util.exportMultipleToTxt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +58,7 @@ fun ShareFormatSheet(
 
             OutlinedCard(
                 onClick = {
-                    ExportUtils.exportMultipleToTxt(context, selectedNotes)
+                    exportMultipleToTxt(context, selectedNotes)
                     onDismiss()
                 },
                 modifier = Modifier
@@ -80,7 +84,7 @@ fun ShareFormatSheet(
 
             OutlinedCard(
                 onClick = {
-                    ExportUtils.exportMultipleToMarkdown(context, selectedNotes)
+                    exportMultipleToMarkdown(context, selectedNotes)
                     onDismiss()
                 },
                 modifier = Modifier
@@ -106,7 +110,7 @@ fun ShareFormatSheet(
 
             OutlinedCard(
                 onClick = {
-                    ExportUtils.exportMultipleToPdf(context, selectedNotes)
+                    exportMultipleToPdf(context, selectedNotes)
                     onDismiss()
                 },
                 modifier = Modifier
@@ -134,7 +138,7 @@ fun ShareFormatSheet(
 
             OutlinedCard(
                 onClick = {
-                    ExportUtils.exportMultipleToHtml(context, selectedNotes)
+                    exportMultipleToHtml(context, selectedNotes)
                     onDismiss()
                 },
                 modifier = Modifier
@@ -160,7 +164,7 @@ fun ShareFormatSheet(
 
             OutlinedCard(
                 onClick = {
-                    ExportUtils.exportMultipleToJson(context, selectedNotes)
+                    exportMultipleToJson(context, selectedNotes)
                     onDismiss()
                 },
                 modifier = Modifier

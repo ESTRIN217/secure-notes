@@ -39,6 +39,8 @@ import com.example.ui.CustomTopBar
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
+    onNavigateToLegalInfo: () -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BackHandler(onBack = onBack)
@@ -121,6 +123,28 @@ fun AboutScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.about_useful_links))
                 SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Outlined.Description,
+                        title = stringResource(R.string.about_terms),
+                        subtitle = stringResource(R.string.about_terms_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToLegalInfo
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Code,
+                        title = stringResource(R.string.about_licenses),
+                        subtitle = stringResource(R.string.about_licenses_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToLicenses
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                     SettingsListTile(
                         leadingIcon = Icons.Default.Code,
                         title = stringResource(R.string.about_view_repo),

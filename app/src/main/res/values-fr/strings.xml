@@ -1,0 +1,26 @@
+<resources>
+    <string name="legal_title">Conditions et Confidentialité</string>
+    <string name="legal_section_terms">Conditions d\'Utilisation</string>
+    <string name="legal_section_terms_content">Secure Notes est fourni « en l\'état » sans garantie expresse ou implicite. L\'authentification via Google OAuth est gérée par Google et régie par ses propres Conditions d\'Utilisation. En utilisant cette application, vous acceptez que :\n\n1. Vous êtes seul responsable de la confidentialité de votre mot de passe maître.\n2. Les notes sont stockées localement sur votre appareil.\n3. Les sauvegardes cloud sont facultatives et cryptées avant l\'envoi.\n4. Le développeur n\'est pas responsable en cas de perte de données.\n5. Cette application est fournie gratuitement et peut être modifiée sans préavis.</string>
+    <string name="legal_section_ai">Utilisation de l\'Intelligence Artificielle</string>
+    <string name="legal_section_ai_content">Secure Notes prévoit d\'intégrer Google Gemini API (via Firebase AI) pour des fonctionnalités d\'assistance à l\'écriture : rédaction, résumé et réécriture de contenu.\n\n- Les fonctionnalités IA sont OPTIONNELLES et activées uniquement sur consentement explicite.\n- Les données envoyées à l\'API ne sont PAS utilisées par Google pour entraîner ses modèles.\n- À l\'avenir, les modèles d\'IA seront exécutés LOCALEMENT sur l\'appareil pour une confidentialité maximale.\n- Vous pouvez désactiver l\'IA à tout moment dans les paramètres.</string>
+    <string name="legal_section_sovereignty">Souveraineté Absolue des Données (Client-Side)</string>
+    <string name="legal_section_sovereignty_content">Tout le chiffrement et déchiffrement s\'effectue EXCLUSIVEMENT sur votre appareil :\n\n🔐 **Chiffrement AES-256-GCM** — Standard militaire avec authentification intégrée.\n🔑 **Dérivation PBKDF2 avec HMAC-SHA256** — 200 000 itérations, clé de 256 bits.\n🧂 **Sel et IV aléatoires** — Générés individuellement pour chaque note via SecureRandom.\n🔒 **Mot de passe maître local** — Jamais transmis, jamais stocké en clair, uniquement en mémoire pendant la session.\n\nSans le mot de passe maître, il est MATHÉMATIQUEMENT IMPOSSIBLE de déchiffrer vos notes. Ni le développeur, ni Google, ni aucune tierce partie ne peut y accéder.</string>
+    <string name="legal_section_drive">Intégration Google Drive</string>
+    <string name="legal_section_drive_content">Les sauvegardes cloud via Google Drive sont FACULTATIVES :\n\n☁️ **Stockage privé** — Les données sont stockées dans le dossier AppData (invisible pour l\'utilisateur).\n🔐 **Crypté avant envoi** — Les sauvegardes sont chiffrées avec votre mot de passe maître avant téléversement.\n🔑 **Authentification OAuth 2.0** — via Credential Manager et Play Services.\n🔌 **Déconnexion à tout moment** — Vous pouvez révoquer l\'accès dans les paramètres.\n\nAucune donnée n\'est partagée sans votre consentement explicite.</string>
+    <string name="legal_google_oauth_note">Google OAuth gère l\'authentification. Google Drive API est utilisé uniquement pour le stockage de sauvegardes.</string>
+
+    <string name="licenses_title">Licences Open Source</string>
+    <string name="licenses_app_license">Licence MIT (Application)</string>
+
+    <string name="settings_legal">Mentions Légales</string>
+    <string name="settings_legal_desc">Conditions, confidentialité, licences</string>
+    <string name="settings_terms_privacy">Conditions et Confidentialité</string>
+    <string name="settings_licenses">Licences Open Source</string>
+    <string name="settings_lang_fr">Français</string>
+
+    <string name="about_terms">Conditions et Confidentialité</string>
+    <string name="about_terms_desc">Conditions d\'utilisation, IA, données</string>
+    <string name="about_licenses">Licences Open Source</string>
+    <string name="about_licenses_desc">Bibliothèques tierces</string>
+</resources>

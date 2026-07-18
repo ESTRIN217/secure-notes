@@ -102,7 +102,9 @@ sealed class Screen {
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
                 onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
-                onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) }
+                onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
+                onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
+                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) }
             )
         }
     }
@@ -127,11 +129,31 @@ sealed class Screen {
         }
     }
 
+    object LegalInfo : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            com.example.ui.settings.LegalInfoScreen(
+                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
+            )
+        }
+    }
+
+    object Licenses : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            com.example.ui.settings.LicensesScreen(
+                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
+            )
+        }
+    }
+
     object About : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
             com.example.ui.settings.AboutScreen(
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
+                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) },
+                onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
+                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) }
             )
         }
     }
@@ -149,6 +171,8 @@ val ScreenSaver = mapSaver(
             is Screen.SettingsHub -> mapOf("route" to "settings_hub")
             is Screen.BackupRestore -> mapOf("route" to "backup_restore")
             is Screen.UpdateInfo -> mapOf("route" to "update_info")
+            is Screen.LegalInfo -> mapOf("route" to "legal_info")
+            is Screen.Licenses -> mapOf("route" to "licenses")
             is Screen.About -> mapOf("route" to "about")
         }
     },
@@ -163,6 +187,8 @@ val ScreenSaver = mapSaver(
             "settings_hub" -> Screen.SettingsHub
             "backup_restore" -> Screen.BackupRestore
             "update_info" -> Screen.UpdateInfo
+            "legal_info" -> Screen.LegalInfo
+            "licenses" -> Screen.Licenses
             "about" -> Screen.About
             else -> Screen.MainList
         }

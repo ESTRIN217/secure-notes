@@ -49,6 +49,7 @@ import com.example.ui.viewmodel.NotesViewModel
 import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 
 data class DrawingStroke(
@@ -254,20 +255,25 @@ fun DrawingCanvasScreen(
                                         }
                                         val rawContent = createRawContent(cleanText, newAttachmentsList)
 
-                                        viewModel.saveNote(
-                                            id = noteId,
-                                            title = match.title,
-                                            content = rawContent,
-                                            isEncrypted = match.note.isEncrypted,
-                                            tagsList = match.note.parseTags(),
-                                            backgroundColor = match.note.backgroundColor,
-                                            backgroundImagePath = match.note.backgroundImagePath,
-                                            isPinned = match.note.isPinned,
-                                            isFavorite = match.note.isFavorite,
-                                            isArchived = match.note.isArchived
-                                        )
+                                        scope.launch {
+                                            viewModel.saveNoteAndGetId(
+                                                id = noteId,
+                                                title = match.title,
+                                                content = rawContent,
+                                                isEncrypted = match.note.isEncrypted,
+                                                tagsList = match.note.parseTags(),
+                                                backgroundColor = match.note.backgroundColor,
+                                                backgroundImagePath = match.note.backgroundImagePath,
+                                                isPinned = match.note.isPinned,
+                                                isFavorite = match.note.isFavorite,
+                                                isArchived = match.note.isArchived
+                                            )
+                                            viewModel.notifyNoteExternallyUpdated(noteId)
+                                            onBack()
+                                        }
+                                    } else {
+                                        onBack()
                                     }
-                                    onBack()
                                 } catch (e: Exception) {
                                     Log.e("DrawingCanvasScreen", "save drawing failed", e)
                                     Toast.makeText(context, context.getString(R.string.toast_drawing_save_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()

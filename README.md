@@ -35,6 +35,7 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 ## 🌎 Idiomas Soportados / Supported Languages / Idiomas Suportados
 * **Español (VE)** - Traducción nativa completa.
 * **Português (BR)** - Tradução nativa completa.
+* **Français (FR)** - Traduction complète des sections légales.
 * **English (US/UK)** - Default locale with complete support.
 
 ---
@@ -87,6 +88,67 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
   * PDF de alta fidelidad
   * HTML Web enriquecido
   * Respaldo crudo JSON
+
+---
+
+## ⚖️ Términos y Privacidad
+
+Secure Notes incluye una pantalla **"Términos y Privacidad"** accesible desde Ajustes > Legal y desde Acerca de > Enlaces Útiles.
+
+- **Autenticación**: Google OAuth maneja la autenticación. La pantalla de consentimiento de Google rige los permisos de cuenta.
+- **Términos de Uso**: La app se proporciona "tal cual". El usuario es responsable de su contraseña maestra.
+- **Privacidad**: Sin contraseña maestra, es matemáticamente imposible descifrar las notas.
+
+## 🤖 Uso de Inteligencia Artificial
+
+Secure Notes planea integrar **Google Gemini API** (Firebase AI) para asistencia de escritura. Declaración completa en la app:
+
+- Funciones de IA son **OPCIONALES** y requieren consentimiento explícito.
+- Los datos enviados **NO** se usan para entrenar modelos de Google.
+- A futuro: modelos de IA se ejecutarán **localmente** en el dispositivo.
+
+## 🛡️ Soberanía de Datos (Client-Side Absolute)
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Cifrado** | AES-256-GCM con autenticación integrada |
+| **Derivación de clave** | PBKDF2 con HMAC-SHA256, 200,000 iteraciones |
+| **Sal e IV** | Aleatorios por nota (SecureRandom) |
+| **Contraseña maestra** | Nunca sale del dispositivo, solo en memoria durante la sesión |
+| **Backups cloud** | Cifrados localmente *antes* de subir a Google Drive |
+| **Acceso de terceros** | Imposible sin la contraseña maestra |
+
+## ☁️ Google Drive
+
+La integración con Google Drive es **opcional** y se usa exclusivamente para:
+
+- **Copia de seguridad** en la carpeta AppData (inaccesible para el usuario).
+- **Autenticación OAuth 2.0** via Credential Manager.
+- **Cifrado client-side**: los backups se cifran con tu contraseña maestra antes de transmitirse.
+- **Desconexión total**: puedes revocar el acceso en cualquier momento desde Ajustes.
+
+## 📜 Licencias de Código Abierto
+
+Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependencias principales:
+
+| Librería | Licencia |
+|----------|----------|
+| Kotlin | Apache 2.0 |
+| Jetpack Compose | Apache 2.0 |
+| Material 3 | Apache 2.0 |
+| Room | Apache 2.0 |
+| OkHttp | Apache 2.0 |
+| Retrofit | Apache 2.0 |
+| Moshi | Apache 2.0 |
+| Coil | Apache 2.0 |
+| Firebase (Google) | Apache 2.0 |
+| Kotlin Coroutines | Apache 2.0 |
+| WorkManager | Apache 2.0 |
+| Android Biometric | Apache 2.0 |
+| compose-markdown | Apache 2.0 |
+| Robolectric | MIT |
+| JUnit 4 | EPL 2.0 |
+| App (MIT) | MIT — ESTRIN217 |
 
 ---
 
