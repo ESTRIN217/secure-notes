@@ -8,6 +8,7 @@ data class ScreenContext(
     val themeViewModel: com.example.ui.viewmodel.ThemeViewModel,
     val backupViewModel: com.example.ui.viewmodel.BackupViewModel,
     val updaterViewModel: com.example.ui.viewmodel.UpdaterViewModel,
+    val aiViewModel: com.example.ui.viewmodel.AiViewModel,
     val navigator: Navigator,
     val currentScreen: Screen
 )
@@ -40,6 +41,7 @@ sealed class Screen {
             NoteEditorScreen(
                 noteId = noteId,
                 viewModel = context.viewModel,
+                aiViewModel = context.aiViewModel,
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
                 onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) }
@@ -98,6 +100,7 @@ sealed class Screen {
         override fun render(context: ScreenContext) {
             com.example.ui.settings.SettingsScreen(
                 themeViewModel = context.themeViewModel,
+                aiViewModel = context.aiViewModel,
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },

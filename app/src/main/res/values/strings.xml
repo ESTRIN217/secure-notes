@@ -598,4 +598,34 @@
     <string name="about_terms_desc">Terms of use, AI, data sovereignty</string>
     <string name="about_licenses">Open Source Licenses</string>
     <string name="about_licenses_desc">Third-party libraries</string>
+
+    <!-- AI Assistant -->
+    <string name="ai_section">AI Assistant</string>
+    <string name="ai_assistant">AI Assistant</string>
+    <string name="ai_enabled">Enable AI Assistant</string>
+    <string name="ai_enabled_desc">Use local AI models for writing assistance</string>
+    <string name="ai_backend">AI Backend</string>
+    <string name="ai_ollama">Ollama (Local HTTP)</string>
+    <string name="ai_ollama_desc">Connect to a local Ollama or LM Studio server on your network</string>
+    <string name="ai_ondevice">On-Device</string>
+    <string name="ai_ondevice_desc">Run a model directly on this device (requires download)</string>
+    <string name="ai_endpoint_url">Server URL</string>
+    <string name="ai_model_name">Model Name</string>
+    <string name="ai_generate">Generate</string>
+    <string name="ai_summarize">Summarize</string>
+    <string name="ai_summarize_selection">The selected text will be summarized.</string>
+    <string name="ai_summarize_full">The full note content will be summarized.</string>
+    <string name="ai_rewrite">Rewrite</string>
+    <string name="ai_translate">Translate</string>
+    <string name="ai_prompt_hint">What would you like me to write?</string>
+    <string name="ai_insert">Insert</string>
+    <string name="ai_regenerate">Regenerate</string>
+    <string name="ai_processing">Processing…</string>
+    <string name="ai_error">Error</string>
+    <string name="ai_style_label">Style</string>
+    <string name="ai_style_formal">Formal</string>
+    <string name="ai_style_casual">Casual</string>
+    <string name="ai_style_poetic">Poetic</string>
+    <string name="ai_style_professional">Professional</string>
+    <string name="ai_language_target">Target Language</string>
 </resources>

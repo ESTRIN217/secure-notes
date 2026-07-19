@@ -40,4 +40,44 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setLanguage(locale: String) {
         prefs.edit().putString(AppConstants.LANGUAGE_KEY, locale).apply()
     }
+
+    override fun getAiEnabled(): Boolean {
+        return prefs.getBoolean(AppConstants.AI_ENABLED_KEY, false)
+    }
+
+    override fun setAiEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(AppConstants.AI_ENABLED_KEY, enabled).apply()
+    }
+
+    override fun getAiBackend(): String {
+        return prefs.getString(AppConstants.AI_BACKEND_KEY, "ollama") ?: "ollama"
+    }
+
+    override fun setAiBackend(backend: String) {
+        prefs.edit().putString(AppConstants.AI_BACKEND_KEY, backend).apply()
+    }
+
+    override fun getAiEndpointUrl(): String {
+        return prefs.getString(AppConstants.AI_ENDPOINT_URL_KEY, "http://192.168.1.100:11434") ?: "http://192.168.1.100:11434"
+    }
+
+    override fun setAiEndpointUrl(url: String) {
+        prefs.edit().putString(AppConstants.AI_ENDPOINT_URL_KEY, url).apply()
+    }
+
+    override fun getAiModelName(): String {
+        return prefs.getString(AppConstants.AI_MODEL_NAME_KEY, "llama3.2") ?: "llama3.2"
+    }
+
+    override fun setAiModelName(model: String) {
+        prefs.edit().putString(AppConstants.AI_MODEL_NAME_KEY, model).apply()
+    }
+
+    override fun getAiOnDeviceModelPath(): String {
+        return prefs.getString(AppConstants.AI_ONDEVICE_MODEL_PATH_KEY, "") ?: ""
+    }
+
+    override fun setAiOnDeviceModelPath(path: String) {
+        prefs.edit().putString(AppConstants.AI_ONDEVICE_MODEL_PATH_KEY, path).apply()
+    }
 }

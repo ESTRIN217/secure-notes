@@ -96,6 +96,9 @@ import com.example.ui.viewmodel.NotesViewModel
 import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
+import com.example.ui.viewmodel.AiViewModel
+import com.example.data.ai.OllamaService
+import com.example.data.ai.OnDeviceService
 
 import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
@@ -182,6 +185,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             )
+            val prefsRepo = SharedPreferencesRepository(this@MainActivity.applicationContext)
+            val ollamaService = OllamaService()
+            val onDeviceService = OnDeviceService()
+            val aiViewModel: AiViewModel = viewModel(
+                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        @Suppress("UNCHECKED_CAST")
+                        return AiViewModel(
+                            this@MainActivity.applicationContext as android.app.Application,
+                            prefsRepo,
+                            ollamaService,
+                            onDeviceService
+                        ) as T
+                    }
+                }
+            )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
             val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
 
@@ -196,7 +215,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppMainContent(viewModel, themeViewModel)
+                    AppMainContent(viewModel, themeViewModel, aiViewModel)
                 }
             }
         }
@@ -204,7 +223,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
+fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, aiViewModel: AiViewModel) {
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -256,12 +275,13 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel) {
         )
     }
 
-    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, navigator, currentScreen) {
+    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, navigator, currentScreen) {
         ScreenContext(
             viewModel = viewModel,
             themeViewModel = themeViewModel,
             backupViewModel = backupViewModel,
             updaterViewModel = updaterViewModel,
+            aiViewModel = aiViewModel,
             navigator = navigator,
             currentScreen = currentScreen
         )

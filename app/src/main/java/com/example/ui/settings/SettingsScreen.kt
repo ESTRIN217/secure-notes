@@ -23,15 +23,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.AppConstants
 import com.example.DarkModeOption
 import com.example.R
+import com.example.data.ai.AiBackend
 import com.example.ui.CustomTopBar
+import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ThemeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     themeViewModel: ThemeViewModel,
+    aiViewModel: AiViewModel,
     onBack: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToUpdateInfo: () -> Unit,
@@ -44,10 +48,15 @@ fun SettingsScreen(
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
     val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
     val language by themeViewModel.language.collectAsStateWithLifecycle()
+    val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
+    val aiBackend by aiViewModel.backend.collectAsStateWithLifecycle()
+    val aiEndpointUrl by aiViewModel.endpointUrl.collectAsStateWithLifecycle()
+    val aiModelName by aiViewModel.modelName.collectAsStateWithLifecycle()
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
+    var showAiBackendSheet by remember { mutableStateOf(false) }
 
     val isDynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -177,6 +186,86 @@ fun SettingsScreen(
                 }
             }
 
+            // --- AI ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.ai_section))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsSwitchTile(
+                        title = stringResource(R.string.ai_enabled),
+                        subtitle = stringResource(R.string.ai_enabled_desc),
+                        icon = Icons.Default.Psychology,
+                        checked = aiEnabled,
+                        onCheckedChange = { aiViewModel.setAiEnabled(it) }
+                    )
+
+                    if (aiEnabled) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        val backendLabel = when (aiBackend) {
+                            AiBackend.OLLAMA -> stringResource(R.string.ai_ollama)
+                            AiBackend.ON_DEVICE -> stringResource(R.string.ai_ondevice)
+                        }
+                        SettingsListTile(
+                            leadingIcon = Icons.Default.Settings,
+                            title = stringResource(R.string.ai_backend),
+                            subtitle = backendLabel,
+                            trailingIcon = Icons.Default.ChevronRight,
+                            onClick = { showAiBackendSheet = true }
+                        )
+
+                        if (aiBackend == AiBackend.OLLAMA) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                            var editingUrl by remember(aiEndpointUrl) { mutableStateOf(aiEndpointUrl) }
+                            OutlinedTextField(
+                                value = editingUrl,
+                                onValueChange = { editingUrl = it },
+                                label = { Text(stringResource(R.string.ai_endpoint_url)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                            )
+                            Button(
+                                onClick = { aiViewModel.setEndpointUrl(editingUrl) },
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                            ) {
+                                Text(stringResource(R.string.btn_save))
+                            }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                            var editingModel by remember(aiModelName) { mutableStateOf(aiModelName) }
+                            OutlinedTextField(
+                                value = editingModel,
+                                onValueChange = { editingModel = it },
+                                label = { Text(stringResource(R.string.ai_model_name)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                            )
+                            Button(
+                                onClick = { aiViewModel.setModelName(editingModel) },
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                            ) {
+                                Text(stringResource(R.string.btn_save))
+                            }
+                        }
+                    }
+                }
+            }
+
             // --- LEGAL ---
             item {
                 SettingsSectionTitle(title = stringResource(R.string.settings_legal))
@@ -275,6 +364,17 @@ fun SettingsScreen(
     if (showChangelogSheet) {
         ChangelogBottomSheet(
             onDismiss = { showChangelogSheet = false }
+        )
+    }
+
+    if (showAiBackendSheet) {
+        AiBackendBottomSheet(
+            currentBackend = aiBackend,
+            onDismiss = { showAiBackendSheet = false },
+            onBackendSelected = { backend ->
+                aiViewModel.setBackend(backend)
+                showAiBackendSheet = false
+            }
         )
     }
 }
@@ -489,6 +589,88 @@ fun LanguageBottomSheet(
                     onClick = { onLocaleSelected("fr"); onDismiss() }
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AiBackendBottomSheet(
+    currentBackend: AiBackend,
+    onDismiss: () -> Unit,
+    onBackendSelected: (AiBackend) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 48.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.ai_backend),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            SettingsCardGroup {
+                BackendOption(
+                    icon = Icons.Default.Wifi,
+                    title = stringResource(R.string.ai_ollama),
+                    subtitle = stringResource(R.string.ai_ollama_desc),
+                    isSelected = currentBackend == AiBackend.OLLAMA,
+                    onClick = { onBackendSelected(AiBackend.OLLAMA) }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                BackendOption(
+                    icon = Icons.Default.PhoneAndroid,
+                    title = stringResource(R.string.ai_ondevice),
+                    subtitle = stringResource(R.string.ai_ondevice_desc),
+                    isSelected = currentBackend == AiBackend.ON_DEVICE,
+                    onClick = { onBackendSelected(AiBackend.ON_DEVICE) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackendOption(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SettingsIconContainer(icon = icon, isSelected = isSelected)
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (isSelected) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }

@@ -31,10 +31,11 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (Material 3), Room
 |---|---|---|
 | UI / Navigation | `com.example.ui` | `MainListScreen.kt`, `NoteEditorScreen.kt`, `DrawingCanvasScreen.kt`, `MediaViewerScreen.kt`, `SearchScreen.kt`, `LockScreen.kt` |
 | Settings UI | `com.example.ui.settings` | `SettingsScreen.kt`, `PrivacySettingsScreen.kt`, `BackupRestoreScreen.kt`, `AboutScreen.kt`, `SettingsWidgets.kt` |
-| ViewModel | `com.example.ui.viewmodel` | `NotesViewModel.kt`, `ThemeViewModel.kt`, `BackupViewModel.kt`, `UpdaterViewModel.kt` |
+| ViewModel | `com.example.ui.viewmodel` | `NotesViewModel.kt`, `ThemeViewModel.kt`, `BackupViewModel.kt`, `UpdaterViewModel.kt`, `AiViewModel.kt` |
 | Data (Room) | `com.example.data.local` | `NoteDatabase.kt`, `NoteDao.kt`, `TagDao.kt` |
 | Model | `com.example.data.model` | `Note.kt`, `Tag.kt`, `DecryptedNote.kt`, `NoteContentBlock.kt`, `UiState.kt`, `Attachment.kt` |
 | Encryption | `com.example.data.security` | `CipherService.kt` (interface), `EncryptionServiceImpl.kt` (AES-256/GCM), `KeyDerivation.kt` (PBKDF2, 200K iterations) |
+| AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp), `OnDeviceService.kt` (MediaPipe) |
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
 | Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
@@ -46,6 +47,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (Material 3), Room
 ### DI
 - No DI framework. ViewModels constructed via `ViewModelProvider.Factory` in `MainActivity.kt:161-175`.
 - Dependencies (`NoteDatabase`, `CipherService`, `GoogleDriveSyncService`) created manually and injected through factory.
+- `AiViewModel` creado con `PreferencesRepository`, `OllamaService`, `OnDeviceService` inyectados vía factory.
 
 ### UI / State
 - `StateFlow` + `collectAsStateWithLifecycle()` for reactive UI. No additional reactive libraries.

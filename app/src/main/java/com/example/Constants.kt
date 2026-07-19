@@ -48,6 +48,13 @@ object AppConstants {
     const val AUTO_LOCK_TIMEOUT_KEY = "auto_lock_timeout"
     const val AUTO_LOCK_TIMEOUT_DEFAULT = 5L
 
+    // AI preferences
+    const val AI_ENABLED_KEY = "ai_enabled"
+    const val AI_BACKEND_KEY = "ai_backend"
+    const val AI_ENDPOINT_URL_KEY = "ai_endpoint_url"
+    const val AI_MODEL_NAME_KEY = "ai_model_name"
+    const val AI_ONDEVICE_MODEL_PATH_KEY = "ai_ondevice_model_path"
+
     const val TRASH_RETENTION_DAYS = 90L
 
     val SecurityGreen = Color(0xFF43A047)

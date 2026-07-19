@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -38,11 +39,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.model.Attachment
+import com.example.data.model.DecryptedNote
 import com.example.data.model.Note
 import com.example.data.model.NoteContentBlock
+import com.example.ui.viewmodel.AiViewModel
 import com.example.data.model.createRawContent
 import com.example.data.model.parseNoteContentAndAttachments
-import com.example.data.model.DecryptedNote
 import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
 import com.example.ui.settings.SettingsCardGroup
@@ -110,6 +112,7 @@ import kotlinx.coroutines.launch
 fun NoteEditorScreen(
     noteId: Int,
     viewModel: NotesViewModel,
+    aiViewModel: AiViewModel,
     onBack: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> },
     onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> }
@@ -186,6 +189,8 @@ fun NoteEditorScreen(
     
     var showUrlDialog by remember { mutableStateOf(false) }
     var clickedUrlAddress by remember { mutableStateOf("") }
+    var showAiSheet by remember { mutableStateOf(false) }
+    val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
     var clickedUrlAbsoluteOffset by remember { mutableStateOf(-1) }
     
     var searchQuery by remember { mutableStateOf("") }
@@ -1216,6 +1221,19 @@ fun NoteEditorScreen(
                         )
                     }
 
+                    // AI Assistant Button
+                    if (aiEnabled) {
+                        VerticalDivider(modifier = Modifier.height(24.dp))
+                        IconButton(onClick = { showAiSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = stringResource(id = R.string.ai_assistant),
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
                     // Paste Button
                     IconButton(onClick = { pasteFromClipboard() }) {
                         Icon(
@@ -1920,6 +1938,19 @@ fun NoteEditorScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+
+                    if (aiEnabled) {
+                        IconButton(
+                            onClick = { showAiSheet = true },
+                            modifier = Modifier.testTag("ai_toolbar_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = stringResource(R.string.ai_assistant),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -2522,6 +2553,29 @@ fun NoteEditorScreen(
                     }
                 }
             }
+        }
+
+        // AI Assistant Bottom Sheet
+        if (showAiSheet) {
+            AiBottomSheet(
+                viewModel = aiViewModel,
+                selectedText = contentValue.text.substring(
+                    contentValue.selection.start,
+                    contentValue.selection.end
+                ).takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
+                fullContent = content,
+                onInsert = { text ->
+                    val selStart = contentValue.selection.start
+                    val selEnd = contentValue.selection.end
+                    val currentText = contentValue.text
+                    val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
+                    val newCursor = selStart + text.length
+                    contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                    content = newText
+                    saveToHistory(newText)
+                },
+                onDismiss = { showAiSheet = false }
+            )
         }
     }
 }
