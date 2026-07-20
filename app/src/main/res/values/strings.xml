@@ -43,7 +43,6 @@
     <string name="info_cloud">Your notes are compressed, end-to-end encrypted locally, and backed up in a secure file on your Google Drive app folder.</string>
     <string name="btn_link_drive">Sign in with Google</string>
     <string name="btn_unlink_drive">Disconnect Drive</string>
-    <string name="btn_sign_in_google">Sign in with Google</string>
     <string name="toast_auth_error">Authentication failed. Please try again.</string>
     <string name="sync_now">Sync Now</string>
     <string name="last_synced">Last synced: %s</string>
@@ -63,8 +62,8 @@
     <string name="welcome_note_title">Welcome to Secure Notes! 🚀</string>
     <string name="welcome_note_content">This is your secure space to store private thoughts, credentials, and encrypted notes.\n\n🔒 **Local-first Encryption**: Everything you write can be encrypted using military-grade **AES-256 GCM** encryption with a Master Password.\n\n☁️ **Google Drive Backup**: Connect your account via Cloud Sync to securely and privately back up your notes, protected by your custom password.\n\n⚡ **Customizable views and tag filtering**: Filter notes by tags like Work, Personal, and Private, and arrange them with custom ordering!\n\nHappy note taking!</string>
     
-    <string name="workout_note_title">Rutina Maestra: Fuerza y Resistencia</string>
-    <string name="workout_note_content">**Objetivo: Hipertrofia, potencia y capacidad cardiovascular.**\n\n**Programación Semanal: L, M, J, V**\n\n### Bloque 1: Enfoque Agilidad y Potencia\n- **Flexiones Rusas**: 3 series de 3 a 5 repeticiones.\n- **Flexiones con Aplauso**: 3 series de 4 a 6 repeticiones.\n- **Dominadas (Barras)**: 3 series de 5 a 6 repeticiones (explosivas).\n- **Flexiones en Pica**: 3 series de 5 repeticiones.\n\n### Bloque 2: Resistencia de Empuje\n- **Flexiones de arco**: 10 repeticiones (5 por brazo).\n- **Dominadas Australianas**: 3 series de 10 a 12 repeticiones.\n- **Flexiones de Puños**: 20 repeticiones.\n- **Flexiones Normales**: 3 series de 10 repeticiones.\n- **Deltoides Frontales**: 15 repeticiones.\n\n### Bloque 3: Tren Inferior\n- **Sentadillas**: 30 repeticiones.\n- **Sentadillas Explosivas**: 3 series de 15 repeticiones.\n- **Zancadas Búlgaras**: 3 series de 10 repeticiones por pierna.\n- **Zancadas Frontales**: 40 repeticiones (20 por pierna).\n- **Butt Bridge**: 30 repeticiones.\n- **Pierna adentro y fuera**: 30 repeticiones.\n\n### Bloque 4: Core y Cardio\n- **Elevaciones de Pierna**: 25 repeticiones.\n- **Escaladores**: 100 repeticiones.\n- **Planchas**: 3 series de 1 minuto.\n\n### Bloque 5: Estiramiento\n- **Gato-Vaca**: 10 ciclos.\n- **Postura del Niño**: 20-30 segundos.\n- **Estiramiento de Pectorales en pared**: 20-30 segundos.\n- **Estiramiento de Tríceps**: 20-30 segundos.\n- **Perro Boca Abajo**: 20-30 segundos.\n- **Estiramiento de Flexores de Cadera**: 20-30 segundos.\n- **Estiramiento de Muñecas**: 20-30 segundos.\n\n¡Consistencia es la clave! Intenta mantener este orden al menos 4 semanas antes de subir repeticiones.</string>
+    <string name="workout_note_title">Master Workout: Strength &amp; Endurance</string>
+    <string name="workout_note_content">**Goal: Hypertrophy, power, and cardiovascular capacity.**\n\n**Weekly Schedule: Mon, Tue, Thu, Fri**\n\n### Block 1: Agility &amp; Power Focus\n- **Russian Push-ups**: 3 sets of 3 to 5 reps.\n- **Clap Push-ups**: 3 sets of 4 to 6 reps.\n- **Pull-ups (Bar)**: 3 sets of 5 to 6 reps (explosive).\n- **Pike Push-ups**: 3 sets of 5 reps.\n\n### Block 2: Push Endurance\n- **Arc Push-ups**: 10 reps (5 per arm).\n- **Australian Pull-ups**: 3 sets of 10 to 12 reps.\n- **Fist Push-ups**: 20 reps.\n- **Regular Push-ups**: 3 sets of 10 reps.\n- **Front Delt Raises**: 15 reps.\n\n### Block 3: Lower Body\n- **Squats**: 30 reps.\n- **Explosive Squats**: 3 sets of 15 reps.\n- **Bulgarian Lunges**: 3 sets of 10 reps per leg.\n- **Forward Lunges**: 40 reps (20 per leg).\n- **Glute Bridge**: 30 reps.\n- **Leg In and Out**: 30 reps.\n\n### Block 4: Core &amp; Cardio\n- **Leg Raises**: 25 reps.\n- **Mountain Climbers**: 100 reps.\n- **Planks**: 3 sets of 1 minute.\n\n### Block 5: Stretching\n- **Cat-Cow**: 10 cycles.\n- **Child\'s Pose**: 20-30 seconds.\n- **Wall Chest Stretch**: 20-30 seconds.\n- **Triceps Stretch**: 20-30 seconds.\n- **Downward-Facing Dog**: 20-30 seconds.\n- **Hip Flexor Stretch**: 20-30 seconds.\n- **Wrist Stretch**: 20-30 seconds.\n\nConsistency is key! Try to maintain this order for at least 4 weeks before increasing reps.</string>
     <string name="nav_home">Home</string>
     <string name="nav_favorites">Favorites</string>
     <string name="nav_archived">Archived</string>
@@ -578,7 +577,7 @@
     <string name="legal_section_terms">Terms of Use</string>
     <string name="legal_section_terms_content">Secure Notes is provided "as is" without warranty of any kind. Google OAuth authentication is handled by Google and governed by its own Terms of Service. By using this application, you agree that:\n\n1. You are solely responsible for your master password confidentiality.\n2. Notes are stored locally on your device.\n3. Cloud backups are optional and encrypted before upload.\n4. The developer is not liable for any data loss.\n5. This application is provided free of charge and may be modified without prior notice.</string>
     <string name="legal_section_ai">AI Disclosure</string>
-    <string name="legal_section_ai_content">Secure Notes plans to integrate Google Gemini API (via Firebase AI) for writing assistance features: drafting, summarizing, and rewriting content.\n\n- AI features are OPTIONAL and opt-in only.\n- Data sent to the API is NOT used by Google for model training.\n- Future AI models will run LOCALLY on device for maximum privacy.\n- You can disable AI at any time in settings.</string>
+    <string name="legal_section_ai_content">AI assistance runs entirely on your device or local network, depending on the selected backend:\n\n• **Ollama (Local HTTP)**: Connects to a local LLM server (e.g., Ollama, LM Studio) on your network. No data leaves your LAN.\n• **On-Device**: Runs a model directly on this device (model download required). No network connection needed.\n\n• AI features are OPTIONAL and disabled by default.\n• You can enable or disable AI at any time in settings.\n• No data is ever sent to external servers, cloud APIs, or third parties.\n• Your notes and prompts remain private and under your control.</string>
     <string name="legal_section_sovereignty">Absolute Client-Side Data Sovereignty</string>
     <string name="legal_section_sovereignty_content">All encryption and decryption happens EXCLUSIVELY on your device:\n\n🔐 **AES-256-GCM Encryption** — Military-grade with built-in authentication.\n🔑 **PBKDF2 with HMAC-SHA256** — 200,000 iterations, 256-bit key.\n🧂 **Random Salt &amp; IV** — Generated per-note via SecureRandom.\n🔒 **Local Master Password** — Never transmitted, never stored in plaintext, only in memory during session.\n\nWithout the master password, it is MATHEMATICALLY IMPOSSIBLE to decrypt your notes. Neither the developer, Google, nor any third party can access them.</string>
     <string name="legal_section_drive">Google Drive Integration</string>
@@ -593,6 +592,7 @@
     <string name="settings_terms_privacy">Terms &amp; Privacy</string>
     <string name="settings_licenses">Open Source Licenses</string>
     <string name="settings_lang_fr">Français</string>
+    <string name="settings_lang_it">Italiano</string>
 
     <string name="about_terms">Terms &amp; Privacy</string>
     <string name="about_terms_desc">Terms of use, AI, data sovereignty</string>
@@ -628,4 +628,74 @@
     <string name="ai_style_poetic">Poetic</string>
     <string name="ai_style_professional">Professional</string>
     <string name="ai_language_target">Target Language</string>
+
+    <!-- AI Settings Screen -->
+    <string name="ai_settings_title">AI Settings</string>
+    <string name="ai_settings">AI Settings</string>
+    <string name="ai_settings_desc">Configure backend, connection, and system prompt</string>
+    <string name="ai_system_prompt">System Prompt</string>
+    <string name="ai_system_prompt_desc">Custom instructions sent to the AI model before each request. Overrides default prompts.</string>
+    <string name="ai_system_prompt_hint">Enter custom system prompt…</string>
+    <string name="ai_system_prompt_clear">Clear</string>
+
+    <!-- AI Connection & Instructions -->
+    <string name="ai_test_connection">Test Connection</string>
+    <string name="ai_connection_ok">Connected! Models: %1$s</string>
+    <string name="ai_connection_fail">Connection failed: %1$s</string>
+    <string name="ai_https_self_signed_warning">Using HTTPS with self-signed certificate. The app will accept it automatically.</string>
+    <string name="ai_ollama_instructions_title">How to set up Ollama</string>
+    <string name="ai_ollama_instructions_step1">1. Install Ollama on your computer: https://ollama.ai</string>
+    <string name="ai_ollama_instructions_step2">2. Run a model: ollama run llama3.2 (or any other model)</string>
+    <string name="ai_ollama_instructions_step3">3. Make sure Ollama is accessible from your device (same network). By default it runs on port 11434.</string>
+
+    <!-- On-Device Model -->
+    <string name="ai_ondevice_download">Download</string>
+    <string name="ai_ondevice_load">Load Model</string>
+    <string name="ai_ondevice_unload">Unload</string>
+    <string name="ai_ondevice_loading">Loading…</string>
+    <string name="ai_ondevice_retry">Retry</string>
+    <string name="ai_ondevice_device_info">Device Info</string>
+    <string name="ai_ondevice_recommended">Recommended Model</string>
+    <string name="ai_ondevice_all_models">All Compatible Models</string>
+    <string name="ai_ondevice_ram">RAM</string>
+    <string name="ai_ondevice_architecture">Architecture</string>
+    <string name="ai_ondevice_class">Device Class</string>
+    <string name="ai_ondevice_downloading">Downloading…</string>
+    <string name="ai_ondevice_download_complete">Download complete</string>
+    <string name="ai_ondevice_download_failed">Download failed: %1$s</string>
+    <string name="ai_ondevice_oom_warning">May exceed available RAM</string>
+    <string name="ai_ondevice_no_compatible">No compatible model for this device</string>
+    <string name="ai_ondevice_status_ready">Model loaded and ready</string>
+    <string name="ai_ondevice_status_error">Error loading model</string>
+    <string name="ai_ondevice_not_downloaded">Model not downloaded yet</string>
+
+    <!-- Storage Manager -->
+    <string name="settings_storage_manager">Storage Manager</string>
+    <string name="settings_storage_manager_desc">Manage app storage and clean up files</string>
+    <string name="settings_storage_tools">Tools</string>
+    <string name="storage_overview">Storage Overview</string>
+    <string name="storage_used">Used</string>
+    <string name="storage_free">Free</string>
+    <string name="storage_orphans_short">Orphans</string>
+    <string name="storage_orphan_files">Orphaned Files</string>
+    <string name="storage_orphan_desc">Files no longer referenced by any note</string>
+    <string name="storage_large_files">Large Files (%1$d MB+)</string>
+    <string name="storage_clear_cache">Clear Cache</string>
+    <string name="storage_auto_cleanup">Auto-cleanup</string>
+    <string name="storage_auto_cleanup_desc">Automatically delete orphaned files on startup</string>
+    <string name="storage_clean_up_now">Clean Up Now</string>
+    <string name="storage_delete_selected">Delete %1$d selected</string>
+    <string name="storage_select_all">Select all</string>
+    <string name="storage_deselect_all">Deselect all</string>
+    <string name="storage_and_more">And %1$d more…</string>
+    <string name="storage_details">Details</string>
+    <string name="storage_attachments">Attachments</string>
+    <string name="storage_drawings">Drawings</string>
+    <string name="storage_voice">Voice notes</string>
+    <string name="storage_files">Files</string>
+    <string name="storage_cache">Cache</string>
+    <string name="storage_exports">Exports</string>
+    <string name="storage_temp">Temporary</string>
+    <string name="storage_database">Database</string>
+    <string name="storage_orphan_waste">Wasted (orphans)</string>
 </resources>

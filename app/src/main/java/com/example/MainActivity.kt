@@ -97,8 +97,13 @@ import com.example.ui.viewmodel.ThemeViewModel
 import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.ui.viewmodel.AiViewModel
+import com.example.ui.viewmodel.StorageViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.data.ai.OllamaService
 import com.example.data.ai.OnDeviceService
+import com.example.data.ai.ModelDownloader
+import com.example.data.ai.LlamaCppEngine
 
 import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
@@ -185,18 +190,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             )
-            val prefsRepo = SharedPreferencesRepository(this@MainActivity.applicationContext)
+            val appContext = this@MainActivity.applicationContext
+            val prefsRepo = SharedPreferencesRepository(appContext)
             val ollamaService = OllamaService()
-            val onDeviceService = OnDeviceService()
+            val modelDownloader = ModelDownloader(appContext)
+            val llamaEngine = LlamaCppEngine(appContext)
+            val onDeviceService = OnDeviceService(llamaEngine)
             val aiViewModel: AiViewModel = viewModel(
-                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
                         @Suppress("UNCHECKED_CAST")
                         return AiViewModel(
-                            this@MainActivity.applicationContext as android.app.Application,
+                            appContext as android.app.Application,
                             prefsRepo,
                             ollamaService,
-                            onDeviceService
+                            onDeviceService,
+                            modelDownloader
                         ) as T
                     }
                 }
@@ -261,6 +270,17 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     )
     val updaterViewModel: UpdaterViewModel = viewModel()
+    val storageViewModel: StorageViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return StorageViewModel(
+                    context.applicationContext as android.app.Application,
+                    com.example.data.local.NoteDatabase.getDatabase(context.applicationContext)
+                ) as T
+            }
+        }
+    )
 
     val navigator = remember {
         Navigator(
@@ -275,13 +295,14 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         )
     }
 
-    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, navigator, currentScreen) {
+    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, navigator, currentScreen) {
         ScreenContext(
             viewModel = viewModel,
             themeViewModel = themeViewModel,
             backupViewModel = backupViewModel,
             updaterViewModel = updaterViewModel,
             aiViewModel = aiViewModel,
+            storageViewModel = storageViewModel,
             navigator = navigator,
             currentScreen = currentScreen
         )
