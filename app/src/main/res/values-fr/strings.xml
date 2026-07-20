@@ -1,9 +1,583 @@
 <resources>
+    <string name="app_name">Secure Notes</string>
+    <string name="search_placeholder">Rechercher des notes…</string>
+    <string name="btn_new_note">Nouvelle Note</string>
+    <string name="btn_save">Enregistrer</string>
+    <string name="btn_edit">Modifier</string>
+    <string name="btn_delete">Supprimer</string>
+    <string name="btn_sync">Synchroniser Cloud</string>
+    <string name="btn_export">Exporter la Note</string>
+    <string name="btn_markdown">Exporter en Markdown</string>
+    <string name="btn_pdf">Exporter en PDF</string>
+    <string name="btn_cancel">Annuler</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_add">Ajouter</string>
+    <string name="btn_manage_tags">Gérer les Étiquettes</string>
+    <string name="title_all_notes">Toutes les Notes</string>
+    <string name="title_lock_settings">Confidentialité et Sécurité</string>
+    <string name="title_cloud_sync">Synchronisation Cloud</string>
+    <string name="title_tags">Filtrer par Étiquettes</string>
+    <string name="status_encrypted">Chiffré (E2EE)</string>
+    <string name="status_empty">Aucune note trouvée. Créez votre première note sécurisée !</string>
+    <string name="status_empty_favorites">Aucune note favorite pour l\'instant</string>
+    <string name="status_empty_archived">Aucune note archivée</string>
+    <string name="status_empty_trash">La corbeille est vide</string>
+    <string name="status_empty_trash_subtitle">Les notes supprimées il y a plus de 90 jours sont définitivement effacées</string>
+    <string name="label_title">Titre</string>
+    <string name="label_content">Tapez quelque chose…</string>
+    <string name="label_tags">Étiquettes</string>
+    <string name="label_enter_password">Saisissez le Mot de Passe Maître</string>
+    <string name="label_setup_password">Créer un Mot de Passe de Sécurité</string>
+    <string name="label_set_password_msg">Définissez un mot de passe maître pour chiffrer vos notes de bout en bout. Vos notes ne pourront pas être déchiffrées sans lui !</string>
+    <string name="label_unlock">Déverrouiller l\'Appli</string>
+    <string name="error_wrong_password">Mot de passe incorrect. Veuillez réessayer !</string>
+    <string name="sync_success">Synchronisé avec Google Drive avec succès !</string>
+    <string name="sync_error">Échec de la synchronisation. Vérifiez la connexion ou l\'autorisation.</string>
+    <string name="export_success">Note exportée avec succès !</string>
+    <string name="drive_linked">Google Drive Connecté</string>
+    <string name="drive_unlinked">Google Drive Déconnecté</string>
+    <string name="dialog_create_tag">Créer une Étiquette Personnalisée</string>
+    <string name="tag_name_hint">Nom de l\'Étiquette</string>
+    <string name="encryption_active">Chiffrement AES-256 E2E Actif</string>
+    <string name="toggle_dark_theme">Mode Sombre</string>
+    <string name="info_cloud">Vos notes sont compressées, chiffrées de bout en bout localement et sauvegardées dans un fichier sécurisé dans votre dossier d\'application Google Drive.</string>
+    <string name="btn_link_drive">Se connecter avec Google</string>
+    <string name="btn_unlink_drive">Déconnecter Drive</string>
+    <string name="toast_auth_error">Échec de l\'authentification. Veuillez réessayer.</string>
+    <string name="sync_now">Synchroniser Maintenant</string>
+    <string name="last_synced">Dernière sync. : %s</string>
+    <string name="selection_count">%1$d sélectionné(s)</string>
+    <string name="menu_delete_selected">Supprimer la sélection</string>
+    <string name="menu_cancel_selection">Annuler la sélection</string>
+    <string name="confirm_delete_title">Confirmer la Suppression</string>
+    <string name="confirm_delete_msg">Êtes-vous sûr de vouloir supprimer les notes sélectionnées ?</string>
+    <string name="menu_toggle_view">Changer le mode d\'affichage</string>
+    <string name="menu_sort_options">Changer le tri</string>
+    <string name="bottom_sheet_sort_title">Trier les Notes</string>
+    <string name="sort_alphabetical">Alphabétiquement</string>
+    <string name="sort_last_modified">Par Date de Modification</string>
+    <string name="sort_custom">Ordre Personnalisé</string>
+    <string name="action_move_up">Monter</string>
+    <string name="action_move_down">Descendre</string>
+    <string name="welcome_note_title">Bienvenue sur Secure Notes ! 🚀</string>
+    <string name="welcome_note_content">Ceci est votre espace sécurisé pour stocker des pensées privées, des identifiants et des notes chiffrées.\n\n🔒 **Chiffrement local** : Tout ce que vous écrivez peut être chiffré avec le chiffrement de qualité militaire **AES-256 GCM** via un mot de passe maître.\n\n☁️ **Sauvegarde Google Drive** : Connectez votre compte via Synchronisation Cloud pour sauvegarder vos notes en toute sécurité, protégées par votre mot de passe.\n\n⚡ **Vues personnalisables et filtres par étiquettes** : Filtrez les notes par étiquettes comme Travail, Personnel et Privé, et organisez-les dans l\'ordre de votre choix !\n\nBonne prise de notes !</string>
+
+    <string name="workout_note_title">Entraînement Maître : Force et Endurance</string>
+    <string name="workout_note_content">**Objectif : Hypertrophie, puissance et capacité cardiovasculaire.**\n\n**Programme Hebdomadaire : Lun, Mar, Jeu, Ven**\n\n### Bloc 1 : Agilité et Puissance\n- **Pompes Russes** : 3 séries de 3 à 5 rép.\n- **Pompes Claquées** : 3 séries de 4 à 6 rép.\n- **Tractions (Barre)** : 3 séries de 5 à 6 rép. (explosives).\n- **Pompes en Pike** : 3 séries de 5 rép.\n\n### Bloc 2 : Endurance de Poussée\n- **Pompes en Arc** : 10 rép. (5 par bras).\n- **Tractions Australiennes** : 3 séries de 10 à 12 rép.\n- **Pompes sur Poings** : 20 rép.\n- **Pompes Normales** : 3 séries de 10 rép.\n- **Élévations Deltoïdes Avant** : 15 rép.\n\n### Bloc 3 : Bas du Corps\n- **Squats** : 30 rép.\n- **Squats Explosifs** : 3 séries de 15 rép.\n- **Fentes Bulgares** : 3 séries de 10 rép. par jambe.\n- **Fentes Avant** : 40 rép. (20 par jambe).\n- **Pont Fessier** : 30 rép.\n- **Jambes Dedans/Dehors** : 30 rép.\n\n### Bloc 4 : Core et Cardio\n- **Relevés de Jambes** : 25 rép.\n- **Mountain Climbers** : 100 rép.\n- **Planches** : 3 séries de 1 minute.\n\n### Bloc 5 : Étirements\n- **Chat-Vache** : 10 cycles.\n- **Posture de l\'Enfant** : 20-30 sec.\n- **Étirement Thoracique au Mur** : 20-30 sec.\n- **Étirement des Triceps** : 20-30 sec.\n- **Chien Tête en Bas** : 20-30 sec.\n- **Étirement des Fléchisseurs de Hanche** : 20-30 sec.\n- **Étirement des Poignets** : 20-30 sec.\n\nLa régularité est la clé ! Essayez de maintenir cet ordre pendant au moins 4 semaines avant d\'augmenter les répétitions.</string>
+    <string name="nav_home">Accueil</string>
+    <string name="nav_favorites">Favoris</string>
+    <string name="nav_archived">Archivées</string>
+    <string name="nav_trash">Corbeille</string>
+    <string name="nav_settings">Paramètres</string>
+
+    <string name="nav_favorites_title">Favoris</string>
+    <string name="nav_archived_title">Notes Archivées</string>
+    <string name="nav_trash_title">Corbeille</string>
+
+    <string name="action_restore">Restaurer</string>
+    <string name="action_delete_perm">Supprimer Définitivement</string>
+    <string name="action_empty_trash">Vider la Corbeille</string>
+    <string name="alert_empty_trash_msg">Êtes-vous sûr de vouloir supprimer définitivement toutes les notes de la corbeille ?</string>
+    <string name="toast_moved_trash">Déplacé vers la corbeille</string>
+    <string name="toast_restored">Note restaurée</string>
+    <string name="toast_deleted_perm">Supprimé définitivement</string>
+
+    <string name="menu_batch_pin">Épingler</string>
+    <string name="menu_batch_unpin">Désépingler</string>
+    <string name="menu_batch_favorite">Favori</string>
+    <string name="menu_batch_archive">Archiver</string>
+    <string name="menu_batch_unarchive">Désarchiver</string>
+    <string name="menu_batch_tag">Étiqueter</string>
+    <string name="menu_batch_share">Partager</string>
+
+    <string name="share_sheet_title">Format de Partage</string>
+    <string name="share_format_txt">Texte brut (.txt)</string>
+    <string name="share_format_md">Markdown (.md)</string>
+    <string name="share_format_pdf">Document PDF (.pdf)</string>
+    <string name="share_format_html">Document HTML (.html)</string>
+    <string name="share_format_json">Format JSON (.json)</string>
+    <string name="batch_tags_title">Gérer les étiquettes des notes sélectionnées</string>
+    <string name="toast_batch_tags_applied">Étiquettes mises à jour avec succès</string>
+    <string name="toast_unlocked">Appli déverrouillée</string>
+    <string name="toast_password_too_short">Le mot de passe doit contenir au moins 4 caractères !</string>
+    <string name="toast_passwords_do_not_match">Les mots de passe ne correspondent pas !</string>
+    <string name="toast_password_configured">Mot de passe configuré avec succès !</string>
+    <string name="toast_password_removed">Mot de passe maître supprimé. Notes déchiffrées.</string>
+    <string name="toast_note_deleted">Note supprimée</string>
+    <string name="toast_cannot_save_empty_note">Impossible d\'enregistrer une note vide</string>
+    <string name="toast_note_saved">Note enregistrée avec succès</string>
+    <string name="toast_setup_password_first">Définissez d\'abord un mot de passe maître dans les paramètres !</string>
+    <string name="dialog_edit_tag">Modifier l\'étiquette</string>
+    <string name="dialog_manage_tags">Gérer les étiquettes</string>
+    <string name="toast_tag_updated">Étiquette mise à jour avec succès</string>
+    <string name="toast_tag_deleted">Étiquette supprimée avec succès</string>
+    <string name="delete_tag_confirm_title">Supprimer l\'étiquette ?</string>
+    <string name="delete_tag_confirm_message">Êtes-vous sûr de vouloir supprimer l\'étiquette \"%1$s\" ? Cela la retirera de toutes les notes.</string>
+    <string name="label_select_color">Sélectionner la couleur de l\'étiquette</string>
+    <string name="label_search">Rechercher</string>
+    <string name="search_no_results">Aucune note trouvée correspondant à votre recherche.</string>
+    <string name="search_recent">Recherches récentes</string>
+    <string name="search_hint">Tapez pour commencer la recherche…</string>
+    <string name="label_note_color">Couleur de fond de la note</string>
+    <string name="label_color_none">Par défaut</string>
+    <string name="label_color_blue">Bleu</string>
+    <string name="label_color_green">Vert</string>
+    <string name="label_color_yellow">Jaune</string>
+    <string name="label_color_pink">Rose</string>
+    <string name="label_color_purple">Violet</string>
+    <string name="label_color_orange">Orange</string>
+    <string name="label_filter_by">Filtres :</string>
+    <string name="label_all">Tout</string>
+    <string name="label_favorites">Favoris</string>
+    <string name="label_archived">Archivées</string>
+    <string name="label_tags_filter">Étiquettes</string>
+    <string name="label_color_filter">Couleurs</string>
+    <string name="more_options">Plus d\'Options</string>
+    <string name="label_last_modified">Dernière modif. : %s</string>
+    <string name="option_share">Partager la Note</string>
+    <string name="option_delete">Supprimer la Note</string>
+    <string name="option_select_bg_image">Sélectionner une image de fond</string>
+    <string name="option_clear_bg_image">Supprimer l\'image de fond</string>
+    <string name="option_note_styling">Style et couleurs de la note</string>
+    <string name="label_e2e_encryption">Chiffrement de bout en bout</string>
+    <string name="desc_e2e_encryption_enabled">Sécurisez votre note avec le standard AES-256 et une phrase de passe maître.</string>
+    <string name="desc_e2e_encryption_disabled">Configurez d\'abord un code de confidentialité dans les Paramètres de Confidentialité.</string>
+    <string name="tooltip_pin">Épingler la note</string>
+    <string name="tooltip_unpin">Désépingler la note</string>
+    <string name="tooltip_favorite">Ajouter aux favoris</string>
+    <string name="tooltip_unfavorite">Retirer des favoris</string>
+    <string name="tooltip_archive">Archiver la note</string>
+    <string name="tooltip_unarchive">Désarchiver la note</string>
+    <string name="rich_undo">Annuler</string>
+    <string name="rich_redo">Rétablir</string>
+    <string name="rich_font_family">Police</string>
+    <string name="rich_font_size">Taille</string>
+    <string name="rich_bold">Gras</string>
+    <string name="rich_italic">Italique</string>
+    <string name="rich_underline">Souligné</string>
+    <string name="rich_strikethrough">Barré</string>
+    <string name="rich_toggle_edit">Modifier</string>
+    <string name="rich_toggle_preview">Aperçu</string>
+    <string name="rich_editor_title">Éditeur Enrichi</string>
+    <string name="rich_inline_code">Code en ligne</string>
+    <string name="rich_subscript">Indice</string>
+    <string name="rich_superscript">Exposant</string>
+    <string name="rich_font_color">Couleur de la police</string>
+    <string name="rich_bg_color">Couleur de fond</string>
+    <string name="rich_remove_format">Effacer le formatage</string>
+    <string name="rich_insert_image">Insérer une image</string>
+    <string name="rich_insert_video">Insérer une vidéo</string>
+    <string name="rich_heading">Titre</string>
+    <string name="dialog_insert_image_title">Insérer une image</string>
+    <string name="dialog_insert_video_title">Insérer une vidéo</string>
+    <string name="label_media_url">URL du média (lien web ou chemin local)</string>
+    <string name="btn_insert">Insérer</string>
+
+    <string name="rich_numbered_list">Liste numérotée</string>
+    <string name="rich_bulleted_list">Liste à puces</string>
+    <string name="rich_checklist">Liste de contrôle</string>
+    <string name="rich_code_block">Bloc de code</string>
+    <string name="rich_quote">Citation</string>
+    <string name="rich_increase_indent">Augmenter le retrait</string>
+    <string name="rich_decrease_indent">Diminuer le retrait</string>
+    <string name="rich_insert_url">Insérer un lien</string>
+    <string name="rich_paste">Coller depuis le presse-papier</string>
+    <string name="rich_insert_date">Insérer la date actuelle</string>
+    <string name="rich_search">Rechercher du texte</string>
+    <string name="dialog_insert_url_title">Insérer un lien URL</string>
+    <string name="label_url_address">Adresse du lien URL</string>
+    <string name="label_url_text">Texte à afficher (optionnel)</string>
+    <string name="rich_live_preview">Rendu en direct</string>
+    <string name="dialog_font_color_title">Couleur de la police</string>
+    <string name="dialog_bg_color_title">Couleur de fond</string>
+    <string name="color_option_material">Couleurs Material</string>
+    <string name="color_option_picker">Sélecteur de couleur</string>
+    <string name="color_option_default">Option par défaut</string>
+    <string name="color_default">Utiliser la valeur par défaut</string>
+    <string name="color_hex_label">Code hexadécimal</string>
+    <string name="color_apply">Appliquer</string>
+    <string name="color_cancel">Annuler</string>
+    <string name="color_red">Rouge Material</string>
+    <string name="color_blue">Bleu Material</string>
+    <string name="color_green">Vert Material</string>
+    <string name="label_option_gallery">Galerie</string>
+    <string name="label_option_camera">Appareil photo</string>
+    <string name="label_option_link">Lien web</string>
+    <string name="desc_insert_image">Ajouter une image depuis la galerie, l\'appareil photo ou un lien web</string>
+    <string name="desc_insert_video">Ajouter une vidéo depuis la galerie, l\'appareil photo ou un lien web</string>
+    <string name="desc_insert_audio">Enregistrer une note vocale ou lier des fichiers audio</string>
+    <string name="rich_insert_audio">Insérer un audio</string>
+    <string name="label_empty_preview">Contenu vide</string>
+    <string name="desc_switch_edit">Passer en mode édition</string>
+    <string name="desc_switch_preview">Passer en mode aperçu</string>
+    <string name="url_dialog_title">Actions du lien</string>
+    <string name="url_dialog_open">Ouvrir</string>
+    <string name="url_dialog_copy">Copier</string>
+    <string name="url_dialog_delete">Supprimer</string>
+    <string name="search_up">Haut</string>
+    <string name="search_down">Bas</string>
+    <string name="search_more">Plus</string>
+    <string name="search_case_sensitive">Sensible à la casse</string>
+    <string name="search_full_word">Mot entier</string>
+    <string name="search_letter_found_one">1 lettre trouvée</string>
+    <string name="search_letter_found_many">%1$d lettres trouvées</string>
+    <string name="search_word_found_one">1 mot trouvé</string>
+    <string name="search_word_found_many">%1$d mots trouvés</string>
+    <string name="search_results_empty">Aucun résultat trouvé</string>
+
+    <!-- Drawing Canvas -->
+    <string name="drawing_canvas_title">Dessin</string>
+    <string name="drawing_clear">Effacer le canevas</string>
+    <string name="drawing_save">Enregistrer le dessin</string>
+    <string name="drawing_stroke_width">Épaisseur du trait</string>
+    <string name="drawing_color_picker">Sélecteur de couleur</string>
+    <string name="drawing_size_label">Taille : %d</string>
+    <string name="toast_drawing_saved">Dessin ajouté à la note</string>
+    <string name="toast_drawing_load_error">Échec du chargement du dessin</string>
+    <string name="toast_drawing_empty">Le canevas est vide ou non initialisé</string>
+    <string name="toast_drawing_save_error">Erreur lors de l\'enregistrement du dessin</string>
+
+    <!-- Attachments -->
+    <string name="attachment_drawing">Dessin joint</string>
+    <string name="attachment_file">Fichier joint</string>
+    <string name="attachment_image">Image jointe</string>
+    <string name="attachment_remove">Supprimer la pièce jointe</string>
+    <string name="add_drawing">Ajouter un dessin</string>
+    <string name="add_attachment">Ajouter une pièce jointe</string>
+    <string name="attachments_title">Pièces jointes</string>
+
+    <!-- Editor -->
+    <string name="untitled_note">Note sans titre</string>
+    <string name="normal_text">Texte normal</string>
+    <string name="heading_1">Titre 1</string>
+    <string name="heading_2">Titre 2</string>
+    <string name="heading_3">Titre 3</string>
+    <string name="text_default">Par défaut</string>
+    <string name="read_aloud">Lire la note à voix haute</string>
+    <string name="stop_speaking">Arrêter la lecture</string>
+    <string name="nothing_to_read">Rien à lire à voix haute</string>
+    <string name="voice_note_recorder">Enregistreur de note vocale</string>
+    <string name="tap_to_record">Appuyez pour commencer l\'enregistrement</string>
+    <string name="recording_tap_to_stop">Enregistrement… Appuyez pour arrêter</string>
+    <string name="attach_voice">Joindre un vocal</string>
+    <string name="select_external_file">Sélectionner un fichier externe</string>
+    <string name="select_file_desc">Choisissez des documents, de l\'audio ou d\'autres fichiers à lier</string>
+    <string name="toast_imported">Note importée !</string>
+    <string name="toast_no_app_video">Aucune application pour lire la vidéo</string>
+    <string name="toast_cannot_open_url">Impossible d\'ouvrir l\'URL</string>
+    <string name="toast_file_attached">Fichier joint avec succès</string>
+    <string name="toast_file_select_error">Erreur lors de la sélection du fichier</string>
+    <string name="toast_recording_error">Échec du démarrage de l\'enregistrement</string>
+    <string name="toast_audio_play_error">Erreur lors de la lecture audio</string>
+    <string name="toast_video_play_error">Erreur lors de la lecture de la vidéo</string>
+    <string name="toast_audio_preview_error">Erreur lors de la lecture de l\'aperçu</string>
+    <string name="toast_voice_note_attached">Note vocale jointe</string>
+    <string name="toast_camera_error">Erreur lors du démarrage de l\'appareil photo</string>
+    <string name="camera_permission_required">L\'autorisation de l\'appareil photo est requise pour prendre des photos/vidéos</string>
+    <string name="mic_permission_required">L\'autorisation du microphone est requise pour enregistrer des notes vocales</string>
+
+    <!-- Navigation / common -->
+    <string name="back">Retour</string>
+    <string name="close">Fermer</string>
+    <string name="sync">Synchroniser</string>
+    <string name="unlink">Dissocier</string>
+    <string name="search_icon">Rechercher</string>
+    <string name="create_note">Créer une note</string>
+    <string name="create_tag">Créer une étiquette</string>
+    <string name="manage_tags">Gérer les étiquettes</string>
+    <string name="empty_trash">Vider la corbeille</string>
+    <string name="selected_label">Sélectionné</string>
+    <string name="pinned_label">Épinglé</string>
+    <string name="encrypted_label">Chiffré</string>
+    <string name="drag_to_reorder">Faites glisser pour réorganiser</string>
+    <string name="clear_search">Effacer la recherche</string>
+    <string name="favorite_filter">Favoris</string>
+    <string name="archive_filter">Archivées</string>
+    <string name="tag_filter">Étiquette</string>
+    <string name="color_filter">Couleur</string>
+    <string name="clear_tag_filter">Effacer le filtre d\'étiquette</string>
+    <string name="clear_color_filter">Effacer le filtre de couleur</string>
+    <string name="no_results_icon">Aucun résultat</string>
+    <string name="remove_recent_search">Supprimer la recherche récente</string>
+    <string name="search_icon_placeholder">Rechercher</string>
+    <string name="dark_mode">Mode sombre</string>
+    <string name="e2ee_active">Chiffrement de bout en bout actif</string>
+    <string name="security_active">Sécurité active</string>
+    <string name="setup_credentials">Configurer les identifiants</string>
+    <string name="remove_protection">Supprimer les identifiants de protection</string>
+    <string name="delete_master_password">Supprimer le mot de passe maître</string>
+    <string name="disconnect">Déconnecter</string>
+    <string name="deleted_notes_info">Les notes supprimées peuvent être restaurées ici ou supprimées définitivement.</string>
+    <string name="all_notes">Tout</string>
+
+    <!-- Cloud / Sync -->
+    <string name="btn_upload_backup">Téléverser la sauvegarde</string>
+    <string name="btn_download_backup">Télécharger la sauvegarde</string>
+    <string name="cloud_sync_title">Synchronisation Cloud</string>
+    <string name="link_account">Lier le compte</string>
+    <string name="backup_cloud">Sauvegarde cloud</string>
+    <string name="restore_notes">Restaurer les notes</string>
+    <string name="toast_drive_connected">Google Drive connecté !</string>
+    <string name="toast_drive_disconnected">Google Drive déconnecté.</string>
+    <string name="toast_drive_auth_first">Autorisez d\'abord Google Drive !</string>
+    <string name="toast_syncing">Synchronisation avec Google Drive…</string>
+    <string name="toast_sync_success">Synchronisé avec Google Drive avec succès !</string>
+    <string name="toast_sync_auth_expired">Authentification expirée. Déconnexion de Drive.</string>
+    <string name="toast_sync_error">Erreur de synchronisation : %1$s</string>
+    <string name="toast_searching_backup">Recherche du fichier de sauvegarde…</string>
+    <string name="toast_no_backup_found">Aucun fichier de sauvegarde trouvé dans Google Drive.</string>
+    <string name="toast_backup_download_failed">Échec du téléchargement de la sauvegarde.</string>
+    <string name="toast_unlock_first">Déverrouillez d\'abord l\'application avec le mot de passe maître !</string>
+    <string name="toast_decrypt_failed">Échec du déchiffrement ! Le mot de passe maître ne correspond pas à la sauvegarde.</string>
+    <string name="toast_restore_success">Notes restaurées avec succès depuis le cloud !</string>
+    <string name="toast_restore_error">Erreur de restauration : %1$s</string>
+    <string name="password_hint">Mot de passe</string>
+    <string name="restore_password_required">Cette sauvegarde est chiffrée. Saisissez le mot de passe maître pour restaurer.</string>
+    <string name="restore_password_dialog_title">Mot de passe de sauvegarde requis</string>
+    <string name="restore_password_dialog_message">Saisissez le mot de passe maître qui a été utilisé lors de la création de cette sauvegarde.</string>
+    <string name="restore_password_dialog_confirm">Déchiffrer et restaurer</string>
+    <string name="restore_password_dialog_cancel">Annuler</string>
+    <string name="sync_encrypting">Chiffrement des données…</string>
+    <string name="sync_searching">Recherche du fichier de sauvegarde…</string>
+    <string name="sync_uploading">Téléversement vers Drive…</string>
+    <string name="sync_downloading">Téléchargement depuis Drive…</string>
+    <string name="sync_restoring">Restauration des notes…</string>
+
+    <!-- Export -->
+    <string name="toast_export_error">Erreur d\'exportation : %1$s</string>
+
+    <!-- Other common messages -->
+    <string name="clear_all">Tout effacer</string>
+    <string name="toggle_navigation_rail">Basculer la barre de navigation</string>
+    <string name="lock_icon">Icône de verrou</string>
+    <string name="shield_guard">Bouclier de sécurité</string>
+    <string name="cloud_icon">Icône de nuage</string>
+
+    <!-- Media Viewer -->
+    <string name="attachment_video">Vidéo</string>
+    <string name="option_save">Enregistrer</string>
+    <string name="toast_share_error">Erreur lors du partage du fichier</string>
+    <string name="toast_saved_to_gallery">Enregistré dans la galerie</string>
+    <string name="toast_save_error">Erreur lors de l\'enregistrement du fichier</string>
+
+    <!-- v3.0 Settings -->
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_dynamic_colors">Couleurs dynamiques</string>
+    <string name="settings_dynamic_colors_desc">Utiliser le schéma de couleurs dynamiques Material You (Android 12+)</string>
+    <string name="settings_dark_mode">Mode sombre</string>
+    <string name="settings_dark_mode_system">Système</string>
+    <string name="settings_dark_mode_on">Activé</string>
+    <string name="settings_dark_mode_off">Désactivé</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_language_desc">Changer la langue de l\'application</string>
+    <string name="settings_lang_default">Par défaut (Système)</string>
+    <string name="settings_lang_en">English</string>
+    <string name="settings_lang_en_gb">English (UK)</string>
+    <string name="settings_lang_es_419">Español (Latinoamérica)</string>
+    <string name="settings_lang_es">Español (Venezuela)</string>
+    <string name="settings_lang_pt">Português (Brasil)</string>
+    <string name="settings_lang_es_es">Español (España)</string>
+    <string name="settings_lang_pt_pt">Português (Portugal)</string>
+    <string name="settings_storage_data">Stockage et données</string>
+    <string name="settings_backup_restore">Sauvegarde et restauration</string>
+    <string name="settings_backup_restore_desc">Sauvegardes locales et cloud</string>
+    <string name="settings_information">Informations</string>
+    <string name="settings_changelog">Notes de version</string>
+    <string name="settings_changelog_desc">Dernières notes de mise à jour</string>
+    <string name="settings_check_update">Vérifier les mises à jour</string>
+    <string name="settings_about">À propos</string>
+    <string name="settings_about_desc">Infos et liens de l\'application</string>
+    <string name="settings_privacy_security">Confidentialité et sécurité</string>
+    <string name="settings_privacy_desc">Protection par mot de passe</string>
+    <string name="confirm_master_password">Confirmer le mot de passe maître</string>
+    <string name="backup_restore_title">Sauvegarde et restauration</string>
+    <string name="backup_local_section">Sauvegarde locale</string>
+    <string name="backup_export">Exporter la sauvegarde</string>
+    <string name="backup_export_desc">Enregistrer toutes les notes et étiquettes dans un fichier JSON</string>
+    <string name="backup_import">Importer la sauvegarde</string>
+    <string name="backup_import_desc">Restaurer les notes depuis un fichier JSON</string>
+    <string name="backup_cloud_section">Sauvegarde cloud</string>
+    <string name="backup_upload">Téléverser vers Drive</string>
+    <string name="backup_download">Télécharger depuis Drive</string>
+    <string name="update_title">Infos de mise à jour</string>
+    <string name="update_current_version">Version actuelle</string>
+    <string name="update_current_version_label">v%s</string>
+    <string name="update_auto_check">Vérifier automatiquement les mises à jour</string>
+    <string name="update_notifications">Activer les notifications de mise à jour</string>
+    <string name="update_settings_title">Paramètres de mise à jour</string>
+    <string name="update_check_now">Vérifier la mise à jour</string>
+    <string name="update_checking">Vérification des mises à jour…</string>
+    <string name="update_up_to_date">Vous êtes à jour !</string>
+    <string name="update_available">Mise à jour disponible : %s</string>
+    <string name="update_latest_version">Dernière : %s</string>
+    <string name="update_show_changelog">Voir les notes de version</string>
+    <string name="update_hide_changelog">Masquer les notes de version</string>
+    <string name="update_error">Échec de la vérification des mises à jour</string>
+    <string name="about_title">À propos</string>
+    <string name="about_desc">Votre Crypte Privée Hors-Ligne</string>
+    <string name="about_encryption">Protocole de chiffrement E2EE AES-256 de qualité militaire</string>
+    <string name="about_github">Voir sur GitHub</string>
+    <string name="about_developer">Développeur</string>
+    <string name="about_developer_role">Développeur Principal</string>
+    <string name="about_useful_links">Liens utiles</string>
+    <string name="about_view_repo">Voir le dépôt</string>
+    <string name="about_license">Licence MIT</string>
+    <string name="about_license_desc">Logiciel open source</string>
+    <string name="about_footer">Fabriqué avec ❤️ au Venezuela</string>
+    <string name="about_web">Web</string>
+    <string name="changelog_title">Notes de version</string>
+    <string name="changelog_loading">Chargement des notes de version…</string>
+    <string name="changelog_error">Échec du chargement des notes de version</string>
+    <string name="changelog_empty">Aucune note de version disponible.</string>
+    <string name="toast_export_backup_success">Sauvegarde exportée avec succès !</string>
+    <string name="toast_export_backup_error">Erreur lors de l\'exportation de la sauvegarde</string>
+    <string name="toast_import_backup_success">Sauvegarde importée avec succès !</string>
+    <string name="toast_import_backup_error">Erreur lors de l\'importation de la sauvegarde</string>
+    <string name="backup_attachments_warnings">Sauvegarde terminée avec %d avertissements de pièces jointes</string>
+    <string name="toast_language_changed">Langue modifiée</string>
+    <string name="cancel">Annuler</string>
+
+    <!-- v4.0 contentDescription strings -->
+    <string name="cd_secure_notes_logo">Logo Secure Notes</string>
+    <string name="cd_empty_notes_banner">Bannière de fond de notes vides</string>
+    <string name="cd_account_avatar">Avatar du compte</string>
+    <string name="cd_play_video">Lire la vidéo</string>
+    <string name="cd_txt_icon">Icône TXT</string>
+    <string name="cd_markdown_icon">Icône Markdown</string>
+    <string name="cd_pdf_icon">Icône PDF</string>
+    <string name="cd_html_icon">Icône HTML</string>
+    <string name="cd_json_icon">Icône JSON</string>
+    <string name="cd_delete_tag">Supprimer l\'étiquette</string>
+    <string name="cd_edit_tag">Modifier l\'étiquette</string>
+    <string name="cd_remove">Supprimer</string>
+    <string name="cd_checked">Coché</string>
+    <string name="cd_unchecked">Décoché</string>
+    <string name="cd_play_pause_audio">Lire/Pause Audio</string>
+    <string name="cd_remove_tag">Supprimer l\'étiquette</string>
+    <string name="cd_bg_preview">Aperçu du fond</string>
+    <string name="cd_stop_recording">Arrêter l\'enregistrement</string>
+    <string name="cd_preview_voice_note">Aperçu de la note vocale</string>
+    <string name="cd_discard_recording">Annuler l\'enregistrement</string>
+
+    <!-- v4.0 Platform & About -->
+    <string name="platform_android">ANDROID</string>
+    <string name="platform_unknown">INCONNU</string>
+    <string name="about_repo_subtitle">ESTRIN217/secure-notes</string>
+    <string name="about_developer_name">ESTRIN217</string>
+    <string name="update_device_arch_foss">%s - FOSS</string>
+
+    <!-- v4.0 Export / Share chooser titles -->
+    <string name="export_title_markdown">Exporter en Markdown</string>
+    <string name="export_title_pdf">Exporter en PDF</string>
+    <string name="share_title_text">Partager les notes en texte</string>
+    <string name="share_title_markdown">Partager les notes en Markdown</string>
+    <string name="share_title_html">Partager les notes en HTML</string>
+    <string name="share_title_json">Partager les notes en JSON</string>
+    <string name="export_title_json">Exporter en JSON</string>
+    <string name="share_title_pdf">Partager les notes en PDF</string>
+
+    <!-- v4.0 PDF / Export content labels -->
+    <string name="pdf_watermark_encrypted">🛡️ CHIFFRÉ AES-256 DE BOUT EN BOUT</string>
+    <string name="pdf_watermark_plain">📝 COPIE LOCALE NON CHIFFRÉE</string>
+    <string name="export_label_modified">Modifié : %s</string>
+    <string name="export_label_tags">Étiquettes : %s</string>
+    <string name="export_label_last_modified">Dernière modification : %s</string>
+
+    <!-- v4.0 Default / Seed data -->
+    <string name="label_never">Jamais</string>
+    <string name="tag_default_work">Travail</string>
+    <string name="tag_default_personal">Personnel</string>
+    <string name="tag_default_private">Privé</string>
+    <string name="label_today_at">Aujourd\'hui à %s</string>
+    <string name="title_imported_note">Note importée</string>
+
+    <!-- v4.0 Search counter -->
+    <string name="search_match_counter">%1$d/%2$d</string>
+
+    <!-- v4.0 Password type -->
+    <string name="password_type_label">Type de sécurité</string>
+    <string name="password_type_pin">PIN (chiffres uniquement)</string>
+    <string name="password_type_password">Mot de passe fort</string>
+    <string name="label_setup_pin">Créer un PIN</string>
+    <string name="security_pin_type">Mode PIN — code numérique simple</string>
+    <string name="security_password_type">Mode mot de passe — alphanumérique sécurisé</string>
+
+    <!-- v4.0 Password strength -->
+    <string name="password_strength">Force du mot de passe</string>
+    <string name="password_weak">Faible</string>
+    <string name="password_medium">Moyen</string>
+    <string name="password_strong">Fort</string>
+    <string name="password_very_strong">Très fort</string>
+    <string name="password_suggestion">Astuce : utilisez des majuscules, minuscules, chiffres et symboles pour un mot de passe plus fort</string>
+
+    <!-- v4.0 Biometric -->
+    <string name="biometric_not_available">L\'authentification biométrique n\'est pas disponible sur cet appareil</string>
+    <string name="biometric_enabled">Déverrouillage biométrique activé</string>
+    <string name="biometric_enable_title">Activer le déverrouillage biométrique</string>
+    <string name="biometric_enable_subtitle">Authentifiez-vous pour activer le déverrouillage biométrique pour Secure Notes</string>
+    <string name="biometric_unlock_label">Déverrouillage biométrique</string>
+    <string name="biometric_unlock_title">Déverrouiller Secure Notes</string>
+    <string name="biometric_unlock_subtitle">Authentifiez-vous pour déverrouiller l\'application</string>
+    <string name="biometric_unlock_button">Déverrouiller avec la biométrie</string>
+    <string name="biometric_enabled_desc">Empreinte digitale ou reconnaissance faciale activée</string>
+    <string name="biometric_disabled_desc">Utilisez l\'empreinte digitale ou le visage pour déverrouiller</string>
+    <string name="biometric_key_error">La clé biométrique n\'est pas valide. Veuillez la réactiver dans les paramètres.</string>
+
+    <!-- v4.0 Attachment Settings -->
+    <string name="attachment_settings_title">Pièces jointes</string>
+    <string name="include_attachments_backup">Inclure les pièces jointes dans la sauvegarde</string>
+    <string name="include_attachments_backup_desc">Inclure les images, dessins et fichiers dans votre sauvegarde</string>
+    <string name="copy_attachments_local">Copier les pièces jointes vers le stockage interne</string>
+    <string name="copy_attachments_local_desc">Enregistrer automatiquement les images externes en fichiers locaux pour les conserver</string>
+
+    <!-- Backup encryption & auto-backup -->
+    <string name="backup_encrypt_title">Chiffrer les sauvegardes</string>
+    <string name="backup_encrypt_desc">Protéger les fichiers de sauvegarde avec votre mot de passe maître (AES-256 GCM)</string>
+    <string name="backup_auto_title">Sauvegarde automatique vers le cloud</string>
+    <string name="backup_auto_desc">Synchroniser régulièrement les sauvegardes vers Google Drive</string>
+    <string name="backup_interval_label">Intervalle de sauvegarde</string>
+    <string name="backup_interval_6h">Toutes les 6 heures</string>
+    <string name="backup_interval_12h">Toutes les 12 heures</string>
+    <string name="backup_interval_24h">Toutes les 24 heures</string>
+    <string name="backup_interval_weekly">Chaque semaine</string>
+    <string name="backup_size_label">Taille : %s</string>
+    <string name="backup_e2ee_badge">Chiffré AES-256 E2E</string>
+    <string name="backup_e2ee_disabled_badge">Non chiffré</string>
+    <string name="toast_encrypt_backup_no_password">Impossible de chiffrer la sauvegarde : mot de passe maître indisponible. Déverrouillez l\'application d\'abord.</string>
+
+    <!-- Security improvements -->
+    <string name="auto_lock_title">Verrouillage automatique</string>
+    <string name="auto_lock_disabled">Désactivé</string>
+    <string name="auto_lock_timeout_desc">Verrouiller après %1$d minutes d\'inactivité</string>
+    <string name="auto_lock_off">Non</string>
+    <string name="auto_lock_immediately">Immédiatement</string>
+    <string name="auto_lock_1min">1 minute</string>
+    <string name="auto_lock_5min">5 minutes</string>
+    <string name="auto_lock_15min">15 minutes</string>
+    <string name="auto_lock_30min">30 minutes</string>
+    <string name="btn_enable">Activer</string>
+    <string name="btn_change">Modifier</string>
+    <string name="error_rate_limit">Trop de tentatives. Réessayez dans %1$d secondes</string>
+
+    <!-- Screenshot / Recents -->
+    <string name="screenshot_toggle_label">Autoriser les captures d\'écran et afficher dans les récentes</string>
+    <string name="screenshot_toggle_desc">Lorsque désactivé, les captures d\'écran sont bloquées et l\'application est masquée dans le sélecteur de tâches</string>
+
+    <!-- Change password -->
+    <string name="change_password">Changer le mot de passe maître</string>
+    <string name="change_password_current">Mot de passe actuel</string>
+    <string name="change_password_new">Nouveau mot de passe</string>
+    <string name="change_password_confirm">Confirmer le nouveau mot de passe</string>
+    <string name="change_password_dialog_title">Changer le mot de passe maître</string>
+    <string name="toast_password_changed">Mot de passe maître modifié avec succès</string>
+    <string name="toast_wrong_current_password">Le mot de passe actuel est incorrect</string>
+
+    <!-- Legal & Privacy -->
     <string name="legal_title">Conditions et Confidentialité</string>
     <string name="legal_section_terms">Conditions d\'Utilisation</string>
     <string name="legal_section_terms_content">Secure Notes est fourni « en l\'état » sans garantie expresse ou implicite. L\'authentification via Google OAuth est gérée par Google et régie par ses propres Conditions d\'Utilisation. En utilisant cette application, vous acceptez que :\n\n1. Vous êtes seul responsable de la confidentialité de votre mot de passe maître.\n2. Les notes sont stockées localement sur votre appareil.\n3. Les sauvegardes cloud sont facultatives et cryptées avant l\'envoi.\n4. Le développeur n\'est pas responsable en cas de perte de données.\n5. Cette application est fournie gratuitement et peut être modifiée sans préavis.</string>
     <string name="legal_section_ai">Utilisation de l\'Intelligence Artificielle</string>
-    <string name="legal_section_ai_content">Secure Notes prévoit d\'intégrer Google Gemini API (via Firebase AI) pour des fonctionnalités d\'assistance à l\'écriture : rédaction, résumé et réécriture de contenu.\n\n- Les fonctionnalités IA sont OPTIONNELLES et activées uniquement sur consentement explicite.\n- Les données envoyées à l\'API ne sont PAS utilisées par Google pour entraîner ses modèles.\n- À l\'avenir, les modèles d\'IA seront exécutés LOCALEMENT sur l\'appareil pour une confidentialité maximale.\n- Vous pouvez désactiver l\'IA à tout moment dans les paramètres.</string>
+    <string name="legal_section_ai_content">L\'assistance IA s\'exécute entièrement sur votre appareil ou votre réseau local, selon le backend sélectionné:\n\n• **Ollama (HTTP Local)**: Se connecte à un serveur LLM local (ex.: Ollama, LM Studio) sur votre réseau. Aucune donnée ne quitte votre LAN.\n• **Sur l\'Appareil**: Exécute un modèle directement sur cet appareil (téléchargement du modèle requis). Aucune connexion réseau nécessaire.\n\n• Les fonctionnalités IA sont OPTIONNELLES et désactivées par défaut.\n• Vous pouvez activer ou désactiver l\'IA à tout moment dans les paramètres.\n• Aucune donnée n\'est jamais envoyée à des serveurs externes, des API cloud ou des tiers.\n• Vos notes et messages restent privés et sous votre contrôle.</string>
     <string name="legal_section_sovereignty">Souveraineté Absolue des Données (Client-Side)</string>
     <string name="legal_section_sovereignty_content">Tout le chiffrement et déchiffrement s\'effectue EXCLUSIVEMENT sur votre appareil :\n\n🔐 **Chiffrement AES-256-GCM** — Standard militaire avec authentification intégrée.\n🔑 **Dérivation PBKDF2 avec HMAC-SHA256** — 200 000 itérations, clé de 256 bits.\n🧂 **Sel et IV aléatoires** — Générés individuellement pour chaque note via SecureRandom.\n🔒 **Mot de passe maître local** — Jamais transmis, jamais stocké en clair, uniquement en mémoire pendant la session.\n\nSans le mot de passe maître, il est MATHÉMATIQUEMENT IMPOSSIBLE de déchiffrer vos notes. Ni le développeur, ni Google, ni aucune tierce partie ne peut y accéder.</string>
     <string name="legal_section_drive">Intégration Google Drive</string>
@@ -18,9 +592,89 @@
     <string name="settings_terms_privacy">Conditions et Confidentialité</string>
     <string name="settings_licenses">Licences Open Source</string>
     <string name="settings_lang_fr">Français</string>
+    <string name="settings_lang_it">Italiano</string>
 
     <string name="about_terms">Conditions et Confidentialité</string>
     <string name="about_terms_desc">Conditions d\'utilisation, IA, données</string>
     <string name="about_licenses">Licences Open Source</string>
     <string name="about_licenses_desc">Bibliothèques tierces</string>
+
+    <!-- AI Assistant -->
+    <string name="ai_section">Assistant IA</string>
+    <string name="ai_assistant">Assistant IA</string>
+    <string name="ai_enabled">Activer l\'Assistant IA</string>
+    <string name="ai_enabled_desc">Utiliser des modèles IA locaux pour l\'aide à l\'écriture</string>
+    <string name="ai_backend">Moteur IA</string>
+    <string name="ai_ollama">Ollama (HTTP Local)</string>
+    <string name="ai_ollama_desc">Connectez-vous à un serveur local Ollama ou LM Studio sur votre réseau</string>
+    <string name="ai_ondevice">Sur l\'Appareil</string>
+    <string name="ai_ondevice_desc">Exécuter un modèle directement sur cet appareil (nécessite un téléchargement)</string>
+    <string name="ai_endpoint_url">URL du Serveur</string>
+    <string name="ai_model_name">Nom du Modèle</string>
+    <string name="ai_generate">Générer</string>
+    <string name="ai_summarize">Résumer</string>
+    <string name="ai_summarize_selection">Le texte sélectionné sera résumé.</string>
+    <string name="ai_summarize_full">Le contenu complet de la note sera résumé.</string>
+    <string name="ai_rewrite">Réécrire</string>
+    <string name="ai_translate">Traduire</string>
+    <string name="ai_prompt_hint">Que souhaitez-vous que j\'écrive ?</string>
+    <string name="ai_insert">Insérer</string>
+    <string name="ai_regenerate">Régénérer</string>
+    <string name="ai_processing">Traitement…</string>
+    <string name="ai_error">Erreur</string>
+    <string name="ai_style_label">Style</string>
+    <string name="ai_style_formal">Formel</string>
+    <string name="ai_style_casual">Décontracté</string>
+    <string name="ai_style_poetic">Poétique</string>
+    <string name="ai_style_professional">Professionnel</string>
+    <string name="ai_language_target">Langue Cible</string>
+
+    <!-- AI Settings Screen -->
+    <string name="ai_settings_title">Paramètres IA</string>
+    <string name="ai_settings">Paramètres IA</string>
+    <string name="ai_settings_desc">Configurer le moteur, la connexion et le prompt système</string>
+    <string name="ai_system_prompt">Prompt Système</string>
+    <string name="ai_system_prompt_desc">Instructions personnalisées envoyées au modèle avant chaque requête. Remplace les prompts par défaut.</string>
+    <string name="ai_system_prompt_hint">Saisissez le prompt système…</string>
+    <string name="ai_system_prompt_clear">Effacer</string>
+
+    <!-- AI Connection & Instructions -->
+    <string name="ai_test_connection">Tester la Connexion</string>
+    <string name="ai_connection_ok">Connecté ! Modèles : %1$s</string>
+    <string name="ai_connection_fail">Connexion échouée : %1$s</string>
+    <string name="ai_https_self_signed_warning">Utilisation HTTPS avec certificat auto-signé. L\'application l\'acceptera automatiquement.</string>
+    <string name="ai_ollama_instructions_title">Comment configurer Ollama</string>
+    <string name="ai_ollama_instructions_step1">1. Installez Ollama sur votre ordinateur : https://ollama.ai</string>
+    <string name="ai_ollama_instructions_step2">2. Exécutez un modèle : ollama run llama3.2 (ou tout autre modèle)</string>
+    <string name="ai_ollama_instructions_step3">3. Assurez-vous qu\'Ollama est accessible depuis votre appareil (même réseau). Par défaut, il s\'exécute sur le port 11434.</string>
+
+    <!-- Storage Manager -->
+    <string name="settings_storage_manager">Storage Manager</string>
+    <string name="settings_storage_manager_desc">Manage app storage and clean up files</string>
+    <string name="settings_storage_tools">Tools</string>
+    <string name="storage_overview">Storage Overview</string>
+    <string name="storage_used">Used</string>
+    <string name="storage_free">Free</string>
+    <string name="storage_orphans_short">Orphans</string>
+    <string name="storage_orphan_files">Orphaned Files</string>
+    <string name="storage_orphan_desc">Files no longer referenced by any note</string>
+    <string name="storage_large_files">Large Files (%1$d MB+)</string>
+    <string name="storage_clear_cache">Clear Cache</string>
+    <string name="storage_auto_cleanup">Auto-cleanup</string>
+    <string name="storage_auto_cleanup_desc">Automatically delete orphaned files on startup</string>
+    <string name="storage_clean_up_now">Clean Up Now</string>
+    <string name="storage_delete_selected">Delete %1$d selected</string>
+    <string name="storage_select_all">Select all</string>
+    <string name="storage_deselect_all">Deselect all</string>
+    <string name="storage_and_more">And %1$d more…</string>
+    <string name="storage_details">Details</string>
+    <string name="storage_attachments">Attachments</string>
+    <string name="storage_drawings">Drawings</string>
+    <string name="storage_voice">Voice notes</string>
+    <string name="storage_files">Files</string>
+    <string name="storage_cache">Cache</string>
+    <string name="storage_exports">Exports</string>
+    <string name="storage_temp">Temporary</string>
+    <string name="storage_database">Database</string>
+    <string name="storage_orphan_waste">Wasted (orphans)</string>
 </resources>

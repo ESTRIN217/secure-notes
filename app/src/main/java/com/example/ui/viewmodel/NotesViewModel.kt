@@ -196,6 +196,17 @@ class NotesViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(AppConstants.TRASH_RETENTION_DAYS)
             noteDao.deleteOldTrashedNotes(cutoff)
+
+            if (getApplication<Application>().getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
+                    .getBoolean(AppConstants.AUTO_CLEANUP_ENABLED_KEY, false)) {
+                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    val (_, items) = com.example.data.storage.StorageAnalyzer.scan(getApplication(), noteDatabase)
+                    val orphans = items.filter { it.isOrphan }
+                    if (orphans.isNotEmpty()) {
+                        com.example.data.storage.StorageAnalyzer.deleteFiles(orphans)
+                    }
+                }
+            }
         }
 
         // Combine notes processing

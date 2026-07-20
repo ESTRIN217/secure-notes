@@ -106,7 +106,6 @@
     <string name="toast_cannot_save_empty_note">Não é possível salvar uma nota vazia</string>
     <string name="toast_note_saved">Nota salva com sucesso</string>
     <string name="toast_setup_password_first">Defina uma senha mestra nas configurações primeiro!</string>
-    <string name="toast_simulation_token_seeded">Token de simulação gerado</string>
     <string name="dialog_edit_tag">Editar etiqueta</string>
     <string name="dialog_manage_tags">Gerenciar etiquetas</string>
     <string name="toast_tag_updated">Etiqueta atualizada com sucesso</string>
@@ -270,6 +269,7 @@
     <string name="toast_recording_error">Erro ao iniciar gravação</string>
     <string name="toast_audio_play_error">Erro ao reproduzir áudio</string>
     <string name="toast_audio_preview_error">Erro ao reproduzir prévia</string>
+    <string name="toast_video_play_error">Erro ao reproduzir vídeo</string>
     <string name="toast_voice_note_attached">Nota de voz anexada</string>
     <string name="toast_camera_error">Erro ao iniciar câmera</string>
     <string name="camera_permission_required">Permissão de câmera é necessária para tirar fotos/vídeos</string>
@@ -330,6 +330,17 @@
     <string name="toast_decrypt_failed">Falha na descriptografia! A senha mestra não corresponde ao backup.</string>
     <string name="toast_restore_success">Notas restauradas com sucesso da nuvem!</string>
     <string name="toast_restore_error">Erro ao restaurar: %1$s</string>
+    <string name="password_hint">Senha</string>
+    <string name="restore_password_required">Este backup está criptografado. Digite a senha mestra para restaurar.</string>
+    <string name="restore_password_dialog_title">Senha do backup necessária</string>
+    <string name="restore_password_dialog_message">Digite a senha mestra que foi usada quando este backup foi criado.</string>
+    <string name="restore_password_dialog_confirm">Descriptografar e restaurar</string>
+    <string name="restore_password_dialog_cancel">Cancelar</string>
+    <string name="sync_encrypting">Criptografando dados…</string>
+    <string name="sync_searching">Procurando arquivo de backup…</string>
+    <string name="sync_uploading">Enviando para o Drive…</string>
+    <string name="sync_downloading">Baixando do Drive…</string>
+    <string name="sync_restoring">Restaurando notas…</string>
 
     <!-- Export -->
     <string name="toast_export_error">Erro ao exportar: %1$s</string>
@@ -446,11 +457,6 @@
     <string name="cd_stop_recording">Parar gravação</string>
     <string name="cd_preview_voice_note">Prévia da nota de voz</string>
     <string name="cd_discard_recording">Descartar gravação</string>
-
-    <!-- v4.0 Token / Auth UI -->
-    <string name="token_label">Colar token de acesso à API do Google</string>
-    <string name="token_placeholder">ya29.a0Ac…</string>
-    <string name="token_info_text">Seu token de acesso é processado com segurança no dispositivo. Concede autorização temporária de pasta diretamente ao armazenamento em nuvem.</string>
 
     <!-- v4.0 Platform & About -->
     <string name="platform_android">ANDROID</string>
@@ -570,7 +576,7 @@
     <string name="legal_section_terms">Termos de Uso</string>
     <string name="legal_section_terms_content">O Secure Notes é fornecido "como está", sem garantia de qualquer tipo. A autenticação Google OAuth é gerenciada pelo Google e regida por seus próprios Termos de Serviço. Ao usar este aplicativo, você concorda que:\n\n1. Você é o único responsável pela confidencialidade de sua senha mestra.\n2. As notas são armazenadas localmente em seu dispositivo.\n3. Os backups na nuvem são opcionais e criptografados antes do envio.\n4. O desenvolvedor não se responsabiliza por qualquer perda de dados.\n5. Este aplicativo é fornecido gratuitamente e pode ser modificado sem aviso prévio.</string>
     <string name="legal_section_ai">Declaração de IA</string>
-    <string name="legal_section_ai_content">O Secure Notes planeja integrar o Google Gemini API (via Firebase AI) para recursos de assistência de escrita: redação, resumo e reescrita de conteúdo.\n\n- Os recursos de IA são OPCIONAIS e ativados apenas com consentimento explícito.\n- Os dados enviados à API NÃO são usados pelo Google para treinar modelos.\n- Futuramente, os modelos de IA serão executados LOCALMENTE no dispositivo para máxima privacidade.\n- Você pode desativar a IA a qualquer momento nas configurações.</string>
+    <string name="legal_section_ai_content">A assistência de IA é executada inteiramente no seu dispositivo ou na sua rede local, dependendo do backend selecionado:\n\n• **Ollama (HTTP Local)**: Conecta-se a um servidor LLM local (ex.: Ollama, LM Studio) na sua rede. Nenhum dado sai da sua LAN.\n• **No Dispositivo**: Executa um modelo diretamente neste dispositivo (requer download do modelo). Não necessita de conexão de rede.\n\n• Os recursos de IA são OPCIONAIS e desativados por padrão.\n• Você pode ativar ou desativar a IA a qualquer momento nas configurações.\n• Nunca são enviados dados para servidores externos, APIs na nuvem ou terceiros.\n• Suas notas e mensagens permanecem privadas e sob seu controle.</string>
     <string name="legal_section_sovereignty">Soberania Absoluta de Dados (Client-Side)</string>
     <string name="legal_section_sovereignty_content">Toda criptografia e descriptografia ocorre EXCLUSIVAMENTE em seu dispositivo:\n\n🔐 **Criptografia AES-256-GCM** — Nível militar com autenticação integrada.\n🔑 **Derivação PBKDF2 com HMAC-SHA256** — 200.000 iterações, chave de 256 bits.\n🧂 **Salt e IV aleatórios** — Gerados por nota via SecureRandom.\n🔒 **Senha Mestra Local** — Nunca transmitida, nunca armazenada em texto puro, apenas na memória durante a sessão.\n\nSem a senha mestra, é MATEMATICAMENTE IMPOSSÍVEL descriptografar suas notas. Nem o desenvolvedor, nem o Google, nem terceiros podem acessá-las.</string>
     <string name="legal_section_drive">Integração com Google Drive</string>
@@ -585,9 +591,88 @@
     <string name="settings_terms_privacy">Termos e Privacidade</string>
     <string name="settings_licenses">Licenças de Código Aberto</string>
     <string name="settings_lang_fr">Français</string>
+    <string name="settings_lang_it">Italiano</string>
 
     <string name="about_terms">Termos e Privacidade</string>
     <string name="about_terms_desc">Termos de uso, IA, dados</string>
     <string name="about_licenses">Licenças de Código Aberto</string>
     <string name="about_licenses_desc">Bibliotecas de terceiros</string>
+    <!-- AI Assistant -->
+    <string name="ai_section">Assistente IA</string>
+    <string name="ai_assistant">Assistente IA</string>
+    <string name="ai_enabled">Ativar Assistente IA</string>
+    <string name="ai_enabled_desc">Use modelos locais de IA para assistência de escrita</string>
+    <string name="ai_backend">Motor IA</string>
+    <string name="ai_ollama">Ollama (HTTP Local)</string>
+    <string name="ai_ollama_desc">Conecte a um servidor local Ollama ou LM Studio na sua rede</string>
+    <string name="ai_ondevice">No Dispositivo</string>
+    <string name="ai_ondevice_desc">Execute o modelo diretamente neste dispositivo (requer download)</string>
+    <string name="ai_endpoint_url">URL do Servidor</string>
+    <string name="ai_model_name">Nome do Modelo</string>
+    <string name="ai_generate">Gerar</string>
+    <string name="ai_summarize">Resumir</string>
+    <string name="ai_summarize_selection">O texto selecionado será resumido.</string>
+    <string name="ai_summarize_full">O conteúdo completo da nota será resumido.</string>
+    <string name="ai_rewrite">Reescrever</string>
+    <string name="ai_translate">Traduzir</string>
+    <string name="ai_prompt_hint">O que você gostaria que eu escrevesse?</string>
+    <string name="ai_insert">Inserir</string>
+    <string name="ai_regenerate">Regenerar</string>
+    <string name="ai_processing">Processando…</string>
+    <string name="ai_error">Erro</string>
+    <string name="ai_style_label">Estilo</string>
+    <string name="ai_style_formal">Formal</string>
+    <string name="ai_style_casual">Casual</string>
+    <string name="ai_style_poetic">Poético</string>
+    <string name="ai_style_professional">Profissional</string>
+    <string name="ai_language_target">Idioma de Destino</string>
+
+    <!-- AI Settings Screen -->
+    <string name="ai_settings_title">Configurações de IA</string>
+    <string name="ai_settings">Configurações de IA</string>
+    <string name="ai_settings_desc">Configurar motor, conexão e prompt do sistema</string>
+    <string name="ai_system_prompt">Prompt do Sistema</string>
+    <string name="ai_system_prompt_desc">Instruções personalizadas enviadas ao modelo antes de cada solicitação. Substitui os prompts padrão.</string>
+    <string name="ai_system_prompt_hint">Insira o prompt do sistema…</string>
+    <string name="ai_system_prompt_clear">Limpar</string>
+
+    <!-- AI Connection & Instructions -->
+    <string name="ai_test_connection">Testar Conexão</string>
+    <string name="ai_connection_ok">Conectado! Modelos: %1$s</string>
+    <string name="ai_connection_fail">Conexão falhou: %1$s</string>
+    <string name="ai_https_self_signed_warning">Usando HTTPS com certificado autoassinado. O app aceitará automaticamente.</string>
+    <string name="ai_ollama_instructions_title">Como configurar o Ollama</string>
+    <string name="ai_ollama_instructions_step1">1. Instale o Ollama no seu computador: https://ollama.ai</string>
+    <string name="ai_ollama_instructions_step2">2. Execute um modelo: ollama run llama3.2 (ou qualquer outro)</string>
+    <string name="ai_ollama_instructions_step3">3. Certifique-se de que o Ollama esteja acessível do seu dispositivo (mesma rede). Por padrão, executa na porta 11434.</string>
+
+    <!-- Storage Manager -->
+    <string name="settings_storage_manager">Storage Manager</string>
+    <string name="settings_storage_manager_desc">Manage app storage and clean up files</string>
+    <string name="settings_storage_tools">Tools</string>
+    <string name="storage_overview">Storage Overview</string>
+    <string name="storage_used">Used</string>
+    <string name="storage_free">Free</string>
+    <string name="storage_orphans_short">Orphans</string>
+    <string name="storage_orphan_files">Orphaned Files</string>
+    <string name="storage_orphan_desc">Files no longer referenced by any note</string>
+    <string name="storage_large_files">Large Files (%1$d MB+)</string>
+    <string name="storage_clear_cache">Clear Cache</string>
+    <string name="storage_auto_cleanup">Auto-cleanup</string>
+    <string name="storage_auto_cleanup_desc">Automatically delete orphaned files on startup</string>
+    <string name="storage_clean_up_now">Clean Up Now</string>
+    <string name="storage_delete_selected">Delete %1$d selected</string>
+    <string name="storage_select_all">Select all</string>
+    <string name="storage_deselect_all">Deselect all</string>
+    <string name="storage_and_more">And %1$d more…</string>
+    <string name="storage_details">Details</string>
+    <string name="storage_attachments">Attachments</string>
+    <string name="storage_drawings">Drawings</string>
+    <string name="storage_voice">Voice notes</string>
+    <string name="storage_files">Files</string>
+    <string name="storage_cache">Cache</string>
+    <string name="storage_exports">Exports</string>
+    <string name="storage_temp">Temporary</string>
+    <string name="storage_database">Database</string>
+    <string name="storage_orphan_waste">Wasted (orphans)</string>
 </resources>

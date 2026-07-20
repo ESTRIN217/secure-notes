@@ -9,6 +9,7 @@ data class ScreenContext(
     val backupViewModel: com.example.ui.viewmodel.BackupViewModel,
     val updaterViewModel: com.example.ui.viewmodel.UpdaterViewModel,
     val aiViewModel: com.example.ui.viewmodel.AiViewModel,
+    val storageViewModel: com.example.ui.viewmodel.StorageViewModel,
     val navigator: Navigator,
     val currentScreen: Screen
 )
@@ -103,11 +104,13 @@ sealed class Screen {
                 aiViewModel = context.aiViewModel,
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
+                onNavigateToStorageManager = { context.navigator.onNavigateTo(Screen.StorageManager) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
                 onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
                 onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
                 onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
-                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) }
+                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) },
+                onNavigateToAiSettings = { context.navigator.onNavigateTo(Screen.AiSettings) }
             )
         }
     }
@@ -150,6 +153,16 @@ sealed class Screen {
         }
     }
 
+    object AiSettings : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            com.example.ui.settings.AiSettingsScreen(
+                aiViewModel = context.aiViewModel,
+                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
+            )
+        }
+    }
+
     object About : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
@@ -157,6 +170,16 @@ sealed class Screen {
                 onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) },
                 onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
                 onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) }
+            )
+        }
+    }
+
+    object StorageManager : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            com.example.ui.settings.StorageManagerScreen(
+                viewModel = context.storageViewModel,
+                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
             )
         }
     }
@@ -176,7 +199,9 @@ val ScreenSaver = mapSaver(
             is Screen.UpdateInfo -> mapOf("route" to "update_info")
             is Screen.LegalInfo -> mapOf("route" to "legal_info")
             is Screen.Licenses -> mapOf("route" to "licenses")
+            is Screen.AiSettings -> mapOf("route" to "ai_settings")
             is Screen.About -> mapOf("route" to "about")
+            is Screen.StorageManager -> mapOf("route" to "storage_manager")
         }
     },
     restore = { map: Map<String, Any?> ->
@@ -192,7 +217,9 @@ val ScreenSaver = mapSaver(
             "update_info" -> Screen.UpdateInfo
             "legal_info" -> Screen.LegalInfo
             "licenses" -> Screen.Licenses
+            "ai_settings" -> Screen.AiSettings
             "about" -> Screen.About
+            "storage_manager" -> Screen.StorageManager
             else -> Screen.MainList
         }
     }
