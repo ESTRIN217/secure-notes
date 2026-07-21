@@ -2559,6 +2559,7 @@ fun NoteEditorScreen(
         if (showAiSheet) {
             AiBottomSheet(
                 viewModel = aiViewModel,
+                noteId = noteId,
                 selectedText = contentValue.text.substring(
                     contentValue.selection.start,
                     contentValue.selection.end

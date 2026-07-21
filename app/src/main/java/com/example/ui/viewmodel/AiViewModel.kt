@@ -5,10 +5,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.PreferencesRepository
 import com.example.data.ai.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class ConversationTurn(
+    val role: String,
+    val content: String
+)
 
 sealed class ConnectionState {
     data object Unknown : ConnectionState()
@@ -75,6 +81,10 @@ class AiViewModel(
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
 
+    private val _conversationHistory = mutableMapOf<Int, MutableList<ConversationTurn>>()
+
+    private var currentJob: Job? = null
+
     init {
         val savedPath = prefsRepository.getAiOnDeviceModelPath()
         if (savedPath.isNotBlank()) {
@@ -94,6 +104,14 @@ class AiViewModel(
 
     private val currentService: AIService
         get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
+
+    fun getConversationHistory(noteId: Int): List<ConversationTurn> {
+        return _conversationHistory[noteId]?.toList() ?: emptyList()
+    }
+
+    fun clearConversationHistory(noteId: Int) {
+        _conversationHistory[noteId]?.clear()
+    }
 
     fun setAiEnabled(enabled: Boolean) {
         _aiEnabled.value = enabled
@@ -198,28 +216,63 @@ class AiViewModel(
         }
     }
 
-    fun execute(request: AiRequest) {
+    fun execute(request: AiRequest, noteId: Int = 0) {
+        currentJob?.cancel()
         _resultText.value = null
         _errorMessage.value = null
         _isProcessing.value = true
 
-        val requestWithPrompt = request.copy(customSystemPrompt = _systemPrompt.value)
-        viewModelScope.launch {
-            val result = currentService.execute(requestWithPrompt)
-            _isProcessing.value = false
-            result.fold(
-                onSuccess = { text ->
-                    _resultText.value = text
-                },
-                onFailure = { error ->
-                    _errorMessage.value = error.message ?: "Unknown error"
+        var enrichedRequest = request.copy(customSystemPrompt = _systemPrompt.value)
+
+        if (noteId > 0) {
+            val history = _conversationHistory.getOrPut(noteId) { mutableListOf() }
+            if (history.isNotEmpty()) {
+                val turns = history.takeLast(10)
+                val historyText = turns.joinToString("\n\n") { turn ->
+                    when (turn.role) {
+                        "user" -> "User: ${turn.content}"
+                        "assistant" -> "Assistant: ${turn.content}"
+                        else -> "${turn.role}: ${turn.content}"
+                    }
                 }
-            )
+                enrichedRequest = enrichedRequest.copy(
+                    context = "Previous conversation:\n$historyText\n\n${request.context}"
+                )
+            }
+            val userMessage = when (request.action) {
+                AiAction.REWRITE -> "Rewrite in ${request.rewriteStyle} style: ${request.selectedText}"
+                AiAction.SUMMARIZE -> "Summarize: ${request.selectedText.ifBlank { request.context.take(200) }}"
+                AiAction.TRANSLATE -> "Translate to ${request.targetLanguage}: ${request.selectedText}"
+                AiAction.GENERATE -> request.prompt.ifBlank { "Generate text" }
+            }
+            history.add(ConversationTurn("user", userMessage))
+        }
+
+        currentJob = viewModelScope.launch {
+            try {
+                val result = currentService.execute(enrichedRequest)
+                _isProcessing.value = false
+                result.fold(
+                    onSuccess = { text ->
+                        _resultText.value = text
+                        if (noteId > 0) {
+                            _conversationHistory[noteId]?.add(ConversationTurn("assistant", text))
+                        }
+                    },
+                    onFailure = { error ->
+                        _errorMessage.value = error.message ?: "Unknown error"
+                    }
+                )
+            } catch (e: Throwable) {
+                _isProcessing.value = false
+                _errorMessage.value = e.message ?: "Unexpected error"
+            }
         }
     }
 
     fun clearResult() {
         _resultText.value = null
         _errorMessage.value = null
+        _isProcessing.value = false
     }
 }

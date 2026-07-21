@@ -619,6 +619,7 @@
     <string name="ai_prompt_hint">What would you like me to write?</string>
     <string name="ai_insert">Insert</string>
     <string name="ai_regenerate">Regenerate</string>
+    <string name="ai_retry">Retry</string>
     <string name="ai_processing">Processing…</string>
     <string name="ai_error">Error</string>
     <string name="ai_style_label">Style</string>

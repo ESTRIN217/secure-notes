@@ -619,6 +619,7 @@
     <string name="ai_prompt_hint">Cosa vorresti che scrivessi?</string>
     <string name="ai_insert">Inserisci</string>
     <string name="ai_regenerate">Rigenera</string>
+    <string name="ai_retry">Riprova</string>
     <string name="ai_processing">Elaborazione…</string>
     <string name="ai_error">Errore</string>
     <string name="ai_style_label">Stile</string>

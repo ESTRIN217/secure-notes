@@ -22,6 +22,7 @@ import com.example.ui.viewmodel.AiViewModel
 @Composable
 fun AiBottomSheet(
     viewModel: AiViewModel,
+    noteId: Int,
     selectedText: String,
     fullContent: String,
     onInsert: (String) -> Unit,
@@ -124,7 +125,7 @@ fun AiBottomSheet(
                         rewriteStyle = rewriteStyle,
                         targetLanguage = targetLanguage
                     )
-                    viewModel.execute(request)
+                    viewModel.execute(request, noteId)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isProcessing && (currentAction != AiAction.GENERATE || promptText.isNotBlank())
@@ -178,33 +179,36 @@ fun AiBottomSheet(
                             style = MaterialTheme.typography.bodyMedium
                         )
 
-                        if (!isError) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        val request = AiRequest(
-                                            action = currentAction,
-                                            prompt = promptText,
-                                            selectedText = selectedText,
-                                            context = fullContent,
-                                            rewriteStyle = rewriteStyle,
-                                            targetLanguage = targetLanguage
-                                        )
-                                        viewModel.execute(request)
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val request = AiRequest(
+                                        action = currentAction,
+                                        prompt = promptText,
+                                        selectedText = selectedText,
+                                        context = fullContent,
+                                        rewriteStyle = rewriteStyle,
+                                        targetLanguage = targetLanguage
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.ai_regenerate))
+                                    viewModel.execute(request, noteId)
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (isError) stringResource(R.string.ai_retry)
+                                    else stringResource(R.string.ai_regenerate)
+                                )
+                            }
+                            if (!isError) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Button(
                                     onClick = {
