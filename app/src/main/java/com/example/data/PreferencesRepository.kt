@@ -20,4 +20,6 @@ interface PreferencesRepository {
     fun setAiModelName(model: String)
     fun getAiOnDeviceModelPath(): String
     fun setAiOnDeviceModelPath(path: String)
+    fun getAiSystemPrompt(): String
+    fun setAiSystemPrompt(prompt: String)
 }

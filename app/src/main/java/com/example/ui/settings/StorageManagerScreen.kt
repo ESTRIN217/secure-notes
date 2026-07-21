@@ -342,6 +342,7 @@ private fun LargeFilesSection(
                             StorageCategory.DRAWING -> Icons.Default.Draw
                             StorageCategory.VOICE -> Icons.Default.Mic
                             StorageCategory.FILE -> Icons.Default.AttachFile
+                            StorageCategory.AI_MODEL -> Icons.Default.Memory
                             else -> Icons.AutoMirrored.Filled.InsertDriveFile
                         },
                         contentDescription = null,
@@ -474,6 +475,13 @@ private fun StorageDetailsCard(overview: StorageOverview) {
                 size = overview.databaseSize,
                 total = overview.totalUsed
             )
+            if (overview.aiModelSize > 0) {
+                DetailRow(
+                    label = stringResource(R.string.storage_ai_models),
+                    size = overview.aiModelSize,
+                    total = overview.totalUsed
+                )
+            }
             if (overview.orphanSize > 0) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),

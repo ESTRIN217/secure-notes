@@ -25,7 +25,8 @@ data class AiRequest(
     val selectedText: String = "",
     val context: String = "",
     val rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
-    val targetLanguage: String = "en"
+    val targetLanguage: String = "en",
+    val customSystemPrompt: String = ""
 )
 
 data class AiResult(

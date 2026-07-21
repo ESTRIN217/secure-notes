@@ -22,6 +22,7 @@ enum class StorageCategory {
     VOICE,
     FILE,
     DATABASE,
+    AI_MODEL,
     OTHER
 }
 
@@ -34,6 +35,7 @@ data class StorageOverview(
     val drawingsSize: Long = 0L,
     val voiceSize: Long = 0L,
     val filesSize: Long = 0L,
+    val aiModelSize: Long = 0L,
     val otherSize: Long = 0L,
     val orphanSize: Long = 0L,
     val totalUsed: Long = 0L,
@@ -43,5 +45,5 @@ data class StorageOverview(
 ) {
     val totalUncategorized: Long
         get() = attachmentsSize + cacheSize + exportsSize + tempSize +
-                databaseSize + drawingsSize + voiceSize + filesSize + otherSize
+                databaseSize + drawingsSize + voiceSize + filesSize + aiModelSize + otherSize
 }

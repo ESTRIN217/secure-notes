@@ -667,6 +667,7 @@
     <string name="storage_deselect_all">Deselect all</string>
     <string name="storage_and_more">And %1$d more…</string>
     <string name="storage_details">Details</string>
+    <string name="storage_ai_models">AI Models</string>
     <string name="storage_attachments">Attachments</string>
     <string name="storage_drawings">Drawings</string>
     <string name="storage_voice">Voice notes</string>

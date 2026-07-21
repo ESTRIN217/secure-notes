@@ -101,6 +101,7 @@ object StorageAnalyzer {
                     file.name == "tmp_attachments" -> StorageCategory.TEMP
                     file.name == "restored_attachments" -> StorageCategory.TEMP
                     file.name == "attachments" -> StorageCategory.ATTACHMENT
+                    file.name == "models" -> StorageCategory.AI_MODEL
                     else -> StorageCategory.OTHER
                 }
                 scanDirectory(file, category, items, referencedPaths, isCache)
@@ -157,6 +158,7 @@ object StorageAnalyzer {
         var voiceSize = 0L
         var filesSize = 0L
         var otherSize = 0L
+        var aiModelSize = 0L
         var orphanSize = 0L
         var orphanCount = 0
 
@@ -171,6 +173,7 @@ object StorageAnalyzer {
                 StorageCategory.DRAWING -> drawingsSize += size
                 StorageCategory.VOICE -> voiceSize += size
                 StorageCategory.FILE -> filesSize += size
+                StorageCategory.AI_MODEL -> aiModelSize += size
                 StorageCategory.OTHER -> otherSize += size
             }
             if (item.isOrphan) {
@@ -202,6 +205,7 @@ object StorageAnalyzer {
             drawingsSize = drawingsSize,
             voiceSize = voiceSize,
             filesSize = filesSize,
+            aiModelSize = aiModelSize,
             otherSize = otherSize,
             orphanSize = orphanSize,
             totalUsed = totalUsed,

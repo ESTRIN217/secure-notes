@@ -33,7 +33,10 @@ class ModelDownloader(private val context: Context) {
         .build()
 
     private val modelsDir: File
-        get() = File(context.filesDir, "models").also { it.mkdirs() }
+        get() = File(context.filesDir, "models").also {
+            it.mkdirs()
+            File(it, ".nomedia").createNewFile()
+        }
 
     private var currentCall: okhttp3.Call? = null
 

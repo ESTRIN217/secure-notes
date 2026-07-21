@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.ui.CustomTopBar
+import com.example.util.RichTextParser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,8 +176,11 @@ private fun LegalSection(
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
+                val annotatedContent = remember(content) {
+                    RichTextParser.parse(content, hideTags = true)
+                }
                 Text(
-                    text = content,
+                    text = annotatedContent,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp)

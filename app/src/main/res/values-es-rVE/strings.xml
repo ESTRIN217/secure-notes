@@ -666,6 +666,7 @@
     <string name="storage_deselect_all">Deseleccionar todo</string>
     <string name="storage_and_more">Y %1$d más…</string>
     <string name="storage_details">Detalles</string>
+    <string name="storage_ai_models">Modelos de IA</string>
     <string name="storage_attachments">Adjuntos</string>
     <string name="storage_drawings">Dibujos</string>
     <string name="storage_voice">Notas de voz</string>

@@ -101,7 +101,7 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
 
     private companion object {
         init {
-            System.loadLibrary("llama")
+            System.loadLibrary("llamajni")
         }
     }
 

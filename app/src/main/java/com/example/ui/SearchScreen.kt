@@ -12,9 +12,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -476,16 +476,16 @@ fun SearchScreen(
                 } else {
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isGridView) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
+                        LazyVerticalStaggeredGrid(
+                            columns = StaggeredGridCells.Fixed(2),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalItemSpacing = 10.dp,
                             contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
-                            gridItems(filteredResults) { decryptedNote ->
+                            staggeredItems(filteredResults) { decryptedNote ->
                                 NoteCardItem(
                                     decryptedNote = decryptedNote,
                                     selected = false,

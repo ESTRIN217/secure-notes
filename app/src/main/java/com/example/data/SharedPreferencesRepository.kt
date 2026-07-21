@@ -80,4 +80,12 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setAiOnDeviceModelPath(path: String) {
         prefs.edit().putString(AppConstants.AI_ONDEVICE_MODEL_PATH_KEY, path).apply()
     }
+
+    override fun getAiSystemPrompt(): String {
+        return prefs.getString(AppConstants.AI_SYSTEM_PROMPT_KEY, "") ?: ""
+    }
+
+    override fun setAiSystemPrompt(prompt: String) {
+        prefs.edit().putString(AppConstants.AI_SYSTEM_PROMPT_KEY, prompt).apply()
+    }
 }

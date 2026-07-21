@@ -16,10 +16,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -772,16 +772,16 @@ fun MainListScreen(
                             }
                         } else {
                             if (isGridView) {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(gridColumns),
+                                LazyVerticalStaggeredGrid(
+                                    columns = StaggeredGridCells.Fixed(gridColumns),
                                     modifier = Modifier
                                         .weight(1f)
                                         .padding(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalItemSpacing = 10.dp,
                                     contentPadding = PaddingValues(bottom = 80.dp)
                                 ) {
-                                    gridItems(sortedNotes) { decryptedNote ->
+                                    staggeredItems(sortedNotes) { decryptedNote ->
                                         val isThisDragged = draggedNoteId == decryptedNote.note.id
                                         val isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.data.model.NavigationSection.HOME)
                                         
@@ -1382,7 +1382,7 @@ fun NoteCardItem(
                                             model = thumbPath,
                                             contentDescription = stringResource(R.string.attachment_drawing),
                                             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
-                                            contentScale = ContentScale.Fit
+                                            contentScale = ContentScale.Crop
                                         )
                                     }
                                     "image" -> {
