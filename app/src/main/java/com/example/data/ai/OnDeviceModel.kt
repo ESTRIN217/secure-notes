@@ -18,7 +18,7 @@ val MODEL_CATALOG = listOf(
         displayName = "SmolLM2 360M",
         minRamMb = 512,
         recommendedRamMb = 1024,
-        fileSizeMb = 240,
+        fileSizeMb = 258,
         huggingFaceRepo = "hugging-quants/SmolLM2-360M-Instruct-Q4_K_M-GGUF",
         ggufFileName = "smollm2-360m-instruct-q4_k_m.gguf"
     ),
@@ -27,7 +27,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Qwen 2.5 0.5B",
         minRamMb = 768,
         recommendedRamMb = 1536,
-        fileSizeMb = 350,
+        fileSizeMb = 469,
         huggingFaceRepo = "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
         ggufFileName = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
     ),
@@ -36,7 +36,7 @@ val MODEL_CATALOG = listOf(
         displayName = "SmolLM2 1.7B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
-        fileSizeMb = 1126,
+        fileSizeMb = 1007,
         huggingFaceRepo = "hugging-quants/SmolLM2-1.7B-Instruct-Q4_K_M-GGUF",
         ggufFileName = "smollm2-1.7b-instruct-q4_k_m.gguf"
     ),
@@ -45,7 +45,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Llama 3.2 1B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
-        fileSizeMb = 750,
+        fileSizeMb = 770,
         huggingFaceRepo = "hugging-quants/Llama-3.2-1B-Instruct-Q4_K_M-GGUF",
         ggufFileName = "llama-3.2-1b-instruct-q4_k_m.gguf"
     ),
@@ -54,7 +54,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Phi-3 Mini",
         minRamMb = 2048,
         recommendedRamMb = 4096,
-        fileSizeMb = 2360,
+        fileSizeMb = 2283,
         huggingFaceRepo = "microsoft/Phi-3-mini-4k-instruct-gguf",
         ggufFileName = "phi-3-mini-4k-instruct-q4.gguf"
     ),
@@ -63,7 +63,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Phi-3.5 Mini",
         minRamMb = 2560,
         recommendedRamMb = 4096,
-        fileSizeMb = 2360,
+        fileSizeMb = 2283,
         huggingFaceRepo = "microsoft/Phi-3.5-mini-instruct-gguf",
         ggufFileName = "phi-3.5-mini-instruct-q4.gguf"
     ),
@@ -72,9 +72,9 @@ val MODEL_CATALOG = listOf(
         displayName = "Gemma 2 2B",
         minRamMb = 2560,
         recommendedRamMb = 4096,
-        fileSizeMb = 1536,
-        huggingFaceRepo = "google/gemma-2-2b-it-GGUF",
-        ggufFileName = "gemma-2-2b-it-q4_k_m.gguf",
+        fileSizeMb = 1630,
+        huggingFaceRepo = "bartowski/gemma-2-2b-it-GGUF",
+        ggufFileName = "gemma-2-2b-it-Q4_K_M.gguf",
         minApiLevel = 26
     ),
     OnDeviceModel(
@@ -82,7 +82,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Llama 3.2 3B",
         minRamMb = 3072,
         recommendedRamMb = 6144,
-        fileSizeMb = 2048,
+        fileSizeMb = 1926,
         huggingFaceRepo = "hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF",
         ggufFileName = "llama-3.2-3b-instruct-q4_k_m.gguf",
         minApiLevel = 26
