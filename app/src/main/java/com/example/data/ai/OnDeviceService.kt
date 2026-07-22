@@ -62,7 +62,7 @@ class OnDeviceService(
     override suspend fun execute(request: AiRequest): Result<String> =
         withContext(Dispatchers.IO) {
             if (_modelState.value != ModelState.READY) {
-                return@withContext Result.failure(Exception("No model loaded. Load an on-device model first."))
+                return@withContext Result.failure(Exception("No hay modelo cargado. Carga un modelo local primero."))
             }
             try {
                 val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)

@@ -246,7 +246,7 @@ private fun ActionChipRow(
         FilterChip(
             selected = currentAction == AiAction.GENERATE,
             onClick = { onActionSelected(AiAction.GENERATE) },
-            label = { Text("Write") },
+            label = { Text(stringResource(R.string.ai_generate)) },
             leadingIcon = {
                 Icon(
                     Icons.Default.Edit,

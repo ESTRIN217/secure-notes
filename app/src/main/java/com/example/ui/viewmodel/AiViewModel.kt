@@ -197,7 +197,7 @@ class AiViewModel(
     fun loadSelectedModel() {
         val model = _selectedOnDeviceModel.value ?: return
         val path = modelDownloader.getModelPath(model) ?: run {
-            _errorMessage.value = "Model not downloaded yet"
+            _errorMessage.value = "El modelo aún no se ha descargado"
             return
         }
         viewModelScope.launch {
@@ -206,7 +206,7 @@ class AiViewModel(
                 setOnDeviceModelPath(path)
                 _errorMessage.value = null
             } else {
-                _errorMessage.value = result.exceptionOrNull()?.message ?: "Failed to load model"
+                _errorMessage.value = result.exceptionOrNull()?.message ?: "Error al cargar el modelo"
             }
         }
     }
@@ -232,7 +232,7 @@ class AiViewModel(
                     ConnectionState.Connected(models)
                 },
                 onFailure = { error ->
-                    ConnectionState.Failed(error.message ?: "Unknown error")
+                    ConnectionState.Failed(error.message ?: "Error desconocido")
                 }
             )
         }
@@ -252,8 +252,8 @@ class AiViewModel(
                 val turns = history.takeLast(10)
                 val historyText = turns.joinToString("\n\n") { turn ->
                     when (turn.role) {
-                        "user" -> "User: ${turn.content}"
-                        "assistant" -> "Assistant: ${turn.content}"
+                        "user" -> "Usuario: ${turn.content}"
+                        "assistant" -> "Asistente: ${turn.content}"
                         else -> "${turn.role}: ${turn.content}"
                     }
                 }
@@ -262,10 +262,10 @@ class AiViewModel(
                 )
             }
             val userMessage = when (request.action) {
-                AiAction.REWRITE -> "Rewrite in ${request.rewriteStyle} style: ${request.selectedText}"
-                AiAction.SUMMARIZE -> "Summarize: ${request.selectedText.ifBlank { request.context.take(200) }}"
-                AiAction.TRANSLATE -> "Translate to ${request.targetLanguage}: ${request.selectedText}"
-                AiAction.GENERATE -> request.prompt.ifBlank { "Generate text" }
+                AiAction.REWRITE -> "Reescribe en estilo ${request.rewriteStyle}: ${request.selectedText}"
+                AiAction.SUMMARIZE -> "Resume: ${request.selectedText.ifBlank { request.context.take(200) }}"
+                AiAction.TRANSLATE -> "Traduce a ${request.targetLanguage}: ${request.selectedText}"
+                AiAction.GENERATE -> request.prompt.ifBlank { "Generar texto" }
             }
             history.add(ConversationTurn("user", userMessage))
         }
@@ -282,12 +282,12 @@ class AiViewModel(
                         }
                     },
                     onFailure = { error ->
-                        _errorMessage.value = error.message ?: "Unknown error"
+                        _errorMessage.value = error.message ?: "Error desconocido"
                     }
                 )
             } catch (e: Throwable) {
                 _isProcessing.value = false
-                _errorMessage.value = e.message ?: "Unexpected error"
+                _errorMessage.value = e.message ?: "Error inesperado"
             }
         }
     }

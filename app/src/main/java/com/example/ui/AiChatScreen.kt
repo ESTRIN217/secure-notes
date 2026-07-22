@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +40,7 @@ fun AiChatScreen(
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     val hasSelection = selectedText.isNotBlank()
 
@@ -63,16 +66,16 @@ fun AiChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI Chat") },
+                title = { Text(stringResource(R.string.ai_chat_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     if (conversationHistory.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear history")
+                            Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
                         }
                     }
                 }
@@ -99,10 +102,10 @@ fun AiChatScreen(
                             placeholder = {
                                 Text(
                                     when (currentAction) {
-                                        AiAction.GENERATE -> "Write a message..."
-                                        AiAction.SUMMARIZE -> "Summarize the note"
-                                        AiAction.REWRITE -> "Rewrite selected text"
-                                        AiAction.TRANSLATE -> "Translate selected text"
+                                        AiAction.GENERATE -> stringResource(R.string.ai_chat_hint_generate)
+                                        AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
+                                        AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
+                                        AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
                                     }
                                 )
                             },
@@ -117,9 +120,9 @@ fun AiChatScreen(
                             onClick = {
                                 val prompt = when (currentAction) {
                                     AiAction.GENERATE -> inputText
-                                    AiAction.SUMMARIZE -> "Summarize the following text"
-                                    AiAction.REWRITE -> "Rewrite in ${rewriteStyle.name.lowercase()} style"
-                                    AiAction.TRANSLATE -> "Translate to $targetLanguage"
+                                    AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
+                                    AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
+                                    AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
                                 }
                                 val request = AiRequest(
                                     action = currentAction,
@@ -144,7 +147,7 @@ fun AiChatScreen(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
-                                Icon(Icons.Default.Send, contentDescription = "Send")
+                                Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_send))
                             }
                         }
                     }
@@ -171,13 +174,13 @@ fun AiChatScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "Start a conversation with AI",
+                            stringResource(R.string.ai_chat_empty_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Ask questions, generate content, or get help with your notes.",
+                            stringResource(R.string.ai_chat_empty_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -210,7 +213,7 @@ fun AiChatScreen(
                         .align(Alignment.BottomCenter),
                     action = {
                         TextButton(onClick = { viewModel.clearResult() }) {
-                            Text("Dismiss")
+                            Text(stringResource(R.string.dismiss))
                         }
                     }
                 ) {
@@ -246,7 +249,7 @@ private fun MessageBubble(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = if (isUser) "You" else "AI",
+            text = if (isUser) stringResource(R.string.ai_chat_you) else stringResource(R.string.ai_chat_ai),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -279,7 +282,7 @@ private fun MessageBubble(
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Insert", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.ai_insert), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -299,7 +302,7 @@ private fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.GENERATE,
             onClick = { onActionSelected(AiAction.GENERATE) },
-            label = { Text("Write", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.ai_generate), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
             }
@@ -307,7 +310,7 @@ private fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.SUMMARIZE,
             onClick = { onActionSelected(AiAction.SUMMARIZE) },
-            label = { Text("Summarize", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.ai_summarize), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = {
                 Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(14.dp))
             }
@@ -315,7 +318,7 @@ private fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.REWRITE,
             onClick = { onActionSelected(AiAction.REWRITE) },
-            label = { Text("Rewrite", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.ai_rewrite), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
             }
@@ -323,7 +326,7 @@ private fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.TRANSLATE,
             onClick = { onActionSelected(AiAction.TRANSLATE) },
-            label = { Text("Translate", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.ai_translate), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = {
                 Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(14.dp))
             }

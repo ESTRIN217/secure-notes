@@ -123,29 +123,29 @@ class OllamaService(
             val jsonResponse = JSONObject(responseBody)
             val text = jsonResponse.optString("response", "")
             if (text.isBlank()) {
-                return@withContext Result.failure(IOException("Empty response from model"))
+                return@withContext Result.failure(IOException("Respuesta vacía del modelo"))
             }
 
             Result.success(text.trim())
         } catch (e: SSLHandshakeException) {
             Log.e(TAG, "SSL handshake failed", e)
             Result.failure(SSLHandshakeException(
-                "SSL connection failed. If using a self-signed certificate, use 'https://' URL — the app will accept it."
+                "Error de conexión SSL. Si usas un certificado autofirmado, usa una URL 'https://' — la app lo aceptará."
             ))
         } catch (e: ConnectException) {
             Log.e(TAG, "Connection refused", e)
             Result.failure(ConnectException(
-                "Cannot connect to the server. Is Ollama running and reachable at $endpointUrl?"
+                "No se puede conectar al servidor. ¿Está Ollama ejecutándose y accesible en $endpointUrl?"
             ))
         } catch (e: SocketTimeoutException) {
             Log.e(TAG, "Connection timed out", e)
             Result.failure(SocketTimeoutException(
-                "Connection timed out. Check the URL and network connectivity."
+                "La conexión expiró. Verifica la URL y la conectividad de red."
             ))
         } catch (e: UnknownHostException) {
             Log.e(TAG, "Unknown host", e)
             Result.failure(UnknownHostException(
-                "Cannot resolve the host. Check the URL is correct."
+                "No se puede resolver el host. Verifica que la URL sea correcta."
             ))
         } catch (e: Exception) {
             Log.e(TAG, "Ollama request failed", e)

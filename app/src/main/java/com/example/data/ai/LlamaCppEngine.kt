@@ -27,7 +27,7 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
             Result.success(Unit)
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "OOM loading model", e)
-            Result.failure(Exception("Out of memory: ${e.message}"))
+            Result.failure(Exception("Memoria insuficiente: ${e.message}"))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load engine", e)
             Result.failure(e)
@@ -45,7 +45,7 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     override suspend fun execute(request: AiRequest): Result<String> = withContext(Dispatchers.IO) {
         val model = llamaModel
         if (model == null) {
-            return@withContext Result.failure(Exception("Engine not loaded"))
+            return@withContext Result.failure(Exception("Motor no cargado"))
         }
         try {
             val response = LlamaInference.generate(
@@ -83,7 +83,7 @@ internal object LlamaInference {
         return if (model is NativeLlamaModel) {
             model.generate(prompt, maxTokens, temperature, repetitionPenalty, topK)
         } else {
-            throw IllegalArgumentException("Unknown model type")
+            throw IllegalArgumentException("Tipo de modelo desconocido")
         }
     }
 }
@@ -94,7 +94,7 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
     init {
         nativeHandle = nativeCreate(modelPath, nCtx, nGpuLayers)
         if (nativeHandle == 0L) {
-            throw RuntimeException("nativeCreate returned null handle: $modelPath")
+            throw RuntimeException("nativeCreate devolvió un identificador nulo: $modelPath")
         }
     }
 

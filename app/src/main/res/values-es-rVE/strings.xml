@@ -621,6 +621,21 @@
     <string name="ai_retry">Reintentar</string>
     <string name="ai_processing">Procesando…</string>
     <string name="ai_error">Error</string>
+    <string name="dismiss">Descartar</string>
+    <string name="ai_chat_you">Tú</string>
+    <string name="ai_chat_ai">IA</string>
+    <string name="ai_chat_title">Chat IA</string>
+    <string name="ai_clear_history">Limpiar historial</string>
+    <string name="ai_chat_hint_generate">Escribe un mensaje…</string>
+    <string name="ai_chat_hint_summarize">Resumir la nota</string>
+    <string name="ai_chat_hint_rewrite">Reescribir texto seleccionado</string>
+    <string name="ai_chat_hint_translate">Traducir texto seleccionado</string>
+    <string name="ai_chat_prompt_summarize">Resume el siguiente texto</string>
+    <string name="ai_chat_prompt_rewrite">Reescribe en estilo %1$s</string>
+    <string name="ai_chat_prompt_translate">Traduce a %1$s</string>
+    <string name="ai_send">Enviar</string>
+    <string name="ai_chat_empty_title">Inicia una conversación con IA</string>
+    <string name="ai_chat_empty_desc">Haz preguntas, genera contenido u obtén ayuda con tus notas.</string>
     <string name="ai_style_label">Estilo</string>
     <string name="ai_style_formal">Formal</string>
     <string name="ai_style_casual">Casual</string>
@@ -646,6 +661,27 @@
     <string name="ai_ollama_instructions_step1">1. Instala Ollama en tu computadora: https://ollama.ai</string>
     <string name="ai_ollama_instructions_step2">2. Ejecuta un modelo: ollama run llama3.2 (o cualquier otro)</string>
     <string name="ai_ollama_instructions_step3">3. Asegúrate de que Ollama sea accesible desde tu dispositivo (misma red). Por defecto se ejecuta en el puerto 11434.</string>
+
+    <!-- On-Device Model -->
+    <string name="ai_ondevice_download">Descargar</string>
+    <string name="ai_ondevice_load">Cargar Modelo</string>
+    <string name="ai_ondevice_unload">Descargar</string>
+    <string name="ai_ondevice_loading">Cargando…</string>
+    <string name="ai_ondevice_retry">Reintentar</string>
+    <string name="ai_ondevice_device_info">Información del Dispositivo</string>
+    <string name="ai_ondevice_recommended">Modelo Recomendado</string>
+    <string name="ai_ondevice_all_models">Todos los Modelos Compatibles</string>
+    <string name="ai_ondevice_ram">RAM</string>
+    <string name="ai_ondevice_architecture">Arquitectura</string>
+    <string name="ai_ondevice_class">Clase de Dispositivo</string>
+    <string name="ai_ondevice_downloading">Descargando…</string>
+    <string name="ai_ondevice_download_complete">Descarga completa</string>
+    <string name="ai_ondevice_download_failed">Error al descargar: %1$s</string>
+    <string name="ai_ondevice_oom_warning">Puede exceder la RAM disponible</string>
+    <string name="ai_ondevice_no_compatible">No hay modelo compatible con este dispositivo</string>
+    <string name="ai_ondevice_status_ready">Modelo cargado y listo</string>
+    <string name="ai_ondevice_status_error">Error al cargar el modelo</string>
+    <string name="ai_ondevice_not_downloaded">El modelo aún no se ha descargado</string>
 
     <!-- Storage Manager -->
     <string name="settings_storage_manager">Administrador de Almacenamiento</string>
