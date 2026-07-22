@@ -115,7 +115,8 @@ fun NoteEditorScreen(
     aiViewModel: AiViewModel,
     onBack: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> },
-    onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> }
+    onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> },
+    onNavigateToAiChat: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -189,8 +190,8 @@ fun NoteEditorScreen(
     
     var showUrlDialog by remember { mutableStateOf(false) }
     var clickedUrlAddress by remember { mutableStateOf("") }
-    var showAiSheet by remember { mutableStateOf(false) }
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
+    val pendingAiInsert by aiViewModel.pendingInsert.collectAsStateWithLifecycle()
     var clickedUrlAbsoluteOffset by remember { mutableStateOf(-1) }
     
     var searchQuery by remember { mutableStateOf("") }
@@ -266,6 +267,19 @@ fun NoteEditorScreen(
             history.add(text)
             historyIndex = history.size - 1
         }
+    }
+
+    LaunchedEffect(pendingAiInsert) {
+        val text = pendingAiInsert ?: return@LaunchedEffect
+        val selStart = contentValue.selection.start
+        val selEnd = contentValue.selection.end
+        val currentText = contentValue.text
+        val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
+        val newCursor = selStart + text.length
+        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+        content = newText
+        saveToHistory(newText)
+        aiViewModel.clearInsertResult()
     }
 
     val insertAtCursor: (String) -> Unit = { tag ->
@@ -1224,7 +1238,14 @@ fun NoteEditorScreen(
                     // AI Assistant Button
                     if (aiEnabled) {
                         VerticalDivider(modifier = Modifier.height(24.dp))
-                        IconButton(onClick = { showAiSheet = true }) {
+                        IconButton(onClick = {
+                            aiViewModel.prepareChatForNote(
+                                content,
+                                contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
+                                    .takeIf { contentValue.selection.start != contentValue.selection.end } ?: ""
+                            )
+                            onNavigateToAiChat(noteId)
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = stringResource(id = R.string.ai_assistant),
@@ -1941,7 +1962,14 @@ fun NoteEditorScreen(
 
                     if (aiEnabled) {
                         IconButton(
-                            onClick = { showAiSheet = true },
+                            onClick = {
+                                aiViewModel.prepareChatForNote(
+                                    content,
+                                    contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
+                                        .takeIf { contentValue.selection.start != contentValue.selection.end } ?: ""
+                                )
+                                onNavigateToAiChat(noteId)
+                            },
                             modifier = Modifier.testTag("ai_toolbar_btn")
                         ) {
                             Icon(
@@ -2555,29 +2583,7 @@ fun NoteEditorScreen(
             }
         }
 
-        // AI Assistant Bottom Sheet
-        if (showAiSheet) {
-            AiBottomSheet(
-                viewModel = aiViewModel,
-                noteId = noteId,
-                selectedText = contentValue.text.substring(
-                    contentValue.selection.start,
-                    contentValue.selection.end
-                ).takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
-                fullContent = content,
-                onInsert = { text ->
-                    val selStart = contentValue.selection.start
-                    val selEnd = contentValue.selection.end
-                    val currentText = contentValue.text
-                    val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
-                    val newCursor = selStart + text.length
-                    contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                    content = newText
-                    saveToHistory(newText)
-                },
-                onDismiss = { showAiSheet = false }
-            )
-        }
+
     }
 }
 

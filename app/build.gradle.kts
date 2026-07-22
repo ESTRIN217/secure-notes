@@ -18,6 +18,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
   namespace = "com.example"
+  ndkVersion = "29.0.14206865"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
@@ -28,7 +29,7 @@ android {
     versionName = "3.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
+    ndk { abiFilters += listOf("arm64-v8a") }
   }
 
   signingConfigs {
@@ -51,6 +52,12 @@ android {
     }
     debug {
       signingConfig = signingConfigs.getByName("release")
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path = file("CMakeLists.txt")
+      version = "3.22.1+"
     }
   }
   compileOptions {

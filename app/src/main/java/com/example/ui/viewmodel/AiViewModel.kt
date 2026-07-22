@@ -66,6 +66,15 @@ class AiViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _chatNoteContext = MutableStateFlow("")
+    val chatNoteContext: StateFlow<String> = _chatNoteContext.asStateFlow()
+
+    private val _chatSelectedText = MutableStateFlow("")
+    val chatSelectedText: StateFlow<String> = _chatSelectedText.asStateFlow()
+
+    private val _pendingInsert = MutableStateFlow<String?>(null)
+    val pendingInsert: StateFlow<String?> = _pendingInsert.asStateFlow()
+
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Unknown)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
@@ -116,6 +125,19 @@ class AiViewModel(
     fun setAiEnabled(enabled: Boolean) {
         _aiEnabled.value = enabled
         prefsRepository.setAiEnabled(enabled)
+    }
+
+    fun prepareChatForNote(context: String, selected: String) {
+        _chatNoteContext.value = context
+        _chatSelectedText.value = selected
+    }
+
+    fun requestInsert(text: String) {
+        _pendingInsert.value = text
+    }
+
+    fun clearInsertResult() {
+        _pendingInsert.value = null
     }
 
     fun setBackend(backend: AiBackend) {

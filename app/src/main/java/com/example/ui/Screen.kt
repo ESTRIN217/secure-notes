@@ -45,7 +45,8 @@ sealed class Screen {
                 aiViewModel = context.aiViewModel,
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
-                onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) }
+                onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
+                onNavigateToAiChat = { id -> context.navigator.onNavigateTo(Screen.AiChat(id)) }
             )
         }
     }
@@ -174,6 +175,23 @@ sealed class Screen {
         }
     }
 
+    data class AiChat(val noteId: Int) : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            AiChatScreen(
+                viewModel = context.aiViewModel,
+                noteId = noteId,
+                fullContent = context.aiViewModel.chatNoteContext.value,
+                selectedText = context.aiViewModel.chatSelectedText.value,
+                onBack = { context.navigator.onNavigateBack(Screen.NoteEditor(noteId)) },
+                onInsert = { text ->
+                    context.aiViewModel.requestInsert(text)
+                    context.navigator.onNavigateBack(Screen.NoteEditor(noteId))
+                }
+            )
+        }
+    }
+
     object StorageManager : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
@@ -200,6 +218,7 @@ val ScreenSaver = mapSaver(
             is Screen.LegalInfo -> mapOf("route" to "legal_info")
             is Screen.Licenses -> mapOf("route" to "licenses")
             is Screen.AiSettings -> mapOf("route" to "ai_settings")
+            is Screen.AiChat -> mapOf("route" to "ai_chat", "noteId" to screen.noteId)
             is Screen.About -> mapOf("route" to "about")
             is Screen.StorageManager -> mapOf("route" to "storage_manager")
         }
@@ -218,6 +237,7 @@ val ScreenSaver = mapSaver(
             "legal_info" -> Screen.LegalInfo
             "licenses" -> Screen.Licenses
             "ai_settings" -> Screen.AiSettings
+            "ai_chat" -> Screen.AiChat((map["noteId"] as? Int) ?: 0)
             "about" -> Screen.About
             "storage_manager" -> Screen.StorageManager
             else -> Screen.MainList

@@ -11,6 +11,10 @@
 - Secrets (`GEMINI_API_KEY`) loaded from `.env` via Secrets Gradle Plugin. See `.env.example`.
 - Release signing: copy `key.properties.template` → `key.properties`. Debug builds also sign with release config.
 - `app/google-services.json` required for Firebase (Google services plugin).
+- **Native code**: `llama_jni.cpp` compiled from source via CMake (`app/CMakeLists.txt`). Prebuilt `.so` files
+  for `libllama.so`, `libggml.so`, etc. in `jniLibs/arm64-v8a/`. llama.cpp headers from `/root/llama.cpp/include/`
+  and `/root/llama.cpp/ggml/include/`. NDK 29.0.14206865. Build only supports `arm64-v8a`.
+- **KV cache cleared** via `llama_memory_clear` between inference calls to prevent cross-request contamination.
 
 ## Tests
 
@@ -29,7 +33,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (Material 3), Room
 
 | Layer | Path | Key files |
 |---|---|---|
-| UI / Navigation | `com.example.ui` | `MainListScreen.kt`, `NoteEditorScreen.kt`, `DrawingCanvasScreen.kt`, `MediaViewerScreen.kt`, `SearchScreen.kt`, `LockScreen.kt` |
+| UI / Navigation | `com.example.ui` | `MainListScreen.kt`, `NoteEditorScreen.kt`, `AiChatScreen.kt`, `DrawingCanvasScreen.kt`, `MediaViewerScreen.kt`, `SearchScreen.kt`, `LockScreen.kt` |
 | Settings UI | `com.example.ui.settings` | `SettingsScreen.kt`, `PrivacySettingsScreen.kt`, `BackupRestoreScreen.kt`, `AboutScreen.kt`, `SettingsWidgets.kt` |
 | ViewModel | `com.example.ui.viewmodel` | `NotesViewModel.kt`, `ThemeViewModel.kt`, `BackupViewModel.kt`, `UpdaterViewModel.kt`, `AiViewModel.kt` |
 | Data (Room) | `com.example.data.local` | `NoteDatabase.kt`, `NoteDao.kt`, `TagDao.kt` |

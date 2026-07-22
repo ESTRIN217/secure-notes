@@ -22,7 +22,7 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     override suspend fun load(filePath: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             unload()
-            llamaModel = LlamaInference.create(context, filePath, nCtx = 512, nGpuLayers = 0)
+            llamaModel = LlamaInference.create(context, filePath, nCtx = 1024, nGpuLayers = 0)
             Log.i(TAG, "Engine loaded: $filePath")
             Result.success(Unit)
         } catch (e: OutOfMemoryError) {
@@ -48,7 +48,14 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
             return@withContext Result.failure(Exception("Engine not loaded"))
         }
         try {
-            val response = LlamaInference.generate(model, request.prompt, maxTokens = 256)
+            val response = LlamaInference.generate(
+                model,
+                request.prompt,
+                maxTokens = 256,
+                temperature = 0.7f,
+                repetitionPenalty = 1.1f,
+                topK = 40
+            )
             Result.success(response)
         } catch (e: Exception) {
             Log.e(TAG, "Inference failed", e)
@@ -72,9 +79,9 @@ internal object LlamaInference {
         }
     }
 
-    fun generate(model: Any, prompt: String, maxTokens: Int): String {
+    fun generate(model: Any, prompt: String, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
         return if (model is NativeLlamaModel) {
-            model.generate(prompt, maxTokens)
+            model.generate(prompt, maxTokens, temperature, repetitionPenalty, topK)
         } else {
             throw IllegalArgumentException("Unknown model type")
         }
@@ -91,8 +98,8 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
         }
     }
 
-    fun generate(prompt: String, maxTokens: Int): String {
-        return nativeGenerate(nativeHandle, prompt, maxTokens)
+    fun generate(prompt: String, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
+        return nativeGenerate(nativeHandle, prompt, maxTokens, temperature, repetitionPenalty, topK)
     }
 
     fun close() {
@@ -106,6 +113,6 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
     }
 
     private external fun nativeCreate(modelPath: String, nCtx: Int, nGpuLayers: Int): Long
-    private external fun nativeGenerate(handle: Long, prompt: String, maxTokens: Int): String
+    private external fun nativeGenerate(handle: Long, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int): String
     private external fun nativeDestroy(handle: Long)
 }
