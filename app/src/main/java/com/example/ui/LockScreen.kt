@@ -211,7 +211,7 @@ fun LockScreen(viewModel: NotesViewModel) {
                     }
 
                     // Biometric unlock button
-                    if (isBiometricEnabled) {
+                    if (isBiometricEnabled && biometricManager.isBiometricAvailable()) {
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedButton(
                             onClick = { triggerBiometric() },

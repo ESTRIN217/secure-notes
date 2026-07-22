@@ -386,21 +386,23 @@ fun PrivacySettingsScreen(
                             )
 
                             // Biometric toggle
-                            SettingsSwitchTile(
-                                icon = Icons.Default.Fingerprint,
-                                title = stringResource(R.string.biometric_unlock_label),
-                                subtitle = stringResource(
-                                    if (isBiometricEnabled) R.string.biometric_enabled_desc else R.string.biometric_disabled_desc
-                                ),
-                                checked = isBiometricEnabled,
-                                onCheckedChange = { enabled ->
-                                    if (enabled) {
-                                        pendingEnableBiometric = true
-                                    } else {
-                                        viewModel.setBiometricEnabled(false)
+                            if (biometricManager.isBiometricAvailable()) {
+                                SettingsSwitchTile(
+                                    icon = Icons.Default.Fingerprint,
+                                    title = stringResource(R.string.biometric_unlock_label),
+                                    subtitle = stringResource(
+                                        if (isBiometricEnabled) R.string.biometric_enabled_desc else R.string.biometric_disabled_desc
+                                    ),
+                                    checked = isBiometricEnabled,
+                                    onCheckedChange = { enabled ->
+                                        if (enabled) {
+                                            pendingEnableBiometric = true
+                                        } else {
+                                            viewModel.setBiometricEnabled(false)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
 
                             // Screenshot / Recents toggle
                             SettingsSwitchTile(
