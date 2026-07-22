@@ -19,6 +19,11 @@ enum class RewriteStyle {
     PROFESSIONAL
 }
 
+data class ChatMessage(
+    val role: String,
+    val content: String
+)
+
 data class AiRequest(
     val action: AiAction,
     val prompt: String = "",
@@ -26,7 +31,8 @@ data class AiRequest(
     val context: String = "",
     val rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
     val targetLanguage: String = "en",
-    val customSystemPrompt: String = ""
+    val customSystemPrompt: String = "",
+    val messages: List<ChatMessage> = emptyList()
 )
 
 data class AiResult(

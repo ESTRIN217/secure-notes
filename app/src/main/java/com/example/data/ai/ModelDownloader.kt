@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 sealed class DownloadState {
     data object Idle : DownloadState()
-    data class Downloading(val progress: Float, val downloadedMb: Long, val totalMb: Long) : DownloadState()
+    data class Downloading(val progress: Float, val downloadedMb: Long, val totalMb: Long, val speedBytesPerSec: Long) : DownloadState()
     data class Completed(val file: File) : DownloadState()
     data class Failed(val error: String) : DownloadState()
 }
@@ -64,7 +64,8 @@ class ModelDownloader(private val context: Context) {
         val downloadUrl = "https://huggingface.co/${model.huggingFaceRepo}/resolve/main/${model.ggufFileName}"
 
         try {
-            _state.value = DownloadState.Downloading(0f, 0, model.fileSizeMb.toLong())
+            _state.value = DownloadState.Downloading(0f, 0, model.fileSizeMb.toLong(), 0L)
+            val startTime = System.nanoTime()
 
             val request = Request.Builder()
                 .url(downloadUrl)
@@ -99,10 +100,13 @@ class ModelDownloader(private val context: Context) {
 
                     if (totalBytes > 0) {
                         val progress = (bytesRead.toFloat() / totalBytes).coerceAtMost(1f)
+                        val elapsedSecs = (System.nanoTime() - startTime).toDouble() / 1_000_000_000.0
+                        val speed = if (elapsedSecs > 0) (bytesRead.toDouble() / elapsedSecs).toLong() else 0L
                         _state.value = DownloadState.Downloading(
                             progress = progress,
                             downloadedMb = bytesRead / (1024 * 1024),
-                            totalMb = totalBytes / (1024 * 1024)
+                            totalMb = totalBytes / (1024 * 1024),
+                            speedBytesPerSec = speed
                         )
                     }
                 }

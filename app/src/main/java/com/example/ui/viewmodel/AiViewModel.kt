@@ -10,10 +10,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 data class ConversationTurn(
     val role: String,
-    val content: String
+    val content: String,
+    val processingTimeMs: Long? = null
 )
 
 sealed class ConnectionState {
@@ -60,6 +62,12 @@ class AiViewModel(
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
+    private val _streamingText = MutableStateFlow<String?>(null)
+    val streamingText: StateFlow<String?> = _streamingText.asStateFlow()
+
+    private val _processingTimeMs = MutableStateFlow<Long?>(null)
+    val processingTimeMs: StateFlow<Long?> = _processingTimeMs.asStateFlow()
+
     private val _resultText = MutableStateFlow<String?>(null)
     val resultText: StateFlow<String?> = _resultText.asStateFlow()
 
@@ -87,8 +95,7 @@ class AiViewModel(
 
     val bestModel: OnDeviceModel? = MODEL_CATALOG.bestForDevice(deviceInfo)
 
-    private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
-    val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
+    val downloadState: StateFlow<DownloadState> = modelDownloader.state
 
     private val _conversationHistory = mutableMapOf<Int, MutableList<ConversationTurn>>()
 
@@ -180,6 +187,9 @@ class AiViewModel(
         val model = _selectedOnDeviceModel.value ?: return
         viewModelScope.launch {
             modelDownloader.download(model)
+            if (modelDownloader.state.value is DownloadState.Completed) {
+                loadSelectedModel()
+            }
         }
     }
 
@@ -243,22 +253,19 @@ class AiViewModel(
         _resultText.value = null
         _errorMessage.value = null
         _isProcessing.value = true
+        _streamingText.value = ""
+        _processingTimeMs.value = null
 
         var enrichedRequest = request.copy(customSystemPrompt = _systemPrompt.value)
 
         if (noteId > 0) {
             val history = _conversationHistory.getOrPut(noteId) { mutableListOf() }
             if (history.isNotEmpty()) {
-                val turns = history.takeLast(10)
-                val historyText = turns.joinToString("\n\n") { turn ->
-                    when (turn.role) {
-                        "user" -> "Usuario: ${turn.content}"
-                        "assistant" -> "Asistente: ${turn.content}"
-                        else -> "${turn.role}: ${turn.content}"
-                    }
+                val chatMessages = history.takeLast(10).map { turn ->
+                    ChatMessage(turn.role, turn.content)
                 }
                 enrichedRequest = enrichedRequest.copy(
-                    context = "Previous conversation:\n$historyText\n\n${request.context}"
+                    messages = chatMessages
                 )
             }
             val userMessage = when (request.action) {
@@ -270,23 +277,32 @@ class AiViewModel(
             history.add(ConversationTurn("user", userMessage))
         }
 
+        val startTime = System.currentTimeMillis()
         currentJob = viewModelScope.launch {
             try {
-                val result = currentService.execute(enrichedRequest)
+                val fullText = StringBuilder()
+                currentService.executeStreaming(enrichedRequest).collect { token ->
+                    fullText.append(token)
+                    _streamingText.value = fullText.toString()
+                }
                 _isProcessing.value = false
-                result.fold(
-                    onSuccess = { text ->
-                        _resultText.value = text
-                        if (noteId > 0) {
-                            _conversationHistory[noteId]?.add(ConversationTurn("assistant", text))
-                        }
-                    },
-                    onFailure = { error ->
-                        _errorMessage.value = error.message ?: "Error desconocido"
-                    }
-                )
+                val elapsed = System.currentTimeMillis() - startTime
+                _processingTimeMs.value = elapsed
+                val result = fullText.toString()
+                _resultText.value = result
+                if (noteId > 0) {
+                    _conversationHistory[noteId]?.add(ConversationTurn("assistant", result, elapsed))
+                }
+                _streamingText.value = null
+            } catch (e: IOException) {
+                _isProcessing.value = false
+                _streamingText.value = null
+                _processingTimeMs.value = null
+                _errorMessage.value = e.message ?: "Error de conexión"
             } catch (e: Throwable) {
                 _isProcessing.value = false
+                _streamingText.value = null
+                _processingTimeMs.value = null
                 _errorMessage.value = e.message ?: "Error inesperado"
             }
         }
@@ -296,5 +312,7 @@ class AiViewModel(
         _resultText.value = null
         _errorMessage.value = null
         _isProcessing.value = false
+        _streamingText.value = null
+        _processingTimeMs.value = null
     }
 }

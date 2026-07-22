@@ -501,8 +501,13 @@ private fun LazyListScope.onDeviceActionsSection(
                             progress = { d.progress },
                             modifier = Modifier.fillMaxWidth()
                         )
+                        val speedText = if (d.speedBytesPerSec >= 1_000_000) {
+                            String.format("%.1f MB/s", d.speedBytesPerSec / 1_000_000.0)
+                        } else {
+                            String.format("%.0f KB/s", d.speedBytesPerSec / 1_000.0)
+                        }
                         Text(
-                            text = "${d.downloadedMb}MB / ${d.totalMb}MB (${(d.progress * 100).toInt()}%)",
+                            text = "${d.downloadedMb}MB / ${d.totalMb}MB (${(d.progress * 100).toInt()}%) · $speedText",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

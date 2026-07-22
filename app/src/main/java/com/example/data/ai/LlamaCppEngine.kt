@@ -3,7 +3,16 @@ package com.example.data.ai
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
+
+interface TokenCallback {
+    fun onToken(token: String)
+    fun onComplete()
+    fun onError(error: String)
+}
 
 class LlamaCppEngine(private val context: Context) : InferenceEngine {
 
@@ -48,19 +57,87 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
             return@withContext Result.failure(Exception("Motor no cargado"))
         }
         try {
-            val response = LlamaInference.generate(
-                model,
-                request.prompt,
-                maxTokens = 256,
-                temperature = 0.7f,
-                repetitionPenalty = 1.1f,
-                topK = 40
-            )
+            val response = if (request.messages.isNotEmpty()) {
+                LlamaInference.generateChat(
+                    model,
+                    request.messages,
+                    maxTokens = 256,
+                    temperature = 0.7f,
+                    repetitionPenalty = 1.1f,
+                    topK = 40
+                )
+            } else {
+                LlamaInference.generate(
+                    model,
+                    request.prompt,
+                    maxTokens = 256,
+                    temperature = 0.7f,
+                    repetitionPenalty = 1.1f,
+                    topK = 40
+                )
+            }
             Result.success(response)
         } catch (e: Exception) {
             Log.e(TAG, "Inference failed", e)
             Result.failure(e)
         }
+    }
+
+    override suspend fun executeStreaming(request: AiRequest): Flow<String> = callbackFlow {
+        val model = llamaModel
+        if (model == null) {
+            close(java.lang.Exception("Motor no cargado"))
+            return@callbackFlow
+        }
+        withContext(Dispatchers.IO) {
+            try {
+                if (request.messages.isNotEmpty()) {
+                    LlamaInference.generateChatStreaming(
+                        model,
+                        request.messages,
+                        maxTokens = 256,
+                        temperature = 0.7f,
+                        repetitionPenalty = 1.1f,
+                        topK = 40,
+                        object : TokenCallback {
+                            override fun onToken(token: String) {
+                                trySend(token)
+                            }
+                            override fun onComplete() {
+                                close()
+                            }
+                            override fun onError(error: String) {
+                                close(java.lang.Exception(error))
+                            }
+                        }
+                    )
+                } else {
+                    LlamaInference.generateStreaming(
+                        model,
+                        request.prompt,
+                        maxTokens = 256,
+                        temperature = 0.7f,
+                        repetitionPenalty = 1.1f,
+                        topK = 40,
+                        object : TokenCallback {
+                            override fun onToken(token: String) {
+                                trySend(token)
+                            }
+                            override fun onComplete() {
+                                close()
+                            }
+                            override fun onError(error: String) {
+                                close(java.lang.Exception(error))
+                            }
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Streaming inference failed", e)
+                close(e)
+            }
+        }
+        awaitClose { }
     }
 
     companion object {
@@ -86,6 +163,30 @@ internal object LlamaInference {
             throw IllegalArgumentException("Tipo de modelo desconocido")
         }
     }
+
+    fun generateChat(model: Any, messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
+        return if (model is NativeLlamaModel) {
+            model.generateChat(messages, maxTokens, temperature, repetitionPenalty, topK)
+        } else {
+            throw IllegalArgumentException("Tipo de modelo desconocido")
+        }
+    }
+
+    fun generateStreaming(model: Any, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+        if (model is NativeLlamaModel) {
+            model.generateStreaming(prompt, maxTokens, temperature, repetitionPenalty, topK, callback)
+        } else {
+            throw IllegalArgumentException("Tipo de modelo desconocido")
+        }
+    }
+
+    fun generateChatStreaming(model: Any, messages: List<ChatMessage>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+        if (model is NativeLlamaModel) {
+            model.generateChatStreaming(messages, maxTokens, temperature, repetitionPenalty, topK, callback)
+        } else {
+            throw IllegalArgumentException("Tipo de modelo desconocido")
+        }
+    }
 }
 
 internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, nGpuLayers: Int) {
@@ -102,6 +203,22 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
         return nativeGenerate(nativeHandle, prompt, maxTokens, temperature, repetitionPenalty, topK)
     }
 
+    fun generateChat(messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
+        val roles = messages.map { it.role }.toTypedArray()
+        val contents = messages.map { it.content }.toTypedArray()
+        return nativeGenerateChat(nativeHandle, roles, contents, maxTokens, temperature, repetitionPenalty, topK)
+    }
+
+    fun generateStreaming(prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+        nativeGenerateStreaming(nativeHandle, prompt, maxTokens, temperature, repetitionPenalty, topK, callback)
+    }
+
+    fun generateChatStreaming(messages: List<ChatMessage>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+        val roles = messages.map { it.role }.toTypedArray()
+        val contents = messages.map { it.content }.toTypedArray()
+        nativeGenerateChatStreaming(nativeHandle, roles, contents, maxTokens, temperature, repetitionPenalty, topK, callback)
+    }
+
     fun close() {
         nativeDestroy(nativeHandle)
     }
@@ -114,5 +231,8 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
 
     private external fun nativeCreate(modelPath: String, nCtx: Int, nGpuLayers: Int): Long
     private external fun nativeGenerate(handle: Long, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int): String
+    private external fun nativeGenerateChat(handle: Long, roles: Array<String>, contents: Array<String>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int): String
+    private external fun nativeGenerateStreaming(handle: Long, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback)
+    private external fun nativeGenerateChatStreaming(handle: Long, roles: Array<String>, contents: Array<String>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback)
     private external fun nativeDestroy(handle: Long)
 }

@@ -1,6 +1,11 @@
 package com.example.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,12 +39,17 @@ fun AiChatScreen(
     onBack: () -> Unit,
     onInsert: (String) -> Unit
 ) {
+    BackHandler(onBack = onBack)
+
     var currentAction by remember { mutableStateOf(AiAction.GENERATE) }
     var inputText by remember { mutableStateOf("") }
     var rewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
     var targetLanguage by remember { mutableStateOf("en") }
+    var showHistory by remember { mutableStateOf(false) }
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
+    val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
+    val processingTimeMs by viewModel.processingTimeMs.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -48,9 +59,11 @@ fun AiChatScreen(
         derivedStateOf { viewModel.getConversationHistory(noteId) }
     }.value
 
-    LaunchedEffect(conversationHistory.size) {
-        if (conversationHistory.isNotEmpty()) {
-            listState.animateScrollToItem(conversationHistory.size - 1)
+    val hasStreamingContent = isProcessing && !streamingText.isNullOrEmpty()
+
+    LaunchedEffect(conversationHistory.size, hasStreamingContent) {
+        if (conversationHistory.isNotEmpty() || hasStreamingContent) {
+            listState.animateScrollToItem(conversationHistory.size + (if (hasStreamingContent) 0 else 0))
         }
     }
 
@@ -63,162 +76,282 @@ fun AiChatScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.ai_chat_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.ai_chat_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
+                    },
+                    actions = {
+                        if (conversationHistory.isNotEmpty()) {
+                            IconButton(onClick = { showHistory = !showHistory }) {
+                                Icon(Icons.Default.History, contentDescription = stringResource(R.string.ai_history))
+                            }
+                            IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
+                                Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
+                            }
+                        }
                     }
-                },
-                actions = {
-                    if (conversationHistory.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
+                )
+            },
+            bottomBar = {
+                Surface(
+                    tonalElevation = 3.dp,
+                    shadowElevation = 8.dp
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        ActionChipRowMinimal(
+                            currentAction = currentAction,
+                            onActionSelected = { currentAction = it }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = inputText,
+                                onValueChange = { inputText = it },
+                                placeholder = {
+                                    Text(
+                                        when (currentAction) {
+                                            AiAction.GENERATE -> stringResource(R.string.ai_chat_hint_generate)
+                                            AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
+                                            AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
+                                            AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
+                                        }
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                minLines = 1,
+                                maxLines = 4,
+                                shape = RoundedCornerShape(24.dp),
+                                enabled = !isProcessing
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            FilledIconButton(
+                                onClick = {
+                                    val prompt = when (currentAction) {
+                                        AiAction.GENERATE -> inputText
+                                        AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
+                                        AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
+                                        AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
+                                    }
+                                    val request = AiRequest(
+                                        action = currentAction,
+                                        prompt = prompt,
+                                        selectedText = selectedText,
+                                        context = fullContent,
+                                        rewriteStyle = rewriteStyle,
+                                        targetLanguage = targetLanguage
+                                    )
+                                    viewModel.execute(request, noteId)
+                                    if (currentAction == AiAction.GENERATE) {
+                                        inputText = ""
+                                    }
+                                },
+                                enabled = !isProcessing && (currentAction != AiAction.GENERATE || inputText.isNotBlank()),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                if (isProcessing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                } else {
+                                    Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_send))
+                                }
+                            }
                         }
                     }
                 }
-            )
-        },
-        bottomBar = {
-            Surface(
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    ActionChipRowMinimal(
-                        currentAction = currentAction,
-                        onActionSelected = { currentAction = it }
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                if (conversationHistory.isEmpty() && !hasStreamingContent) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            placeholder = {
-                                Text(
-                                    when (currentAction) {
-                                        AiAction.GENERATE -> stringResource(R.string.ai_chat_hint_generate)
-                                        AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
-                                        AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
-                                        AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
-                                    }
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                            minLines = 1,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(24.dp),
-                            enabled = !isProcessing
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.ai_chat_empty_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.ai_chat_empty_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        items(conversationHistory) { turn ->
+                            MessageBubble(
+                                turn = turn,
+                                isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
+                                showInsert = turn.role == "assistant",
+                                processingTimeMs = if (turn == conversationHistory.lastOrNull() && turn.role == "assistant") turn.processingTimeMs else null,
+                                onInsert = { onInsert(turn.content) }
+                            )
+                        }
+                        if (hasStreamingContent) {
+                            item(key = "streaming") {
+                                StreamingBubble(text = streamingText!!)
+                            }
+                        }
+                    }
+                }
+
+                errorMessage?.let { error ->
+                    Snackbar(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.BottomCenter),
+                        action = {
+                            TextButton(onClick = { viewModel.clearResult() }) {
+                                Text(stringResource(R.string.dismiss))
+                            }
+                        }
+                    ) {
+                        Text(error)
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showHistory,
+            enter = slideInHorizontally { it },
+            exit = slideOutHorizontally { it },
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                        .clickable { showHistory = false }
+                )
+                ModalDrawerSheet(
+                    modifier = Modifier.width(300.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(modifier = Modifier.fillMaxHeight()) {
+                        Text(
+                            text = stringResource(R.string.ai_history),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        FilledIconButton(
-                            onClick = {
-                                val prompt = when (currentAction) {
-                                    AiAction.GENERATE -> inputText
-                                    AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
-                                    AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
-                                    AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
-                                }
-                                val request = AiRequest(
-                                    action = currentAction,
-                                    prompt = prompt,
-                                    selectedText = selectedText,
-                                    context = fullContent,
-                                    rewriteStyle = rewriteStyle,
-                                    targetLanguage = targetLanguage
+                        HorizontalDivider()
+                        if (conversationHistory.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.ai_chat_empty_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                viewModel.execute(request, noteId)
-                                if (currentAction == AiAction.GENERATE) {
-                                    inputText = ""
+                            }
+                        } else {
+                            LazyColumn(modifier = Modifier.weight(1f)) {
+                                items(conversationHistory) { turn ->
+                                    HistoryItem(turn = turn)
                                 }
-                            },
-                            enabled = !isProcessing && (currentAction != AiAction.GENERATE || inputText.isNotBlank()),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            if (isProcessing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                            }
+                            HorizontalDivider()
+                            TextButton(
+                                onClick = {
+                                    viewModel.clearConversationHistory(noteId)
+                                    showHistory = false
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                            } else {
-                                Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_send))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.ai_clear_history))
                             }
                         }
                     }
                 }
             }
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (conversationHistory.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Chat,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            stringResource(R.string.ai_chat_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.ai_chat_empty_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    items(conversationHistory) { turn ->
-                        MessageBubble(
-                            turn = turn,
-                            isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
-                            showInsert = turn.role == "assistant",
-                            onInsert = { onInsert(turn.content) }
-                        )
-                    }
-                }
-            }
+    }
+}
 
-            errorMessage?.let { error ->
-                Snackbar(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.BottomCenter),
-                    action = {
-                        TextButton(onClick = { viewModel.clearResult() }) {
-                            Text(stringResource(R.string.dismiss))
-                        }
-                    }
-                ) {
-                    Text(error)
-                }
+@Composable
+private fun HistoryItem(turn: ConversationTurn) {
+    val isUser = turn.role == "user"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            imageVector = if (isUser) Icons.Default.Person else Icons.Default.SmartToy,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = if (isUser) stringResource(R.string.ai_chat_you) else stringResource(R.string.ai_chat_ai),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+            )
+            Text(
+                text = turn.content.take(120) + if (turn.content.length > 120) "..." else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3
+            )
+            if (turn.processingTimeMs != null) {
+                Text(
+                    text = "${turn.processingTimeMs / 1000.0}s",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
             }
         }
     }
@@ -229,6 +362,7 @@ private fun MessageBubble(
     turn: ConversationTurn,
     isLastAssistant: Boolean,
     showInsert: Boolean,
+    processingTimeMs: Long?,
     onInsert: () -> Unit
 ) {
     val isUser = turn.role == "user"
@@ -270,6 +404,14 @@ private fun MessageBubble(
                     style = MaterialTheme.typography.bodyMedium,
                     color = textColor
                 )
+                if (processingTimeMs != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${"%.1f".format(processingTimeMs / 1000.0)}s",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor.copy(alpha = 0.5f)
+                    )
+                }
                 if (showInsert && isLastAssistant) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
@@ -284,6 +426,52 @@ private fun MessageBubble(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.ai_insert), style = MaterialTheme.typography.labelMedium)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamingBubble(text: String) {
+    Column(
+        horizontalAlignment = Alignment.Start,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = stringResource(R.string.ai_chat_ai),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = 4.dp,
+                bottomEnd = 16.dp
+            ),
+            modifier = Modifier.widthIn(max = 320.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.ai_generating),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp
+                    )
                 }
             }
         }

@@ -2,6 +2,7 @@ package com.example.data.ai
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,20 +68,22 @@ class OnDeviceService(
             try {
                 val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
                 val userPrompt = AiPromptBuilder.buildUserPrompt(request)
-                val fullPrompt = if (systemPrompt.isNotBlank()) {
-                    "<|system|>\n$systemPrompt\n<|user|>\n$userPrompt\n<|assistant|>"
-                } else {
-                    "<|user|>\n$userPrompt\n<|assistant|>"
+                val fullMessages = mutableListOf<ChatMessage>()
+                if (systemPrompt.isNotBlank()) {
+                    fullMessages.add(ChatMessage("system", systemPrompt))
                 }
+                fullMessages.addAll(request.messages)
+                fullMessages.add(ChatMessage("user", userPrompt))
 
                 val result = engine.execute(AiRequest(
                     action = request.action,
-                    prompt = fullPrompt,
+                    prompt = userPrompt,
                     selectedText = request.selectedText,
                     context = request.context,
                     rewriteStyle = request.rewriteStyle,
                     targetLanguage = request.targetLanguage,
-                    customSystemPrompt = systemPrompt
+                    customSystemPrompt = systemPrompt,
+                    messages = fullMessages
                 ))
                 if (result.isFailure) {
                     Log.e(TAG, "Engine inference failed", result.exceptionOrNull())
@@ -91,6 +94,30 @@ class OnDeviceService(
                 Result.failure(e)
             }
         }
+
+    override suspend fun executeStreaming(request: AiRequest): Flow<String> {
+        if (_modelState.value != ModelState.READY) {
+            throw Exception("No hay modelo cargado. Carga un modelo local primero.")
+        }
+        val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
+        val userPrompt = AiPromptBuilder.buildUserPrompt(request)
+        val fullMessages = mutableListOf<ChatMessage>()
+        if (systemPrompt.isNotBlank()) {
+            fullMessages.add(ChatMessage("system", systemPrompt))
+        }
+        fullMessages.addAll(request.messages)
+        fullMessages.add(ChatMessage("user", userPrompt))
+        return engine.executeStreaming(AiRequest(
+            action = request.action,
+            prompt = userPrompt,
+            selectedText = request.selectedText,
+            context = request.context,
+            rewriteStyle = request.rewriteStyle,
+            targetLanguage = request.targetLanguage,
+            customSystemPrompt = systemPrompt,
+            messages = fullMessages
+        ))
+    }
 
     companion object {
         private const val TAG = "OnDeviceService"

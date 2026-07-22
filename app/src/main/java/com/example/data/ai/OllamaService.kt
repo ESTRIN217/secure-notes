@@ -2,6 +2,9 @@ package com.example.data.ai
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -152,6 +155,44 @@ class OllamaService(
             Result.failure(e)
         }
     }
+
+    override suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
+        val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
+        val userPrompt = AiPromptBuilder.buildUserPrompt(request)
+
+        val jsonBody = JSONObject().apply {
+            put("model", modelName)
+            put("prompt", userPrompt)
+            put("system", systemPrompt)
+            put("stream", true)
+        }
+
+        val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+        val httpRequest = Request.Builder()
+            .url("$endpointUrl/api/generate")
+            .post(body)
+            .build()
+
+        val response = client.newCall(httpRequest).execute()
+
+        if (!response.isSuccessful) {
+            val errorBody = response.body?.string() ?: response.message
+            throw IOException("HTTP ${response.code}: $errorBody")
+        }
+
+        val source = response.body!!.source()
+        while (!source.exhausted()) {
+            val line = source.readUtf8Line() ?: break
+            if (line.isBlank()) continue
+            val json = JSONObject(line)
+            val token = json.optString("response", "")
+            if (token.isNotEmpty()) {
+                emit(token)
+            }
+            if (json.optBoolean("done", false)) break
+        }
+    }.flowOn(Dispatchers.IO)
 
     companion object {
         private const val TAG = "OllamaService"

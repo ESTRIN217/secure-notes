@@ -627,6 +627,8 @@
     <string name="ai_chat_ai">IA</string>
     <string name="ai_chat_title">Chat IA</string>
     <string name="ai_clear_history">Limpiar historial</string>
+    <string name="ai_history">Historial</string>
+    <string name="ai_generating">Generando…</string>
     <string name="ai_chat_hint_generate">Escribe un mensaje…</string>
     <string name="ai_chat_hint_summarize">Resumir la nota</string>
     <string name="ai_chat_hint_rewrite">Reescribir texto seleccionado</string>
