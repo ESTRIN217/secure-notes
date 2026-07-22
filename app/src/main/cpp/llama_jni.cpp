@@ -99,7 +99,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
     int32_t n_prompt = strlen(prompt);
     std::vector<llama_token> tokens(n_prompt + 1024);
     int32_t n_tokens = llama_tokenize(
-        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, false);
+        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, true);
     env->ReleaseStringUTFChars(jprompt, prompt);
 
     if (n_tokens < 0) {
@@ -107,6 +107,8 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
     }
 
     tokens.resize(n_tokens);
+
+    llama_token im_end_tok = llama_vocab_eos(vocab);
 
     std::string result;
     std::mt19937 rng(std::random_device{}());
@@ -121,7 +123,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
         std::vector<float> logits(raw_logits, raw_logits + n_vocab);
 
         if (repetition_penalty != 1.0f) {
-            for (size_t j = 0; j < n_tokens; j++) {
+            for (size_t j = 0; j < tokens.size(); j++) {
                 llama_token pt = tokens[j];
                 if (pt >= 0 && pt < n_vocab) {
                     logits[pt] = logits[pt] < 0.0f
@@ -231,7 +233,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
     int32_t n_prompt = strlen(prompt);
     std::vector<llama_token> tokens(n_prompt + 1024);
     int32_t n_tokens = llama_tokenize(
-        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, false);
+        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, true);
     env->ReleaseStringUTFChars(jprompt, prompt);
 
     if (n_tokens < 0) {
@@ -255,7 +257,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
         std::vector<float> logits(raw_logits, raw_logits + n_vocab);
 
         if (repetition_penalty != 1.0f) {
-            for (size_t j = 0; j < n_tokens; j++) {
+            for (size_t j = 0; j < tokens.size(); j++) {
                 llama_token pt = tokens[j];
                 if (pt >= 0 && pt < n_vocab) {
                     logits[pt] = logits[pt] < 0.0f
@@ -408,7 +410,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChat(
 
     std::vector<llama_token> tokens(formatted.size() + 1024);
     int32_t n_tokens = llama_tokenize(
-        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, false);
+        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, true);
     if (n_tokens < 0) {
         return env->NewStringUTF("");
     }
@@ -585,7 +587,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChatStreaming(
 
     std::vector<llama_token> tokens(formatted.size() + 1024);
     int32_t n_tokens = llama_tokenize(
-        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, false);
+        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, true);
     if (n_tokens < 0) {
         jstring errorMsg = env->NewStringUTF("Tokenization failed");
         env->CallVoidMethod(jcallback, onError, errorMsg);
