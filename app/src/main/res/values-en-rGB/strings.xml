@@ -628,6 +628,9 @@
     <string name="ai_style_poetic">Poetic</string>
     <string name="ai_style_professional">Professional</string>
     <string name="ai_language_target">Target Language</string>
+    <string name="ai_new_chat">New chat</string>
+    <string name="ai_copy">Copy</string>
+    <string name="ai_resend">Re-send</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>

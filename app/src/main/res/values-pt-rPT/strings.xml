@@ -628,6 +628,9 @@
     <string name="ai_style_poetic">Poético</string>
     <string name="ai_style_professional">Profissional</string>
     <string name="ai_language_target">Idioma de Destino</string>
+    <string name="ai_new_chat">Novo chat</string>
+    <string name="ai_copy">Copiar</string>
+    <string name="ai_resend">Reenviar</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">Definições de IA</string>

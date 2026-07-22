@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,8 +20,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,20 +54,28 @@ fun AiChatScreen(
     val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
     val processingTimeMs by viewModel.processingTimeMs.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val backend by viewModel.backend.collectAsStateWithLifecycle()
+    val modelNameSetting by viewModel.modelName.collectAsStateWithLifecycle()
+    val selectedOnDeviceModel by viewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
+    val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val listState = rememberLazyListState()
     val hasSelection = selectedText.isNotBlank()
 
-    val conversationHistory = remember(noteId) {
-        derivedStateOf { viewModel.getConversationHistory(noteId) }
-    }.value
+    val conversationHistory = allHistory[noteId] ?: emptyList()
+    val displayModelName = if (backend == AiBackend.OLLAMA) modelNameSetting
+                           else selectedOnDeviceModel?.displayName ?: ""
 
     val hasStreamingContent = isProcessing && !streamingText.isNullOrEmpty()
 
     LaunchedEffect(conversationHistory.size, hasStreamingContent) {
-        if (conversationHistory.isNotEmpty() || hasStreamingContent) {
-            listState.animateScrollToItem(conversationHistory.size + (if (hasStreamingContent) 0 else 0))
+        val targetIndex = when {
+            hasStreamingContent -> conversationHistory.size
+            conversationHistory.isNotEmpty() -> conversationHistory.size - 1
+            else -> return@LaunchedEffect
         }
+        listState.animateScrollToItem(targetIndex)
     }
 
     LaunchedEffect(isProcessing) {
@@ -80,13 +91,27 @@ fun AiChatScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.ai_chat_title)) },
+                    title = {
+                        Column {
+                            Text(stringResource(R.string.ai_chat_title))
+                            if (displayModelName.isNotBlank()) {
+                                Text(
+                                    text = displayModelName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     },
                     actions = {
+                        IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ai_new_chat))
+                        }
                         if (conversationHistory.isNotEmpty()) {
                             IconButton(onClick = { showHistory = !showHistory }) {
                                 Icon(Icons.Default.History, contentDescription = stringResource(R.string.ai_history))
@@ -215,10 +240,12 @@ fun AiChatScreen(
                         items(conversationHistory) { turn ->
                             MessageBubble(
                                 turn = turn,
+                                clipboardManager = clipboardManager,
                                 isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
                                 showInsert = turn.role == "assistant",
                                 processingTimeMs = if (turn == conversationHistory.lastOrNull() && turn.role == "assistant") turn.processingTimeMs else null,
-                                onInsert = { onInsert(turn.content) }
+                                onInsert = { onInsert(turn.content) },
+                                onResend = { inputText = it }
                             )
                         }
                         if (hasStreamingContent) {
@@ -360,10 +387,12 @@ private fun HistoryItem(turn: ConversationTurn) {
 @Composable
 private fun MessageBubble(
     turn: ConversationTurn,
+    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     isLastAssistant: Boolean,
     showInsert: Boolean,
     processingTimeMs: Long?,
-    onInsert: () -> Unit
+    onInsert: () -> Unit,
+    onResend: (String) -> Unit
 ) {
     val isUser = turn.role == "user"
     val bubbleColor = if (isUser) {
@@ -376,7 +405,6 @@ private fun MessageBubble(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val alignment = if (isUser) Arrangement.End else Arrangement.Start
 
     Column(
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
@@ -399,21 +427,56 @@ private fun MessageBubble(
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = turn.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = textColor
-                )
-                if (processingTimeMs != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                SelectionContainer {
                     Text(
-                        text = "${"%.1f".format(processingTimeMs / 1000.0)}s",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor.copy(alpha = 0.5f)
+                        text = turn.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (processingTimeMs != null) {
+                        Text(
+                            text = "${"%.1f".format(processingTimeMs / 1000.0)}s",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = textColor.copy(alpha = 0.5f)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+                    Row {
+                        IconButton(
+                            onClick = { clipboardManager.setText(AnnotatedString(turn.content)) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.ai_copy),
+                                modifier = Modifier.size(14.dp),
+                                tint = textColor.copy(alpha = 0.6f)
+                            )
+                        }
+                        if (isUser) {
+                            IconButton(
+                                onClick = { onResend(turn.content) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = stringResource(R.string.ai_resend),
+                                    modifier = Modifier.size(14.dp),
+                                    tint = textColor.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
                 if (showInsert && isLastAssistant) {
-                    Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
                         onClick = onInsert,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)

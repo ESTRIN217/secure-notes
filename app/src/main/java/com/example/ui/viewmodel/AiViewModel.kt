@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -97,7 +98,8 @@ class AiViewModel(
 
     val downloadState: StateFlow<DownloadState> = modelDownloader.state
 
-    private val _conversationHistory = mutableMapOf<Int, MutableList<ConversationTurn>>()
+    private val _conversationHistory = MutableStateFlow<Map<Int, List<ConversationTurn>>>(emptyMap())
+    val conversationHistory: StateFlow<Map<Int, List<ConversationTurn>>> = _conversationHistory.asStateFlow()
 
     private var currentJob: Job? = null
 
@@ -122,11 +124,13 @@ class AiViewModel(
         get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
 
     fun getConversationHistory(noteId: Int): List<ConversationTurn> {
-        return _conversationHistory[noteId]?.toList() ?: emptyList()
+        return _conversationHistory.value[noteId] ?: emptyList()
     }
 
     fun clearConversationHistory(noteId: Int) {
-        _conversationHistory[noteId]?.clear()
+        _conversationHistory.update { current ->
+            current.toMutableMap().apply { remove(noteId) }.toMap()
+        }
     }
 
     fun setAiEnabled(enabled: Boolean) {
@@ -259,9 +263,9 @@ class AiViewModel(
         var enrichedRequest = request.copy(customSystemPrompt = _systemPrompt.value)
 
         if (noteId > 0) {
-            val history = _conversationHistory.getOrPut(noteId) { mutableListOf() }
-            if (history.isNotEmpty()) {
-                val chatMessages = history.takeLast(10).map { turn ->
+            val currentHistory = _conversationHistory.value[noteId] ?: emptyList()
+            if (currentHistory.isNotEmpty()) {
+                val chatMessages = currentHistory.takeLast(10).map { turn ->
                     ChatMessage(turn.role, turn.content)
                 }
                 enrichedRequest = enrichedRequest.copy(
@@ -274,7 +278,12 @@ class AiViewModel(
                 AiAction.TRANSLATE -> "Traduce a ${request.targetLanguage}: ${request.selectedText}"
                 AiAction.GENERATE -> request.prompt.ifBlank { "Generar texto" }
             }
-            history.add(ConversationTurn("user", userMessage))
+            _conversationHistory.update { current ->
+                val updated = (current[noteId]?.toMutableList() ?: mutableListOf()).apply {
+                    add(ConversationTurn("user", userMessage))
+                }
+                current + (noteId to updated)
+            }
         }
 
         val startTime = System.currentTimeMillis()
@@ -285,15 +294,20 @@ class AiViewModel(
                     fullText.append(token)
                     _streamingText.value = fullText.toString()
                 }
-                _isProcessing.value = false
                 val elapsed = System.currentTimeMillis() - startTime
                 _processingTimeMs.value = elapsed
                 val result = fullText.toString()
                 _resultText.value = result
                 if (noteId > 0) {
-                    _conversationHistory[noteId]?.add(ConversationTurn("assistant", result, elapsed))
+                    _conversationHistory.update { current ->
+                        val updated = (current[noteId]?.toMutableList() ?: mutableListOf()).apply {
+                            add(ConversationTurn("assistant", result, elapsed))
+                        }
+                        current + (noteId to updated)
+                    }
                 }
                 _streamingText.value = null
+                _isProcessing.value = false
             } catch (e: IOException) {
                 _isProcessing.value = false
                 _streamingText.value = null
