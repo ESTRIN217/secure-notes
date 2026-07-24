@@ -96,9 +96,6 @@ class OnDeviceService(
         }
 
     override suspend fun executeStreaming(request: AiRequest): Flow<String> {
-        if (_modelState.value != ModelState.READY) {
-            throw Exception("No hay modelo cargado. Carga un modelo local primero.")
-        }
         val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
         val userPrompt = AiPromptBuilder.buildUserPrompt(request)
         val fullMessages = mutableListOf<ChatMessage>()

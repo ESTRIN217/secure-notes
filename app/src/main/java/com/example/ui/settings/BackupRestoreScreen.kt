@@ -195,6 +195,7 @@ fun BackupRestoreScreen(
                                 try {
                                     val includeAttachments = viewModel.cloudSyncManagerPublic.includeAttachments.value
                                     val encrypt = uiState.encryptBackups && uiState.isPasswordSet
+                                    val exportsDir = File(context.cacheDir, "exports").also { it.mkdirs() }
                                     if (includeAttachments) {
                                         val json = viewModel.buildBackupJson(encrypt)
                                         val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
@@ -210,7 +211,7 @@ fun BackupRestoreScreen(
                                                 )
                                                 allPathMaps.putAll(pathMap)
                                             }
-                                            val zipFile = File(tempDir, "secure_notes_backup.zip")
+                                            val zipFile = File(exportsDir, "secure_notes_backup.zip")
                                             BackupAttachmentHelper.buildBackupZip(json, allPathMaps, tempAttachmentsDir, zipFile)
                                             val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                                 putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(
@@ -227,7 +228,7 @@ fun BackupRestoreScreen(
                                         }
                                     } else {
                                         val json = viewModel.buildBackupJson(encrypt)
-                                        val cacheFile = java.io.File(context.cacheDir, "secure_notes_backup.json")
+                                        val cacheFile = java.io.File(exportsDir, "secure_notes_backup.json")
                                         cacheFile.writeText(json)
                                         val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                             putExtra(android.content.Intent.EXTRA_STREAM, androidx.core.content.FileProvider.getUriForFile(

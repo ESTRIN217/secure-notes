@@ -20,6 +20,8 @@ sealed class DownloadState {
     data class Failed(val error: String) : DownloadState()
 }
 
+private val GGUF_MAGIC = byteArrayOf(0x47.toByte(), 0x47.toByte(), 0x55.toByte(), 0x46.toByte()) // "GGUF"
+
 class ModelDownloader(private val context: Context) {
 
     private val _state = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -39,24 +41,35 @@ class ModelDownloader(private val context: Context) {
         }
 
     private var currentCall: okhttp3.Call? = null
+    private var currentFile: File? = null
 
     fun getModelFile(model: OnDeviceModel): File? {
         val file = File(modelsDir, model.ggufFileName)
-        return file.takeIf { it.exists() && it.length() > 0 }
+        return file.takeIf { it.exists() && it.length() > 0 && isValidGGUF(file) }
     }
 
     fun isDownloaded(model: OnDeviceModel): Boolean {
         val file = File(modelsDir, model.ggufFileName)
-        return file.exists() && file.length() > 0
+        return file.exists() && file.length() > 0 && isValidGGUF(file)
     }
 
     fun getModelPath(model: OnDeviceModel): String? {
         return getModelFile(model)?.absolutePath
     }
 
+    private fun isValidGGUF(file: File): Boolean {
+        try {
+            val magic = file.inputStream().use { it.readNBytes(4) }
+            return magic.contentEquals(GGUF_MAGIC)
+        } catch (e: Exception) {
+            return false
+        }
+    }
+
     suspend fun download(model: OnDeviceModel) = withContext(Dispatchers.IO) {
         val file = File(modelsDir, model.ggufFileName)
-        if (file.exists() && file.length() > 0) {
+        currentFile = file
+        if (file.exists() && file.length() > 0 && isValidGGUF(file)) {
             _state.value = DownloadState.Completed(file)
             return@withContext
         }
@@ -69,6 +82,7 @@ class ModelDownloader(private val context: Context) {
 
             val request = Request.Builder()
                 .url(downloadUrl)
+                .header("User-Agent", "SecureNotes/3.0 (Android; arm64-v8a)")
                 .build()
 
             currentCall = client.newCall(request)
@@ -112,9 +126,12 @@ class ModelDownloader(private val context: Context) {
                 }
             }
 
-            if (file.exists() && file.length() > 0) {
+            if (file.exists() && file.length() > 0 && isValidGGUF(file)) {
                 _state.value = DownloadState.Completed(file)
                 Log.i(TAG, "Model downloaded: ${file.absolutePath} (${file.length() / (1024*1024)}MB)")
+            } else if (file.exists() && file.length() > 0) {
+                file.delete()
+                _state.value = DownloadState.Failed("El archivo descargado no es un modelo GGUF válido")
             } else {
                 _state.value = DownloadState.Failed("Downloaded file is empty")
             }
@@ -129,6 +146,12 @@ class ModelDownloader(private val context: Context) {
     fun cancel() {
         currentCall?.cancel()
         currentCall = null
+        currentFile?.let {
+            if (it.exists()) {
+                it.delete()
+            }
+        }
+        currentFile = null
         _state.value = DownloadState.Idle
     }
 

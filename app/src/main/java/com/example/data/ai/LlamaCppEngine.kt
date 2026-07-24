@@ -14,9 +14,18 @@ interface TokenCallback {
     fun onError(error: String)
 }
 
-class LlamaCppEngine(private val context: Context) : InferenceEngine {
+class LlamaCppEngine(
+    private val context: Context,
+    var nCtx: Int = 1024,
+    var nGpuLayers: Int = 0,
+    var maxTokens: Int = 256,
+    var temperature: Float = 0.7f,
+    var repetitionPenalty: Float = 1.1f,
+    var topK: Int = 40,
+    var nThreads: Int = 4
+) : InferenceEngine {
 
-    private var llamaModel: Any? = null
+    private var llamaModel: NativeLlamaModel? = null
     private var _loadedInfo: LoadedModelInfo? = null
 
     override val isAvailable: Boolean
@@ -31,8 +40,8 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     override suspend fun load(filePath: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             unload()
-            llamaModel = LlamaInference.create(context, filePath, nCtx = 1024, nGpuLayers = 0)
-            Log.i(TAG, "Engine loaded: $filePath")
+            llamaModel = NativeLlamaModel(context, filePath, nCtx, nGpuLayers, nThreads)
+            Log.i(TAG, "Engine loaded: $filePath (ctx=$nCtx, gpu=$nGpuLayers, threads=$nThreads)")
             Result.success(Unit)
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "OOM loading model", e)
@@ -44,9 +53,10 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     }
 
     override fun unload() {
-        try {
-            llamaModel?.let { LlamaInference.destroy(it) }
-        } catch (_: Exception) {}
+        val model = llamaModel
+        if (model != null) {
+            model.close()
+        }
         llamaModel = null
         _loadedInfo = null
     }
@@ -58,22 +68,20 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
         }
         try {
             val response = if (request.messages.isNotEmpty()) {
-                LlamaInference.generateChat(
-                    model,
+                model.generateChat(
                     request.messages,
-                    maxTokens = 256,
-                    temperature = 0.7f,
-                    repetitionPenalty = 1.1f,
-                    topK = 40
+                    maxTokens,
+                    temperature,
+                    repetitionPenalty,
+                    topK
                 )
             } else {
-                LlamaInference.generate(
-                    model,
+                model.generate(
                     request.prompt,
-                    maxTokens = 256,
-                    temperature = 0.7f,
-                    repetitionPenalty = 1.1f,
-                    topK = 40
+                    maxTokens,
+                    temperature,
+                    repetitionPenalty,
+                    topK
                 )
             }
             Result.success(response)
@@ -86,19 +94,18 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     override suspend fun executeStreaming(request: AiRequest): Flow<String> = callbackFlow {
         val model = llamaModel
         if (model == null) {
-            close(java.lang.Exception("Motor no cargado"))
+            close(Exception("Motor no cargado"))
             return@callbackFlow
         }
         withContext(Dispatchers.IO) {
             try {
                 if (request.messages.isNotEmpty()) {
-                    LlamaInference.generateChatStreaming(
-                        model,
+                    model.generateChatStreaming(
                         request.messages,
-                        maxTokens = 256,
-                        temperature = 0.7f,
-                        repetitionPenalty = 1.1f,
-                        topK = 40,
+                        maxTokens,
+                        temperature,
+                        repetitionPenalty,
+                        topK,
                         object : TokenCallback {
                             override fun onToken(token: String) {
                                 trySend(token)
@@ -107,18 +114,17 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
                                 close()
                             }
                             override fun onError(error: String) {
-                                close(java.lang.Exception(error))
+                                close(Exception(error))
                             }
                         }
                     )
                 } else {
-                    LlamaInference.generateStreaming(
-                        model,
+                    model.generateStreaming(
                         request.prompt,
-                        maxTokens = 256,
-                        temperature = 0.7f,
-                        repetitionPenalty = 1.1f,
-                        topK = 40,
+                        maxTokens,
+                        temperature,
+                        repetitionPenalty,
+                        topK,
                         object : TokenCallback {
                             override fun onToken(token: String) {
                                 trySend(token)
@@ -127,7 +133,7 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
                                 close()
                             }
                             override fun onError(error: String) {
-                                close(java.lang.Exception(error))
+                                close(Exception(error))
                             }
                         }
                     )
@@ -145,82 +151,74 @@ class LlamaCppEngine(private val context: Context) : InferenceEngine {
     }
 }
 
-internal object LlamaInference {
-    fun create(context: Context, modelPath: String, nCtx: Int, nGpuLayers: Int): Any {
-        return NativeLlamaModel(context, modelPath, nCtx, nGpuLayers)
-    }
-
-    fun destroy(model: Any) {
-        if (model is NativeLlamaModel) {
-            model.close()
-        }
-    }
-
-    fun generate(model: Any, prompt: String, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
-        return if (model is NativeLlamaModel) {
-            model.generate(prompt, maxTokens, temperature, repetitionPenalty, topK)
-        } else {
-            throw IllegalArgumentException("Tipo de modelo desconocido")
-        }
-    }
-
-    fun generateChat(model: Any, messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
-        return if (model is NativeLlamaModel) {
-            model.generateChat(messages, maxTokens, temperature, repetitionPenalty, topK)
-        } else {
-            throw IllegalArgumentException("Tipo de modelo desconocido")
-        }
-    }
-
-    fun generateStreaming(model: Any, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
-        if (model is NativeLlamaModel) {
-            model.generateStreaming(prompt, maxTokens, temperature, repetitionPenalty, topK, callback)
-        } else {
-            throw IllegalArgumentException("Tipo de modelo desconocido")
-        }
-    }
-
-    fun generateChatStreaming(model: Any, messages: List<ChatMessage>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
-        if (model is NativeLlamaModel) {
-            model.generateChatStreaming(messages, maxTokens, temperature, repetitionPenalty, topK, callback)
-        } else {
-            throw IllegalArgumentException("Tipo de modelo desconocido")
-        }
-    }
-}
-
-internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, nGpuLayers: Int) {
+internal class NativeLlamaModel(
+    context: Context,
+    modelPath: String,
+    nCtx: Int,
+    nGpuLayers: Int,
+    nThreads: Int
+) {
     private val nativeHandle: Long
 
     init {
-        nativeHandle = nativeCreate(modelPath, nCtx, nGpuLayers)
+        nativeHandle = nativeCreate(modelPath, nCtx, nGpuLayers, nThreads)
         if (nativeHandle == 0L) {
             throw RuntimeException("nativeCreate devolvió un identificador nulo: $modelPath")
         }
     }
 
-    fun generate(prompt: String, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
+    fun generate(
+        prompt: String,
+        maxTokens: Int,
+        temperature: Float = 0.7f,
+        repetitionPenalty: Float = 1.1f,
+        topK: Int = 40
+    ): String {
         return nativeGenerate(nativeHandle, prompt, maxTokens, temperature, repetitionPenalty, topK)
     }
 
-    fun generateChat(messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0.7f, repetitionPenalty: Float = 1.1f, topK: Int = 40): String {
+    fun generateChat(
+        messages: List<ChatMessage>,
+        maxTokens: Int,
+        temperature: Float = 0.7f,
+        repetitionPenalty: Float = 1.1f,
+        topK: Int = 40
+    ): String {
         val roles = messages.map { it.role }.toTypedArray()
         val contents = messages.map { it.content }.toTypedArray()
         return nativeGenerateChat(nativeHandle, roles, contents, maxTokens, temperature, repetitionPenalty, topK)
     }
 
-    fun generateStreaming(prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+    fun generateStreaming(
+        prompt: String,
+        maxTokens: Int,
+        temperature: Float,
+        repetitionPenalty: Float,
+        topK: Int,
+        callback: TokenCallback
+    ) {
         nativeGenerateStreaming(nativeHandle, prompt, maxTokens, temperature, repetitionPenalty, topK, callback)
     }
 
-    fun generateChatStreaming(messages: List<ChatMessage>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback) {
+    fun generateChatStreaming(
+        messages: List<ChatMessage>,
+        maxTokens: Int,
+        temperature: Float,
+        repetitionPenalty: Float,
+        topK: Int,
+        callback: TokenCallback
+    ) {
         val roles = messages.map { it.role }.toTypedArray()
         val contents = messages.map { it.content }.toTypedArray()
         nativeGenerateChatStreaming(nativeHandle, roles, contents, maxTokens, temperature, repetitionPenalty, topK, callback)
     }
 
     fun close() {
-        nativeDestroy(nativeHandle)
+        try {
+            nativeDestroy(nativeHandle)
+        } catch (e: Exception) {
+            Log.e("NativeLlamaModel", "nativeDestroy failed", e)
+        }
     }
 
     private companion object {
@@ -229,7 +227,7 @@ internal class NativeLlamaModel(context: Context, modelPath: String, nCtx: Int, 
         }
     }
 
-    private external fun nativeCreate(modelPath: String, nCtx: Int, nGpuLayers: Int): Long
+    private external fun nativeCreate(modelPath: String, nCtx: Int, nGpuLayers: Int, nThreads: Int): Long
     private external fun nativeGenerate(handle: Long, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int): String
     private external fun nativeGenerateChat(handle: Long, roles: Array<String>, contents: Array<String>, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int): String
     private external fun nativeGenerateStreaming(handle: Long, prompt: String, maxTokens: Int, temperature: Float, repetitionPenalty: Float, topK: Int, callback: TokenCallback)

@@ -176,6 +176,7 @@ fun NoteEditorScreen(
     var contentValue by remember { mutableStateOf(TextFieldValue("")) }
     val history = remember { mutableStateListOf<String>() }
     var historyIndex by remember { mutableStateOf(-1) }
+    var contentLoaded by remember { mutableStateOf(noteId == 0) }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
@@ -269,19 +270,6 @@ fun NoteEditorScreen(
         }
     }
 
-    LaunchedEffect(pendingAiInsert) {
-        val text = pendingAiInsert ?: return@LaunchedEffect
-        val selStart = contentValue.selection.start
-        val selEnd = contentValue.selection.end
-        val currentText = contentValue.text
-        val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
-        val newCursor = selStart + text.length
-        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        content = newText
-        saveToHistory(newText)
-        aiViewModel.clearInsertResult()
-    }
-
     val insertAtCursor: (String) -> Unit = { tag ->
         val selStart = contentValue.selection.start
         val selEnd = contentValue.selection.end
@@ -307,6 +295,32 @@ fun NoteEditorScreen(
 
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pendingAiInsert, contentLoaded) {
+        val text = pendingAiInsert ?: return@LaunchedEffect
+        if (!contentLoaded) return@LaunchedEffect
+        val selStart = contentValue.selection.start
+        val selEnd = contentValue.selection.end
+        val currentText = contentValue.text
+        val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
+        val newCursor = selStart + text.length
+        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+        content = newText
+        saveToHistory(newText)
+        viewModel.saveNote(
+            id = noteId,
+            title = title.trim(),
+            content = createRawContent(newText.trim(), attachments),
+            isEncrypted = isEncrypted,
+            tagsList = selectedNoteTags,
+            backgroundColor = selectedBgColorId,
+            backgroundImagePath = selectedBgImagePath,
+            isPinned = isPinned,
+            isFavorite = isFavorite,
+            isArchived = isArchived
+        )
+        aiViewModel.clearInsertResult()
+    }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -442,6 +456,7 @@ fun NoteEditorScreen(
         }
         if (match != null) {
             loadNoteFromList()
+            contentLoaded = true
         }
 
         // React to external modifications (DrawingCanvas, etc.)

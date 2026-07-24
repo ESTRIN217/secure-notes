@@ -640,6 +640,9 @@
     <string name="ai_new_chat">Nuevo chat</string>
     <string name="ai_copy">Copiar</string>
     <string name="ai_resend">Reenviar</string>
+    <string name="ai_stop">Detener</string>
+    <string name="ai_suggestion_poem">Escribe un poema</string>
+    <string name="ai_suggestion_ideas">Genera ideas</string>
     <string name="ai_chat_empty_title">Inicia una conversación con IA</string>
     <string name="ai_chat_empty_desc">Haz preguntas, genera contenido u obtén ayuda con tus notas.</string>
     <string name="ai_style_label">Estilo</string>

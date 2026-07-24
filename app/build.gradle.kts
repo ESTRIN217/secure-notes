@@ -111,7 +111,7 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
   implementation(libs.converter.moshi)
-  implementation(libs.firebase.ai)
+  // implementation(libs.firebase.ai)
   implementation(libs.firebase.analytics)
   implementation(libs.compose.markdown)
   implementation(libs.kotlinx.coroutines.android)

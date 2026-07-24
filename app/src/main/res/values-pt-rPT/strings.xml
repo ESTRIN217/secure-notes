@@ -631,6 +631,9 @@
     <string name="ai_new_chat">Novo chat</string>
     <string name="ai_copy">Copiar</string>
     <string name="ai_resend">Reenviar</string>
+    <string name="ai_stop">Parar</string>
+    <string name="ai_suggestion_poem">Escreva um poema</string>
+    <string name="ai_suggestion_ideas">Gere ideias</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">Definições de IA</string>

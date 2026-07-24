@@ -8,7 +8,8 @@ interface AIService {
 
     suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
         val result = execute(request)
-        result.getOrThrow().let { emit(it) }
+        val text = result.getOrNull() ?: throw (result.exceptionOrNull() ?: Exception("Unknown error"))
+        emit(text)
     }
 
     val isAvailable: Boolean

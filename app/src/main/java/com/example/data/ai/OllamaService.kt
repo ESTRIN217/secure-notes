@@ -16,44 +16,19 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLHandshakeException
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 class OllamaService(
-    private var endpointUrl: String = "http://192.168.1.100:11434",
+    private var endpointUrl: String = "http://localhost:11434",
     private var modelName: String = "llama3.2"
 ) : AIService {
 
-    private val secureClient = OkHttpClient.Builder()
+    private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
-
-    private val unsafeClient: OkHttpClient by lazy {
-        val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        })
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, trustAllCerts, SecureRandom())
-        OkHttpClient.Builder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-            .hostnameVerifier { _, _ -> true }
-            .build()
-    }
-
-    private val client: OkHttpClient
-        get() = if (endpointUrl.startsWith("https://", ignoreCase = true)) unsafeClient else secureClient
 
     override val isAvailable: Boolean = true
 
@@ -86,6 +61,10 @@ class OllamaService(
                 m?.let { modelNames.add(it.optString("name", "unknown")) }
             }
             Result.success(modelNames)
+        } catch (e: SSLHandshakeException) {
+            Result.failure(SSLHandshakeException(
+                "Error de conexión SSL. Para servidores locales usa 'http://' en lugar de 'https://', o instala un certificado válido."
+            ))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -133,7 +112,7 @@ class OllamaService(
         } catch (e: SSLHandshakeException) {
             Log.e(TAG, "SSL handshake failed", e)
             Result.failure(SSLHandshakeException(
-                "Error de conexión SSL. Si usas un certificado autofirmado, usa una URL 'https://' — la app lo aceptará."
+                "Error de conexión SSL. Para servidores locales usa 'http://' en lugar de 'https://', o instala un certificado válido."
             ))
         } catch (e: ConnectException) {
             Log.e(TAG, "Connection refused", e)
@@ -157,6 +136,36 @@ class OllamaService(
     }
 
     override suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
+        val httpRequest = buildRequest(request, stream = true)
+        val response = client.newCall(httpRequest).execute()
+
+        if (!response.isSuccessful) {
+            val errorBody = try {
+                response.body?.string()?.let { JSONObject(it).optString("error", response.message) }
+            } catch (_: Exception) { response.message }
+            response.close()
+            throw IOException(errorBody)
+        }
+
+        val body = response.body ?: throw IOException("Empty response body")
+        val source = body.source()
+        try {
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+                if (line.isBlank()) continue
+                val json = JSONObject(line)
+                val token = json.optString("response", "")
+                if (token.isNotEmpty()) {
+                    emit(token)
+                }
+                if (json.optBoolean("done", false)) break
+            }
+        } finally {
+            response.close()
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private fun buildRequest(request: AiRequest, stream: Boolean): okhttp3.Request {
         val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
         val userPrompt = AiPromptBuilder.buildUserPrompt(request)
 
@@ -164,35 +173,16 @@ class OllamaService(
             put("model", modelName)
             put("prompt", userPrompt)
             put("system", systemPrompt)
-            put("stream", true)
+            put("stream", stream)
         }
 
         val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
 
-        val httpRequest = Request.Builder()
+        return Request.Builder()
             .url("$endpointUrl/api/generate")
             .post(body)
             .build()
-
-        val response = client.newCall(httpRequest).execute()
-
-        if (!response.isSuccessful) {
-            val errorBody = response.body?.string() ?: response.message
-            throw IOException("HTTP ${response.code}: $errorBody")
-        }
-
-        val source = response.body!!.source()
-        while (!source.exhausted()) {
-            val line = source.readUtf8Line() ?: break
-            if (line.isBlank()) continue
-            val json = JSONObject(line)
-            val token = json.optString("response", "")
-            if (token.isNotEmpty()) {
-                emit(token)
-            }
-            if (json.optBoolean("done", false)) break
-        }
-    }.flowOn(Dispatchers.IO)
+    }
 
     companion object {
         private const val TAG = "OllamaService"

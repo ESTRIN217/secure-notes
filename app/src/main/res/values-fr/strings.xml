@@ -632,6 +632,9 @@
     <string name="ai_new_chat">Nouveau chat</string>
     <string name="ai_copy">Copier</string>
     <string name="ai_resend">Renvoyer</string>
+    <string name="ai_stop">Arrêter</string>
+    <string name="ai_suggestion_poem">Écrire un poème</string>
+    <string name="ai_suggestion_ideas">Générer des idées</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">Paramètres IA</string>

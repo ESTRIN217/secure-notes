@@ -25,11 +25,48 @@ struct LlamaHandle {
     llama_context* ctx;
 };
 
+static void sample_top_k(std::vector<std::pair<float, llama_token>>& candidates, int32_t top_k) {
+    if ((int32_t)candidates.size() > top_k) {
+        std::nth_element(candidates.begin(), candidates.begin() + top_k, candidates.end(),
+            [](const std::pair<float, llama_token>& a, const std::pair<float, llama_token>& b) {
+                return a.first > b.first;
+            });
+        candidates.resize(top_k);
+    }
+}
+
+static int32_t tokenize_prompt(const struct llama_vocab* vocab, const char* prompt, int32_t prompt_len,
+                                std::vector<llama_token>& tokens) {
+    tokens.resize(prompt_len + 1024);
+    int32_t n_tokens = llama_tokenize(vocab, prompt, prompt_len, tokens.data(), (int32_t)tokens.size(), false, true);
+    if (n_tokens < 0) return n_tokens;
+    tokens.resize(n_tokens);
+    return n_tokens;
+}
+
+static std::string token_to_string(const struct llama_vocab* vocab, llama_token token_id) {
+    char buf[64] = {0};
+    int32_t len = llama_token_to_piece(vocab, token_id, buf, sizeof(buf) - 1, 0, false);
+    if (len > 0) {
+        buf[len] = '\0';
+        return std::string(buf, len);
+    }
+    return "";
+}
+
+static void send_token_batch(JNIEnv* env, jobject jcallback, jmethodID onToken, std::string& batch_buffer) {
+    if (batch_buffer.empty()) return;
+    jstring tokenStr = env->NewStringUTF(batch_buffer.c_str());
+    env->CallVoidMethod(jcallback, onToken, tokenStr);
+    env->DeleteLocalRef(tokenStr);
+    batch_buffer.clear();
+}
+
 extern "C" {
 
 JNIEXPORT jlong JNICALL
 Java_com_example_data_ai_NativeLlamaModel_nativeCreate(
-    JNIEnv* env, jobject thiz, jstring model_path, jint n_ctx, jint n_gpu_layers) {
+    JNIEnv* env, jobject thiz, jstring model_path, jint n_ctx, jint n_gpu_layers, jint n_threads) {
     llama_log_set(llama_log_cb, nullptr);
 
     const char* path = env->GetStringUTFChars(model_path, nullptr);
@@ -52,8 +89,8 @@ Java_com_example_data_ai_NativeLlamaModel_nativeCreate(
     cparams.n_ctx = n_ctx;
     cparams.n_batch = n_ctx;
     cparams.n_ubatch = n_ctx;
-    cparams.n_threads = 4;
-    cparams.n_threads_batch = 4;
+    cparams.n_threads = n_threads;
+    cparams.n_threads_batch = n_threads;
 
     llama_context* ctx = llama_init_from_model(model, cparams);
     if (!ctx) {
@@ -64,16 +101,6 @@ Java_com_example_data_ai_NativeLlamaModel_nativeCreate(
 
     LlamaHandle* handle = new LlamaHandle{model, ctx};
     return reinterpret_cast<jlong>(handle);
-}
-
-static void sample_top_k(std::vector<std::pair<float, llama_token>>& candidates, int32_t top_k) {
-    if ((int32_t)candidates.size() > top_k) {
-        std::nth_element(candidates.begin(), candidates.begin() + top_k, candidates.end(),
-            [](const std::pair<float, llama_token>& a, const std::pair<float, llama_token>& b) {
-                return a.first > b.first;
-            });
-        candidates.resize(top_k);
-    }
 }
 
 JNIEXPORT jstring JNICALL
@@ -96,19 +123,14 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
         return env->NewStringUTF("");
     }
 
-    int32_t n_prompt = strlen(prompt);
-    std::vector<llama_token> tokens(n_prompt + 1024);
-    int32_t n_tokens = llama_tokenize(
-        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, true);
+    int32_t prompt_len = strlen(prompt);
+    std::vector<llama_token> tokens;
+    int32_t n_tokens = tokenize_prompt(vocab, prompt, prompt_len, tokens);
     env->ReleaseStringUTFChars(jprompt, prompt);
 
-    if (n_tokens < 0) {
+    if (n_tokens <= 0) {
         return env->NewStringUTF("");
     }
-
-    tokens.resize(n_tokens);
-
-    llama_token im_end_tok = llama_vocab_eos(vocab);
 
     std::string result;
     std::mt19937 rng(std::random_device{}());
@@ -146,12 +168,12 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
                     max_idx = j;
                 }
             }
-            char buf[16] = {0};
-            int32_t len = llama_token_to_piece(vocab, max_idx, buf, sizeof(buf), 0, false);
-            if (len > 0) {
-                result.append(buf, len);
-            }
-            break;
+            result += token_to_string(vocab, max_idx);
+            if (max_idx == llama_vocab_eos(vocab)) break;
+            tokens.clear();
+            tokens.push_back(max_idx);
+            n_tokens = 1;
+            continue;
         }
 
         std::vector<std::pair<float, llama_token>> candidates;
@@ -184,11 +206,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerate(
             }
         }
 
-        char buf[16] = {0};
-        int32_t len = llama_token_to_piece(vocab, token_id, buf, sizeof(buf), 0, false);
-        if (len > 0) {
-            result.append(buf, len);
-        }
+        result += token_to_string(vocab, token_id);
 
         if (token_id == llama_vocab_eos(vocab)) break;
 
@@ -208,7 +226,6 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
     LlamaHandle* h = reinterpret_cast<LlamaHandle*>(handle);
     if (!h || !h->ctx || !h->model) return;
 
-    // Get callback class and methods
     jclass callbackClass = env->GetObjectClass(jcallback);
     if (!callbackClass) return;
     jmethodID onToken = env->GetMethodID(callbackClass, "onToken", "(Ljava/lang/String;)V");
@@ -230,22 +247,21 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
         return;
     }
 
-    int32_t n_prompt = strlen(prompt);
-    std::vector<llama_token> tokens(n_prompt + 1024);
-    int32_t n_tokens = llama_tokenize(
-        vocab, prompt, n_prompt, tokens.data(), tokens.size(), false, true);
+    int32_t prompt_len = strlen(prompt);
+    std::vector<llama_token> tokens;
+    int32_t n_tokens = tokenize_prompt(vocab, prompt, prompt_len, tokens);
     env->ReleaseStringUTFChars(jprompt, prompt);
 
-    if (n_tokens < 0) {
+    if (n_tokens <= 0) {
         jstring errorMsg = env->NewStringUTF("Tokenization failed");
         env->CallVoidMethod(jcallback, onError, errorMsg);
         env->DeleteLocalRef(errorMsg);
         return;
     }
 
-    tokens.resize(n_tokens);
-
     std::mt19937 rng(std::random_device{}());
+    std::string batch_buffer;
+    const int BATCH_CHARS = 50;
 
     for (int32_t i = 0; i < max_tokens; i++) {
         auto batch = llama_batch_get_one(tokens.data(), tokens.size());
@@ -267,9 +283,40 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
             }
         }
 
+        llama_token token_id;
         if (temperature > 0.0f) {
             for (int32_t j = 0; j < n_vocab; j++) {
                 logits[j] /= temperature;
+            }
+
+            std::vector<std::pair<float, llama_token>> candidates;
+            candidates.reserve(n_vocab);
+            for (int32_t j = 0; j < n_vocab; j++) {
+                candidates.emplace_back(logits[j], j);
+            }
+
+            if (top_k > 0) {
+                sample_top_k(candidates, top_k);
+            }
+
+            float max_logit = candidates[0].first;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                candidates[j].first = std::exp(candidates[j].first - max_logit);
+            }
+
+            float sum = 0.0f;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                sum += candidates[j].first;
+            }
+            float r = std::uniform_real_distribution<float>(0.0f, sum)(rng);
+            token_id = candidates[0].second;
+            float cum = 0.0f;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                cum += candidates[j].first;
+                if (r <= cum) {
+                    token_id = candidates[j].second;
+                    break;
+                }
             }
         } else {
             float max_logit = -1e38f;
@@ -280,64 +327,22 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
                     max_idx = j;
                 }
             }
-            char buf[16] = {0};
-            int32_t len = llama_token_to_piece(vocab, max_idx, buf, sizeof(buf) - 1, 0, false);
-            if (len > 0) {
-                buf[len] = '\0';
-                jstring tokenStr = env->NewStringUTF(buf);
-                env->CallVoidMethod(jcallback, onToken, tokenStr);
-                env->DeleteLocalRef(tokenStr);
-            }
-            if (max_idx == llama_vocab_eos(vocab)) {
-                env->CallVoidMethod(jcallback, onComplete);
-                return;
-            }
-            env->CallVoidMethod(jcallback, onComplete);
-            return;
+            token_id = max_idx;
         }
 
-        std::vector<std::pair<float, llama_token>> candidates;
-        candidates.reserve(n_vocab);
-        for (int32_t j = 0; j < n_vocab; j++) {
-            candidates.emplace_back(logits[j], j);
-        }
-
-        if (top_k > 0) {
-            sample_top_k(candidates, top_k);
-        }
-
-        float max_logit = candidates[0].first;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            candidates[j].first = std::exp(candidates[j].first - max_logit);
-        }
-
-        float sum = 0.0f;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            sum += candidates[j].first;
-        }
-        float r = std::uniform_real_distribution<float>(0.0f, sum)(rng);
-        llama_token token_id = candidates[0].second;
-        float cum = 0.0f;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            cum += candidates[j].first;
-            if (r <= cum) {
-                token_id = candidates[j].second;
-                break;
-            }
-        }
-
-        char buf[16] = {0};
-        int32_t len = llama_token_to_piece(vocab, token_id, buf, sizeof(buf) - 1, 0, false);
-        if (len > 0) {
-            buf[len] = '\0';
-            jstring tokenStr = env->NewStringUTF(buf);
-            env->CallVoidMethod(jcallback, onToken, tokenStr);
-            env->DeleteLocalRef(tokenStr);
+        std::string token_str = token_to_string(vocab, token_id);
+        if (!token_str.empty()) {
+            batch_buffer += token_str;
         }
 
         if (token_id == llama_vocab_eos(vocab)) {
+            send_token_batch(env, jcallback, onToken, batch_buffer);
             env->CallVoidMethod(jcallback, onComplete);
             return;
+        }
+
+        if ((int32_t)batch_buffer.size() >= BATCH_CHARS) {
+            send_token_batch(env, jcallback, onToken, batch_buffer);
         }
 
         tokens.clear();
@@ -345,6 +350,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateStreaming(
         n_tokens = 1;
     }
 
+    send_token_batch(env, jcallback, onToken, batch_buffer);
     env->CallVoidMethod(jcallback, onComplete);
 }
 
@@ -408,13 +414,11 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChat(
         return env->NewStringUTF("");
     }
 
-    std::vector<llama_token> tokens(formatted.size() + 1024);
-    int32_t n_tokens = llama_tokenize(
-        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, true);
-    if (n_tokens < 0) {
+    std::vector<llama_token> tokens;
+    int32_t n_tokens = tokenize_prompt(vocab, formatted.c_str(), (int32_t)formatted.size(), tokens);
+    if (n_tokens <= 0) {
         return env->NewStringUTF("");
     }
-    tokens.resize(n_tokens);
 
     std::string result;
     std::mt19937 rng(std::random_device{}());
@@ -452,11 +456,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChat(
                     max_idx = j;
                 }
             }
-            char buf[16] = {0};
-            int32_t len = llama_token_to_piece(vocab, max_idx, buf, sizeof(buf), 0, false);
-            if (len > 0) {
-                result.append(buf, len);
-            }
+            result += token_to_string(vocab, max_idx);
             if (max_idx == llama_vocab_eos(vocab)) break;
             tokens.clear();
             tokens.push_back(max_idx);
@@ -494,11 +494,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChat(
             }
         }
 
-        char buf[16] = {0};
-        int32_t len = llama_token_to_piece(vocab, token_id, buf, sizeof(buf), 0, false);
-        if (len > 0) {
-            result.append(buf, len);
-        }
+        result += token_to_string(vocab, token_id);
 
         if (token_id == llama_vocab_eos(vocab)) break;
 
@@ -585,18 +581,18 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChatStreaming(
         return;
     }
 
-    std::vector<llama_token> tokens(formatted.size() + 1024);
-    int32_t n_tokens = llama_tokenize(
-        vocab, formatted.c_str(), formatted.size(), tokens.data(), (int32_t)tokens.size(), false, true);
-    if (n_tokens < 0) {
+    std::vector<llama_token> tokens;
+    int32_t n_tokens = tokenize_prompt(vocab, formatted.c_str(), (int32_t)formatted.size(), tokens);
+    if (n_tokens <= 0) {
         jstring errorMsg = env->NewStringUTF("Tokenization failed");
         env->CallVoidMethod(jcallback, onError, errorMsg);
         env->DeleteLocalRef(errorMsg);
         return;
     }
-    tokens.resize(n_tokens);
 
     std::mt19937 rng(std::random_device{}());
+    std::string batch_buffer;
+    const int BATCH_CHARS = 50;
 
     for (int32_t i = 0; i < max_tokens; i++) {
         auto batch = llama_batch_get_one(tokens.data(), tokens.size());
@@ -618,9 +614,40 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChatStreaming(
             }
         }
 
+        llama_token token_id;
         if (temperature > 0.0f) {
             for (int32_t j = 0; j < n_vocab; j++) {
                 logits[j] /= temperature;
+            }
+
+            std::vector<std::pair<float, llama_token>> candidates;
+            candidates.reserve(n_vocab);
+            for (int32_t j = 0; j < n_vocab; j++) {
+                candidates.emplace_back(logits[j], j);
+            }
+
+            if (top_k > 0) {
+                sample_top_k(candidates, top_k);
+            }
+
+            float max_logit = candidates[0].first;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                candidates[j].first = std::exp(candidates[j].first - max_logit);
+            }
+
+            float sum = 0.0f;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                sum += candidates[j].first;
+            }
+            float r = std::uniform_real_distribution<float>(0.0f, sum)(rng);
+            token_id = candidates[0].second;
+            float cum = 0.0f;
+            for (size_t j = 0; j < candidates.size(); j++) {
+                cum += candidates[j].first;
+                if (r <= cum) {
+                    token_id = candidates[j].second;
+                    break;
+                }
             }
         } else {
             float max_logit = -1e38f;
@@ -631,66 +658,22 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChatStreaming(
                     max_idx = j;
                 }
             }
-            char buf[16] = {0};
-            int32_t len = llama_token_to_piece(vocab, max_idx, buf, sizeof(buf) - 1, 0, false);
-            if (len > 0) {
-                buf[len] = '\0';
-                jstring tokenStr = env->NewStringUTF(buf);
-                env->CallVoidMethod(jcallback, onToken, tokenStr);
-                env->DeleteLocalRef(tokenStr);
-            }
-            if (max_idx == llama_vocab_eos(vocab)) {
-                env->CallVoidMethod(jcallback, onComplete);
-                return;
-            }
-            tokens.clear();
-            tokens.push_back(max_idx);
-            n_tokens = 1;
-            continue;
+            token_id = max_idx;
         }
 
-        std::vector<std::pair<float, llama_token>> candidates;
-        candidates.reserve(n_vocab);
-        for (int32_t j = 0; j < n_vocab; j++) {
-            candidates.emplace_back(logits[j], j);
-        }
-
-        if (top_k > 0) {
-            sample_top_k(candidates, top_k);
-        }
-
-        float max_logit = candidates[0].first;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            candidates[j].first = std::exp(candidates[j].first - max_logit);
-        }
-
-        float sum = 0.0f;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            sum += candidates[j].first;
-        }
-        float r = std::uniform_real_distribution<float>(0.0f, sum)(rng);
-        llama_token token_id = candidates[0].second;
-        float cum = 0.0f;
-        for (size_t j = 0; j < candidates.size(); j++) {
-            cum += candidates[j].first;
-            if (r <= cum) {
-                token_id = candidates[j].second;
-                break;
-            }
-        }
-
-        char buf[16] = {0};
-        int32_t len = llama_token_to_piece(vocab, token_id, buf, sizeof(buf) - 1, 0, false);
-        if (len > 0) {
-            buf[len] = '\0';
-            jstring tokenStr = env->NewStringUTF(buf);
-            env->CallVoidMethod(jcallback, onToken, tokenStr);
-            env->DeleteLocalRef(tokenStr);
+        std::string token_str = token_to_string(vocab, token_id);
+        if (!token_str.empty()) {
+            batch_buffer += token_str;
         }
 
         if (token_id == llama_vocab_eos(vocab)) {
+            send_token_batch(env, jcallback, onToken, batch_buffer);
             env->CallVoidMethod(jcallback, onComplete);
             return;
+        }
+
+        if ((int32_t)batch_buffer.size() >= BATCH_CHARS) {
+            send_token_batch(env, jcallback, onToken, batch_buffer);
         }
 
         tokens.clear();
@@ -698,6 +681,7 @@ Java_com_example_data_ai_NativeLlamaModel_nativeGenerateChatStreaming(
         n_tokens = 1;
     }
 
+    send_token_batch(env, jcallback, onToken, batch_buffer);
     env->CallVoidMethod(jcallback, onComplete);
 }
 
