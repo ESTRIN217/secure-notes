@@ -35,7 +35,8 @@ sealed class Screen {
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
                 onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
-                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
+                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) },
+                onLaunchNewAiChat = { context.navigator.onNavigateTo(Screen.AiChatStandalone) }
             )
         }
     }
@@ -216,6 +217,23 @@ sealed class Screen {
         }
     }
 
+    object AiChatStandalone : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            AiChatScreen(
+                viewModel = context.aiViewModel,
+                chatHistoryViewModel = context.chatHistoryViewModel,
+                sessionId = 0,
+                noteId = 0,
+                fullContent = "",
+                selectedText = "",
+                onBack = { context.navigator.onNavigateBack(Screen.MainList) },
+                onInsert = null,
+                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
+            )
+        }
+    }
+
     object StorageManager : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
@@ -272,6 +290,7 @@ val ScreenSaver = mapSaver(
             is Screen.StorageManager -> mapOf("route" to "storage_manager")
             is Screen.ChatHistory -> mapOf("route" to "chat_history")
             is Screen.ChatSearch -> mapOf("route" to "chat_search")
+            is Screen.AiChatStandalone -> mapOf("route" to "ai_chat_standalone")
         }
     },
     restore = { map: Map<String, Any?> ->
@@ -294,6 +313,7 @@ val ScreenSaver = mapSaver(
             "storage_manager" -> Screen.StorageManager
             "chat_history" -> Screen.ChatHistory
             "chat_search" -> Screen.ChatSearch
+            "ai_chat_standalone" -> Screen.AiChatStandalone
             else -> Screen.MainList
         }
     }

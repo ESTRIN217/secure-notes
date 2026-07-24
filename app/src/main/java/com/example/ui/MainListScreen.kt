@@ -94,7 +94,8 @@ fun MainListScreen(
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToUpdateInfo: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
-    onNavigateToChatHistory: () -> Unit = {}
+    onNavigateToChatHistory: () -> Unit = {},
+    onLaunchNewAiChat: () -> Unit = {}
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -554,13 +555,23 @@ fun MainListScreen(
                     },
                     floatingActionButton = {
                         if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
-                            FloatingActionButton(
-                                onClick = { onNavigateToEditor(0) },
-                                modifier = Modifier.testTag("new_note_fab"),
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_note))
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                SmallFloatingActionButton(
+                                    onClick = onLaunchNewAiChat,
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.testTag("ai_chat_fab")
+                                ) {
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
+                                }
+                                FloatingActionButton(
+                                    onClick = { onNavigateToEditor(0) },
+                                    modifier = Modifier.testTag("new_note_fab"),
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_note))
+                                }
                             }
                         }
                     }

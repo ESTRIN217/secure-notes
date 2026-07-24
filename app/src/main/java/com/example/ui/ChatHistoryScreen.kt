@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.BackHandler
 import com.example.R
 import com.example.data.local.ChatSessionWithPreview
 import com.example.ui.viewmodel.AiViewModel
@@ -47,6 +48,8 @@ fun ChatHistoryScreen(
     var showDeleteDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
     var showRenameDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
     var renameText by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onBack)
 
     LaunchedEffect(latestSessionId) {
         latestSessionId?.let { id ->

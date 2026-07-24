@@ -18,12 +18,32 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+enum class MessageStatus {
+    SENT,
+    DELIVERED,
+    GENERATING,
+    COMPLETED,
+    ERROR
+}
 
 data class ConversationTurn(
     val role: String,
     val content: String,
-    val processingTimeMs: Long? = null
-)
+    val processingTimeMs: Long? = null,
+    val status: MessageStatus = MessageStatus.COMPLETED,
+    val timestamp: Long = System.currentTimeMillis(),
+    val errorMessage: String? = null
+) {
+    val formattedTime: String
+        get() = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
+
+    val formattedDuration: String?
+        get() = processingTimeMs?.let { "%.1fs".format(it / 1000.0) }
+}
 
 sealed class ConnectionState {
     data object Unknown : ConnectionState()
@@ -136,6 +156,8 @@ class AiViewModel(
 
     private val currentService: AIService
         get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
+
+    fun isAvailable(): Boolean = currentService.isAvailable
 
     fun getConversationHistory(sessionId: Int): List<ConversationTurn> {
         return _conversationHistory.value[sessionId] ?: emptyList()
@@ -343,7 +365,7 @@ class AiViewModel(
 
         _conversationHistory.update { current ->
             val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                add(ConversationTurn("user", userMessage))
+                add(ConversationTurn("user", userMessage, status = MessageStatus.SENT))
             }
             current + (sessionId to updated)
         }
@@ -368,8 +390,19 @@ class AiViewModel(
         val startTime = System.currentTimeMillis()
         currentJob = viewModelScope.launch {
             try {
+                var firstToken = true
                 val fullText = StringBuilder()
                 currentService.executeStreaming(enrichedRequest).collect { token ->
+                    if (firstToken) {
+                        _conversationHistory.update { current ->
+                            val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
+                                val idx = indexOfLast { it.role == "user" }
+                                if (idx >= 0) set(idx, get(idx).copy(status = MessageStatus.DELIVERED))
+                            }
+                            current + (sessionId to updated)
+                        }
+                        firstToken = false
+                    }
                     fullText.append(token)
                     _streamingText.value = fullText.toString()
                 }
@@ -380,7 +413,7 @@ class AiViewModel(
 
                 _conversationHistory.update { current ->
                     val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                        add(ConversationTurn("assistant", result, elapsed))
+                        add(ConversationTurn("assistant", result, elapsed, status = MessageStatus.COMPLETED))
                     }
                     current + (sessionId to updated)
                 }
@@ -396,16 +429,23 @@ class AiViewModel(
                 _streamingText.value = null
                 _isProcessing.value = false
             } catch (e: IOException) {
-                _isProcessing.value = false
-                _streamingText.value = null
-                _processingTimeMs.value = null
-                _errorMessage.value = e.message ?: "Error de conexión"
+                addErrorTurn(sessionId, e.message ?: "Error de conexión")
             } catch (e: Throwable) {
-                _isProcessing.value = false
-                _streamingText.value = null
-                _processingTimeMs.value = null
-                _errorMessage.value = e.message ?: "Error inesperado"
+                addErrorTurn(sessionId, e.message ?: "Error inesperado")
             }
+        }
+    }
+
+    private fun addErrorTurn(sessionId: Int, errorMsg: String) {
+        _isProcessing.value = false
+        _streamingText.value = null
+        _processingTimeMs.value = null
+        _errorMessage.value = errorMsg
+        _conversationHistory.update { current ->
+            val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
+                add(ConversationTurn("assistant", "", status = MessageStatus.ERROR, errorMessage = errorMsg))
+            }
+            current + (sessionId to updated)
         }
     }
 
