@@ -2,16 +2,23 @@ package com.example.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.BasicTextField as FoundationBasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,28 +26,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.ai.*
 import com.example.ui.viewmodel.AiViewModel
+import com.example.ui.viewmodel.ChatHistoryViewModel
 import com.example.ui.viewmodel.ConversationTurn
+import com.example.util.RichTextParser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiChatScreen(
     viewModel: AiViewModel,
+    chatHistoryViewModel: ChatHistoryViewModel,
+    sessionId: Int,
     noteId: Int,
     fullContent: String,
     selectedText: String,
     onBack: () -> Unit,
-    onInsert: (String) -> Unit
+    onInsert: ((String) -> Unit)?,
+    onNavigateToChatHistory: (() -> Unit)?
 ) {
     BackHandler(onBack = onBack)
 
@@ -48,7 +62,8 @@ fun AiChatScreen(
     var inputText by remember { mutableStateOf("") }
     var rewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
     var targetLanguage by remember { mutableStateOf("en") }
-    var showHistory by remember { mutableStateOf(false) }
+    var showRenameTitleDialog by remember { mutableStateOf(false) }
+    var renameTitleText by remember { mutableStateOf("") }
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
@@ -58,18 +73,39 @@ fun AiChatScreen(
     val modelNameSetting by viewModel.modelName.collectAsStateWithLifecycle()
     val selectedOnDeviceModel by viewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
+    val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val listState = rememberLazyListState()
-    val hasSelection = selectedText.isNotBlank()
 
-    val conversationHistory = allHistory[noteId] ?: emptyList()
+    val effectiveSessionId = if (sessionId > 0) sessionId else viewModel.currentSessionId.value
+
+    LaunchedEffect(sessionId, noteId) {
+        if (sessionId > 0) {
+            viewModel.loadSession(sessionId, noteId)
+        }
+    }
+
+    val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
     val displayModelName = if (backend == AiBackend.OLLAMA) modelNameSetting
                            else selectedOnDeviceModel?.displayName ?: ""
 
     val hasStreamingContent = isProcessing && !streamingText.isNullOrEmpty()
+    val isStreamingEmpty = isProcessing && streamingText.isNullOrEmpty()
+
+    val isNearBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            if (layoutInfo.totalItemsCount == 0) true
+            else {
+                val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastItem != null && lastItem.index >= layoutInfo.totalItemsCount - 1
+            }
+        }
+    }
 
     LaunchedEffect(conversationHistory.size, hasStreamingContent) {
+        if (!isNearBottom) return@LaunchedEffect
         val targetIndex = when {
             hasStreamingContent -> conversationHistory.size
             conversationHistory.isNotEmpty() -> conversationHistory.size - 1
@@ -80,7 +116,7 @@ fun AiChatScreen(
 
     LaunchedEffect(isProcessing) {
         if (!isProcessing && errorMessage == null) {
-            val history = viewModel.getConversationHistory(noteId)
+            val history = viewModel.getConversationHistory(effectiveSessionId)
             if (history.isNotEmpty()) {
                 listState.animateScrollToItem(history.size - 1)
             }
@@ -93,7 +129,14 @@ fun AiChatScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text(stringResource(R.string.ai_chat_title))
+                            Text(
+                                text = sessionTitle,
+                                maxLines = 1,
+                                modifier = Modifier.clickable {
+                                    renameTitleText = sessionTitle
+                                    showRenameTitleDialog = true
+                                }
+                            )
                             if (displayModelName.isNotBlank()) {
                                 Text(
                                     text = displayModelName,
@@ -109,15 +152,19 @@ fun AiChatScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ai_new_chat))
-                        }
-                        if (conversationHistory.isNotEmpty()) {
-                            IconButton(onClick = { showHistory = !showHistory }) {
-                                Icon(Icons.Default.History, contentDescription = stringResource(R.string.ai_history))
+                        if (onNavigateToChatHistory != null) {
+                            IconButton(onClick = onNavigateToChatHistory) {
+                                Icon(Icons.Default.History, contentDescription = stringResource(R.string.chat_history_title))
                             }
-                            IconButton(onClick = { viewModel.clearConversationHistory(noteId) }) {
-                                Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
+                        }
+                        if (effectiveSessionId > 0) {
+                            IconButton(onClick = { viewModel.clearConversationHistory(effectiveSessionId) }) {
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.ai_new_chat))
+                            }
+                            if (conversationHistory.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.clearConversationHistory(effectiveSessionId) }) {
+                                    Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
+                                }
                             }
                         }
                     }
@@ -160,34 +207,34 @@ fun AiChatScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             FilledIconButton(
                                 onClick = {
-                                    val prompt = when (currentAction) {
-                                        AiAction.GENERATE -> inputText
-                                        AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
-                                        AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
-                                        AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
-                                    }
-                                    val request = AiRequest(
-                                        action = currentAction,
-                                        prompt = prompt,
-                                        selectedText = selectedText,
-                                        context = fullContent,
-                                        rewriteStyle = rewriteStyle,
-                                        targetLanguage = targetLanguage
-                                    )
-                                    viewModel.execute(request, noteId)
-                                    if (currentAction == AiAction.GENERATE) {
-                                        inputText = ""
+                                    if (isProcessing) {
+                                        viewModel.cancelGeneration()
+                                    } else {
+                                        val prompt = when (currentAction) {
+                                            AiAction.GENERATE -> inputText
+                                            AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
+                                            AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
+                                            AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
+                                        }
+                                        val request = AiRequest(
+                                            action = currentAction,
+                                            prompt = prompt,
+                                            selectedText = selectedText,
+                                            context = fullContent,
+                                            rewriteStyle = rewriteStyle,
+                                            targetLanguage = targetLanguage
+                                        )
+                                        viewModel.execute(request, effectiveSessionId)
+                                        if (currentAction == AiAction.GENERATE) {
+                                            inputText = ""
+                                        }
                                     }
                                 },
-                                enabled = !isProcessing && (currentAction != AiAction.GENERATE || inputText.isNotBlank()),
+                                enabled = !isProcessing || isProcessing,
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 if (isProcessing) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
+                                    Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.ai_stop))
                                 } else {
                                     Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_send))
                                 }
@@ -202,7 +249,7 @@ fun AiChatScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (conversationHistory.isEmpty() && !hasStreamingContent) {
+                if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -226,33 +273,77 @@ fun AiChatScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            val poemSuggestion = stringResource(R.string.ai_suggestion_poem)
+                            val ideasSuggestion = stringResource(R.string.ai_suggestion_ideas)
+                            val summarizePrompt = stringResource(R.string.ai_chat_prompt_summarize)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = false,
+                                    onClick = {
+                                        viewModel.execute(
+                                            AiRequest(action = AiAction.GENERATE, prompt = poemSuggestion, selectedText = selectedText, context = fullContent),
+                                            effectiveSessionId
+                                        )
+                                    },
+                                    label = { Text(poemSuggestion, style = MaterialTheme.typography.labelSmall) },
+                                    leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                                FilterChip(
+                                    selected = false,
+                                    onClick = {
+                                        viewModel.execute(
+                                            AiRequest(action = AiAction.GENERATE, prompt = ideasSuggestion, selectedText = selectedText, context = fullContent),
+                                            effectiveSessionId
+                                        )
+                                    },
+                                    label = { Text(ideasSuggestion, style = MaterialTheme.typography.labelSmall) },
+                                    leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                                FilterChip(
+                                    selected = false,
+                                    onClick = {
+                                        viewModel.execute(
+                                            AiRequest(action = AiAction.SUMMARIZE, prompt = summarizePrompt, selectedText = selectedText, context = fullContent),
+                                            effectiveSessionId
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.ai_summarize), style = MaterialTheme.typography.labelSmall) },
+                                    leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                )
+                            }
                         }
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
-                    ) {
-                        items(conversationHistory) { turn ->
-                            MessageBubble(
-                                turn = turn,
-                                clipboardManager = clipboardManager,
-                                isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
-                                showInsert = turn.role == "assistant",
-                                processingTimeMs = if (turn == conversationHistory.lastOrNull() && turn.role == "assistant") turn.processingTimeMs else null,
-                                onInsert = { onInsert(turn.content) },
-                                onResend = { inputText = it }
-                            )
-                        }
-                        if (hasStreamingContent) {
-                            item(key = "streaming") {
-                                StreamingBubble(text = streamingText!!)
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            state = listState,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 16.dp)
+                        ) {
+                            items(conversationHistory) { turn ->
+                                MessageBubble(
+                                    turn = turn,
+                                    clipboardManager = clipboardManager,
+                                    isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
+                                    showInsert = turn.role == "assistant" && onInsert != null,
+                                    processingTimeMs = if (turn == conversationHistory.lastOrNull() && turn.role == "assistant") turn.processingTimeMs else null,
+                                    onInsert = { onInsert?.invoke(turn.content) },
+                                    onResend = { inputText = it }
+                                )
                             }
-                        }
+                            if (isStreamingEmpty) {
+                                item(key = "typing") {
+                                    TypingIndicator()
+                                }
+                            }
+                            if (hasStreamingContent) {
+                                item(key = "streaming") {
+                                    StreamingBubble(text = streamingText!!)
+                                }
+                            }
                     }
                 }
 
@@ -273,119 +364,41 @@ fun AiChatScreen(
             }
         }
 
-        AnimatedVisibility(
-            visible = showHistory,
-            enter = slideInHorizontally { it },
-            exit = slideOutHorizontally { it },
-            modifier = Modifier.align(Alignment.CenterEnd)
-        ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-                        .clickable { showHistory = false }
+        }
+
+    if (showRenameTitleDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameTitleDialog = false },
+            title = { Text(stringResource(R.string.chat_rename_dialog_title)) },
+            text = {
+                OutlinedTextField(
+                    value = renameTitleText,
+                    onValueChange = { renameTitleText = it },
+                    label = { Text(stringResource(R.string.chat_title_hint)) },
+                    singleLine = true
                 )
-                ModalDrawerSheet(
-                    modifier = Modifier.width(300.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface
-                ) {
-                    Column(modifier = Modifier.fillMaxHeight()) {
-                        Text(
-                            text = stringResource(R.string.ai_history),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(20.dp)
-                        )
-                        HorizontalDivider()
-                        if (conversationHistory.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(20.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.ai_chat_empty_title),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            LazyColumn(modifier = Modifier.weight(1f)) {
-                                items(conversationHistory) { turn ->
-                                    HistoryItem(turn = turn)
-                                }
-                            }
-                            HorizontalDivider()
-                            TextButton(
-                                onClick = {
-                                    viewModel.clearConversationHistory(noteId)
-                                    showHistory = false
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.DeleteSweep,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.ai_clear_history))
-                            }
-                        }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameTitleText.isNotBlank()) {
+                        viewModel.renameCurrentSession(renameTitleText)
                     }
+                    showRenameTitleDialog = false
+                }) {
+                    Text(stringResource(R.string.chat_rename))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameTitleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun HistoryItem(turn: ConversationTurn) {
-    val isUser = turn.role == "user"
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Icon(
-            imageVector = if (isUser) Icons.Default.Person else Icons.Default.SmartToy,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = if (isUser) stringResource(R.string.ai_chat_you) else stringResource(R.string.ai_chat_ai),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
-            )
-            Text(
-                text = turn.content.take(120) + if (turn.content.length > 120) "..." else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3
-            )
-            if (turn.processingTimeMs != null) {
-                Text(
-                    text = "${turn.processingTimeMs / 1000.0}s",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
-        }
     }
 }
 
 @Composable
-private fun MessageBubble(
+fun MessageBubble(
     turn: ConversationTurn,
     clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     isLastAssistant: Boolean,
@@ -427,13 +440,15 @@ private fun MessageBubble(
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                SelectionContainer {
-                    Text(
-                        text = turn.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor
-                    )
-                }
+                FoundationBasicTextField(
+                    value = remember(turn.content) {
+                        TextFieldValue(RichTextParser.parse(turn.content, hideTags = true))
+                    },
+                    onValueChange = {},
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -496,7 +511,7 @@ private fun MessageBubble(
 }
 
 @Composable
-private fun StreamingBubble(text: String) {
+fun StreamingBubble(text: String) {
     Column(
         horizontalAlignment = Alignment.Start,
         modifier = Modifier.fillMaxWidth()
@@ -518,10 +533,12 @@ private fun StreamingBubble(text: String) {
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                FoundationBasicTextField(
+                    value = TextFieldValue(RichTextParser.parse(text, hideTags = true)),
+                    onValueChange = {},
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -542,7 +559,69 @@ private fun StreamingBubble(text: String) {
 }
 
 @Composable
-private fun ActionChipRowMinimal(
+fun TypingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val dot1Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(600, delayMillis = 0), RepeatMode.Reverse)
+    )
+    val dot2Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(600, delayMillis = 200), RepeatMode.Reverse)
+    )
+    val dot3Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(600, delayMillis = 400), RepeatMode.Reverse)
+    )
+
+    AnimatedVisibility(visible = true, enter = fadeIn(), exit = fadeOut()) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.ai_chat_ai),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(
+                    topStart = 16.dp, topEnd = 16.dp,
+                    bottomStart = 4.dp, bottomEnd = 16.dp
+                ),
+                modifier = Modifier.widthIn(max = 320.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(8.dp).alpha(dot1Alpha).background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), CircleShape
+                    ))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(modifier = Modifier.size(8.dp).alpha(dot2Alpha).background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), CircleShape
+                    ))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(modifier = Modifier.size(8.dp).alpha(dot3Alpha).background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), CircleShape
+                    ))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(R.string.ai_generating),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionChipRowMinimal(
     currentAction: AiAction,
     onActionSelected: (AiAction) -> Unit
 ) {

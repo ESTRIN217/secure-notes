@@ -641,6 +641,9 @@
     <string name="ai_new_chat">New chat</string>
     <string name="ai_copy">Copy</string>
     <string name="ai_resend">Re-send</string>
+    <string name="ai_stop">Stop</string>
+    <string name="ai_suggestion_poem">Write a poem</string>
+    <string name="ai_suggestion_ideas">Generate ideas</string>
     <string name="ai_chat_empty_title">Start a conversation with AI</string>
     <string name="ai_chat_empty_desc">Ask questions, generate content, or get help with your notes.</string>
     <string name="ai_style_label">Style</string>
@@ -720,4 +723,20 @@
     <string name="storage_temp">Temporary</string>
     <string name="storage_database">Database</string>
     <string name="storage_orphan_waste">Wasted (orphans)</string>
-</resources>
+
+    <!-- Chat History -->
+    <string name="nav_chats">Chats</string>
+    <string name="chat_history_title">Chat History</string>
+    <string name="chat_new">New Chat</string>
+    <string name="chat_rename">Rename</string>
+    <string name="chat_delete">Delete</string>
+    <string name="chat_delete_confirm">Delete this chat?</string>
+    <string name="chat_pin">Pin</string>
+    <string name="chat_unpin">Unpin</string>
+    <string name="chat_search_hint">Search chats…</string>
+    <string name="chat_empty_title">No chats yet</string>
+    <string name="chat_empty_desc">Start a conversation with AI</string>
+    <string name="chat_title_hint">Chat title</string>
+    <string name="chat_rename_dialog_title">Rename Chat</string>
+    <string name="chat_pinned_section">Pinned</string>
+    </resources>

@@ -93,7 +93,8 @@ fun MainListScreen(
     onNavigateToSettingsHub: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToUpdateInfo: () -> Unit = {},
-    onNavigateToAbout: () -> Unit = {}
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToChatHistory: () -> Unit = {}
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -201,7 +202,11 @@ fun MainListScreen(
                         onToggleExtend = {},
                         widthClass = widthClass,
                         onCreateTag = { showCreateTagDialog = true },
-                        onManageTags = { showManageTagsDialog = true }
+                        onManageTags = { showManageTagsDialog = true },
+                        onNavigateToChatHistory = {
+                            scope.launch { drawerState.close() }
+                            onNavigateToChatHistory()
+                        }
                     )
                 }
             }
@@ -224,7 +229,8 @@ fun MainListScreen(
                     onToggleExtend = { isNavExtended = !isNavExtended },
                     widthClass = widthClass,
                     onCreateTag = { showCreateTagDialog = true },
-                    onManageTags = { showManageTagsDialog = true }
+                    onManageTags = { showManageTagsDialog = true },
+                    onNavigateToChatHistory = onNavigateToChatHistory
                 )
 
                 // Custom division line

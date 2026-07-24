@@ -98,6 +98,7 @@ import com.example.ui.viewmodel.BackupViewModel
 import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.StorageViewModel
+import com.example.ui.viewmodel.ChatHistoryViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.data.ai.OllamaService
@@ -192,20 +193,32 @@ class MainActivity : ComponentActivity() {
             )
             val appContext = this@MainActivity.applicationContext
             val prefsRepo = SharedPreferencesRepository(appContext)
-            val ollamaService = OllamaService()
+            val ollamaService = OllamaService(
+                endpointUrl = prefsRepo.getAiEndpointUrl(),
+                modelName = prefsRepo.getAiModelName()
+            )
             val modelDownloader = ModelDownloader(appContext)
-            val llamaEngine = LlamaCppEngine(appContext)
+            val llamaEngine = LlamaCppEngine(
+                context = appContext,
+                nCtx = 2048,
+                nGpuLayers = 0,
+                maxTokens = 512,
+                nThreads = 4
+            )
             val onDeviceService = OnDeviceService(llamaEngine)
             val aiViewModel: AiViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {
                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
                         @Suppress("UNCHECKED_CAST")
+                        val db = NoteDatabase.getDatabase(this@MainActivity.applicationContext)
                         return AiViewModel(
                             appContext as android.app.Application,
                             prefsRepo,
                             ollamaService,
                             onDeviceService,
-                            modelDownloader
+                            modelDownloader,
+                            db.conversationDao,
+                            db.chatSessionDao
                         ) as T
                     }
                 }
@@ -295,7 +308,21 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         )
     }
 
-    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, navigator, currentScreen) {
+    val chatHistoryViewModel: ChatHistoryViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                val db = com.example.data.local.NoteDatabase.getDatabase(context.applicationContext)
+                return ChatHistoryViewModel(
+                    context.applicationContext as Application,
+                    db.chatSessionDao,
+                    db.conversationDao
+                ) as T
+            }
+        }
+    )
+
+    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen) {
         ScreenContext(
             viewModel = viewModel,
             themeViewModel = themeViewModel,
@@ -303,6 +330,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             updaterViewModel = updaterViewModel,
             aiViewModel = aiViewModel,
             storageViewModel = storageViewModel,
+            chatHistoryViewModel = chatHistoryViewModel,
             navigator = navigator,
             currentScreen = currentScreen
         )
@@ -337,7 +365,8 @@ fun NavigationRailContent(
     onToggleExtend: () -> Unit,
     widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     onCreateTag: () -> Unit = {},
-    onManageTags: () -> Unit = {}
+    onManageTags: () -> Unit = {},
+    onNavigateToChatHistory: () -> Unit = {}
 ) {
     val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
 
@@ -404,6 +433,8 @@ fun NavigationRailContent(
                 Triple(com.example.data.model.NavigationSection.SETTINGS, Icons.Default.Settings, R.string.nav_settings)
             )
 
+            val chatNavItem = Triple(null, Icons.Default.Chat, R.string.nav_chats)
+
             Column(
                 modifier = Modifier
                     .fillPackageNameOrScope()
@@ -465,6 +496,45 @@ fun NavigationRailContent(
                                     }
                                 )
                             }
+                        }
+                    }
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                )
+
+                val (_, chatIcon, chatLabelRes) = chatNavItem
+                val chatLabel = stringResource(id = chatLabelRes)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clickable { onNavigateToChatHistory() }
+                        .testTag("nav_rail_item_chats"),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = if (isExtended) Arrangement.Start else Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = chatIcon,
+                            contentDescription = chatLabel,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        if (isExtended) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = chatLabel,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

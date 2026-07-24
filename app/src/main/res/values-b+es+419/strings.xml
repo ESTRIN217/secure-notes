@@ -640,6 +640,9 @@
     <string name="ai_new_chat">Nuevo chat</string>
     <string name="ai_copy">Copiar</string>
     <string name="ai_resend">Reenviar</string>
+    <string name="ai_stop">Detener</string>
+    <string name="ai_suggestion_poem">Escribe un poema</string>
+    <string name="ai_suggestion_ideas">Genera ideas</string>
     <string name="ai_chat_empty_title">Inicia una conversación con IA</string>
     <string name="ai_chat_empty_desc">Haz preguntas, genera contenido u obtén ayuda con tus notas.</string>
     <string name="ai_style_label">Estilo</string>
@@ -719,4 +722,19 @@
     <string name="storage_temp">Temporales</string>
     <string name="storage_database">Base de datos</string>
     <string name="storage_orphan_waste">Desperdicio (huérfanos)</string>
+<!-- Chat History -->
+    <string name="nav_chats">Chats</string>
+    <string name="chat_history_title">Historial de Chats</string>
+    <string name="chat_new">Nuevo Chat</string>
+    <string name="chat_rename">Renombrar</string>
+    <string name="chat_delete">Eliminar</string>
+    <string name="chat_delete_confirm">¿Eliminar este chat?</string>
+    <string name="chat_pin">Fijar</string>
+    <string name="chat_unpin">Desfijar</string>
+    <string name="chat_search_hint">Buscar chats…</string>
+    <string name="chat_empty_title">No hay chats aún</string>
+    <string name="chat_empty_desc">Inicia una conversación con IA</string>
+    <string name="chat_title_hint">Título del chat</string>
+    <string name="chat_rename_dialog_title">Renombrar Chat</string>
+    <string name="chat_pinned_section">Fijados</string>
 </resources>

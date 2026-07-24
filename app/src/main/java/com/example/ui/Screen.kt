@@ -2,6 +2,8 @@ package com.example.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.mapSaver
+import com.example.ui.viewmodel.StorageViewModel
+import com.example.ui.viewmodel.ChatHistoryViewModel
 
 data class ScreenContext(
     val viewModel: com.example.ui.viewmodel.NotesViewModel,
@@ -9,7 +11,8 @@ data class ScreenContext(
     val backupViewModel: com.example.ui.viewmodel.BackupViewModel,
     val updaterViewModel: com.example.ui.viewmodel.UpdaterViewModel,
     val aiViewModel: com.example.ui.viewmodel.AiViewModel,
-    val storageViewModel: com.example.ui.viewmodel.StorageViewModel,
+    val storageViewModel: StorageViewModel,
+    val chatHistoryViewModel: ChatHistoryViewModel,
     val navigator: Navigator,
     val currentScreen: Screen
 )
@@ -31,7 +34,8 @@ sealed class Screen {
                 onNavigateToSettingsHub = { context.navigator.onNavigateTo(Screen.SettingsHub) },
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
-                onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) }
+                onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
+                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
             )
         }
     }
@@ -180,6 +184,8 @@ sealed class Screen {
         override fun render(context: ScreenContext) {
             AiChatScreen(
                 viewModel = context.aiViewModel,
+                chatHistoryViewModel = context.chatHistoryViewModel,
+                sessionId = 0,
                 noteId = noteId,
                 fullContent = context.aiViewModel.chatNoteContext.value,
                 selectedText = context.aiViewModel.chatSelectedText.value,
@@ -187,7 +193,25 @@ sealed class Screen {
                 onInsert = { text ->
                     context.aiViewModel.requestInsert(text)
                     context.navigator.onNavigateBack(Screen.NoteEditor(noteId))
-                }
+                },
+                onNavigateToChatHistory = null
+            )
+        }
+    }
+
+    data class AiChatSession(val sessionId: Int) : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            AiChatScreen(
+                viewModel = context.aiViewModel,
+                chatHistoryViewModel = context.chatHistoryViewModel,
+                sessionId = sessionId,
+                noteId = 0,
+                fullContent = "",
+                selectedText = "",
+                onBack = { context.navigator.onNavigateBack(Screen.ChatHistory) },
+                onInsert = null,
+                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
             )
         }
     }
@@ -198,6 +222,30 @@ sealed class Screen {
             com.example.ui.settings.StorageManagerScreen(
                 viewModel = context.storageViewModel,
                 onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
+            )
+        }
+    }
+
+    object ChatHistory : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            ChatHistoryScreen(
+                viewModel = context.chatHistoryViewModel,
+                aiViewModel = context.aiViewModel,
+                onNavigateToChat = { sessionId -> context.navigator.onNavigateTo(Screen.AiChatSession(sessionId)) },
+                onBack = { context.navigator.onNavigateBack(Screen.MainList) },
+                onNavigateToSearch = { context.navigator.onNavigateTo(Screen.ChatSearch) }
+            )
+        }
+    }
+
+    object ChatSearch : Screen() {
+        @Composable
+        override fun render(context: ScreenContext) {
+            ChatSearchScreen(
+                viewModel = context.chatHistoryViewModel,
+                onNavigateToChat = { sessionId -> context.navigator.onNavigateTo(Screen.AiChatSession(sessionId)) },
+                onBack = { context.navigator.onNavigateBack(Screen.ChatHistory) }
             )
         }
     }
@@ -219,8 +267,11 @@ val ScreenSaver = mapSaver(
             is Screen.Licenses -> mapOf("route" to "licenses")
             is Screen.AiSettings -> mapOf("route" to "ai_settings")
             is Screen.AiChat -> mapOf("route" to "ai_chat", "noteId" to screen.noteId)
+            is Screen.AiChatSession -> mapOf("route" to "ai_chat_session", "sessionId" to screen.sessionId)
             is Screen.About -> mapOf("route" to "about")
             is Screen.StorageManager -> mapOf("route" to "storage_manager")
+            is Screen.ChatHistory -> mapOf("route" to "chat_history")
+            is Screen.ChatSearch -> mapOf("route" to "chat_search")
         }
     },
     restore = { map: Map<String, Any?> ->
@@ -238,8 +289,11 @@ val ScreenSaver = mapSaver(
             "licenses" -> Screen.Licenses
             "ai_settings" -> Screen.AiSettings
             "ai_chat" -> Screen.AiChat((map["noteId"] as? Int) ?: 0)
+            "ai_chat_session" -> Screen.AiChatSession((map["sessionId"] as? Int) ?: 0)
             "about" -> Screen.About
             "storage_manager" -> Screen.StorageManager
+            "chat_history" -> Screen.ChatHistory
+            "chat_search" -> Screen.ChatSearch
             else -> Screen.MainList
         }
     }

@@ -5,12 +5,18 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.PreferencesRepository
 import com.example.data.ai.*
+import com.example.data.local.ChatSessionDao
+import com.example.data.local.ChatSessionEntity
+import com.example.data.local.ConversationDao
+import com.example.data.local.ConversationEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 data class ConversationTurn(
@@ -31,7 +37,9 @@ class AiViewModel(
     private val prefsRepository: PreferencesRepository,
     private val ollamaService: OllamaService,
     private val onDeviceService: OnDeviceService,
-    private val modelDownloader: ModelDownloader
+    private val modelDownloader: ModelDownloader,
+    private val conversationDao: ConversationDao,
+    private val chatSessionDao: ChatSessionDao
 ) : AndroidViewModel(application) {
 
     private val _aiEnabled = MutableStateFlow(prefsRepository.getAiEnabled())
@@ -91,15 +99,21 @@ class AiViewModel(
     val onDeviceLoadedModelInfo: StateFlow<LoadedModelInfo?> = onDeviceService.loadedModelInfo
 
     val deviceInfo: DeviceInfo = DeviceInfo.detect(getApplication())
-
     val recommendedModels: List<OnDeviceModel> = MODEL_CATALOG.filterForDevice(deviceInfo)
-
     val bestModel: OnDeviceModel? = MODEL_CATALOG.bestForDevice(deviceInfo)
-
     val downloadState: StateFlow<DownloadState> = modelDownloader.state
 
     private val _conversationHistory = MutableStateFlow<Map<Int, List<ConversationTurn>>>(emptyMap())
     val conversationHistory: StateFlow<Map<Int, List<ConversationTurn>>> = _conversationHistory.asStateFlow()
+
+    private val _currentSessionId = MutableStateFlow(0)
+    val currentSessionId: StateFlow<Int> = _currentSessionId.asStateFlow()
+
+    private val _sessionTitle = MutableStateFlow("New Chat")
+    val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
+
+    private val _currentNoteId = MutableStateFlow(0)
+    val currentNoteId: StateFlow<Int> = _currentNoteId.asStateFlow()
 
     private var currentJob: Job? = null
 
@@ -123,13 +137,16 @@ class AiViewModel(
     private val currentService: AIService
         get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
 
-    fun getConversationHistory(noteId: Int): List<ConversationTurn> {
-        return _conversationHistory.value[noteId] ?: emptyList()
+    fun getConversationHistory(sessionId: Int): List<ConversationTurn> {
+        return _conversationHistory.value[sessionId] ?: emptyList()
     }
 
-    fun clearConversationHistory(noteId: Int) {
+    fun clearConversationHistory(sessionId: Int) {
         _conversationHistory.update { current ->
-            current.toMutableMap().apply { remove(noteId) }.toMap()
+            current.toMutableMap().apply { remove(sessionId) }.toMap()
+        }
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { conversationDao.deleteBySessionId(sessionId) }
         }
     }
 
@@ -242,17 +259,53 @@ class AiViewModel(
         viewModelScope.launch {
             val result = ollamaService.testConnection()
             _connectionState.value = result.fold(
-                onSuccess = { models ->
-                    ConnectionState.Connected(models)
-                },
-                onFailure = { error ->
-                    ConnectionState.Failed(error.message ?: "Error desconocido")
-                }
+                onSuccess = { models -> ConnectionState.Connected(models) },
+                onFailure = { error -> ConnectionState.Failed(error.message ?: "Error desconocido") }
             )
         }
     }
 
-    fun execute(request: AiRequest, noteId: Int = 0) {
+    fun loadSession(sessionId: Int, noteId: Int = 0) {
+        _currentSessionId.value = sessionId
+        _currentNoteId.value = noteId
+        if (sessionId > 0) {
+            loadConversation(sessionId)
+            viewModelScope.launch {
+                val session = withContext(Dispatchers.IO) { chatSessionDao.getSession(sessionId) }
+                if (session != null) {
+                    _sessionTitle.value = session.title
+                    _currentNoteId.value = session.noteId ?: 0
+                }
+            }
+        }
+    }
+
+    fun renameCurrentSession(title: String) {
+        val id = _currentSessionId.value
+        if (id <= 0) return
+        _sessionTitle.value = title
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { chatSessionDao.updateTitle(id, title) }
+        }
+    }
+
+    fun loadConversation(sessionId: Int) {
+        if (_conversationHistory.value.containsKey(sessionId)) return
+        viewModelScope.launch {
+            val turns = withContext(Dispatchers.IO) {
+                conversationDao.getConversations(sessionId)
+            }
+            if (turns.isNotEmpty()) {
+                _conversationHistory.update { current ->
+                    current + (sessionId to turns.map { entity ->
+                        ConversationTurn(entity.role, entity.content, entity.processingTimeMs)
+                    })
+                }
+            }
+        }
+    }
+
+    fun execute(request: AiRequest, sessionId: Int = 0) {
         currentJob?.cancel()
         _resultText.value = null
         _errorMessage.value = null
@@ -260,29 +313,55 @@ class AiViewModel(
         _streamingText.value = ""
         _processingTimeMs.value = null
 
+        if (sessionId <= 0) {
+            viewModelScope.launch {
+                _errorMessage.value = "No active session"
+                _isProcessing.value = false
+            }
+            return
+        }
+
         var enrichedRequest = request.copy(customSystemPrompt = _systemPrompt.value)
 
-        if (noteId > 0) {
-            val currentHistory = _conversationHistory.value[noteId] ?: emptyList()
-            if (currentHistory.isNotEmpty()) {
-                val chatMessages = currentHistory.takeLast(10).map { turn ->
-                    ChatMessage(turn.role, turn.content)
-                }
-                enrichedRequest = enrichedRequest.copy(
-                    messages = chatMessages
+        val currentHistory = _conversationHistory.value[sessionId] ?: emptyList()
+        if (currentHistory.isNotEmpty()) {
+            val chatMessages = currentHistory.takeLast(10).map { turn ->
+                ChatMessage(turn.role, turn.content)
+            }
+            enrichedRequest = enrichedRequest.copy(messages = chatMessages)
+        }
+
+        val userMessage = when (request.action) {
+            AiAction.REWRITE -> "Reescribe en estilo ${request.rewriteStyle}: ${request.selectedText}"
+            AiAction.SUMMARIZE -> "Resume: ${request.selectedText.ifBlank { request.context }}"
+            AiAction.TRANSLATE -> "Traduce a ${request.targetLanguage}: ${request.selectedText}"
+            AiAction.GENERATE -> request.prompt.ifBlank { "Generar texto" }
+        }
+
+        val isFirstMessage = currentHistory.isEmpty()
+        val isNewSession = _conversationHistory.value[sessionId] == null
+
+        _conversationHistory.update { current ->
+            val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
+                add(ConversationTurn("user", userMessage))
+            }
+            current + (sessionId to updated)
+        }
+
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                conversationDao.insert(
+                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage)
                 )
             }
-            val userMessage = when (request.action) {
-                AiAction.REWRITE -> "Reescribe en estilo ${request.rewriteStyle}: ${request.selectedText}"
-                AiAction.SUMMARIZE -> "Resume: ${request.selectedText.ifBlank { request.context.take(200) }}"
-                AiAction.TRANSLATE -> "Traduce a ${request.targetLanguage}: ${request.selectedText}"
-                AiAction.GENERATE -> request.prompt.ifBlank { "Generar texto" }
-            }
-            _conversationHistory.update { current ->
-                val updated = (current[noteId]?.toMutableList() ?: mutableListOf()).apply {
-                    add(ConversationTurn("user", userMessage))
+            if (isFirstMessage || isNewSession) {
+                val title = userMessage.take(50).ifBlank { "New Chat" }
+                _sessionTitle.value = title
+                withContext(Dispatchers.IO) {
+                    chatSessionDao.updateTitle(sessionId, title)
+                    val count = conversationDao.countBySessionId(sessionId)
+                    chatSessionDao.updateMetadata(sessionId, System.currentTimeMillis(), count)
                 }
-                current + (noteId to updated)
             }
         }
 
@@ -298,12 +377,20 @@ class AiViewModel(
                 _processingTimeMs.value = elapsed
                 val result = fullText.toString()
                 _resultText.value = result
-                if (noteId > 0) {
-                    _conversationHistory.update { current ->
-                        val updated = (current[noteId]?.toMutableList() ?: mutableListOf()).apply {
-                            add(ConversationTurn("assistant", result, elapsed))
-                        }
-                        current + (noteId to updated)
+
+                _conversationHistory.update { current ->
+                    val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
+                        add(ConversationTurn("assistant", result, elapsed))
+                    }
+                    current + (sessionId to updated)
+                }
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO) {
+                        conversationDao.insert(
+                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = result, processingTimeMs = elapsed)
+                        )
+                        val count = conversationDao.countBySessionId(sessionId)
+                        chatSessionDao.updateMetadata(sessionId, System.currentTimeMillis(), count)
                     }
                 }
                 _streamingText.value = null
@@ -320,6 +407,13 @@ class AiViewModel(
                 _errorMessage.value = e.message ?: "Error inesperado"
             }
         }
+    }
+
+    fun cancelGeneration() {
+        currentJob?.cancel()
+        _isProcessing.value = false
+        _streamingText.value = null
+        _errorMessage.value = null
     }
 
     fun clearResult() {
