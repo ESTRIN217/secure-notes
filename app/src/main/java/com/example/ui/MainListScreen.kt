@@ -2,8 +2,16 @@ package com.example.ui
 
 import kotlinx.coroutines.launch
 import android.content.Context
+import android.content.Intent
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,6 +31,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -49,6 +58,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -73,6 +83,8 @@ import com.example.util.reorderNote
 import com.example.util.swapNotes
 import kotlin.math.roundToInt
 import org.json.JSONArray
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,7 +107,8 @@ fun MainListScreen(
     onNavigateToUpdateInfo: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToChatHistory: () -> Unit = {},
-    onLaunchNewAiChat: () -> Unit = {}
+    onLaunchNewAiChat: () -> Unit = {},
+    onNavigateToNewDrawing: () -> Unit = {}
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val notes by viewModel.notesList.collectAsState()
@@ -176,6 +189,110 @@ fun MainListScreen(
     var showBatchTagDialog by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEmptyTrashAlert by remember { mutableStateOf(false) }
+    var isFabExpanded by remember { mutableStateOf(false) }
+
+    var showAudioRecorderSheet by remember { mutableStateOf(false) }
+    var isRecording by remember { mutableStateOf(false) }
+    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var recordedFile by remember { mutableStateOf<File?>(null) }
+    var isPlayingRecording by remember { mutableStateOf(false) }
+    var draftPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    var showImageOptionsDialog by remember { mutableStateOf(false) }
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val startAudioRecording: () -> Unit = {
+        try {
+            val file = File(context.filesDir, "voice_${System.currentTimeMillis()}.3gp")
+            recordedFile = file
+            val recorderContext = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.createAttributionContext("microphone")
+            } else {
+                context
+            }
+            val recorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                MediaRecorder(recorderContext)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+            mediaRecorder = recorder
+            isRecording = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, context.getString(R.string.toast_recording_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val imageGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            } catch (_: Exception) {}
+            scope.launch {
+                viewModel.saveNoteAndGetId(id = 0, title = "", content = "<img src=\"$it\" />", isEncrypted = false, tagsList = emptyList())
+                Toast.makeText(context, context.getString(R.string.toast_note_created_with_image), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val imageCameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            cameraImageUri?.let { uri ->
+                scope.launch {
+                    viewModel.saveNoteAndGetId(id = 0, title = "", content = "<img src=\"$uri\" />", isEncrypted = false, tagsList = emptyList())
+                    Toast.makeText(context, context.getString(R.string.toast_note_created_with_image), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    val launchCameraForImage: () -> Unit = {
+        try {
+            val tempFile = File(context.cacheDir, "img_${System.currentTimeMillis()}.jpg")
+            val authority = "${context.packageName}.fileprovider"
+            val uri = FileProvider.getUriForFile(context, authority, tempFile)
+            cameraImageUri = uri
+            imageCameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, context.getString(R.string.toast_camera_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    var pendingCameraLaunch by remember { mutableStateOf(false) }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted && pendingCameraLaunch) {
+            launchCameraForImage()
+        } else if (!isGranted) {
+            Toast.makeText(context, context.getString(R.string.camera_permission_required), Toast.LENGTH_SHORT).show()
+        }
+        pendingCameraLaunch = false
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startAudioRecording()
+        } else {
+            Toast.makeText(context, context.getString(R.string.mic_permission_required), Toast.LENGTH_SHORT).show()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -555,22 +672,83 @@ fun MainListScreen(
                     },
                     floatingActionButton = {
                         if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                SmallFloatingActionButton(
-                                    onClick = onLaunchNewAiChat,
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.testTag("ai_chat_fab")
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                AnimatedVisibility(
+                                    visible = isFabExpanded,
+                                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
                                 ) {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                onLaunchNewAiChat()
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_ai")
+                                        ) {
+                                            Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                showImageOptionsDialog = true
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_image")
+                                        ) {
+                                            Icon(Icons.Default.Image, contentDescription = stringResource(R.string.fab_image))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                onNavigateToNewDrawing()
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_drawing")
+                                        ) {
+                                            Icon(Icons.Default.Gesture, contentDescription = stringResource(R.string.fab_drawing))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                showAudioRecorderSheet = true
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_audio")
+                                        ) {
+                                            Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.fab_audio))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                onNavigateToEditor(0)
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_text")
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.fab_text))
+                                        }
+                                    }
                                 }
                                 FloatingActionButton(
-                                    onClick = { onNavigateToEditor(0) },
-                                    modifier = Modifier.testTag("new_note_fab"),
+                                    onClick = { isFabExpanded = !isFabExpanded },
+                                    modifier = Modifier.testTag("fab_main"),
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_note))
+                                    Icon(
+                                        imageVector = if (isFabExpanded) Icons.Default.Close else Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.create_note)
+                                    )
                                 }
                             }
                         }
@@ -1173,6 +1351,218 @@ fun MainListScreen(
             }
         }
     }
+
+    if (showImageOptionsDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageOptionsDialog = false },
+            title = { Text(stringResource(id = R.string.fab_image)) },
+            text = { Text(stringResource(id = R.string.desc_insert_image)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImageOptionsDialog = false
+                        imageGalleryLauncher.launch("image/*")
+                    }
+                ) {
+                    Text(stringResource(id = R.string.label_option_gallery))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showImageOptionsDialog = false
+                        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.CAMERA
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (hasPermission) {
+                            launchCameraForImage()
+                        } else {
+                            pendingCameraLaunch = true
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }
+                ) {
+                    Text(stringResource(id = R.string.label_option_camera))
+                }
+            },
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+
+    if (showAudioRecorderSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showAudioRecorderSheet = false
+                mediaRecorder?.apply {
+                    try { stop() } catch (_: Exception) {}
+                    release()
+                }
+                mediaRecorder = null
+                isRecording = false
+            },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.voice_note_recorder),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                if (!isRecording && recordedFile == null) {
+                    IconButton(
+                        onClick = { recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) },
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .testTag("start_record_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = stringResource(id = R.string.tap_to_record),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Text(stringResource(id = R.string.tap_to_record), style = MaterialTheme.typography.bodySmall)
+                } else if (isRecording) {
+                    IconButton(
+                        onClick = {
+                            try {
+                                mediaRecorder?.apply {
+                                    stop()
+                                    release()
+                                }
+                                mediaRecorder = null
+                                isRecording = false
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        },
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                            .testTag("stop_record_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = stringResource(id = R.string.cd_stop_recording),
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Text(
+                        stringResource(id = R.string.recording_tap_to_stop),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else if (recordedFile != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (isPlayingRecording) {
+                                    draftPlayer?.stop()
+                                    draftPlayer?.release()
+                                    draftPlayer = null
+                                    isPlayingRecording = false
+                                } else {
+                                    try {
+                                        val player = MediaPlayer().apply {
+                                            setDataSource(recordedFile!!.absolutePath)
+                                            prepare()
+                                            start()
+                                            setOnCompletionListener {
+                                                isPlayingRecording = false
+                                                release()
+                                            }
+                                        }
+                                        draftPlayer = player
+                                        isPlayingRecording = true
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        Toast.makeText(context, context.getString(R.string.toast_audio_preview_error), Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = if (isPlayingRecording) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = stringResource(id = R.string.cd_play_pause_audio),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                recordedFile = null
+                                recordedFile?.delete()
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = stringResource(id = R.string.cd_discard_recording),
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            recordedFile?.let { file ->
+                                scope.launch {
+                                    viewModel.saveNoteAndGetId(id = 0, title = "", content = "<audio src=\"${file.absolutePath}\" />", isEncrypted = false, tagsList = emptyList())
+                                }
+                                Toast.makeText(context, context.getString(R.string.toast_note_created_with_audio), Toast.LENGTH_SHORT).show()
+                            }
+                            showAudioRecorderSheet = false
+                            recordedFile = null
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("attach_voice_btn")
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(id = R.string.create_note))
+                    }
+                }
+            }
+        }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                mediaRecorder?.apply {
+                    try { stop() } catch (_: Exception) {}
+                    release()
+                }
+                draftPlayer?.release()
+            }
+        }
+    }
 }
 
 @Composable
@@ -1692,7 +2082,7 @@ fun NoteCardItem(
                                     fontWeight = FontWeight.Light,
                                     modifier = Modifier.padding(start = 4.dp)
                                 )
-                            }
+}
                         }
                     }
                 }

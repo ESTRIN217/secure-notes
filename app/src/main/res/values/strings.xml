@@ -602,6 +602,12 @@
     <!-- AI Assistant -->
     <string name="ai_section">AI Assistant</string>
     <string name="ai_assistant">AI Assistant</string>
+    <string name="fab_text">Texto</string>
+    <string name="fab_audio">Audio</string>
+    <string name="fab_drawing">Dibujo</string>
+    <string name="fab_image">Imagen</string>
+    <string name="toast_note_created_with_audio">Nota creada con audio</string>
+    <string name="toast_note_created_with_image">Nota creada con imagen</string>
     <string name="ai_enabled">Enable AI Assistant</string>
     <string name="ai_enabled_desc">Use local AI models for writing assistance</string>
     <string name="ai_backend">AI Backend</string>

@@ -1,9 +1,11 @@
 package com.example.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import com.example.ui.viewmodel.StorageViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
+import kotlinx.coroutines.launch
 
 data class ScreenContext(
     val viewModel: com.example.ui.viewmodel.NotesViewModel,
@@ -23,6 +25,7 @@ sealed class Screen {
     object MainList : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
+            val scope = rememberCoroutineScope()
             MainListScreen(
                 viewModel = context.viewModel,
                 onNavigateToEditor = { noteId -> context.navigator.onNavigateTo(Screen.NoteEditor(noteId)) },
@@ -36,7 +39,13 @@ sealed class Screen {
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
                 onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
                 onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) },
-                onLaunchNewAiChat = { context.navigator.onNavigateTo(Screen.AiChatStandalone) }
+                onLaunchNewAiChat = { context.navigator.onNavigateTo(Screen.AiChatStandalone) },
+                onNavigateToNewDrawing = {
+                    scope.launch {
+                        val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())
+                        context.navigator.onNavigateTo(Screen.DrawingCanvas(noteId, null))
+                    }
+                }
             )
         }
     }
