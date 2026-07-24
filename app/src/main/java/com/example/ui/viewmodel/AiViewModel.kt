@@ -106,6 +106,9 @@ class AiViewModel(
     private val _chatNoteContext = MutableStateFlow("")
     val chatNoteContext: StateFlow<String> = _chatNoteContext.asStateFlow()
 
+    private val _chatNoteTitle = MutableStateFlow<String?>(null)
+    val chatNoteTitle: StateFlow<String?> = _chatNoteTitle.asStateFlow()
+
     private val _chatSelectedText = MutableStateFlow("")
     val chatSelectedText: StateFlow<String> = _chatSelectedText.asStateFlow()
 
@@ -177,9 +180,10 @@ class AiViewModel(
         prefsRepository.setAiEnabled(enabled)
     }
 
-    fun prepareChatForNote(context: String, selected: String) {
+    fun prepareChatForNote(context: String, selected: String, noteTitle: String? = null) {
         _chatNoteContext.value = context
         _chatSelectedText.value = selected
+        _chatNoteTitle.value = noteTitle
     }
 
     fun requestInsert(text: String) {
@@ -310,6 +314,36 @@ class AiViewModel(
             withContext(Dispatchers.IO) { chatSessionDao.updateTitle(id, title) }
         }
     }
+
+    fun createAndStartSession(noteId: Int = 0, noteTitle: String? = null) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val title = if (noteTitle != null) "Chat - $noteTitle" else "New Chat"
+            val session = ChatSessionEntity(
+                title = title,
+                noteId = noteId.takeIf { it > 0 },
+                noteTitle = noteTitle,
+                backend = if (_backend.value == AiBackend.ON_DEVICE) "ondevice" else "ollama",
+                modelName = _modelName.value,
+                createdAt = now,
+                updatedAt = now,
+                messageCount = 0
+            )
+            val id = withContext(Dispatchers.IO) { chatSessionDao.insert(session) }.toInt()
+            _currentSessionId.value = id
+            _currentNoteId.value = noteId
+            _sessionTitle.value = title
+        }
+    }
+
+    fun detachNote() {
+        _chatNoteContext.value = ""
+        _chatSelectedText.value = ""
+        _chatNoteTitle.value = null
+        _currentNoteId.value = 0
+    }
+
+    fun hasNoteContext(): Boolean = _currentNoteId.value > 0 && _chatNoteContext.value.isNotBlank()
 
     fun loadConversation(sessionId: Int) {
         if (_conversationHistory.value.containsKey(sessionId)) return

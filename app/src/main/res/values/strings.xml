@@ -615,8 +615,12 @@
     <string name="ai_summarize">Summarize</string>
     <string name="ai_summarize_selection">The selected text will be summarized.</string>
     <string name="ai_summarize_full">The full note content will be summarized.</string>
+    <string name="ai_summarize_notes">Summarize notes</string>
     <string name="ai_rewrite">Rewrite</string>
+    <string name="ai_rewrite_note">Rewrite note</string>
     <string name="ai_translate">Translate</string>
+    <string name="ai_translate_note">Translate note</string>
+    <string name="remove_note_context">Remove note context</string>
     <string name="ai_prompt_hint">What would you like me to write?</string>
     <string name="ai_insert">Insert</string>
     <string name="ai_regenerate">Regenerate</string>

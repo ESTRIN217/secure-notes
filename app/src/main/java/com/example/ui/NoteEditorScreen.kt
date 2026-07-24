@@ -1257,7 +1257,8 @@ fun NoteEditorScreen(
                             aiViewModel.prepareChatForNote(
                                 content,
                                 contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
-                                    .takeIf { contentValue.selection.start != contentValue.selection.end } ?: ""
+                                    .takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
+                                title
                             )
                             onNavigateToAiChat(noteId)
                         }) {
@@ -1981,7 +1982,8 @@ fun NoteEditorScreen(
                                 aiViewModel.prepareChatForNote(
                                     content,
                                     contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
-                                        .takeIf { contentValue.selection.start != contentValue.selection.end } ?: ""
+                                        .takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
+                                    title
                                 )
                                 onNavigateToAiChat(noteId)
                             },

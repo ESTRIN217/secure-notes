@@ -89,6 +89,7 @@ fun AiChatScreen(
     val selectedOnDeviceModel by viewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
+    val noteTitle by viewModel.chatNoteTitle.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
@@ -99,6 +100,8 @@ fun AiChatScreen(
     LaunchedEffect(sessionId, noteId) {
         if (sessionId > 0) {
             viewModel.loadSession(sessionId, noteId)
+        } else if (noteId > 0 && viewModel.currentSessionId.value <= 0) {
+            viewModel.createAndStartSession(noteId, noteTitle)
         }
         editingMessage?.let { inputText = it; editingMessage = null }
     }
@@ -208,7 +211,8 @@ fun AiChatScreen(
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         ActionChipRowMinimal(
                             currentAction = currentAction,
-                            onActionSelected = { currentAction = it }
+                            onActionSelected = { currentAction = it },
+                            hasNoteContext = effectiveSessionId > 0 && noteTitle != null
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         SuggestionChips(
@@ -339,91 +343,56 @@ fun AiChatScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
-                    EmptyChatWelcome(
-                        selectedText = selectedText,
-                        fullContent = fullContent,
-                        onSuggestion = { prompt ->
-                            viewModel.execute(
-                                AiRequest(action = AiAction.GENERATE, prompt = prompt, selectedText = selectedText, context = fullContent),
-                                effectiveSessionId
-                            )
-                        },
-                        onSummarize = {
-                            viewModel.execute(
-                                AiRequest(action = AiAction.SUMMARIZE, prompt = context.getString(R.string.ai_chat_prompt_summarize), selectedText = selectedText, context = fullContent),
-                                effectiveSessionId
-                            )
-                        }
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
-                    ) {
-                        items(
-                            items = conversationHistory,
-                            key = { "${it.role}_${it.timestamp}_${it.status}" }
-                        ) { turn ->
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(animationSpec = tween(200)) +
-                                    slideInVertically(
-                                        animationSpec = tween(200),
-                                        initialOffsetY = { it / 4 }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    val currentNoteTitle = noteTitle
+                    if (effectiveSessionId > 0 && currentNoteTitle != null) {
+                        NoteContextBar(
+                            noteTitle = currentNoteTitle,
+                            onRemove = { viewModel.detachNote() }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
+                            EmptyChatWelcome(
+                                selectedText = selectedText,
+                                fullContent = fullContent,
+                                onSuggestion = { prompt ->
+                                    viewModel.execute(
+                                        AiRequest(action = AiAction.GENERATE, prompt = prompt, selectedText = selectedText, context = fullContent),
+                                        effectiveSessionId
                                     )
-                            ) {
-                                MessageBubble(
-                                    turn = turn,
-                                    clipboardManager = clipboardManager,
-                                    haptic = haptic,
-                                    isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
-                                    showInsert = turn.role == "assistant" && onInsert != null,
-                                    onInsert = { onInsert?.invoke(turn.content) },
-                                    onResend = { text ->
-                                        editingMessage = text
-                                        inputText = text
-                                    },
-                                    onRetry = {
-                                        if (turn.role == "assistant" && turn.status == MessageStatus.ERROR) {
-                                            val lastUserMsg = conversationHistory
-                                                .takeWhile { it != turn }
-                                                .lastOrNull { it.role == "user" }
-                                            viewModel.execute(
-                                                AiRequest(action = AiAction.GENERATE, prompt = lastUserMsg?.content ?: "", selectedText = selectedText, context = fullContent),
-                                                effectiveSessionId
-                                            )
-                                        }
-                                    },
-                                    onEdit = { text ->
-                                        editingMessage = text
-                                        inputText = text
-                                    },
-                                    modelName = displayModelName
-                                )
-                            }
-                        }
-                        if (isStreamingEmpty) {
-                            item(key = "typing") {
-                                TypingIndicator()
-                            }
-                        }
-                        if (hasStreamingContent) {
-                            item(key = "streaming") {
-                                StreamingBubble(
-                                    text = streamingText!!,
-                                    modelName = displayModelName
-                                )
-                            }
+                                },
+                                onSummarize = {
+                                    viewModel.execute(
+                                        AiRequest(action = AiAction.SUMMARIZE, prompt = context.getString(R.string.ai_chat_prompt_summarize), selectedText = selectedText, context = fullContent),
+                                        effectiveSessionId
+                                    )
+                                }
+                            )
+                        } else {
+                            ChatMessageList(
+                                conversationHistory = conversationHistory,
+                                isStreamingEmpty = isStreamingEmpty,
+                                hasStreamingContent = hasStreamingContent,
+                                streamingText = streamingText,
+                                displayModelName = displayModelName,
+                                listState = listState,
+                                clipboardManager = clipboardManager,
+                                haptic = haptic,
+                                onInsert = onInsert,
+                                onResend = { text -> editingMessage = text; inputText = text },
+                                onEdit = { text -> editingMessage = text; inputText = text },
+                                selectedText = selectedText,
+                                fullContent = fullContent,
+                                effectiveSessionId = effectiveSessionId,
+                                viewModel = viewModel
+                            )
                         }
                     }
                 }
 
-                if (!viewModel.isAvailable() && conversationHistory.isEmpty()) {
+                val showError = !viewModel.isAvailable() && conversationHistory.isEmpty()
+                if (showError) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -993,7 +962,8 @@ fun TypingIndicator() {
 @Composable
 fun ActionChipRowMinimal(
     currentAction: AiAction,
-    onActionSelected: (AiAction) -> Unit
+    onActionSelected: (AiAction) -> Unit,
+    hasNoteContext: Boolean = false
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1010,7 +980,13 @@ fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.SUMMARIZE,
             onClick = { onActionSelected(AiAction.SUMMARIZE) },
-            label = { Text(stringResource(R.string.ai_summarize), style = MaterialTheme.typography.labelSmall) },
+            label = {
+                Text(
+                    if (hasNoteContext) stringResource(R.string.ai_summarize_notes)
+                    else stringResource(R.string.ai_summarize),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            },
             leadingIcon = {
                 Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(14.dp))
             }
@@ -1018,7 +994,13 @@ fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.REWRITE,
             onClick = { onActionSelected(AiAction.REWRITE) },
-            label = { Text(stringResource(R.string.ai_rewrite), style = MaterialTheme.typography.labelSmall) },
+            label = {
+                Text(
+                    if (hasNoteContext) stringResource(R.string.ai_rewrite_note)
+                    else stringResource(R.string.ai_rewrite),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            },
             leadingIcon = {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
             }
@@ -1026,10 +1008,141 @@ fun ActionChipRowMinimal(
         FilterChip(
             selected = currentAction == AiAction.TRANSLATE,
             onClick = { onActionSelected(AiAction.TRANSLATE) },
-            label = { Text(stringResource(R.string.ai_translate), style = MaterialTheme.typography.labelSmall) },
+            label = {
+                Text(
+                    if (hasNoteContext) stringResource(R.string.ai_translate_note)
+                    else stringResource(R.string.ai_translate),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            },
             leadingIcon = {
                 Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(14.dp))
             }
         )
+    }
+}
+
+@Composable
+fun ChatMessageList(
+    conversationHistory: List<ConversationTurn>,
+    isStreamingEmpty: Boolean,
+    hasStreamingContent: Boolean,
+    streamingText: String?,
+    displayModelName: String,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
+    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    onInsert: ((String) -> Unit)?,
+    onResend: (String) -> Unit,
+    onEdit: (String) -> Unit,
+    selectedText: String,
+    fullContent: String,
+    effectiveSessionId: Int,
+    viewModel: AiViewModel
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        items(
+            items = conversationHistory,
+            key = { "${it.role}_${it.timestamp}_${it.status}" }
+        ) { turn ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(200)) +
+                    slideInVertically(
+                        animationSpec = tween(200),
+                        initialOffsetY = { it / 4 }
+                    )
+            ) {
+                MessageBubble(
+                    turn = turn,
+                    clipboardManager = clipboardManager,
+                    haptic = haptic,
+                    isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
+                    showInsert = turn.role == "assistant" && onInsert != null,
+                    onInsert = { onInsert?.invoke(turn.content) },
+                    onResend = onResend,
+                    onRetry = {
+                        if (turn.role == "assistant" && turn.status == MessageStatus.ERROR) {
+                            val lastUserMsg = conversationHistory
+                                .takeWhile { it != turn }
+                                .lastOrNull { it.role == "user" }
+                            viewModel.execute(
+                                AiRequest(action = AiAction.GENERATE, prompt = lastUserMsg?.content ?: "", selectedText = selectedText, context = fullContent),
+                                effectiveSessionId
+                            )
+                        }
+                    },
+                    onEdit = onEdit,
+                    modelName = displayModelName
+                )
+            }
+        }
+        if (isStreamingEmpty) {
+            item(key = "typing") {
+                TypingIndicator()
+            }
+        }
+        if (hasStreamingContent) {
+            item(key = "streaming") {
+                StreamingBubble(
+                    text = streamingText!!,
+                    modelName = displayModelName
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NoteContextBar(
+    noteTitle: String,
+    onRemove: () -> Unit
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Icon(
+                Icons.Default.Description,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = noteTitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.remove_note_context),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
     }
 }
