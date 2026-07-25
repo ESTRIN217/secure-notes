@@ -9,6 +9,11 @@ import com.example.data.local.ChatSessionDao
 import com.example.data.local.ChatSessionEntity
 import com.example.data.local.ConversationDao
 import com.example.data.local.ConversationEntity
+import com.example.data.local.NoteDao
+import com.example.data.model.DecryptedNote
+import com.example.data.model.Note
+import com.example.data.security.CipherService
+import com.example.data.security.EncryptionServiceImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +64,9 @@ class AiViewModel(
     private val onDeviceService: OnDeviceService,
     private val modelDownloader: ModelDownloader,
     private val conversationDao: ConversationDao,
-    private val chatSessionDao: ChatSessionDao
+    private val chatSessionDao: ChatSessionDao,
+    private val noteDao: NoteDao,
+    private val cipherService: CipherService = EncryptionServiceImpl()
 ) : AndroidViewModel(application) {
 
     private val _aiEnabled = MutableStateFlow(prefsRepository.getAiEnabled())
@@ -137,6 +144,12 @@ class AiViewModel(
 
     private val _currentNoteId = MutableStateFlow(0)
     val currentNoteId: StateFlow<Int> = _currentNoteId.asStateFlow()
+
+    private val _masterPassword = MutableStateFlow<String?>(null)
+    val masterPassword: StateFlow<String?> = _masterPassword.asStateFlow()
+
+    private val _availableNotes = MutableStateFlow<List<DecryptedNote>>(emptyList())
+    val availableNotes: StateFlow<List<DecryptedNote>> = _availableNotes.asStateFlow()
 
     private var currentJob: Job? = null
 
@@ -344,6 +357,45 @@ class AiViewModel(
     }
 
     fun hasNoteContext(): Boolean = _currentNoteId.value > 0 && _chatNoteContext.value.isNotBlank()
+
+    fun setMasterPassword(password: String?) {
+        _masterPassword.value = password
+    }
+
+    fun loadAvailableNotes(searchQuery: String = "") {
+        viewModelScope.launch {
+            val notes = withContext(Dispatchers.IO) { noteDao.getAllNotes() }
+            val password = _masterPassword.value
+            val decrypted = notes
+                .filter { !it.isDeleted }
+                .map { decryptNoteForAttach(it, password) }
+                .filter { searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) }
+            _availableNotes.value = decrypted
+        }
+    }
+
+    fun attachNoteById(noteId: Int) {
+        viewModelScope.launch {
+            val note = withContext(Dispatchers.IO) { noteDao.getNoteById(noteId) } ?: return@launch
+            val password = _masterPassword.value
+            val decrypted = decryptNoteForAttach(note, password)
+            prepareChatForNote(decrypted.content, "", decrypted.title)
+            _currentNoteId.value = noteId
+        }
+    }
+
+    private fun decryptNoteForAttach(note: Note, password: String?): DecryptedNote {
+        if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
+        val pass = password ?: ""
+        if (pass.isEmpty()) return DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
+        val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv).getOrDefault("")
+        val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv).getOrDefault("")
+        return if (decTitle.isEmpty() && decContent.isEmpty()) {
+            DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
+        } else {
+            DecryptedNote(note, decTitle, decContent, true)
+        }
+    }
 
     fun loadConversation(sessionId: Int) {
         if (_conversationHistory.value.containsKey(sessionId)) return

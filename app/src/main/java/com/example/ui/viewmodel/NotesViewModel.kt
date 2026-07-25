@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
@@ -114,6 +115,7 @@ class NotesViewModel(
     override val isPasswordSet = MutableStateFlow(hasPasswordInPrefs)
     val isUnlocked = MutableStateFlow(!hasPasswordInPrefs)
     private val masterPassword = MutableStateFlow<String?>(null)
+    val masterPasswordState: StateFlow<String?> = masterPassword.asStateFlow()
     val passwordType = MutableStateFlow(
         try { PasswordType.valueOf(sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, PasswordType.PASSWORD.name) ?: PasswordType.PASSWORD.name) }
         catch (e: Exception) { PasswordType.PASSWORD }

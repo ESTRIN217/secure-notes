@@ -218,7 +218,9 @@ class MainActivity : ComponentActivity() {
                             onDeviceService,
                             modelDownloader,
                             db.conversationDao,
-                            db.chatSessionDao
+                            db.chatSessionDao,
+                            db.noteDao,
+                            cipherService
                         ) as T
                     }
                 }
@@ -257,6 +259,11 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val masterPassword by viewModel.masterPasswordState.collectAsState()
+    LaunchedEffect(masterPassword) {
+        aiViewModel.setMasterPassword(masterPassword)
     }
 
     var currentScreen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.MainList) }
@@ -366,7 +373,8 @@ fun NavigationRailContent(
     widthClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     onCreateTag: () -> Unit = {},
     onManageTags: () -> Unit = {},
-    onNavigateToChatHistory: () -> Unit = {}
+    onNavigateToChatHistory: () -> Unit = {},
+    aiEnabled: Boolean = true
 ) {
     val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
 
@@ -500,41 +508,43 @@ fun NavigationRailContent(
                     }
                 }
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                )
+                if (aiEnabled) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
 
-                val (_, chatIcon, chatLabelRes) = chatNavItem
-                val chatLabel = stringResource(id = chatLabelRes)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .clickable { onNavigateToChatHistory() }
-                        .testTag("nav_rail_item_chats"),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
+                    val (_, chatIcon, chatLabelRes) = chatNavItem
+                    val chatLabel = stringResource(id = chatLabelRes)
+                    Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = if (isExtended) Arrangement.Start else Arrangement.Center
+                            .fillMaxWidth(0.9f)
+                            .clickable { onNavigateToChatHistory() }
+                            .testTag("nav_rail_item_chats"),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(
-                            imageVector = chatIcon,
-                            contentDescription = chatLabel,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        if (isExtended) {
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = chatLabel,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = if (isExtended) Arrangement.Start else Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = chatIcon,
+                                contentDescription = chatLabel,
+                                tint = MaterialTheme.colorScheme.primary
                             )
+                            if (isExtended) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = chatLabel,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }

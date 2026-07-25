@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.ai.*
+import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import com.example.ui.viewmodel.ConversationTurn
@@ -79,6 +80,8 @@ fun AiChatScreen(
     var showRenameTitleDialog by remember { mutableStateOf(false) }
     var renameTitleText by remember { mutableStateOf("") }
     var editingMessage by remember { mutableStateOf<String?>(null) }
+    var showNotePicker by remember { mutableStateOf(false) }
+    var notePickerSearchQuery by remember { mutableStateOf("") }
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
@@ -231,8 +234,11 @@ fun AiChatScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             IconButton(
-                                onClick = {},
-                                enabled = false,
+                                onClick = {
+                                    showNotePicker = true
+                                    notePickerSearchQuery = ""
+                                    viewModel.loadAvailableNotes()
+                                },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
@@ -257,7 +263,7 @@ fun AiChatScreen(
                                                 AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
                                                 AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
                                                 AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
-                                            }
+                                        }
                                         }
                                     )
                                 },
@@ -437,6 +443,22 @@ fun AiChatScreen(
                 TextButton(onClick = { showRenameTitleDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
+            }
+        )
+    }
+
+    if (showNotePicker) {
+        NoteAttachmentSheet(
+            viewModel = viewModel,
+            searchQuery = notePickerSearchQuery,
+            onSearchQueryChange = { query ->
+                notePickerSearchQuery = query
+                viewModel.loadAvailableNotes(query)
+            },
+            onDismiss = { showNotePicker = false },
+            onNoteSelected = { note ->
+                viewModel.attachNoteById(note.note.id)
+                showNotePicker = false
             }
         )
     }
@@ -1143,6 +1165,108 @@ fun NoteContextBar(
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NoteAttachmentSheet(
+    viewModel: AiViewModel,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onNoteSelected: (DecryptedNote) -> Unit
+) {
+    val notes by viewModel.availableNotes.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(
+                text = stringResource(R.string.select_note_to_attach),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text(stringResource(R.string.search_notes)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (notes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.no_notes_found),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                    items(notes) { decryptedNote ->
+                        val note = decryptedNote.note
+                        Surface(
+                            onClick = { onNoteSelected(decryptedNote) },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (note.isFavorite) Icons.Default.Star else Icons.Default.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (note.isFavorite) MaterialTheme.colorScheme.primary
+                                           else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = decryptedNote.title.ifBlank { stringResource(R.string.untitled_note) },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (decryptedNote.isDecryptionSuccessful && decryptedNote.content.isNotBlank()) {
+                                        Text(
+                                            text = decryptedNote.content.take(80).replace("\n", " "),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    } else if (!decryptedNote.isDecryptionSuccessful) {
+                                        Text(
+                                            text = stringResource(R.string.encrypted_note_locked),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

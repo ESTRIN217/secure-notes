@@ -758,4 +758,8 @@
     <string name="chat_title_hint">Chat title</string>
     <string name="chat_rename_dialog_title">Rename Chat</string>
     <string name="chat_pinned_section">Pinned</string>
+    <string name="select_note_to_attach">Select a note to attach</string>
+    <string name="search_notes">Search notes</string>
+    <string name="no_notes_found">No notes found</string>
+    <string name="encrypted_note_locked">Locked — unlock to attach</string>
     </resources>
