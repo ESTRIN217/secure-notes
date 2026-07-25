@@ -204,8 +204,7 @@ sealed class Screen {
                 onInsert = { text ->
                     context.aiViewModel.requestInsert(text)
                     context.navigator.onNavigateBack(Screen.NoteEditor(noteId))
-                },
-                onNavigateToChatHistory = null
+                }
             )
         }
     }
@@ -221,8 +220,7 @@ sealed class Screen {
                 fullContent = "",
                 selectedText = "",
                 onBack = { context.navigator.onNavigateBack(Screen.ChatHistory) },
-                onInsert = null,
-                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
+                onInsert = null
             )
         }
     }
@@ -238,8 +236,7 @@ sealed class Screen {
                 fullContent = "",
                 selectedText = "",
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
-                onInsert = null,
-                onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) }
+                onInsert = null
             )
         }
     }

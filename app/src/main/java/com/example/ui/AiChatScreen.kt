@@ -48,13 +48,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.ai.*
+import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import com.example.ui.viewmodel.ConversationTurn
 import com.example.ui.viewmodel.MessageStatus
 import com.example.util.RichTextParser
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val SWIPE_THRESHOLD = 120f
 
@@ -68,8 +73,7 @@ fun AiChatScreen(
     fullContent: String,
     selectedText: String,
     onBack: () -> Unit,
-    onInsert: ((String) -> Unit)?,
-    onNavigateToChatHistory: (() -> Unit)?
+    onInsert: ((String) -> Unit)?
 ) {
     BackHandler(onBack = onBack)
 
@@ -96,6 +100,18 @@ fun AiChatScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val sessions by chatHistoryViewModel.sessions.collectAsStateWithLifecycle()
+    var showDeleteDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
+    var showRenameDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var drawerSearchQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
     val listState = rememberLazyListState()
 
     val effectiveSessionId = if (sessionId > 0) sessionId else viewModel.currentSessionId.value
@@ -158,8 +174,34 @@ fun AiChatScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = false,
+        drawerContent = {
+            ChatHistoryDrawerContent(
+                sessions = sessions,
+                drawerSearchQuery = drawerSearchQuery,
+                onSearchQueryChange = { drawerSearchQuery = it },
+                onNavigateToSession = { sessionId ->
+                    viewModel.loadSession(sessionId, 0)
+                    scope.launch { drawerState.close() }
+                },
+                onCreateSession = {
+                    chatHistoryViewModel.createSession()
+                    scope.launch { drawerState.close() }
+                },
+                onRename = { session ->
+                    renameText = session.title
+                    showRenameDialog = session
+                },
+                onDelete = { showDeleteDialog = it },
+                onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
+                chatHistoryViewModel = chatHistoryViewModel
+            )
+        }
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
             topBar = {
                 TopAppBar(
                     title = {
@@ -191,10 +233,8 @@ fun AiChatScreen(
                         }
                     },
                     actions = {
-                        if (onNavigateToChatHistory != null) {
-                            IconButton(onClick = onNavigateToChatHistory) {
-                                Icon(Icons.Default.History, contentDescription = stringResource(R.string.chat_history_title))
-                            }
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.History, contentDescription = stringResource(R.string.chat_history_title))
                         }
                         if (effectiveSessionId > 0) {
                             if (conversationHistory.isNotEmpty()) {
@@ -411,10 +451,64 @@ fun AiChatScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
-                    }
                 }
             }
         }
+    }
+    }
+    }
+
+    val latestSessionId by chatHistoryViewModel.latestSessionId.collectAsStateWithLifecycle()
+    LaunchedEffect(latestSessionId) {
+        latestSessionId?.let { id ->
+            chatHistoryViewModel.clearLatestSessionId()
+            viewModel.loadSession(id, 0)
+        }
+    }
+
+    if (showRenameDialog != null) {
+        val session = showRenameDialog!!
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = null },
+            title = { Text(stringResource(R.string.chat_rename_dialog_title)) },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    label = { Text(stringResource(R.string.chat_title_hint)) },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (renameText.isNotBlank()) {
+                        chatHistoryViewModel.renameSession(session.id, renameText)
+                    }
+                    showRenameDialog = null
+                }) { Text(stringResource(R.string.chat_rename)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = null }) { Text(stringResource(R.string.btn_cancel)) }
+            }
+        )
+    }
+
+    if (showDeleteDialog != null) {
+        val session = showDeleteDialog!!
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text(stringResource(R.string.chat_delete_confirm)) },
+            text = { Text(session.title) },
+            confirmButton = {
+                TextButton(onClick = {
+                    chatHistoryViewModel.deleteSession(session.id)
+                    showDeleteDialog = null
+                }) { Text(stringResource(R.string.btn_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text(stringResource(R.string.btn_cancel)) }
+            }
+        )
     }
 
     if (showRenameTitleDialog) {
@@ -1267,6 +1361,153 @@ fun NoteAttachmentSheet(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+fun ChatHistoryDrawerContent(
+    sessions: List<ChatSessionWithPreview>,
+    drawerSearchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onNavigateToSession: (Int) -> Unit,
+    onCreateSession: () -> Unit,
+    onRename: (ChatSessionWithPreview) -> Unit,
+    onDelete: (ChatSessionWithPreview) -> Unit,
+    onTogglePin: (ChatSessionWithPreview) -> Unit,
+    chatHistoryViewModel: ChatHistoryViewModel
+) {
+    val filteredSessions = remember(sessions, drawerSearchQuery) {
+        if (drawerSearchQuery.isBlank()) sessions
+        else sessions.filter {
+            it.title.contains(drawerSearchQuery, ignoreCase = true) ||
+            it.previewText?.contains(drawerSearchQuery, ignoreCase = true) == true
+        }
+    }
+    val pinnedSessions = filteredSessions.filter { it.isPinned }
+    val otherSessions = filteredSessions.filter { !it.isPinned }
+
+    Column(modifier = Modifier.fillMaxHeight()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.chat_history_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = {
+                chatHistoryViewModel.setSearchQuery("")
+                onSearchQueryChange("")
+            }) {
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+            }
+        }
+
+        OutlinedTextField(
+            value = drawerSearchQuery,
+            onValueChange = { query ->
+                onSearchQueryChange(query)
+                chatHistoryViewModel.setSearchQuery(query)
+            },
+            placeholder = { Text(stringResource(R.string.chat_search_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onCreateSession,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.chat_new))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (filteredSessions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.chat_empty_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (pinnedSessions.isNotEmpty()) {
+                    item(key = "pinned_header") {
+                        Text(
+                            stringResource(R.string.chat_pinned_section),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(pinnedSessions, key = { "pin_${it.id}" }) { session ->
+                        ChatSessionCard(
+                            session = session,
+                            onClick = { onNavigateToSession(session.id) },
+                            onRename = { onRename(session) },
+                            onDelete = { onDelete(session) },
+                            onTogglePin = { onTogglePin(session) }
+                        )
+                    }
+                }
+
+                if (otherSessions.isNotEmpty()) {
+                    if (pinnedSessions.isNotEmpty()) {
+                        item(key = "divider") {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
+                    items(otherSessions, key = { "sess_${it.id}" }) { session ->
+                        ChatSessionCard(
+                            session = session,
+                            onClick = { onNavigateToSession(session.id) },
+                            onRename = { onRename(session) },
+                            onDelete = { onDelete(session) },
+                            onTogglePin = { onTogglePin(session) }
+                        )
+                    }
+                }
+
+                item(key = "bottom_spacer") {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
         }
     }
 }

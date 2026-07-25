@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,14 +69,6 @@ fun ChatHistoryScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.createSession() },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.chat_new))
-            }
         }
     ) { paddingValues ->
         Column(
@@ -169,23 +162,37 @@ Icons.Default.Chat,
                 tonalElevation = 3.dp,
                 shadowElevation = 8.dp
             ) {
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    placeholder = { Text(stringResource(R.string.chat_search_hint)) },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    readOnly = true,
-                    shape = RoundedCornerShape(24.dp),
-                    trailingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        placeholder = { Text(stringResource(R.string.chat_search_hint)) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToSearch() },
+                        readOnly = true,
+                        shape = RoundedCornerShape(24.dp),
+                        trailingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        )
                     )
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    FilledIconButton(
+                        onClick = { viewModel.createSession() },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.chat_new))
+                    }
+                }
             }
         }
     }
