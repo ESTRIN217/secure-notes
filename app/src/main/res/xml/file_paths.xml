@@ -5,4 +5,5 @@
     <files-path name="attachments" path="attachments/" />
     <files-path name="restored_attachments" path="restored_attachments/" />
     <files-path name="exports" path="." />
+    <external-files-path name="external_exports" path="." />
 </paths>

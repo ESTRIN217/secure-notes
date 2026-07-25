@@ -2080,9 +2080,11 @@ fun NoteEditorScreen(
 
         // ── Level 2: Floating AI Panel ──────────────────────────
         if (showAiPanel) {
+            Box(Modifier.fillMaxSize()) {
             Surface(
                 modifier = Modifier
-                    .padding(bottom = 104.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 88.dp)
                     .fillMaxWidth(0.92f),
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 6.dp,
@@ -2165,6 +2167,7 @@ fun NoteEditorScreen(
                         }
                     }
                 }
+            }
             }
         }
 
