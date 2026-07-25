@@ -178,26 +178,32 @@ fun AiChatScreen(
         drawerState = drawerState,
         gesturesEnabled = false,
         drawerContent = {
-            ChatHistoryDrawerContent(
-                sessions = sessions,
-                drawerSearchQuery = drawerSearchQuery,
-                onSearchQueryChange = { drawerSearchQuery = it },
-                onNavigateToSession = { sessionId ->
-                    viewModel.loadSession(sessionId, 0)
-                    scope.launch { drawerState.close() }
-                },
-                onCreateSession = {
-                    chatHistoryViewModel.createSession()
-                    scope.launch { drawerState.close() }
-                },
-                onRename = { session ->
-                    renameText = session.title
-                    showRenameDialog = session
-                },
-                onDelete = { showDeleteDialog = it },
-                onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
-                chatHistoryViewModel = chatHistoryViewModel
-            )
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.width(320.dp),
+                drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
+            ) {
+                ChatHistoryDrawerContent(
+                    sessions = sessions,
+                    drawerSearchQuery = drawerSearchQuery,
+                    onSearchQueryChange = { drawerSearchQuery = it },
+                    onNavigateToSession = { sessionId ->
+                        viewModel.loadSession(sessionId, 0)
+                        scope.launch { drawerState.close() }
+                    },
+                    onCreateSession = {
+                        chatHistoryViewModel.createSession()
+                        scope.launch { drawerState.close() }
+                    },
+                    onRename = { session ->
+                        renameText = session.title
+                        showRenameDialog = session
+                    },
+                    onDelete = { showDeleteDialog = it },
+                    onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
+                    chatHistoryViewModel = chatHistoryViewModel
+                )
+            }
         }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
