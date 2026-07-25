@@ -691,6 +691,8 @@
     <string name="ai_ondevice_status_ready">Modelo cargado y listo</string>
     <string name="ai_ondevice_status_error">Error al cargar el modelo</string>
     <string name="ai_ondevice_not_downloaded">El modelo aún no se ha descargado</string>
+    <string name="ai_ondevice_text_models">Modelos de Texto</string>
+    <string name="ai_ondevice_text_formats">Formatos de Archivo Compatibles</string>
 
     <!-- Storage Manager -->
     <string name="settings_storage_manager">Administrador de Almacenamiento</string>

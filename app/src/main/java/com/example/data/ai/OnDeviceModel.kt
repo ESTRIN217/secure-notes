@@ -86,6 +86,64 @@ val MODEL_CATALOG = listOf(
         huggingFaceRepo = "hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF",
         ggufFileName = "llama-3.2-3b-instruct-q4_k_m.gguf",
         minApiLevel = 26
+    ),
+    // Qwen 3
+    OnDeviceModel(
+        id = "qwen3-0.5b",
+        displayName = "Qwen3 0.5B",
+        minRamMb = 768,
+        recommendedRamMb = 1536,
+        fileSizeMb = 492,
+        huggingFaceRepo = "Qwen/Qwen3-0.5B-Instruct-GGUF",
+        ggufFileName = "qwen3-0.5b-instruct-q4_k_m.gguf"
+    ),
+    OnDeviceModel(
+        id = "qwen3-1.7b",
+        displayName = "Qwen3 1.7B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 1010,
+        huggingFaceRepo = "Qwen/Qwen3-1.7B-Instruct-GGUF",
+        ggufFileName = "qwen3-1.7b-instruct-q4_k_m.gguf"
+    ),
+    // Qwen 2.5 1.5B
+    OnDeviceModel(
+        id = "qwen2.5-1.5b",
+        displayName = "Qwen 2.5 1.5B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 985,
+        huggingFaceRepo = "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+        ggufFileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+    ),
+    // Gemma 3
+    OnDeviceModel(
+        id = "gemma3-1b",
+        displayName = "Gemma 3 1B",
+        minRamMb = 1024,
+        recommendedRamMb = 2048,
+        fileSizeMb = 795,
+        huggingFaceRepo = "google/gemma-3-1b-it-GGUF",
+        ggufFileName = "gemma-3-1b-it-Q4_K_M.gguf"
+    ),
+    OnDeviceModel(
+        id = "gemma3-2b",
+        displayName = "Gemma 3 2B",
+        minRamMb = 2048,
+        recommendedRamMb = 4096,
+        fileSizeMb = 1380,
+        huggingFaceRepo = "google/gemma-3-2b-it-GGUF",
+        ggufFileName = "gemma-3-2b-it-Q4_K_M.gguf"
+    ),
+    // DeepSeek
+    OnDeviceModel(
+        id = "deepseek-r1-distill-qwen-1.5b",
+        displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 985,
+        huggingFaceRepo = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
+        ggufFileName = "deepseek-r1-distill-qwen-1.5b-q4_k_m.gguf"
     )
 )
 

@@ -711,6 +711,8 @@
     <string name="ai_ondevice_status_ready">Model loaded and ready</string>
     <string name="ai_ondevice_status_error">Error loading model</string>
     <string name="ai_ondevice_not_downloaded">Model not downloaded yet</string>
+    <string name="ai_ondevice_text_models">Text Models</string>
+    <string name="ai_ondevice_text_formats">Supported File Formats</string>
 
     <!-- Storage Manager -->
     <string name="settings_storage_manager">Storage Manager</string>

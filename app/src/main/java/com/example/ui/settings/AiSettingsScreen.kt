@@ -1,6 +1,10 @@
 package com.example.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -43,6 +47,7 @@ fun AiSettingsScreen(
     val onDeviceLoadedInfo by aiViewModel.onDeviceLoadedModelInfo.collectAsStateWithLifecycle()
 
     var showAiBackendSheet by remember { mutableStateOf(false) }
+    var showAllModels by remember { mutableStateOf(true) }
     var editingUrl by remember(aiEndpointUrl) { mutableStateOf(aiEndpointUrl) }
     var editingModel by remember(aiModelName) { mutableStateOf(aiModelName) }
     var editingSystemPrompt by remember(systemPrompt) { mutableStateOf(systemPrompt) }
@@ -128,7 +133,9 @@ fun AiSettingsScreen(
                         models = recommendedModels,
                         selectedModel = selectedModel,
                         deviceInfo = deviceInfo,
-                        onSelectModel = { aiViewModel.selectOnDeviceModel(it) }
+                        onSelectModel = { aiViewModel.selectOnDeviceModel(it) },
+                        isExpanded = showAllModels,
+                        onToggle = { showAllModels = !showAllModels }
                     )
                     onDeviceActionsSection(
                         selectedModel = selectedModel,
@@ -141,6 +148,7 @@ fun AiSettingsScreen(
                         onUnloadModel = { aiViewModel.unloadModel() },
                         isModelDownloaded = { aiViewModel.isModelDownloaded(it) }
                     )
+                    onDeviceTextModelsSection(recommendedModels)
                 }
 
                 item {
@@ -426,25 +434,52 @@ private fun LazyListScope.onDeviceAllModelsSection(
     models: List<OnDeviceModel>,
     selectedModel: OnDeviceModel?,
     deviceInfo: DeviceInfo,
-    onSelectModel: (OnDeviceModel) -> Unit
+    onSelectModel: (OnDeviceModel) -> Unit,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
 ) {
     if (models.isEmpty()) return
     item {
-        SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_all_models))
-        SettingsCardGroup {
-            Column(modifier = Modifier.padding(8.dp)) {
-                models.forEach { model ->
-                    ModelSelectionRow(
-                        model = model,
-                        isSelected = selectedModel?.id == model.id,
-                        isCompatibleByRam = model.minRamMb <= deviceInfo.availableRamMb,
-                        onSelect = { onSelectModel(model) }
-                    )
-                    if (model != models.last()) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.ai_ondevice_all_models),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            SettingsCardGroup {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    models.forEach { model ->
+                        ModelSelectionRow(
+                            model = model,
+                            isSelected = selectedModel?.id == model.id,
+                            isCompatibleByRam = model.minRamMb <= deviceInfo.availableRamMb,
+                            onSelect = { onSelectModel(model) }
                         )
+                        if (model != models.last()) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
                     }
                 }
             }
@@ -766,6 +801,41 @@ private fun ModelSelectionRow(
                 tint = statusColor,
                 modifier = Modifier.size(20.dp)
             )
+        }
+    }
+}
+
+private fun LazyListScope.onDeviceTextModelsSection(models: List<OnDeviceModel>) {
+    if (models.isEmpty()) return
+    val textExtensions = listOf(
+        ".txt", ".md", ".html", ".htm", ".json", ".xml",
+        ".csv", ".log", ".properties", ".cfg", ".ini",
+        ".yml", ".yaml", ".sh", ".bat", ".env"
+    )
+    item {
+        SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_text_models))
+        SettingsCardGroup {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = stringResource(R.string.ai_ondevice_text_formats),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    textExtensions.forEach { ext ->
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text(ext) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
