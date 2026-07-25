@@ -1067,12 +1067,56 @@ class NotesViewModel(
                     put("timestamp", System.currentTimeMillis())
                 }.toString()
 
+                // Collect attachments and rewrite paths BEFORE encryption/ZIP
+                var allPathMaps: Map<String, String> = emptyMap()
+                var attachmentTempDir: File? = null
+                val finalSyncPayload: String
+
+                if (includeAttachments.value) {
+                    val app = getApplication<Application>()
+                    val context = app.applicationContext
+                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                    tempDir.mkdirs()
+                    val tempAttachmentsDir = File(tempDir, "attachments")
+                    attachmentTempDir = tempDir
+
+                    val collectedMaps = mutableMapOf<String, String>()
+                    rawNotes.value.forEach { note ->
+                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                        )
+                        collectedMaps.putAll(pathMap)
+                    }
+                    allPathMaps = collectedMaps
+
+                    if (allPathMaps.isNotEmpty()) {
+                        val payloadObj = JSONObject(syncPayload)
+                        val notesArr = payloadObj.getJSONArray("notes")
+                        for (i in 0 until notesArr.length()) {
+                            val noteObj = notesArr.getJSONObject(i)
+                            val content = noteObj.optString("content", "")
+                            if (content.isNotEmpty()) {
+                                noteObj.put("content", BackupAttachmentHelper.rewriteContentPaths(content, allPathMaps))
+                            }
+                            val bgPath = noteObj.optString("backgroundImagePath", "")
+                            if (bgPath.isNotEmpty()) {
+                                noteObj.put("backgroundImagePath", BackupAttachmentHelper.rewriteContentPaths(bgPath, allPathMaps))
+                            }
+                        }
+                        finalSyncPayload = payloadObj.toString()
+                    } else {
+                        finalSyncPayload = syncPayload
+                    }
+                } else {
+                    finalSyncPayload = syncPayload
+                }
+
                 val shouldEncrypt = encryptBackups.value && isPasswordSet.value && masterPassword.value != null
                 val finalPayload: String = if (shouldEncrypt) {
                     val pass = masterPassword.value ?: return@launch
                     val salt = cipherService.generateSalt()
                     val iv = cipherService.generateIv()
-                    val cipherPayload = cipherService.encrypt(syncPayload, pass, salt, iv).getOrDefault("")
+                    val cipherPayload = cipherService.encrypt(finalSyncPayload, pass, salt, iv).getOrDefault("")
                     JSONObject().apply {
                         put("encrypted", true)
                         put("salt", salt)
@@ -1082,33 +1126,21 @@ class NotesViewModel(
                 } else {
                     JSONObject().apply {
                         put("encrypted", false)
-                        put("data", syncPayload)
+                        put("data", finalSyncPayload)
                     }.toString()
                 }
 
                 var backupSize = 0L
-                val success = if (includeAttachments.value) {
+                val success = if (includeAttachments.value && attachmentTempDir != null) {
                     syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
-                    val app = getApplication<Application>()
-                    val context = app.applicationContext
-                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
-                    tempDir.mkdirs()
-                    val tempAttachmentsDir = File(tempDir, "attachments")
                     try {
-                        val allPathMaps = mutableMapOf<String, String>()
-                        rawNotes.value.forEach { note ->
-                            val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                                note.content, note.backgroundImagePath, context, tempAttachmentsDir
-                            )
-                            allPathMaps.putAll(pathMap)
-                        }
-                        val zipFile = File(tempDir, "backup.zip")
-                        BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
+                        val zipFile = File(attachmentTempDir, "backup.zip")
+                        BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, File(attachmentTempDir, "attachments"), zipFile)
                         val zipBytes = zipFile.readBytes()
                         backupSize = zipFile.length()
                         performSyncWithTokenBytes(token, zipBytes)
                     } finally {
-                        tempDir.deleteRecursively()
+                        attachmentTempDir.deleteRecursively()
                     }
                 } else {
                     syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }

@@ -170,9 +170,22 @@ class BackupViewModel(
         return pass
     }
 
-    fun buildBackupJson(encrypt: Boolean = false): String {
+    fun buildBackupJson(encrypt: Boolean = false, pathMap: Map<String, String> = emptyMap()): String {
         val notesArray = JSONArray()
-        cloudSyncManager.rawNotes.value.forEach { note -> notesArray.put(note.toJson()) }
+        cloudSyncManager.rawNotes.value.forEach { note ->
+            val noteJson = note.toJson()
+            if (pathMap.isNotEmpty()) {
+                val content = noteJson.optString("content", "")
+                if (content.isNotEmpty()) {
+                    noteJson.put("content", BackupAttachmentHelper.rewriteContentPaths(content, pathMap))
+                }
+                val bgPath = noteJson.optString("backgroundImagePath", "")
+                if (bgPath.isNotEmpty()) {
+                    noteJson.put("backgroundImagePath", BackupAttachmentHelper.rewriteContentPaths(bgPath, pathMap))
+                }
+            }
+            notesArray.put(noteJson)
+        }
 
         val tagsArray = JSONArray()
         cloudSyncManager.availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }

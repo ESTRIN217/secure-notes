@@ -96,6 +96,7 @@ import androidx.compose.ui.graphics.Brush
 @Composable
 fun MainListScreen(
     viewModel: NotesViewModel,
+    aiViewModel: com.example.ui.viewmodel.AiViewModel,
     onNavigateToEditor: (Int) -> Unit,
     onNavigateToCloud: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
@@ -108,9 +109,10 @@ fun MainListScreen(
     onNavigateToAbout: () -> Unit = {},
     onNavigateToChatHistory: () -> Unit = {},
     onLaunchNewAiChat: () -> Unit = {},
-    onNavigateToNewDrawing: () -> Unit = {}
+    onNavigateToNewDrawing: () -> Unit = {},
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
+    val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
     val notes by viewModel.notesList.collectAsState()
     val tags by viewModel.availableTags.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -324,7 +326,8 @@ fun MainListScreen(
                         onNavigateToChatHistory = {
                             scope.launch { drawerState.close() }
                             onNavigateToChatHistory()
-                        }
+                        },
+                        aiEnabled = aiEnabled
                     )
                 }
             }
@@ -348,7 +351,8 @@ fun MainListScreen(
                     widthClass = widthClass,
                     onCreateTag = { showCreateTagDialog = true },
                     onManageTags = { showManageTagsDialog = true },
-                    onNavigateToChatHistory = onNavigateToChatHistory
+                    onNavigateToChatHistory = onNavigateToChatHistory,
+                    aiEnabled = aiEnabled
                 )
 
                 // Custom division line
@@ -682,16 +686,18 @@ fun MainListScreen(
                                     exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                onLaunchNewAiChat()
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_ai")
-                                        ) {
-                                            Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
+                                        if (aiEnabled) {
+                                            SmallFloatingActionButton(
+                                                onClick = {
+                                                    isFabExpanded = false
+                                                    onLaunchNewAiChat()
+                                                },
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.testTag("fab_ai")
+                                            ) {
+                                                Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
+                                            }
                                         }
                                         SmallFloatingActionButton(
                                             onClick = {

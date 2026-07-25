@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "kotlin-ls": {
+      "command": ["kotlin-language-server"],
+      "extensions": [".kt", ".kts"]
+    }
+  }
+}
+

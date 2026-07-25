@@ -28,6 +28,7 @@ sealed class Screen {
             val scope = rememberCoroutineScope()
             MainListScreen(
                 viewModel = context.viewModel,
+                aiViewModel = context.aiViewModel,
                 onNavigateToEditor = { noteId -> context.navigator.onNavigateTo(Screen.NoteEditor(noteId)) },
                 onNavigateToCloud = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
@@ -45,7 +46,7 @@ sealed class Screen {
                         val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())
                         context.navigator.onNavigateTo(Screen.DrawingCanvas(noteId, null))
                     }
-                }
+                },
             )
         }
     }

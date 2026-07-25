@@ -36,6 +36,7 @@ import com.example.ui.CustomTopBar
 import com.example.data.model.SyncStage
 import com.example.ui.viewmodel.BackupViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
+import com.google.android.gms.auth.UserRecoverableAuthException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -91,6 +92,15 @@ fun BackupRestoreScreen(
                         withContext(Dispatchers.Main) {
                             viewModel.linkGoogleDrive(token, accountEmail, pictureUri)
                         }
+                    }
+                }
+            } catch (e: UserRecoverableAuthException) {
+                android.util.Log.w("CloudSync", "NeedRemoteConsent — launching recovery intent")
+                withContext(Dispatchers.Main) {
+                    try {
+                        context.startActivity(e.intent)
+                    } catch (intentEx: Exception) {
+                        Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
@@ -197,20 +207,22 @@ fun BackupRestoreScreen(
                                     val encrypt = uiState.encryptBackups && uiState.isPasswordSet
                                     val exportsDir = File(context.cacheDir, "exports").also { it.mkdirs() }
                                     if (includeAttachments) {
-                                        val json = viewModel.buildBackupJson(encrypt)
                                         val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
                                         tempDir.mkdirs()
                                         val tempAttachmentsDir = File(tempDir, "attachments")
                                         val warnings = mutableListOf<String>()
+                                        val allPathMaps: Map<String, String>
                                         try {
                                             val rawNotes = viewModel.cloudSyncManagerPublic.rawNotes.value
-                                            val allPathMaps = mutableMapOf<String, String>()
+                                            val collectedMaps = mutableMapOf<String, String>()
                                             rawNotes.forEach { note ->
                                                 val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
                                                     note.content, note.backgroundImagePath, context, tempAttachmentsDir, warnings
                                                 )
-                                                allPathMaps.putAll(pathMap)
+                                                collectedMaps.putAll(pathMap)
                                             }
+                                            allPathMaps = collectedMaps
+                                            val json = viewModel.buildBackupJson(encrypt, allPathMaps)
                                             val zipFile = File(exportsDir, "secure_notes_backup.zip")
                                             BackupAttachmentHelper.buildBackupZip(json, allPathMaps, tempAttachmentsDir, zipFile)
                                             val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
