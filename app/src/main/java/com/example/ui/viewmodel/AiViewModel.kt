@@ -495,8 +495,11 @@ class AiViewModel(
             return
         }
 
+        val resolvedPrompt = _systemPrompt.value.ifBlank {
+            AiPromptBuilder.resolveSystemPromptResource(getApplication(), request.action, "")
+        }
         var enrichedRequest = request.copy(
-            customSystemPrompt = _systemPrompt.value,
+            customSystemPrompt = resolvedPrompt,
             temperature = _temperature.value,
             topK = _topK.value,
             topP = _topP.value,
@@ -506,7 +509,7 @@ class AiViewModel(
 
         val currentHistory = _conversationHistory.value[sessionId] ?: emptyList()
         if (currentHistory.isNotEmpty()) {
-            val chatMessages = currentHistory.takeLast(10).map { turn ->
+            val chatMessages = currentHistory.takeLast(20).map { turn ->
                 ChatMessage(turn.role, turn.content)
             }
             enrichedRequest = enrichedRequest.copy(messages = chatMessages)

@@ -48,14 +48,35 @@ class RichTextParser {
         val olIndexStack = mutableListOf<Int>()
         val ulStack = mutableListOf<Boolean>()
         val listContainerStack = mutableListOf<String>()
+        val codeBlockStyle = SpanStyle(
+            fontFamily = FontFamily.Monospace,
+            background = Color(0x1F616161),
+            color = Color(0xFFE0E0E0),
+            fontSize = 13.sp
+        )
 
         var i = 0
         var isLineStart = true
+        var inCodeBlock = false
 
         while (i < N) {
             val char = rawText[i]
 
             if (isLineStart && (hideTags || showTagsGray)) {
+                if (i + 2 < N && (rawText.startsWith("```", i) || rawText.startsWith("~~~", i))) {
+                    if (!inCodeBlock) {
+                        startStyle(activeStyles, "codeblock", codeBlockStyle, builder)
+                    } else {
+                        endStyle(activeStyles, "codeblock", builder)
+                    }
+                    inCodeBlock = !inCodeBlock
+                    val fenceEnd = if (rawText.startsWith("```", i)) i + 3 else i + 3
+                    skipOrGrayTagChars(rawText, builder, mapping, i, fenceEnd, showTagsGray = false)
+                    i = rawText.indexOf('\n', fenceEnd).let { if (it == -1) N else it + 1 }
+                    isLineStart = true
+                    continue
+                }
+
                 val result = parseLineStartMarkers(rawText, i, builder, mapping,
                     hideTags, showTagsGray, activeStyles,
                     olIndexStack, ulStack, listContainerStack)
@@ -64,6 +85,13 @@ class RichTextParser {
                     isLineStart = false
                     continue
                 }
+            }
+
+            if (inCodeBlock) {
+                appendChar(rawText[i], builder, mapping, i)
+                if (char == '\n') isLineStart = true else isLineStart = false
+                i++
+                continue
             }
 
             if (char == '<' && (hideTags || showTagsGray)) {
@@ -97,6 +125,11 @@ class RichTextParser {
                 isLineStart = false
             }
             i++
+        }
+
+        if (inCodeBlock) {
+            endStyle(activeStyles, "codeblock", builder)
+            inCodeBlock = false
         }
 
         val finalMapping = offsetMapper.finalize(mapping, builder.length, N)

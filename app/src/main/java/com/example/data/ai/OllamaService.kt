@@ -72,30 +72,7 @@ class OllamaService(
 
     override suspend fun execute(request: AiRequest): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
-            val userPrompt = AiPromptBuilder.buildUserPrompt(request)
-
-            val jsonBody = JSONObject().apply {
-                put("model", modelName)
-                put("prompt", userPrompt)
-                put("system", systemPrompt)
-                put("stream", false)
-                put("options", JSONObject().apply {
-                    put("temperature", request.temperature)
-                    put("top_k", request.topK)
-                    put("top_p", request.topP)
-                    put("repeat_penalty", request.repetitionPenalty)
-                    put("num_predict", request.maxTokens)
-                })
-            }
-
-            val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
-
-            val httpRequest = Request.Builder()
-                .url("$endpointUrl/api/generate")
-                .post(body)
-                .build()
-
+            val httpRequest = buildChatRequest(request, stream = false)
             val response = client.newCall(httpRequest).execute()
             val responseBody = response.body?.string() ?: ""
 
@@ -110,7 +87,8 @@ class OllamaService(
             }
 
             val jsonResponse = JSONObject(responseBody)
-            val text = jsonResponse.optString("response", "")
+            val message = jsonResponse.optJSONObject("message")
+            val text = message?.optString("content", "") ?: ""
             if (text.isBlank()) {
                 return@withContext Result.failure(IOException("Respuesta vacía del modelo"))
             }
@@ -143,7 +121,7 @@ class OllamaService(
     }
 
     override suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
-        val httpRequest = buildRequest(request, stream = true)
+        val httpRequest = buildChatRequest(request, stream = true)
         val response = client.newCall(httpRequest).execute()
 
         if (!response.isSuccessful) {
@@ -161,7 +139,8 @@ class OllamaService(
                 val line = source.readUtf8Line() ?: break
                 if (line.isBlank()) continue
                 val json = JSONObject(line)
-                val token = json.optString("response", "")
+                val message = json.optJSONObject("message")
+                val token = message?.optString("content", "") ?: ""
                 if (token.isNotEmpty()) {
                     emit(token)
                 }
@@ -172,14 +151,31 @@ class OllamaService(
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun buildRequest(request: AiRequest, stream: Boolean): okhttp3.Request {
+    private fun buildChatRequest(request: AiRequest, stream: Boolean): okhttp3.Request {
         val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)
         val userPrompt = AiPromptBuilder.buildUserPrompt(request)
 
+        val messages = JSONArray()
+        if (systemPrompt.isNotBlank()) {
+            messages.put(JSONObject().apply {
+                put("role", "system")
+                put("content", systemPrompt)
+            })
+        }
+        for (msg in request.messages) {
+            messages.put(JSONObject().apply {
+                put("role", msg.role)
+                put("content", msg.content)
+            })
+        }
+        messages.put(JSONObject().apply {
+            put("role", "user")
+            put("content", userPrompt)
+        })
+
         val jsonBody = JSONObject().apply {
             put("model", modelName)
-            put("prompt", userPrompt)
-            put("system", systemPrompt)
+            put("messages", messages)
             put("stream", stream)
             put("options", JSONObject().apply {
                 put("temperature", request.temperature)
@@ -193,7 +189,7 @@ class OllamaService(
         val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
 
         return Request.Builder()
-            .url("$endpointUrl/api/generate")
+            .url("$endpointUrl/api/chat")
             .post(body)
             .build()
     }

@@ -782,4 +782,12 @@
     <string name="chat_export">Export Chat</string>
     <string name="chat_export_success">Chat exported to Downloads folder</string>
     <string name="chat_export_failed">Export failed: %1$s</string>
+    <string name="chat_search_no_results">No results found in this chat</string>
+    <string name="search_in_chat">Search in chat</string>
+
+    <!-- Default AI System Prompts -->
+    <string name="ai_prompt_generate">You are a creative writing assistant. Generate text based on the user\'s request using markdown formatting when appropriate.</string>
+    <string name="ai_prompt_summarize">Summarize the following text concisely while preserving key information.</string>
+    <string name="ai_prompt_rewrite">You are a writing assistant. Rewrite the text in the indicated style.</string>
+    <string name="ai_prompt_translate">Translate the following text to the specified language. Return only the translation without explanations.</string>
     </resources>

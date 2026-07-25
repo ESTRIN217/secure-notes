@@ -5,14 +5,25 @@ import com.example.util.RichTextParser
 object AiPromptBuilder {
 
     val systemPrompts = mapOf(
-        AiAction.GENERATE to "Eres un asistente de escritura creativa. Genera texto basado en la solicitud del usuario usando formato markdown cuando corresponda.",
-        AiAction.SUMMARIZE to "Resume el siguiente texto de forma concisa conservando la información clave.",
-        AiAction.REWRITE to "Eres un asistente de escritura. Reescribe el texto en el estilo indicado.",
-        AiAction.TRANSLATE to "Traduce el siguiente texto al idioma especificado. Devuelve solo la traducción sin explicaciones."
+        AiAction.GENERATE to "You are a creative writing assistant. Generate text based on the user's request using markdown formatting when appropriate.",
+        AiAction.SUMMARIZE to "Summarize the following text concisely while preserving key information.",
+        AiAction.REWRITE to "You are a writing assistant. Rewrite the text in the indicated style.",
+        AiAction.TRANSLATE to "Translate the following text to the specified language. Return only the translation without explanations."
     )
 
     fun resolveSystemPrompt(action: AiAction, customPrompt: String): String {
         return customPrompt.ifBlank { systemPrompts[action] ?: "" }
+    }
+
+    fun resolveSystemPromptResource(context: android.content.Context, action: AiAction, customPrompt: String): String {
+        if (customPrompt.isNotBlank()) return customPrompt
+        val resId = when (action) {
+            AiAction.GENERATE -> com.example.R.string.ai_prompt_generate
+            AiAction.SUMMARIZE -> com.example.R.string.ai_prompt_summarize
+            AiAction.REWRITE -> com.example.R.string.ai_prompt_rewrite
+            AiAction.TRANSLATE -> com.example.R.string.ai_prompt_translate
+        }
+        return context.getString(resId)
     }
 
     fun buildUserPrompt(request: AiRequest): String {
@@ -21,27 +32,27 @@ object AiPromptBuilder {
         return when (request.action) {
             AiAction.GENERATE -> {
                 val contextPrefix = if (cleanContext.isNotBlank()) {
-                    "Contexto de la nota actual:\n${cleanContext}\n\n"
+                    "Current note context:\n${cleanContext}\n\n"
                 } else ""
                 "${contextPrefix}${request.prompt}"
             }
             AiAction.SUMMARIZE -> {
-                "Resume el siguiente texto:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
+                "Summarize the following text:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
             }
             AiAction.REWRITE -> {
                 val styleDesc = when (request.rewriteStyle) {
-                    RewriteStyle.FORMAL -> "formal y profesional"
-                    RewriteStyle.CASUAL -> "casual y conversacional"
-                    RewriteStyle.POETIC -> "florido, rítmico y expresivo"
-                    RewriteStyle.PROFESSIONAL -> "apropiado para negocios y pulido"
+                    RewriteStyle.FORMAL -> "formal and professional"
+                    RewriteStyle.CASUAL -> "casual and conversational"
+                    RewriteStyle.POETIC -> "florid, rhythmic, and expressive"
+                    RewriteStyle.PROFESSIONAL -> "business-appropriate and polished"
                 }
                 val contextPrefix = if (cleanContext.isNotBlank()) {
-                    "Contexto de la nota:\n${cleanContext}\n\n"
+                    "Note context:\n${cleanContext}\n\n"
                 } else ""
-                "${contextPrefix}Reescribe el siguiente texto en un estilo $styleDesc. Este es un ejercicio creativo:\n\n${cleanSelectedText}"
+                "${contextPrefix}Rewrite the following text in a $styleDesc style:\n\n${cleanSelectedText}"
             }
             AiAction.TRANSLATE -> {
-                "Traduce el siguiente texto a ${request.targetLanguage}:\n\n${cleanSelectedText}"
+                "Translate the following text to ${request.targetLanguage}:\n\n${cleanSelectedText}"
             }
         }
     }
