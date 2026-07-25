@@ -18,10 +18,6 @@ class LlamaCppEngine(
     private val context: Context,
     var nCtx: Int = 1024,
     var nGpuLayers: Int = 0,
-    var maxTokens: Int = 256,
-    var temperature: Float = 0.7f,
-    var repetitionPenalty: Float = 1.1f,
-    var topK: Int = 40,
     var nThreads: Int = 4
 ) : InferenceEngine {
 
@@ -67,22 +63,14 @@ class LlamaCppEngine(
             return@withContext Result.failure(Exception("Motor no cargado"))
         }
         try {
+            val mt = request.maxTokens
+            val temp = request.temperature
+            val rp = request.repetitionPenalty
+            val tk = request.topK
             val response = if (request.messages.isNotEmpty()) {
-                model.generateChat(
-                    request.messages,
-                    maxTokens,
-                    temperature,
-                    repetitionPenalty,
-                    topK
-                )
+                model.generateChat(request.messages, mt, temp, rp, tk)
             } else {
-                model.generate(
-                    request.prompt,
-                    maxTokens,
-                    temperature,
-                    repetitionPenalty,
-                    topK
-                )
+                model.generate(request.prompt, mt, temp, rp, tk)
             }
             Result.success(response)
         } catch (e: Exception) {
@@ -97,44 +85,28 @@ class LlamaCppEngine(
             close(Exception("Motor no cargado"))
             return@callbackFlow
         }
+        val mt = request.maxTokens
+        val temp = request.temperature
+        val rp = request.repetitionPenalty
+        val tk = request.topK
         withContext(Dispatchers.IO) {
             try {
                 if (request.messages.isNotEmpty()) {
                     model.generateChatStreaming(
-                        request.messages,
-                        maxTokens,
-                        temperature,
-                        repetitionPenalty,
-                        topK,
+                        request.messages, mt, temp, rp, tk,
                         object : TokenCallback {
-                            override fun onToken(token: String) {
-                                trySend(token)
-                            }
-                            override fun onComplete() {
-                                close()
-                            }
-                            override fun onError(error: String) {
-                                close(Exception(error))
-                            }
+                            override fun onToken(token: String) { trySend(token) }
+                            override fun onComplete() { close() }
+                            override fun onError(error: String) { close(Exception(error)) }
                         }
                     )
                 } else {
                     model.generateStreaming(
-                        request.prompt,
-                        maxTokens,
-                        temperature,
-                        repetitionPenalty,
-                        topK,
+                        request.prompt, mt, temp, rp, tk,
                         object : TokenCallback {
-                            override fun onToken(token: String) {
-                                trySend(token)
-                            }
-                            override fun onComplete() {
-                                close()
-                            }
-                            override fun onError(error: String) {
-                                close(Exception(error))
-                            }
+                            override fun onToken(token: String) { trySend(token) }
+                            override fun onComplete() { close() }
+                            override fun onError(error: String) { close(Exception(error)) }
                         }
                     )
                 }

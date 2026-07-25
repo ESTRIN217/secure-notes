@@ -202,7 +202,6 @@ class MainActivity : ComponentActivity() {
                 context = appContext,
                 nCtx = 2048,
                 nGpuLayers = 0,
-                maxTokens = 512,
                 nThreads = 4
             )
             val onDeviceService = OnDeviceService(llamaEngine)

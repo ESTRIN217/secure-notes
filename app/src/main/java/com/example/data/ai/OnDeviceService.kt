@@ -83,7 +83,12 @@ class OnDeviceService(
                     rewriteStyle = request.rewriteStyle,
                     targetLanguage = request.targetLanguage,
                     customSystemPrompt = systemPrompt,
-                    messages = fullMessages
+                    messages = fullMessages,
+                    temperature = request.temperature,
+                    topK = request.topK,
+                    topP = request.topP,
+                    repetitionPenalty = request.repetitionPenalty,
+                    maxTokens = request.maxTokens
                 ))
                 if (result.isFailure) {
                     Log.e(TAG, "Engine inference failed", result.exceptionOrNull())
@@ -112,7 +117,12 @@ class OnDeviceService(
             rewriteStyle = request.rewriteStyle,
             targetLanguage = request.targetLanguage,
             customSystemPrompt = systemPrompt,
-            messages = fullMessages
+            messages = fullMessages,
+            temperature = request.temperature,
+            topK = request.topK,
+            topP = request.topP,
+            repetitionPenalty = request.repetitionPenalty,
+            maxTokens = request.maxTokens
         ))
     }
 

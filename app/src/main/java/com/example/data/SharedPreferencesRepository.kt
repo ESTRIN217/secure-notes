@@ -88,4 +88,44 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setAiSystemPrompt(prompt: String) {
         prefs.edit().putString(AppConstants.AI_SYSTEM_PROMPT_KEY, prompt).apply()
     }
+
+    override fun getAiTemperature(): Float {
+        return prefs.getFloat(AppConstants.AI_TEMPERATURE_KEY, 0.7f)
+    }
+
+    override fun setAiTemperature(value: Float) {
+        prefs.edit().putFloat(AppConstants.AI_TEMPERATURE_KEY, value).apply()
+    }
+
+    override fun getAiTopK(): Int {
+        return prefs.getInt(AppConstants.AI_TOP_K_KEY, 40)
+    }
+
+    override fun setAiTopK(value: Int) {
+        prefs.edit().putInt(AppConstants.AI_TOP_K_KEY, value).apply()
+    }
+
+    override fun getAiTopP(): Float {
+        return prefs.getFloat(AppConstants.AI_TOP_P_KEY, 0.9f)
+    }
+
+    override fun setAiTopP(value: Float) {
+        prefs.edit().putFloat(AppConstants.AI_TOP_P_KEY, value).apply()
+    }
+
+    override fun getAiRepetitionPenalty(): Float {
+        return prefs.getFloat(AppConstants.AI_REPETITION_PENALTY_KEY, 1.1f)
+    }
+
+    override fun setAiRepetitionPenalty(value: Float) {
+        prefs.edit().putFloat(AppConstants.AI_REPETITION_PENALTY_KEY, value).apply()
+    }
+
+    override fun getAiMaxTokens(): Int {
+        return prefs.getInt(AppConstants.AI_MAX_TOKENS_KEY, 256)
+    }
+
+    override fun setAiMaxTokens(value: Int) {
+        prefs.edit().putInt(AppConstants.AI_MAX_TOKENS_KEY, value).apply()
+    }
 }

@@ -22,4 +22,14 @@ interface PreferencesRepository {
     fun setAiOnDeviceModelPath(path: String)
     fun getAiSystemPrompt(): String
     fun setAiSystemPrompt(prompt: String)
+    fun getAiTemperature(): Float
+    fun setAiTemperature(value: Float)
+    fun getAiTopK(): Int
+    fun setAiTopK(value: Int)
+    fun getAiTopP(): Float
+    fun setAiTopP(value: Float)
+    fun getAiRepetitionPenalty(): Float
+    fun setAiRepetitionPenalty(value: Float)
+    fun getAiMaxTokens(): Int
+    fun setAiMaxTokens(value: Int)
 }

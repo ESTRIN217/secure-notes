@@ -764,4 +764,22 @@
     <string name="search_notes">Search notes</string>
     <string name="no_notes_found">No notes found</string>
     <string name="encrypted_note_locked">Locked — unlock to attach</string>
+
+    <!-- AI Sampling Parameters -->
+    <string name="ai_sampling_params">Sampling Parameters</string>
+    <string name="ai_temperature">Temperature</string>
+    <string name="ai_temperature_desc">Controls randomness (0 = deterministic, 2 = very random)</string>
+    <string name="ai_top_k">Top K</string>
+    <string name="ai_top_k_desc">Consider only the top K tokens (0 = disabled)</string>
+    <string name="ai_top_p">Top P</string>
+    <string name="ai_top_p_desc">Nucleus sampling threshold</string>
+    <string name="ai_repetition_penalty">Repetition Penalty</string>
+    <string name="ai_repetition_penalty_desc">Penalize repeated tokens (1.0 = disabled)</string>
+    <string name="ai_max_tokens">Max Tokens</string>
+    <string name="ai_max_tokens_desc">Maximum length of generated response</string>
+
+    <!-- Chat Export -->
+    <string name="chat_export">Export Chat</string>
+    <string name="chat_export_success">Chat exported to Downloads folder</string>
+    <string name="chat_export_failed">Export failed: %1$s</string>
     </resources>

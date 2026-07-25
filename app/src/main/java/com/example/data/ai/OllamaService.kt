@@ -80,6 +80,13 @@ class OllamaService(
                 put("prompt", userPrompt)
                 put("system", systemPrompt)
                 put("stream", false)
+                put("options", JSONObject().apply {
+                    put("temperature", request.temperature)
+                    put("top_k", request.topK)
+                    put("top_p", request.topP)
+                    put("repeat_penalty", request.repetitionPenalty)
+                    put("num_predict", request.maxTokens)
+                })
             }
 
             val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
@@ -174,6 +181,13 @@ class OllamaService(
             put("prompt", userPrompt)
             put("system", systemPrompt)
             put("stream", stream)
+            put("options", JSONObject().apply {
+                put("temperature", request.temperature)
+                put("top_k", request.topK)
+                put("top_p", request.topP)
+                put("repeat_penalty", request.repetitionPenalty)
+                put("num_predict", request.maxTokens)
+            })
         }
 
         val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)

@@ -38,10 +38,11 @@ interface ChatSessionDao {
     suspend fun deleteSession(id: Int)
 
     @Query("""
-        SELECT cs.*, 
+        SELECT DISTINCT cs.*, 
             (SELECT content FROM conversations WHERE sessionId = cs.id ORDER BY timestamp DESC LIMIT 1) AS previewText
         FROM chat_sessions cs
-        WHERE cs.title LIKE '%' || :query || '%'
+        LEFT JOIN conversations c ON c.sessionId = cs.id
+        WHERE cs.title LIKE '%' || :query || '%' OR c.content LIKE '%' || :query || '%'
         ORDER BY cs.updatedAt DESC
     """)
     fun searchSessions(query: String): Flow<List<ChatSessionWithPreview>>

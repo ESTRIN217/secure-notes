@@ -152,6 +152,54 @@ fun AiSettingsScreen(
                 }
 
                 item {
+                    SettingsSectionTitle(title = stringResource(R.string.ai_sampling_params))
+                    SettingsCardGroup {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            val temp by aiViewModel.temperature.collectAsStateWithLifecycle()
+                            val tk by aiViewModel.topK.collectAsStateWithLifecycle()
+                            val tp by aiViewModel.topP.collectAsStateWithLifecycle()
+                            val rp by aiViewModel.repetitionPenalty.collectAsStateWithLifecycle()
+                            val mt by aiViewModel.maxTokens.collectAsStateWithLifecycle()
+
+                            ParamSlider(
+                                label = stringResource(R.string.ai_temperature),
+                                desc = stringResource(R.string.ai_temperature_desc),
+                                value = temp, range = 0f..2f, steps = 20,
+                                onValueChange = { aiViewModel.setTemperature(it) }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ParamSlider(
+                                label = stringResource(R.string.ai_top_k),
+                                desc = stringResource(R.string.ai_top_k_desc),
+                                value = tk.toFloat(), range = 0f..100f, steps = 20,
+                                onValueChange = { aiViewModel.setTopK(it.toInt()) }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ParamSlider(
+                                label = stringResource(R.string.ai_top_p),
+                                desc = stringResource(R.string.ai_top_p_desc),
+                                value = tp, range = 0f..1f, steps = 20,
+                                onValueChange = { aiViewModel.setTopP(it) }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ParamSlider(
+                                label = stringResource(R.string.ai_repetition_penalty),
+                                desc = stringResource(R.string.ai_repetition_penalty_desc),
+                                value = rp, range = 1f..2f, steps = 20,
+                                onValueChange = { aiViewModel.setRepetitionPenalty(it) }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            ParamSlider(
+                                label = stringResource(R.string.ai_max_tokens),
+                                desc = stringResource(R.string.ai_max_tokens_desc),
+                                value = mt.toFloat(), range = 64f..4096f, steps = 63,
+                                onValueChange = { aiViewModel.setMaxTokens(it.toInt()) }
+                            )
+                        }
+                    }
+                }
+
+                item {
                     SettingsSectionTitle(title = stringResource(R.string.ai_system_prompt))
                     SettingsCardGroup {
                         Column(
@@ -837,5 +885,42 @@ private fun LazyListScope.onDeviceTextModelsSection(models: List<OnDeviceModel>)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ParamSlider(
+    label: String,
+    desc: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onValueChange: (Float) -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelMedium)
+            Text(
+                text = String.format("%.2f", value),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Text(
+            text = desc,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = range,
+            steps = steps,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

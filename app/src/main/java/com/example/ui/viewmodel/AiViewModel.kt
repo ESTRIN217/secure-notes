@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Log
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,6 +40,7 @@ data class ConversationTurn(
     val role: String,
     val content: String,
     val processingTimeMs: Long? = null,
+    val modelName: String? = null,
     val status: MessageStatus = MessageStatus.COMPLETED,
     val timestamp: Long = System.currentTimeMillis(),
     val errorMessage: String? = null,
@@ -99,6 +101,17 @@ class AiViewModel(
 
     private val _systemPrompt = MutableStateFlow(prefsRepository.getAiSystemPrompt())
     val systemPrompt: StateFlow<String> = _systemPrompt.asStateFlow()
+
+    private val _temperature = MutableStateFlow(prefsRepository.getAiTemperature())
+    val temperature: StateFlow<Float> = _temperature.asStateFlow()
+    private val _topK = MutableStateFlow(prefsRepository.getAiTopK())
+    val topK: StateFlow<Int> = _topK.asStateFlow()
+    private val _topP = MutableStateFlow(prefsRepository.getAiTopP())
+    val topP: StateFlow<Float> = _topP.asStateFlow()
+    private val _repetitionPenalty = MutableStateFlow(prefsRepository.getAiRepetitionPenalty())
+    val repetitionPenalty: StateFlow<Float> = _repetitionPenalty.asStateFlow()
+    private val _maxTokens = MutableStateFlow(prefsRepository.getAiMaxTokens())
+    val maxTokens: StateFlow<Int> = _maxTokens.asStateFlow()
 
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
@@ -178,6 +191,11 @@ class AiViewModel(
     private val currentService: AIService
         get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
 
+    private fun currentModelName(): String = when (_backend.value) {
+        AiBackend.OLLAMA -> _modelName.value
+        AiBackend.ON_DEVICE -> _selectedOnDeviceModel.value?.displayName ?: "On-Device"
+    }
+
     fun isAvailable(): Boolean = currentService.isAvailable
 
     fun getConversationHistory(sessionId: Int): List<ConversationTurn> {
@@ -238,6 +256,31 @@ class AiViewModel(
     fun setSystemPrompt(prompt: String) {
         _systemPrompt.value = prompt
         prefsRepository.setAiSystemPrompt(prompt)
+    }
+
+    fun setTemperature(value: Float) {
+        _temperature.value = value
+        prefsRepository.setAiTemperature(value)
+    }
+
+    fun setTopK(value: Int) {
+        _topK.value = value
+        prefsRepository.setAiTopK(value)
+    }
+
+    fun setTopP(value: Float) {
+        _topP.value = value
+        prefsRepository.setAiTopP(value)
+    }
+
+    fun setRepetitionPenalty(value: Float) {
+        _repetitionPenalty.value = value
+        prefsRepository.setAiRepetitionPenalty(value)
+    }
+
+    fun setMaxTokens(value: Int) {
+        _maxTokens.value = value
+        prefsRepository.setAiMaxTokens(value)
     }
 
     fun selectOnDeviceModel(model: OnDeviceModel) {
@@ -319,6 +362,24 @@ class AiViewModel(
                 if (session != null) {
                     _sessionTitle.value = session.title
                     _currentNoteId.value = session.noteId ?: 0
+                    session.backend.let { backendStr ->
+                        val savedBackend = if (backendStr == "ondevice") AiBackend.ON_DEVICE else AiBackend.OLLAMA
+                        if (savedBackend != _backend.value) {
+                            _backend.value = savedBackend
+                        }
+                    }
+                session.modelName?.let { name ->
+                    val savedBackendEnum = if (session.backend == "ondevice") AiBackend.ON_DEVICE else AiBackend.OLLAMA
+                    if (savedBackendEnum == AiBackend.ON_DEVICE) {
+                        val matching = MODEL_CATALOG.firstOrNull { it.displayName == name || it.id == name }
+                        if (matching != null) _selectedOnDeviceModel.value = matching
+                    } else {
+                        if (name != _modelName.value) {
+                            _modelName.value = name
+                            ollamaService.updateConfig(_endpointUrl.value, name)
+                        }
+                    }
+                }
                 }
             }
         }
@@ -342,7 +403,7 @@ class AiViewModel(
                 noteId = noteId.takeIf { it > 0 },
                 noteTitle = noteTitle,
                 backend = if (_backend.value == AiBackend.ON_DEVICE) "ondevice" else "ollama",
-                modelName = _modelName.value,
+                modelName = currentModelName(),
                 createdAt = now,
                 updatedAt = now,
                 messageCount = 0
@@ -411,7 +472,7 @@ class AiViewModel(
             if (turns.isNotEmpty()) {
                 _conversationHistory.update { current ->
                     current + (sessionId to turns.map { entity ->
-                        ConversationTurn(entity.role, entity.content, entity.processingTimeMs)
+                        ConversationTurn(entity.role, entity.content, entity.processingTimeMs, modelName = entity.modelName)
                     })
                 }
             }
@@ -434,7 +495,14 @@ class AiViewModel(
             return
         }
 
-        var enrichedRequest = request.copy(customSystemPrompt = _systemPrompt.value)
+        var enrichedRequest = request.copy(
+            customSystemPrompt = _systemPrompt.value,
+            temperature = _temperature.value,
+            topK = _topK.value,
+            topP = _topP.value,
+            repetitionPenalty = _repetitionPenalty.value,
+            maxTokens = _maxTokens.value
+        )
 
         val currentHistory = _conversationHistory.value[sessionId] ?: emptyList()
         if (currentHistory.isNotEmpty()) {
@@ -456,7 +524,7 @@ class AiViewModel(
 
         _conversationHistory.update { current ->
             val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                add(ConversationTurn("user", userMessage, status = MessageStatus.SENT))
+                add(ConversationTurn("user", userMessage, status = MessageStatus.SENT, modelName = currentModelName()))
             }
             current + (sessionId to updated)
         }
@@ -464,7 +532,7 @@ class AiViewModel(
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 conversationDao.insert(
-                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage)
+                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage, modelName = currentModelName())
                 )
             }
             if (isFirstMessage || isNewSession) {
@@ -504,14 +572,14 @@ class AiViewModel(
 
                 _conversationHistory.update { current ->
                     val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                        add(ConversationTurn("assistant", result, elapsed, status = MessageStatus.COMPLETED))
+                        add(ConversationTurn("assistant", result, elapsed, modelName = currentModelName(), status = MessageStatus.COMPLETED))
                     }
                     current + (sessionId to updated)
                 }
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
                         conversationDao.insert(
-                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = result, processingTimeMs = elapsed)
+                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = result, processingTimeMs = elapsed, modelName = currentModelName())
                         )
                         val count = conversationDao.countBySessionId(sessionId)
                         chatSessionDao.updateMetadata(sessionId, System.currentTimeMillis(), count)
@@ -534,7 +602,7 @@ class AiViewModel(
         _errorMessage.value = errorMsg
         _conversationHistory.update { current ->
             val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                add(ConversationTurn("assistant", "", status = MessageStatus.ERROR, errorMessage = errorMsg))
+                add(ConversationTurn("assistant", "", status = MessageStatus.ERROR, errorMessage = errorMsg, modelName = currentModelName()))
             }
             current + (sessionId to updated)
         }
@@ -553,5 +621,33 @@ class AiViewModel(
         _isProcessing.value = false
         _streamingText.value = null
         _processingTimeMs.value = null
+    }
+
+    fun exportConversation(context: android.content.Context, sessionId: Int): String? {
+        val turns = _conversationHistory.value[sessionId] ?: return null
+        if (turns.isEmpty()) return null
+        val sb = StringBuilder()
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        sb.appendLine("=== ${_sessionTitle.value} ===")
+        sb.appendLine("Exported: ${dateFormat.format(java.util.Date())}")
+        sb.appendLine()
+        for (turn in turns) {
+            val time = turn.formattedTime
+            val role = if (turn.role == "user") "You" else "AI"
+            val model = turn.modelName?.let { " ($it)" } ?: ""
+            sb.appendLine("[$role$model · $time]")
+            sb.appendLine(turn.content)
+            sb.appendLine()
+        }
+        try {
+            val fileName = "chat_${_sessionTitle.value.take(30).replace(" ", "_")}_${System.currentTimeMillis()}.txt"
+            val file = java.io.File(context.getExternalFilesDir(null), fileName)
+            file.parentFile?.mkdirs()
+            file.writeText(sb.toString(), java.nio.charset.StandardCharsets.UTF_8)
+            return file.absolutePath
+        } catch (e: Exception) {
+            Log.e("AiViewModel", "Export failed", e)
+            return null
+        }
     }
 }

@@ -55,6 +55,11 @@ object AppConstants {
     const val AI_MODEL_NAME_KEY = "ai_model_name"
     const val AI_ONDEVICE_MODEL_PATH_KEY = "ai_ondevice_model_path"
     const val AI_SYSTEM_PROMPT_KEY = "ai_system_prompt"
+    const val AI_TEMPERATURE_KEY = "ai_temperature"
+    const val AI_TOP_K_KEY = "ai_top_k"
+    const val AI_TOP_P_KEY = "ai_top_p"
+    const val AI_REPETITION_PENALTY_KEY = "ai_repetition_penalty"
+    const val AI_MAX_TOKENS_KEY = "ai_max_tokens"
 
     const val TRASH_RETENTION_DAYS = 90L
     const val AUTO_CLEANUP_ENABLED_KEY = "auto_cleanup_enabled"

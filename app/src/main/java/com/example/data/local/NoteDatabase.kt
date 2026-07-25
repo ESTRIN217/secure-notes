@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.Note
 import com.example.data.model.Tag
 
-@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class], version = 6, exportSchema = false)
+@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class], version = 7, exportSchema = false)
 abstract class NoteDatabase : RoomDatabase() {
     abstract val noteDao: NoteDao
     abstract val tagDao: TagDao
@@ -73,6 +73,12 @@ abstract class NoteDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE conversations ADD COLUMN modelName TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): NoteDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -80,7 +86,7 @@ abstract class NoteDatabase : RoomDatabase() {
                     NoteDatabase::class.java,
                     "secure_notes_database"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

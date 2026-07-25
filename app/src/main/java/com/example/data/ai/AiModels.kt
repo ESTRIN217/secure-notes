@@ -32,7 +32,12 @@ data class AiRequest(
     val rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
     val targetLanguage: String = "en",
     val customSystemPrompt: String = "",
-    val messages: List<ChatMessage> = emptyList()
+    val messages: List<ChatMessage> = emptyList(),
+    val temperature: Float = 0.7f,
+    val topK: Int = 40,
+    val topP: Float = 0.9f,
+    val repetitionPenalty: Float = 1.1f,
+    val maxTokens: Int = 256
 )
 
 data class AiResult(

@@ -121,6 +121,8 @@ fun AiChatScreen(
             viewModel.loadSession(sessionId, noteId)
         } else if (noteId > 0 && viewModel.currentSessionId.value <= 0) {
             viewModel.createAndStartSession(noteId, noteTitle)
+        } else if (sessionId <= 0 && viewModel.currentSessionId.value <= 0) {
+            viewModel.createAndStartSession()
         }
         editingMessage?.let { inputText = it; editingMessage = null }
     }
@@ -244,6 +246,25 @@ fun AiChatScreen(
                         }
                         if (effectiveSessionId > 0) {
                             if (conversationHistory.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    val path = viewModel.exportConversation(context, effectiveSessionId)
+                                    if (path != null) {
+                                        scope.launch {
+                                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(android.content.Intent.EXTRA_STREAM,
+                                        androidx.core.content.FileProvider.getUriForFile(
+                                                        context, "${context.packageName}.fileprovider", java.io.File(path)
+                                                        )
+                                                )
+                                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(android.content.Intent.createChooser(sendIntent, context.getString(R.string.chat_export)))
+                                        }
+                                    }
+                                }) {
+                                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.chat_export))
+                                }
                                 IconButton(onClick = { viewModel.clearConversationHistory(effectiveSessionId) }) {
                                     Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
                                 }
@@ -1202,7 +1223,7 @@ fun ChatMessageList(
                         }
                     },
                     onEdit = onEdit,
-                    modelName = displayModelName
+                    modelName = turn.modelName ?: displayModelName
                 )
             }
         }
