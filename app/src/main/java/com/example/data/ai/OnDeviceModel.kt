@@ -13,6 +13,7 @@ data class OnDeviceModel(
 )
 
 val MODEL_CATALOG = listOf(
+    // ── < 500 MB ──────────────────────────────────────
     OnDeviceModel(
         id = "smollm2-360m",
         displayName = "SmolLM2 360M",
@@ -32,13 +33,23 @@ val MODEL_CATALOG = listOf(
         ggufFileName = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
     ),
     OnDeviceModel(
-        id = "smollm2-1.7b",
-        displayName = "SmolLM2 1.7B",
-        minRamMb = 1536,
-        recommendedRamMb = 3072,
-        fileSizeMb = 1007,
-        huggingFaceRepo = "hugging-quants/SmolLM2-1.7B-Instruct-Q4_K_M-GGUF",
-        ggufFileName = "smollm2-1.7b-instruct-q4_k_m.gguf"
+        id = "qwen3-0.6b",
+        displayName = "Qwen3 0.6B",
+        minRamMb = 768,
+        recommendedRamMb = 1536,
+        fileSizeMb = 492,
+        huggingFaceRepo = "bartowski/Qwen_Qwen3-0.6B-GGUF",
+        ggufFileName = "Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+    ),
+    // ── 500 MB – 1 GB ─────────────────────────────────
+    OnDeviceModel(
+        id = "gemma3-1b",
+        displayName = "Gemma 3 1B",
+        minRamMb = 1024,
+        recommendedRamMb = 2048,
+        fileSizeMb = 769,
+        huggingFaceRepo = "unsloth/gemma-3-1b-it-GGUF",
+        ggufFileName = "gemma-3-1b-it-Q4_K_M.gguf"
     ),
     OnDeviceModel(
         id = "llama3.2-1b",
@@ -48,6 +59,83 @@ val MODEL_CATALOG = listOf(
         fileSizeMb = 770,
         huggingFaceRepo = "hugging-quants/Llama-3.2-1B-Instruct-Q4_K_M-GGUF",
         ggufFileName = "llama-3.2-1b-instruct-q4_k_m.gguf"
+    ),
+    OnDeviceModel(
+        id = "smollm2-1.7b",
+        displayName = "SmolLM2 1.7B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 1007,
+        huggingFaceRepo = "hugging-quants/SmolLM2-1.7B-Instruct-Q4_K_M-GGUF",
+        ggufFileName = "smollm2-1.7b-instruct-q4_k_m.gguf"
+    ),
+    // ── 1 GB – 1.5 GB ─────────────────────────────────
+    OnDeviceModel(
+        id = "qwen2.5-1.5b",
+        displayName = "Qwen 2.5 1.5B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 1040,
+        huggingFaceRepo = "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+        ggufFileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+    ),
+    OnDeviceModel(
+        id = "deepseek-r1-distill-qwen-1.5b",
+        displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 1040,
+        huggingFaceRepo = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
+        ggufFileName = "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf"
+    ),
+    OnDeviceModel(
+        id = "qwen3-1.7b",
+        displayName = "Qwen3 1.7B",
+        minRamMb = 1536,
+        recommendedRamMb = 3072,
+        fileSizeMb = 1280,
+        huggingFaceRepo = "bartowski/Qwen_Qwen3-1.7B-GGUF",
+        ggufFileName = "Qwen_Qwen3-1.7B-Q4_K_M.gguf"
+    ),
+    // ── 1.5 GB – 2 GB ─────────────────────────────────
+    OnDeviceModel(
+        id = "gemma3-2b",
+        displayName = "Gemma 3 2B",
+        minRamMb = 2048,
+        recommendedRamMb = 4096,
+        fileSizeMb = 1500,
+        huggingFaceRepo = "unsloth/gemma-3-2b-it-GGUF",
+        ggufFileName = "gemma-3-2b-it-Q4_K_M.gguf"
+    ),
+    OnDeviceModel(
+        id = "gemma4-e2b",
+        displayName = "Gemma 4 E2B",
+        minRamMb = 2048,
+        recommendedRamMb = 4096,
+        fileSizeMb = 1600,
+        huggingFaceRepo = "unsloth/gemma-4-E2B-it-GGUF",
+        ggufFileName = "gemma-4-E2B-it-Q4_K_M.gguf"
+    ),
+    OnDeviceModel(
+        id = "gemma2-2b",
+        displayName = "Gemma 2 2B",
+        minRamMb = 2560,
+        recommendedRamMb = 4096,
+        fileSizeMb = 1630,
+        huggingFaceRepo = "bartowski/gemma-2-2b-it-GGUF",
+        ggufFileName = "gemma-2-2b-it-Q4_K_M.gguf",
+        minApiLevel = 26
+    ),
+    // ── 2 GB – 3 GB ───────────────────────────────────
+    OnDeviceModel(
+        id = "llama3.2-3b",
+        displayName = "Llama 3.2 3B",
+        minRamMb = 3072,
+        recommendedRamMb = 6144,
+        fileSizeMb = 1926,
+        huggingFaceRepo = "hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF",
+        ggufFileName = "llama-3.2-3b-instruct-q4_k_m.gguf",
+        minApiLevel = 26
     ),
     OnDeviceModel(
         id = "phi3-mini",
@@ -66,94 +154,6 @@ val MODEL_CATALOG = listOf(
         fileSizeMb = 2283,
         huggingFaceRepo = "microsoft/Phi-3.5-mini-instruct-gguf",
         ggufFileName = "phi-3.5-mini-instruct-q4.gguf"
-    ),
-    OnDeviceModel(
-        id = "gemma2-2b",
-        displayName = "Gemma 2 2B",
-        minRamMb = 2560,
-        recommendedRamMb = 4096,
-        fileSizeMb = 1630,
-        huggingFaceRepo = "bartowski/gemma-2-2b-it-GGUF",
-        ggufFileName = "gemma-2-2b-it-Q4_K_M.gguf",
-        minApiLevel = 26
-    ),
-    OnDeviceModel(
-        id = "llama3.2-3b",
-        displayName = "Llama 3.2 3B",
-        minRamMb = 3072,
-        recommendedRamMb = 6144,
-        fileSizeMb = 1926,
-        huggingFaceRepo = "hugging-quants/Llama-3.2-3B-Instruct-Q4_K_M-GGUF",
-        ggufFileName = "llama-3.2-3b-instruct-q4_k_m.gguf",
-        minApiLevel = 26
-    ),
-    // Qwen 3
-    OnDeviceModel(
-        id = "qwen3-0.6b",
-        displayName = "Qwen3 0.6B",
-        minRamMb = 768,
-        recommendedRamMb = 1536,
-        fileSizeMb = 492,
-        huggingFaceRepo = "bartowski/Qwen_Qwen3-0.6B-GGUF",
-        ggufFileName = "Qwen_Qwen3-0.6B-Q4_K_M.gguf"
-    ),
-    OnDeviceModel(
-        id = "qwen3-1.7b",
-        displayName = "Qwen3 1.7B",
-        minRamMb = 1536,
-        recommendedRamMb = 3072,
-        fileSizeMb = 1280,
-        huggingFaceRepo = "bartowski/Qwen_Qwen3-1.7B-GGUF",
-        ggufFileName = "Qwen_Qwen3-1.7B-Q4_K_M.gguf"
-    ),
-    // Qwen 2.5 1.5B
-    OnDeviceModel(
-        id = "qwen2.5-1.5b",
-        displayName = "Qwen 2.5 1.5B",
-        minRamMb = 1536,
-        recommendedRamMb = 3072,
-        fileSizeMb = 1040,
-        huggingFaceRepo = "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
-        ggufFileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-    ),
-    // Gemma 3
-    OnDeviceModel(
-        id = "gemma3-1b",
-        displayName = "Gemma 3 1B",
-        minRamMb = 1024,
-        recommendedRamMb = 2048,
-        fileSizeMb = 769,
-        huggingFaceRepo = "unsloth/gemma-3-1b-it-GGUF",
-        ggufFileName = "gemma-3-1b-it-Q4_K_M.gguf"
-    ),
-    OnDeviceModel(
-        id = "gemma3-2b",
-        displayName = "Gemma 3 2B",
-        minRamMb = 2048,
-        recommendedRamMb = 4096,
-        fileSizeMb = 1500,
-        huggingFaceRepo = "unsloth/gemma-3-2b-it-GGUF",
-        ggufFileName = "gemma-3-2b-it-Q4_K_M.gguf"
-    ),
-    // DeepSeek
-    OnDeviceModel(
-        id = "deepseek-r1-distill-qwen-1.5b",
-        displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
-        minRamMb = 1536,
-        recommendedRamMb = 3072,
-        fileSizeMb = 1040,
-        huggingFaceRepo = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
-        ggufFileName = "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf"
-    ),
-    // Gemma 4
-    OnDeviceModel(
-        id = "gemma4-e2b",
-        displayName = "Gemma 4 E2B",
-        minRamMb = 2048,
-        recommendedRamMb = 4096,
-        fileSizeMb = 1600,
-        huggingFaceRepo = "unsloth/gemma-4-E2B-it-GGUF",
-        ggufFileName = "gemma-4-E2B-it-Q4_K_M.gguf"
     )
 )
 

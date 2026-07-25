@@ -43,7 +43,6 @@
     <string name="info_cloud">Vos notes sont compressées, chiffrées de bout en bout localement et sauvegardées dans un fichier sécurisé dans votre dossier d\'application Google Drive.</string>
     <string name="btn_link_drive">Se connecter avec Google</string>
     <string name="btn_unlink_drive">Déconnecter Drive</string>
-    <string name="toast_auth_error">Échec de l\'authentification. Veuillez réessayer.</string>
     <string name="sync_now">Synchroniser Maintenant</string>
     <string name="last_synced">Dernière sync. : %s</string>
     <string name="selection_count">%1$d sélectionné(s)</string>
@@ -61,7 +60,6 @@
     <string name="action_move_down">Descendre</string>
     <string name="welcome_note_title">Bienvenue sur Secure Notes ! 🚀</string>
     <string name="welcome_note_content">Ceci est votre espace sécurisé pour stocker des pensées privées, des identifiants et des notes chiffrées.\n\n🔒 **Chiffrement local** : Tout ce que vous écrivez peut être chiffré avec le chiffrement de qualité militaire **AES-256 GCM** via un mot de passe maître.\n\n☁️ **Sauvegarde Google Drive** : Connectez votre compte via Synchronisation Cloud pour sauvegarder vos notes en toute sécurité, protégées par votre mot de passe.\n\n⚡ **Vues personnalisables et filtres par étiquettes** : Filtrez les notes par étiquettes comme Travail, Personnel et Privé, et organisez-les dans l\'ordre de votre choix !\n\nBonne prise de notes !</string>
-
     <string name="workout_note_title">Entraînement Maître : Force et Endurance</string>
     <string name="workout_note_content">**Objectif : Hypertrophie, puissance et capacité cardiovasculaire.**\n\n**Programme Hebdomadaire : Lun, Mar, Jeu, Ven**\n\n### Bloc 1 : Agilité et Puissance\n- **Pompes Russes** : 3 séries de 3 à 5 rép.\n- **Pompes Claquées** : 3 séries de 4 à 6 rép.\n- **Tractions (Barre)** : 3 séries de 5 à 6 rép. (explosives).\n- **Pompes en Pike** : 3 séries de 5 rép.\n\n### Bloc 2 : Endurance de Poussée\n- **Pompes en Arc** : 10 rép. (5 par bras).\n- **Tractions Australiennes** : 3 séries de 10 à 12 rép.\n- **Pompes sur Poings** : 20 rép.\n- **Pompes Normales** : 3 séries de 10 rép.\n- **Élévations Deltoïdes Avant** : 15 rép.\n\n### Bloc 3 : Bas du Corps\n- **Squats** : 30 rép.\n- **Squats Explosifs** : 3 séries de 15 rép.\n- **Fentes Bulgares** : 3 séries de 10 rép. par jambe.\n- **Fentes Avant** : 40 rép. (20 par jambe).\n- **Pont Fessier** : 30 rép.\n- **Jambes Dedans/Dehors** : 30 rép.\n\n### Bloc 4 : Core et Cardio\n- **Relevés de Jambes** : 25 rép.\n- **Mountain Climbers** : 100 rép.\n- **Planches** : 3 séries de 1 minute.\n\n### Bloc 5 : Étirements\n- **Chat-Vache** : 10 cycles.\n- **Posture de l\'Enfant** : 20-30 sec.\n- **Étirement Thoracique au Mur** : 20-30 sec.\n- **Étirement des Triceps** : 20-30 sec.\n- **Chien Tête en Bas** : 20-30 sec.\n- **Étirement des Fléchisseurs de Hanche** : 20-30 sec.\n- **Étirement des Poignets** : 20-30 sec.\n\nLa régularité est la clé ! Essayez de maintenir cet ordre pendant au moins 4 semaines avant d\'augmenter les répétitions.</string>
     <string name="nav_home">Accueil</string>
@@ -69,11 +67,9 @@
     <string name="nav_archived">Archivées</string>
     <string name="nav_trash">Corbeille</string>
     <string name="nav_settings">Paramètres</string>
-
     <string name="nav_favorites_title">Favoris</string>
     <string name="nav_archived_title">Notes Archivées</string>
     <string name="nav_trash_title">Corbeille</string>
-
     <string name="action_restore">Restaurer</string>
     <string name="action_delete_perm">Supprimer Définitivement</string>
     <string name="action_empty_trash">Vider la Corbeille</string>
@@ -81,7 +77,6 @@
     <string name="toast_moved_trash">Déplacé vers la corbeille</string>
     <string name="toast_restored">Note restaurée</string>
     <string name="toast_deleted_perm">Supprimé définitivement</string>
-
     <string name="menu_batch_pin">Épingler</string>
     <string name="menu_batch_unpin">Désépingler</string>
     <string name="menu_batch_favorite">Favori</string>
@@ -89,7 +84,6 @@
     <string name="menu_batch_unarchive">Désarchiver</string>
     <string name="menu_batch_tag">Étiqueter</string>
     <string name="menu_batch_share">Partager</string>
-
     <string name="share_sheet_title">Format de Partage</string>
     <string name="share_format_txt">Texte brut (.txt)</string>
     <string name="share_format_md">Markdown (.md)</string>
@@ -172,7 +166,6 @@
     <string name="dialog_insert_video_title">Insérer une vidéo</string>
     <string name="label_media_url">URL du média (lien web ou chemin local)</string>
     <string name="btn_insert">Insérer</string>
-
     <string name="rich_numbered_list">Liste numérotée</string>
     <string name="rich_bulleted_list">Liste à puces</string>
     <string name="rich_checklist">Liste de contrôle</string>
@@ -224,8 +217,6 @@
     <string name="search_word_found_one">1 mot trouvé</string>
     <string name="search_word_found_many">%1$d mots trouvés</string>
     <string name="search_results_empty">Aucun résultat trouvé</string>
-
-    <!-- Drawing Canvas -->
     <string name="drawing_canvas_title">Dessin</string>
     <string name="drawing_clear">Effacer le canevas</string>
     <string name="drawing_save">Enregistrer le dessin</string>
@@ -236,8 +227,6 @@
     <string name="toast_drawing_load_error">Échec du chargement du dessin</string>
     <string name="toast_drawing_empty">Le canevas est vide ou non initialisé</string>
     <string name="toast_drawing_save_error">Erreur lors de l\'enregistrement du dessin</string>
-
-    <!-- Attachments -->
     <string name="attachment_drawing">Dessin joint</string>
     <string name="attachment_file">Fichier joint</string>
     <string name="attachment_image">Image jointe</string>
@@ -245,8 +234,6 @@
     <string name="add_drawing">Ajouter un dessin</string>
     <string name="add_attachment">Ajouter une pièce jointe</string>
     <string name="attachments_title">Pièces jointes</string>
-
-    <!-- Editor -->
     <string name="untitled_note">Note sans titre</string>
     <string name="normal_text">Texte normal</string>
     <string name="heading_1">Titre 1</string>
@@ -275,8 +262,6 @@
     <string name="toast_camera_error">Erreur lors du démarrage de l\'appareil photo</string>
     <string name="camera_permission_required">L\'autorisation de l\'appareil photo est requise pour prendre des photos/vidéos</string>
     <string name="mic_permission_required">L\'autorisation du microphone est requise pour enregistrer des notes vocales</string>
-
-    <!-- Navigation / common -->
     <string name="back">Retour</string>
     <string name="close">Fermer</string>
     <string name="sync">Synchroniser</string>
@@ -309,8 +294,6 @@
     <string name="disconnect">Déconnecter</string>
     <string name="deleted_notes_info">Les notes supprimées peuvent être restaurées ici ou supprimées définitivement.</string>
     <string name="all_notes">Tout</string>
-
-    <!-- Cloud / Sync -->
     <string name="btn_upload_backup">Téléverser la sauvegarde</string>
     <string name="btn_download_backup">Télécharger la sauvegarde</string>
     <string name="cloud_sync_title">Synchronisation Cloud</string>
@@ -342,25 +325,17 @@
     <string name="sync_uploading">Téléversement vers Drive…</string>
     <string name="sync_downloading">Téléchargement depuis Drive…</string>
     <string name="sync_restoring">Restauration des notes…</string>
-
-    <!-- Export -->
     <string name="toast_export_error">Erreur d\'exportation : %1$s</string>
-
-    <!-- Other common messages -->
     <string name="clear_all">Tout effacer</string>
     <string name="toggle_navigation_rail">Basculer la barre de navigation</string>
     <string name="lock_icon">Icône de verrou</string>
     <string name="shield_guard">Bouclier de sécurité</string>
     <string name="cloud_icon">Icône de nuage</string>
-
-    <!-- Media Viewer -->
     <string name="attachment_video">Vidéo</string>
     <string name="option_save">Enregistrer</string>
     <string name="toast_share_error">Erreur lors du partage du fichier</string>
     <string name="toast_saved_to_gallery">Enregistré dans la galerie</string>
     <string name="toast_save_error">Erreur lors de l\'enregistrement du fichier</string>
-
-    <!-- v3.0 Settings -->
     <string name="settings_appearance">Apparence</string>
     <string name="settings_dynamic_colors">Couleurs dynamiques</string>
     <string name="settings_dynamic_colors_desc">Utiliser le schéma de couleurs dynamiques Material You (Android 12+)</string>
@@ -436,8 +411,6 @@
     <string name="backup_attachments_warnings">Sauvegarde terminée avec %d avertissements de pièces jointes</string>
     <string name="toast_language_changed">Langue modifiée</string>
     <string name="cancel">Annuler</string>
-
-    <!-- v4.0 contentDescription strings -->
     <string name="cd_secure_notes_logo">Logo Secure Notes</string>
     <string name="cd_empty_notes_banner">Bannière de fond de notes vides</string>
     <string name="cd_account_avatar">Avatar du compte</string>
@@ -458,15 +431,11 @@
     <string name="cd_stop_recording">Arrêter l\'enregistrement</string>
     <string name="cd_preview_voice_note">Aperçu de la note vocale</string>
     <string name="cd_discard_recording">Annuler l\'enregistrement</string>
-
-    <!-- v4.0 Platform & About -->
     <string name="platform_android">ANDROID</string>
     <string name="platform_unknown">INCONNU</string>
     <string name="about_repo_subtitle">ESTRIN217/secure-notes</string>
     <string name="about_developer_name">ESTRIN217</string>
     <string name="update_device_arch_foss">%s - FOSS</string>
-
-    <!-- v4.0 Export / Share chooser titles -->
     <string name="export_title_markdown">Exporter en Markdown</string>
     <string name="export_title_pdf">Exporter en PDF</string>
     <string name="share_title_text">Partager les notes en texte</string>
@@ -475,42 +444,30 @@
     <string name="share_title_json">Partager les notes en JSON</string>
     <string name="export_title_json">Exporter en JSON</string>
     <string name="share_title_pdf">Partager les notes en PDF</string>
-
-    <!-- v4.0 PDF / Export content labels -->
     <string name="pdf_watermark_encrypted">🛡️ CHIFFRÉ AES-256 DE BOUT EN BOUT</string>
     <string name="pdf_watermark_plain">📝 COPIE LOCALE NON CHIFFRÉE</string>
     <string name="export_label_modified">Modifié : %s</string>
     <string name="export_label_tags">Étiquettes : %s</string>
     <string name="export_label_last_modified">Dernière modification : %s</string>
-
-    <!-- v4.0 Default / Seed data -->
     <string name="label_never">Jamais</string>
     <string name="tag_default_work">Travail</string>
     <string name="tag_default_personal">Personnel</string>
     <string name="tag_default_private">Privé</string>
     <string name="label_today_at">Aujourd\'hui à %s</string>
     <string name="title_imported_note">Note importée</string>
-
-    <!-- v4.0 Search counter -->
     <string name="search_match_counter">%1$d/%2$d</string>
-
-    <!-- v4.0 Password type -->
     <string name="password_type_label">Type de sécurité</string>
     <string name="password_type_pin">PIN (chiffres uniquement)</string>
     <string name="password_type_password">Mot de passe fort</string>
     <string name="label_setup_pin">Créer un PIN</string>
     <string name="security_pin_type">Mode PIN — code numérique simple</string>
     <string name="security_password_type">Mode mot de passe — alphanumérique sécurisé</string>
-
-    <!-- v4.0 Password strength -->
     <string name="password_strength">Force du mot de passe</string>
     <string name="password_weak">Faible</string>
     <string name="password_medium">Moyen</string>
     <string name="password_strong">Fort</string>
     <string name="password_very_strong">Très fort</string>
     <string name="password_suggestion">Astuce : utilisez des majuscules, minuscules, chiffres et symboles pour un mot de passe plus fort</string>
-
-    <!-- v4.0 Biometric -->
     <string name="biometric_not_available">L\'authentification biométrique n\'est pas disponible sur cet appareil</string>
     <string name="biometric_enabled">Déverrouillage biométrique activé</string>
     <string name="biometric_enable_title">Activer le déverrouillage biométrique</string>
@@ -522,15 +479,11 @@
     <string name="biometric_enabled_desc">Empreinte digitale ou reconnaissance faciale activée</string>
     <string name="biometric_disabled_desc">Utilisez l\'empreinte digitale ou le visage pour déverrouiller</string>
     <string name="biometric_key_error">La clé biométrique n\'est pas valide. Veuillez la réactiver dans les paramètres.</string>
-
-    <!-- v4.0 Attachment Settings -->
     <string name="attachment_settings_title">Pièces jointes</string>
     <string name="include_attachments_backup">Inclure les pièces jointes dans la sauvegarde</string>
     <string name="include_attachments_backup_desc">Inclure les images, dessins et fichiers dans votre sauvegarde</string>
     <string name="copy_attachments_local">Copier les pièces jointes vers le stockage interne</string>
     <string name="copy_attachments_local_desc">Enregistrer automatiquement les images externes en fichiers locaux pour les conserver</string>
-
-    <!-- Backup encryption & auto-backup -->
     <string name="backup_encrypt_title">Chiffrer les sauvegardes</string>
     <string name="backup_encrypt_desc">Protéger les fichiers de sauvegarde avec votre mot de passe maître (AES-256 GCM)</string>
     <string name="backup_auto_title">Sauvegarde automatique vers le cloud</string>
@@ -544,8 +497,6 @@
     <string name="backup_e2ee_badge">Chiffré AES-256 E2E</string>
     <string name="backup_e2ee_disabled_badge">Non chiffré</string>
     <string name="toast_encrypt_backup_no_password">Impossible de chiffrer la sauvegarde : mot de passe maître indisponible. Déverrouillez l\'application d\'abord.</string>
-
-    <!-- Security improvements -->
     <string name="auto_lock_title">Verrouillage automatique</string>
     <string name="auto_lock_disabled">Désactivé</string>
     <string name="auto_lock_timeout_desc">Verrouiller après %1$d minutes d\'inactivité</string>
@@ -558,12 +509,8 @@
     <string name="btn_enable">Activer</string>
     <string name="btn_change">Modifier</string>
     <string name="error_rate_limit">Trop de tentatives. Réessayez dans %1$d secondes</string>
-
-    <!-- Screenshot / Recents -->
     <string name="screenshot_toggle_label">Autoriser les captures d\'écran et afficher dans les récentes</string>
     <string name="screenshot_toggle_desc">Lorsque désactivé, les captures d\'écran sont bloquées et l\'application est masquée dans le sélecteur de tâches</string>
-
-    <!-- Change password -->
     <string name="change_password">Changer le mot de passe maître</string>
     <string name="change_password_current">Mot de passe actuel</string>
     <string name="change_password_new">Nouveau mot de passe</string>
@@ -571,8 +518,6 @@
     <string name="change_password_dialog_title">Changer le mot de passe maître</string>
     <string name="toast_password_changed">Mot de passe maître modifié avec succès</string>
     <string name="toast_wrong_current_password">Le mot de passe actuel est incorrect</string>
-
-    <!-- Legal & Privacy -->
     <string name="legal_title">Conditions et Confidentialité</string>
     <string name="legal_section_terms">Conditions d\'Utilisation</string>
     <string name="legal_section_terms_content">Secure Notes est fourni « en l\'état » sans garantie expresse ou implicite. L\'authentification via Google OAuth est gérée par Google et régie par ses propres Conditions d\'Utilisation. En utilisant cette application, vous acceptez que :\n\n1. Vous êtes seul responsable de la confidentialité de votre mot de passe maître.\n2. Les notes sont stockées localement sur votre appareil.\n3. Les sauvegardes cloud sont facultatives et cryptées avant l\'envoi.\n4. Le développeur n\'est pas responsable en cas de perte de données.\n5. Cette application est fournie gratuitement et peut être modifiée sans préavis.</string>
@@ -583,23 +528,18 @@
     <string name="legal_section_drive">Intégration Google Drive</string>
     <string name="legal_section_drive_content">Les sauvegardes cloud via Google Drive sont FACULTATIVES :\n\n☁️ **Stockage privé** — Les données sont stockées dans le dossier AppData (invisible pour l\'utilisateur).\n🔐 **Crypté avant envoi** — Les sauvegardes sont chiffrées avec votre mot de passe maître avant téléversement.\n🔑 **Authentification OAuth 2.0** — via Credential Manager et Play Services.\n🔌 **Déconnexion à tout moment** — Vous pouvez révoquer l\'accès dans les paramètres.\n\nAucune donnée n\'est partagée sans votre consentement explicite.</string>
     <string name="legal_google_oauth_note">Google OAuth gère l\'authentification. Google Drive API est utilisé uniquement pour le stockage de sauvegardes.</string>
-
     <string name="licenses_title">Licences Open Source</string>
     <string name="licenses_app_license">Licence MIT (Application)</string>
-
     <string name="settings_legal">Mentions Légales</string>
     <string name="settings_legal_desc">Conditions, confidentialité, licences</string>
     <string name="settings_terms_privacy">Conditions et Confidentialité</string>
     <string name="settings_licenses">Licences Open Source</string>
     <string name="settings_lang_fr">Français</string>
     <string name="settings_lang_it">Italiano</string>
-
     <string name="about_terms">Conditions et Confidentialité</string>
     <string name="about_terms_desc">Conditions d\'utilisation, IA, données</string>
     <string name="about_licenses">Licences Open Source</string>
     <string name="about_licenses_desc">Bibliothèques tierces</string>
-
-    <!-- AI Assistant -->
     <string name="ai_section">Assistant IA</string>
     <string name="ai_assistant">Assistant IA</string>
     <string name="ai_enabled">Activer l\'Assistant IA</string>
@@ -635,8 +575,6 @@
     <string name="ai_stop">Arrêter</string>
     <string name="ai_suggestion_poem">Écrire un poème</string>
     <string name="ai_suggestion_ideas">Générer des idées</string>
-
-    <!-- AI Settings Screen -->
     <string name="ai_settings_title">Paramètres IA</string>
     <string name="ai_settings">Paramètres IA</string>
     <string name="ai_settings_desc">Configurer le moteur, la connexion et le prompt système</string>
@@ -644,8 +582,6 @@
     <string name="ai_system_prompt_desc">Instructions personnalisées envoyées au modèle avant chaque requête. Remplace les prompts par défaut.</string>
     <string name="ai_system_prompt_hint">Saisissez le prompt système…</string>
     <string name="ai_system_prompt_clear">Effacer</string>
-
-    <!-- AI Connection & Instructions -->
     <string name="ai_test_connection">Tester la Connexion</string>
     <string name="ai_connection_ok">Connecté ! Modèles : %1$s</string>
     <string name="ai_connection_fail">Connexion échouée : %1$s</string>
@@ -654,8 +590,6 @@
     <string name="ai_ollama_instructions_step1">1. Installez Ollama sur votre ordinateur : https://ollama.ai</string>
     <string name="ai_ollama_instructions_step2">2. Exécutez un modèle : ollama run llama3.2 (ou tout autre modèle)</string>
     <string name="ai_ollama_instructions_step3">3. Assurez-vous qu\'Ollama est accessible depuis votre appareil (même réseau). Par défaut, il s\'exécute sur le port 11434.</string>
-
-    <!-- Storage Manager -->
     <string name="settings_storage_manager">Gestionnaire de Stockage</string>
     <string name="settings_storage_manager_desc">Gérez le stockage et nettoyez les fichiers</string>
     <string name="settings_storage_tools">Outils</string>
@@ -685,4 +619,155 @@
     <string name="storage_temp">Temporaires</string>
     <string name="storage_database">Base de données</string>
     <string name="storage_orphan_waste">Gaspillage (orphelins)</string>
+    <string name="ai_chat_ai">IA</string>
+    <string name="ai_chat_empty_desc">Posez des questions, générez du contenu ou obtenez de l\'aide pour vos notes.</string>
+    <string name="ai_chat_empty_title">Commencez une conversation avec l\'IA</string>
+    <string name="ai_chat_hint_explain">Texte à expliquer</string>
+    <string name="ai_chat_hint_fix_grammar">Texte à corriger</string>
+    <string name="ai_chat_hint_followup">Poser une question de suivi…</string>
+    <string name="ai_chat_hint_generate">Écrire un message…</string>
+    <string name="ai_chat_hint_make_shorter">Texte à raccourcir</string>
+    <string name="ai_chat_hint_rewrite">Réécrire le texte sélectionné</string>
+    <string name="ai_chat_hint_summarize">Résumer la note</string>
+    <string name="ai_chat_hint_translate">Traduire le texte sélectionné</string>
+    <string name="ai_chat_prompt_explain">Expliquer ce texte</string>
+    <string name="ai_chat_prompt_fix_grammar">Corriger la grammaire et l\'orthographe</string>
+    <string name="ai_chat_prompt_make_shorter">Rendre ce texte plus concis</string>
+    <string name="ai_chat_prompt_rewrite">Réécrire en style %1$s</string>
+    <string name="ai_chat_prompt_summarize">Résumer le texte suivant</string>
+    <string name="ai_chat_prompt_translate">Traduire en %1$s</string>
+    <string name="ai_chat_title">Chat IA</string>
+    <string name="ai_chat_welcome">Bonjour ! Je suis votre assistant IA local. Comment puis-je vous aider aujourd\'hui ?</string>
+    <string name="ai_chat_you">Vous</string>
+    <string name="ai_chip_explain">💬 Expliquer</string>
+    <string name="ai_chip_fix_grammar">✅ Corriger</string>
+    <string name="ai_chip_make_shorter">📏 Raccourcir</string>
+    <string name="ai_chip_rewrite">✏️ Réécrire</string>
+    <string name="ai_chip_summarize">📝 Résumer</string>
+    <string name="ai_chip_translate">🌐 Traduire</string>
+    <string name="ai_clear_history">Effacer l\'historique</string>
+    <string name="ai_context_quick_actions">Actions rapides</string>
+    <string name="ai_context_rewrite_style">Style de réécriture :</string>
+    <string name="ai_context_target_language">Langue cible :</string>
+    <string name="ai_desc_explain">Le texte sélectionné sera expliqué en termes simples.</string>
+    <string name="ai_desc_fix_grammar">La grammaire, l\'orthographe et la ponctuation seront corrigées.</string>
+    <string name="ai_desc_make_shorter">Le texte sélectionné sera réécrit de façon plus concise.</string>
+    <string name="ai_error_connection">Erreur de connexion</string>
+    <string name="ai_error_inplace">Erreur lors du traitement IA</string>
+    <string name="ai_error_load_model">Erreur de chargement du modèle</string>
+    <string name="ai_error_no_session">Aucune session active</string>
+    <string name="ai_error_unexpected">Erreur inattendue</string>
+    <string name="ai_error_unknown">Erreur inconnue</string>
+    <string name="ai_explain">Expliquer</string>
+    <string name="ai_fix_grammar">Corriger la grammaire</string>
+    <string name="ai_generating">Génération en cours…</string>
+    <string name="ai_generation_failed">Échec de la génération de la réponse</string>
+    <string name="ai_history">Historique</string>
+    <string name="ai_lang_ar">العربية</string>
+    <string name="ai_lang_de">Deutsch</string>
+    <string name="ai_lang_en">English</string>
+    <string name="ai_lang_es">Español</string>
+    <string name="ai_lang_fr">Français</string>
+    <string name="ai_lang_it">Italiano</string>
+    <string name="ai_lang_ja">日本語</string>
+    <string name="ai_lang_pt">Português</string>
+    <string name="ai_lang_ru">Русский</string>
+    <string name="ai_lang_zh">中文</string>
+    <string name="ai_make_shorter">Raccourcir</string>
+    <string name="ai_max_tokens">Tokens max</string>
+    <string name="ai_max_tokens_desc">Longueur maximale de la réponse générée</string>
+    <string name="ai_model_not_available">Modèle non disponible. Vérifiez votre configuration IA dans les Paramètres.</string>
+    <string name="ai_ondevice_all_models">Tous les modèles compatibles</string>
+    <string name="ai_ondevice_architecture">Architecture</string>
+    <string name="ai_ondevice_class">Classe de l\'appareil</string>
+    <string name="ai_ondevice_device_info">Infos appareil</string>
+    <string name="ai_ondevice_download">Télécharger</string>
+    <string name="ai_ondevice_download_complete">Téléchargement terminé</string>
+    <string name="ai_ondevice_download_failed">Échec du téléchargement : %1$s</string>
+    <string name="ai_ondevice_downloading">Téléchargement…</string>
+    <string name="ai_ondevice_load">Charger le modèle</string>
+    <string name="ai_ondevice_loading">Chargement…</string>
+    <string name="ai_ondevice_no_compatible">Aucun modèle compatible pour cet appareil</string>
+    <string name="ai_ondevice_not_downloaded">Modèle pas encore téléchargé</string>
+    <string name="ai_ondevice_oom_warning">Peut dépasser la RAM disponible</string>
+    <string name="ai_ondevice_ram">RAM</string>
+    <string name="ai_ondevice_recommended">Modèle recommandé</string>
+    <string name="ai_ondevice_retry">Réessayer</string>
+    <string name="ai_ondevice_status_error">Erreur de chargement du modèle</string>
+    <string name="ai_ondevice_status_ready">Modèle chargé et prêt</string>
+    <string name="ai_ondevice_text_formats">Formats de fichiers supportés</string>
+    <string name="ai_ondevice_text_models">Modèles texte</string>
+    <string name="ai_ondevice_unload">Décharger</string>
+    <string name="ai_panel_chat">Chat</string>
+    <string name="ai_panel_placeholder">Demandez à l\'IA de générer, réécrire ou suggérer…</string>
+    <string name="ai_progress_explaining">Explication…</string>
+    <string name="ai_progress_fixing_grammar">Correction grammaticale…</string>
+    <string name="ai_progress_making_shorter">Raccourcissement…</string>
+    <string name="ai_progress_rewriting">Réécriture en cours…</string>
+    <string name="ai_progress_summarizing">Résumé en cours…</string>
+    <string name="ai_progress_title">Traitement IA…</string>
+    <string name="ai_progress_translating">Traduction en cours…</string>
+    <string name="ai_prompt_explain">Expliquez le texte suivant en termes simples et faciles à comprendre. Décomposez les concepts complexes et fournissez des exemples clairs si utiles.</string>
+    <string name="ai_prompt_fix_grammar">Corrigez les erreurs de grammaire, d\'orthographe et de ponctuation dans le texte suivant. Préservez le sens original et le style d\'écriture.</string>
+    <string name="ai_prompt_generate">Vous êtes un assistant d\'écriture créative. Générez du texte selon la demande de l\'utilisateur en utilisant le formatage markdown si approprié.</string>
+    <string name="ai_prompt_make_shorter">Réécrivez le texte suivant pour le rendre plus concis tout en préservant toutes les informations clés. Supprimez les mots et répétitions inutiles.</string>
+    <string name="ai_prompt_rewrite">Vous êtes un assistant d\'écriture. Réécrivez le texte dans le style indiqué.</string>
+    <string name="ai_prompt_summarize">Résumez le texte suivant de façon concise tout en préservant les informations clés.</string>
+    <string name="ai_prompt_translate">Traduisez le texte suivant dans la langue spécifiée. Retournez uniquement la traduction sans explications.</string>
+    <string name="ai_repetition_penalty">Pénalité de répétition</string>
+    <string name="ai_repetition_penalty_desc">Pénaliser les tokens répétés (1.0 = désactivé)</string>
+    <string name="ai_rewrite_note">Réécrire la note</string>
+    <string name="ai_sampling_params">Paramètres d\'échantillonnage</string>
+    <string name="ai_send">Envoyer</string>
+    <string name="ai_session_title_new">Nouveau chat</string>
+    <string name="ai_suggestion_another_example">Autre exemple</string>
+    <string name="ai_suggestion_explain_more">Expliquer plus</string>
+    <string name="ai_suggestion_shorten">Raccourcir</string>
+    <string name="ai_summarize_notes">Résumer les notes</string>
+    <string name="ai_temperature">Température</string>
+    <string name="ai_temperature_desc">Contrôle l\'aléatoire (0 = déterministe, 2 = très aléatoire)</string>
+    <string name="ai_top_k">Top K</string>
+    <string name="ai_top_k_desc">Considérer seulement les K meilleurs tokens (0 = désactivé)</string>
+    <string name="ai_top_p">Top P</string>
+    <string name="ai_top_p_desc">Seuil d\'échantillonnage nucléus</string>
+    <string name="ai_translate_note">Traduire la note</string>
+    <string name="ai_user_msg_explain">Expliquer : %1$s</string>
+    <string name="ai_user_msg_fix_grammar">Corriger la grammaire : %1$s</string>
+    <string name="ai_user_msg_generate">Générer du texte</string>
+    <string name="ai_user_msg_make_shorter">Raccourcir : %1$s</string>
+    <string name="ai_user_msg_rewrite">Réécrire en style %1$s : %2$s</string>
+    <string name="ai_user_msg_summarize">Résumer : %1$s</string>
+    <string name="ai_user_msg_translate">Traduire en %1$s : %2$s</string>
+    <string name="attach">Joindre</string>
+    <string name="chat_delete">Supprimer</string>
+    <string name="chat_delete_confirm">Supprimer ce chat ?</string>
+    <string name="chat_empty_desc">Commencez une conversation avec l\'IA</string>
+    <string name="chat_empty_title">Aucun chat pour l\'instant</string>
+    <string name="chat_export">Exporter le chat</string>
+    <string name="chat_export_failed">Échec d\'exportation : %1$s</string>
+    <string name="chat_export_success">Chat exporté dans le dossier Téléchargements</string>
+    <string name="chat_history_title">Historique des chats</string>
+    <string name="chat_new">Nouveau chat</string>
+    <string name="chat_pin">Épingler</string>
+    <string name="chat_pinned_section">Épinglés</string>
+    <string name="chat_rename">Renommer</string>
+    <string name="chat_rename_dialog_title">Renommer le chat</string>
+    <string name="chat_search_hint">Rechercher des chats…</string>
+    <string name="chat_title_hint">Titre du chat</string>
+    <string name="chat_unpin">Désépingler</string>
+    <string name="dismiss">Ignorer</string>
+    <string name="encrypted_note_locked">Verrouillé — déverrouiller pour joindre</string>
+    <string name="fab_audio">Audio</string>
+    <string name="fab_drawing">Dessin</string>
+    <string name="fab_image">Image</string>
+    <string name="fab_text">Texte</string>
+    <string name="nav_chats">Chats</string>
+    <string name="no_notes_found">Aucune note trouvée</string>
+    <string name="remove_note_context">Supprimer le contexte de la note</string>
+    <string name="search_notes">Rechercher des notes</string>
+    <string name="select_note_to_attach">Sélectionner une note à joindre</string>
+    <string name="share">Partager</string>
+    <string name="toast_auth_error">Erreur d\'authentification</string>
+    <string name="toast_note_created_with_audio">Note créée avec audio</string>
+    <string name="toast_note_created_with_image">Note créée avec image</string>
 </resources>

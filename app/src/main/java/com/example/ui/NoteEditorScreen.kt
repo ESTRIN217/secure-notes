@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,10 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.R
+import com.example.data.ai.AiAction
+import com.example.data.ai.RewriteStyle
 import com.example.data.model.Attachment
 import com.example.data.model.DecryptedNote
 import com.example.data.model.Note
@@ -107,7 +111,7 @@ import kotlinx.coroutines.launch
 
 
 
-@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, FlowPreview::class)
 @Composable
 fun NoteEditorScreen(
     noteId: Int,
@@ -204,6 +208,35 @@ fun NoteEditorScreen(
     var showSearchMoreOptions by remember { mutableStateOf(false) }
     val editorFocusRequester = remember { FocusRequester() }
 
+    // ── AI Integration State ─────────────────────────────────
+    var showAiContextSheet by remember { mutableStateOf(false) }
+    var showAiPanel by remember { mutableStateOf(false) }
+    var aiPromptInput by remember { mutableStateOf("") }
+    var aiSelectionStart by remember { mutableIntStateOf(0) }
+    var aiSelectionEnd by remember { mutableIntStateOf(0) }
+    var aiPendingRewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
+    var aiPendingTargetLanguage by remember { mutableStateOf("en") }
+    var showAiStyleSubmenu by remember { mutableStateOf(false) }
+    var showAiLangSubmenu by remember { mutableStateOf(false) }
+
+    val inPlaceResult by aiViewModel.inPlaceResult.collectAsStateWithLifecycle()
+    val inPlaceStreamingText by aiViewModel.inPlaceStreamingText.collectAsStateWithLifecycle()
+    val inPlaceProcessing by aiViewModel.inPlaceProcessing.collectAsStateWithLifecycle()
+    val inPlaceAction by aiViewModel.inPlaceAction.collectAsStateWithLifecycle()
+
+    fun executeAiAction(
+        action: AiAction,
+        style: RewriteStyle = RewriteStyle.FORMAL,
+        language: String = "en"
+    ) {
+        val text = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
+            .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
+        aiViewModel.executeInPlace(action, text, style, language)
+        showAiContextSheet = false
+        showAiStyleSubmenu = false
+        showAiLangSubmenu = false
+    }
+
     LaunchedEffect(searchQuery, searchCaseSensitive, searchFullWord, contentValue.text) {
         if (searchQuery.isNotEmpty()) {
             val parseResult = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
@@ -296,14 +329,15 @@ fun NoteEditorScreen(
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
 
-    LaunchedEffect(pendingAiInsert, contentLoaded) {
-        val text = pendingAiInsert ?: return@LaunchedEffect
+    // Replace selection with AI in-place result
+    LaunchedEffect(inPlaceResult, contentLoaded) {
+        val result = inPlaceResult ?: return@LaunchedEffect
         if (!contentLoaded) return@LaunchedEffect
-        val selStart = contentValue.selection.start
-        val selEnd = contentValue.selection.end
+        val selStart = aiSelectionStart
+        val selEnd = aiSelectionEnd
         val currentText = contentValue.text
-        val newText = currentText.substring(0, selStart) + text + currentText.substring(selEnd)
-        val newCursor = selStart + text.length
+        val newText = currentText.substring(0, selStart) + result + currentText.substring(selEnd)
+        val newCursor = selStart + result.length
         contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
         content = newText
         saveToHistory(newText)
@@ -311,6 +345,36 @@ fun NoteEditorScreen(
             id = noteId,
             title = title.trim(),
             content = createRawContent(newText.trim(), attachments),
+            isEncrypted = isEncrypted,
+            tagsList = selectedNoteTags,
+            backgroundColor = selectedBgColorId,
+            backgroundImagePath = selectedBgImagePath,
+            isPinned = isPinned,
+            isFavorite = isFavorite,
+            isArchived = isArchived
+        )
+        aiViewModel.clearInPlaceResult()
+    }
+
+    // Level 3: Streaming insertion — animate pendingInsert char by char
+    LaunchedEffect(pendingAiInsert, contentLoaded) {
+        val text = pendingAiInsert ?: return@LaunchedEffect
+        if (!contentLoaded || text.isEmpty()) return@LaunchedEffect
+        val insertFrom = contentValue.selection.start
+        val insertEnd = contentValue.selection.end
+        val baseText = contentValue.text
+        for (i in text.indices) {
+            val chunk = text.substring(0, i + 1)
+            val newText = baseText.substring(0, insertFrom) + chunk + baseText.substring(insertEnd)
+            contentValue = TextFieldValue(text = newText, selection = TextRange(insertFrom + chunk.length))
+            content = newText
+            kotlinx.coroutines.delay(15)
+        }
+        saveToHistory(content)
+        viewModel.saveNote(
+            id = noteId,
+            title = title.trim(),
+            content = createRawContent(content.trim(), attachments),
             isEncrypted = isEncrypted,
             tagsList = selectedNoteTags,
             backgroundColor = selectedBgColorId,
@@ -1254,13 +1318,14 @@ fun NoteEditorScreen(
                     if (aiEnabled) {
                         VerticalDivider(modifier = Modifier.height(24.dp))
                         IconButton(onClick = {
-                            aiViewModel.prepareChatForNote(
-                                content,
-                                contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
-                                    .takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
-                                title
-                            )
-                            onNavigateToAiChat(noteId)
+                            aiSelectionStart = contentValue.selection.start
+                            aiSelectionEnd = contentValue.selection.end
+                            if (contentValue.selection.start != contentValue.selection.end) {
+                                showAiContextSheet = true
+                            } else {
+                                aiViewModel.prepareChatForNote(content, "", title)
+                                onNavigateToAiChat(noteId)
+                            }
                         }) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
@@ -1979,13 +2044,14 @@ fun NoteEditorScreen(
                     if (aiEnabled) {
                         IconButton(
                             onClick = {
-                                aiViewModel.prepareChatForNote(
-                                    content,
-                                    contentValue.text.substring(contentValue.selection.start, contentValue.selection.end)
-                                        .takeIf { contentValue.selection.start != contentValue.selection.end } ?: "",
-                                    title
-                                )
-                                onNavigateToAiChat(noteId)
+                                aiSelectionStart = contentValue.selection.start
+                                aiSelectionEnd = contentValue.selection.end
+                                if (contentValue.selection.start != contentValue.selection.end) {
+                                    showAiContextSheet = true
+                                } else {
+                                    aiViewModel.prepareChatForNote(content, "", title)
+                                    onNavigateToAiChat(noteId)
+                                }
                             },
                             modifier = Modifier.testTag("ai_toolbar_btn")
                         ) {
@@ -1994,6 +2060,108 @@ fun NoteEditorScreen(
                                 contentDescription = stringResource(R.string.ai_assistant),
                                 tint = MaterialTheme.colorScheme.primary
                             )
+                        }
+                    }
+                    // AI Panel Toggle
+                    if (aiEnabled) {
+                        IconButton(
+                            onClick = { showAiPanel = !showAiPanel }
+                        ) {
+                            Icon(
+                                imageVector = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
+                                contentDescription = "AI Panel",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Level 2: Floating AI Panel ──────────────────────────
+        if (showAiPanel) {
+            Surface(
+                modifier = Modifier
+                    .padding(bottom = 104.dp)
+                    .fillMaxWidth(0.92f),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("✨ ${stringResource(R.string.ai_assistant)}", style = MaterialTheme.typography.titleSmall)
+                        IconButton(onClick = { showAiPanel = false }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = aiPromptInput,
+                        onValueChange = { aiPromptInput = it },
+                        placeholder = { Text(stringResource(R.string.ai_panel_placeholder), fontSize = 13.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SuggestionChip(
+                            onClick = {
+                                aiSelectionStart = 0; aiSelectionEnd = contentValue.text.length
+                                executeAiAction(AiAction.SUMMARIZE)
+                                showAiPanel = false
+                            },
+                            label = { Text(stringResource(R.string.ai_summarize), fontSize = 11.sp) }
+                        )
+                        SuggestionChip(
+                            onClick = {
+                                aiSelectionStart = 0; aiSelectionEnd = contentValue.text.length
+                                executeAiAction(AiAction.FIX_GRAMMAR)
+                                showAiPanel = false
+                            },
+                            label = { Text(stringResource(R.string.ai_fix_grammar), fontSize = 11.sp) }
+                        )
+                        SuggestionChip(
+                            onClick = {
+                                aiViewModel.prepareChatForNote(content, "", title)
+                                showAiPanel = false
+                                onNavigateToAiChat(noteId)
+                            },
+                            label = { Text(stringResource(R.string.ai_panel_chat), fontSize = 11.sp) }
+                        )
+                    }
+                    if (aiPromptInput.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                aiSelectionStart = contentValue.selection.start
+                                aiSelectionEnd = contentValue.selection.end
+                                val target = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
+                                    .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
+                                aiViewModel.executeInPlace(AiAction.GENERATE, "$target\n\n$aiPromptInput")
+                                aiPromptInput = ""
+                                showAiPanel = false
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !inPlaceProcessing
+                        ) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.ai_generate), fontSize = 13.sp)
                         }
                     }
                 }
@@ -2600,6 +2768,162 @@ fun NoteEditorScreen(
             }
         }
 
+        // ── Level 1: AI Context Actions Bottom Sheet ──────────
+        if (showAiContextSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showAiContextSheet = false
+                    showAiStyleSubmenu = false
+                    showAiLangSubmenu = false
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        "✨ ${stringResource(R.string.ai_assistant)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(16.dp))
+
+                    if (showAiStyleSubmenu) {
+                        Text(stringResource(R.string.ai_context_rewrite_style), style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RewriteStyle.entries.forEach { style ->
+                                FilterChip(
+                                    selected = aiPendingRewriteStyle == style,
+                                    onClick = {
+                                        aiPendingRewriteStyle = style
+                                        executeAiAction(AiAction.REWRITE, style = style)
+                                    },
+                                    label = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }, fontSize = 12.sp) }
+                                )
+                            }
+                        }
+                    } else if (showAiLangSubmenu) {
+                        Text(stringResource(R.string.ai_context_target_language), style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(8.dp))
+                        val languages = listOf("en", "es", "pt", "fr", "de", "it", "ja", "zh", "ru", "ar")
+                        val langLabels = mapOf(
+                            "en" to stringResource(R.string.ai_lang_en),
+                            "es" to stringResource(R.string.ai_lang_es),
+                            "pt" to stringResource(R.string.ai_lang_pt),
+                            "fr" to stringResource(R.string.ai_lang_fr),
+                            "de" to stringResource(R.string.ai_lang_de),
+                            "it" to stringResource(R.string.ai_lang_it),
+                            "ja" to stringResource(R.string.ai_lang_ja),
+                            "zh" to stringResource(R.string.ai_lang_zh),
+                            "ru" to stringResource(R.string.ai_lang_ru),
+                            "ar" to stringResource(R.string.ai_lang_ar)
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            languages.forEach { code ->
+                                FilterChip(
+                                    selected = aiPendingTargetLanguage == code,
+                                    onClick = {
+                                        aiPendingTargetLanguage = code
+                                        executeAiAction(AiAction.TRANSLATE, language = code)
+                                    },
+                                    label = { Text(langLabels[code] ?: code, fontSize = 12.sp) }
+                                )
+                            }
+                        }
+                    } else {
+                        Text(stringResource(R.string.ai_context_quick_actions), style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AssistChip(
+                                onClick = { executeAiAction(AiAction.SUMMARIZE) },
+                                label = { Text(stringResource(R.string.ai_chip_summarize), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                            AssistChip(
+                                onClick = { showAiStyleSubmenu = true },
+                                label = { Text(stringResource(R.string.ai_chip_rewrite), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                            AssistChip(
+                                onClick = { showAiLangSubmenu = true },
+                                label = { Text(stringResource(R.string.ai_chip_translate), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                            AssistChip(
+                                onClick = { executeAiAction(AiAction.MAKE_SHORTER) },
+                                label = { Text(stringResource(R.string.ai_chip_make_shorter), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                            AssistChip(
+                                onClick = { executeAiAction(AiAction.FIX_GRAMMAR) },
+                                label = { Text(stringResource(R.string.ai_chip_fix_grammar), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                            AssistChip(
+                                onClick = { executeAiAction(AiAction.EXPLAIN) },
+                                label = { Text(stringResource(R.string.ai_chip_explain), fontSize = 12.sp) },
+                                leadingIcon = { }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── AI Streaming / Result Indicator ───────────────────
+        if (inPlaceAction != null && inPlaceProcessing) {
+            AlertDialog(
+                onDismissRequest = { aiViewModel.cancelGeneration() },
+                title = { Text(stringResource(R.string.ai_progress_title), style = MaterialTheme.typography.titleSmall) },
+                text = {
+                    Column {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = when (inPlaceAction) {
+                                AiAction.SUMMARIZE -> stringResource(R.string.ai_progress_summarizing)
+                                AiAction.REWRITE -> stringResource(R.string.ai_progress_rewriting)
+                                AiAction.TRANSLATE -> stringResource(R.string.ai_progress_translating)
+                                AiAction.MAKE_SHORTER -> stringResource(R.string.ai_progress_making_shorter)
+                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_progress_fixing_grammar)
+                                AiAction.EXPLAIN -> stringResource(R.string.ai_progress_explaining)
+                                else -> stringResource(R.string.ai_generating)
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        if (!inPlaceStreamingText.isNullOrBlank()) {
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = inPlaceStreamingText!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp),
+                                    maxLines = 8,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { aiViewModel.cancelGeneration() }) {
+                        Text(stringResource(R.string.btn_cancel))
+                    }
+                }
+            )
+        }
 
     }
 }

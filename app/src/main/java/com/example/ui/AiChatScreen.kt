@@ -86,8 +86,6 @@ fun AiChatScreen(
     var editingMessage by remember { mutableStateOf<String?>(null) }
     var showNotePicker by remember { mutableStateOf(false) }
     var notePickerSearchQuery by remember { mutableStateOf("") }
-    var showConversationSearch by remember { mutableStateOf(false) }
-    var conversationSearchQuery by remember { mutableStateOf("") }
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
@@ -132,12 +130,6 @@ fun AiChatScreen(
     val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
     val displayModelName = if (backend == AiBackend.OLLAMA) modelNameSetting
                            else selectedOnDeviceModel?.displayName ?: ""
-    val filteredConversationHistory = remember(conversationHistory, conversationSearchQuery) {
-        if (conversationSearchQuery.isBlank()) conversationHistory
-        else conversationHistory.filter { turn ->
-            turn.content.contains(conversationSearchQuery, ignoreCase = true)
-        }
-    }
 
     val hasStreamingContent = isProcessing && !streamingText.isNullOrEmpty()
     val isStreamingEmpty = isProcessing && streamingText.isNullOrEmpty()
@@ -252,10 +244,7 @@ fun AiChatScreen(
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.History, contentDescription = stringResource(R.string.chat_history_title))
                         }
-                        if (effectiveSessionId > 0 && conversationHistory.isNotEmpty()) {
-                            IconButton(onClick = { showConversationSearch = !showConversationSearch; if (!showConversationSearch) conversationSearchQuery = "" }) {
-                                Icon(if (showConversationSearch) Icons.Default.Close else Icons.Default.Search, contentDescription = stringResource(R.string.search_icon))
-                            }
+                        if (effectiveSessionId > 0) {
                             if (conversationHistory.isNotEmpty()) {
                                 IconButton(onClick = {
                                     val path = viewModel.exportConversation(context, effectiveSessionId)
@@ -341,6 +330,9 @@ fun AiChatScreen(
                                                 AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
                                                 AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
                                                 AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
+                                                AiAction.MAKE_SHORTER -> stringResource(R.string.ai_chat_hint_make_shorter)
+                                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_chat_hint_fix_grammar)
+                                                AiAction.EXPLAIN -> stringResource(R.string.ai_chat_hint_explain)
                                         }
                                         }
                                     )
@@ -380,6 +372,9 @@ fun AiChatScreen(
                                                 AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
                                                 AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
                                                 AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
+                                                AiAction.MAKE_SHORTER -> context.getString(R.string.ai_chat_prompt_make_shorter)
+                                                AiAction.FIX_GRAMMAR -> context.getString(R.string.ai_chat_prompt_fix_grammar)
+                                                AiAction.EXPLAIN -> context.getString(R.string.ai_chat_prompt_explain)
                                             }
                                             val request = AiRequest(
                                                 action = currentAction,
@@ -436,26 +431,6 @@ fun AiChatScreen(
                         )
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        if (showConversationSearch) {
-                            OutlinedTextField(
-                                value = conversationSearchQuery,
-                                onValueChange = { conversationSearchQuery = it },
-                                placeholder = { Text(stringResource(R.string.search_in_chat)) },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                trailingIcon = {
-                                    if (conversationSearchQuery.isNotBlank()) {
-                                        IconButton(onClick = { conversationSearchQuery = "" }) {
-                                            Icon(Icons.Default.Clear, contentDescription = null)
-                                        }
-                                    }
-                                }
-                            )
-                        }
                         if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
                             EmptyChatWelcome(
                                 selectedText = selectedText,
@@ -473,20 +448,9 @@ fun AiChatScreen(
                                     )
                                 }
                             )
-                        } else if (showConversationSearch && conversationSearchQuery.isNotBlank() && filteredConversationHistory.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.chat_search_no_results),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         } else {
                             ChatMessageList(
-                                conversationHistory = if (showConversationSearch && conversationSearchQuery.isNotBlank()) filteredConversationHistory else conversationHistory,
+                                conversationHistory = conversationHistory,
                                 isStreamingEmpty = isStreamingEmpty,
                                 hasStreamingContent = hasStreamingContent,
                                 streamingText = streamingText,

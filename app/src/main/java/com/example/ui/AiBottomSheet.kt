@@ -110,6 +110,27 @@ fun AiBottomSheet(
                         onLanguageSelected = { targetLanguage = it }
                     )
                 }
+                AiAction.MAKE_SHORTER -> {
+                    Text(
+                        text = stringResource(R.string.ai_desc_make_shorter),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                AiAction.FIX_GRAMMAR -> {
+                    Text(
+                        text = stringResource(R.string.ai_desc_fix_grammar),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                AiAction.EXPLAIN -> {
+                    Text(
+                        text = stringResource(R.string.ai_desc_explain),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -150,6 +171,9 @@ fun AiBottomSheet(
                         AiAction.SUMMARIZE -> stringResource(R.string.ai_summarize)
                         AiAction.REWRITE -> stringResource(R.string.ai_rewrite)
                         AiAction.TRANSLATE -> stringResource(R.string.ai_translate)
+                        AiAction.MAKE_SHORTER -> stringResource(R.string.ai_make_shorter)
+                        AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_fix_grammar)
+                        AiAction.EXPLAIN -> stringResource(R.string.ai_explain)
                     }
                 )
             }
@@ -345,12 +369,12 @@ private fun LanguageSelector(
             modifier = Modifier.fillMaxWidth()
         ) {
             listOf(
-                "en" to "English",
-                "es" to "Español",
-                "pt" to "Português",
-                "fr" to "Français",
-                "de" to "Deutsch",
-                "it" to "Italiano"
+                "en" to stringResource(com.example.R.string.ai_lang_en),
+                "es" to stringResource(com.example.R.string.ai_lang_es),
+                "pt" to stringResource(com.example.R.string.ai_lang_pt),
+                "fr" to stringResource(com.example.R.string.ai_lang_fr),
+                "de" to stringResource(com.example.R.string.ai_lang_de),
+                "it" to stringResource(com.example.R.string.ai_lang_it)
             ).forEach { (code, label) ->
                 FilterChip(
                     selected = currentLanguage == code,

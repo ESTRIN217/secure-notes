@@ -602,12 +602,12 @@
     <!-- AI Assistant -->
     <string name="ai_section">AI Assistant</string>
     <string name="ai_assistant">AI Assistant</string>
-    <string name="fab_text">Texto</string>
+    <string name="fab_text">Text</string>
     <string name="fab_audio">Audio</string>
-    <string name="fab_drawing">Dibujo</string>
-    <string name="fab_image">Imagen</string>
-    <string name="toast_note_created_with_audio">Nota creada con audio</string>
-    <string name="toast_note_created_with_image">Nota creada con imagen</string>
+    <string name="fab_drawing">Drawing</string>
+    <string name="fab_image">Image</string>
+    <string name="toast_note_created_with_audio">Note created with audio</string>
+    <string name="toast_note_created_with_image">Note created with image</string>
     <string name="ai_enabled">Enable AI Assistant</string>
     <string name="ai_enabled_desc">Use local AI models for writing assistance</string>
     <string name="ai_backend">AI Backend</string>
@@ -782,12 +782,70 @@
     <string name="chat_export">Export Chat</string>
     <string name="chat_export_success">Chat exported to Downloads folder</string>
     <string name="chat_export_failed">Export failed: %1$s</string>
-    <string name="chat_search_no_results">No results found in this chat</string>
-    <string name="search_in_chat">Search in chat</string>
+
 
     <!-- Default AI System Prompts -->
     <string name="ai_prompt_generate">You are a creative writing assistant. Generate text based on the user\'s request using markdown formatting when appropriate.</string>
     <string name="ai_prompt_summarize">Summarize the following text concisely while preserving key information.</string>
     <string name="ai_prompt_rewrite">You are a writing assistant. Rewrite the text in the indicated style.</string>
     <string name="ai_prompt_translate">Translate the following text to the specified language. Return only the translation without explanations.</string>
+    <string name="ai_prompt_make_shorter">Rewrite the following text to be more concise while preserving all key information. Remove unnecessary words and repetitions.</string>
+    <string name="ai_prompt_fix_grammar">Fix grammar, spelling, and punctuation errors in the following text. Preserve the original meaning and writing style.</string>
+    <string name="ai_prompt_explain">Explain the following text in simple, easy-to-understand terms. Break down complex concepts and provide clear examples where helpful.</string>
+
+    <!-- AI In-Editor Actions (added by integration) -->
+    <string name="ai_make_shorter">Make Shorter</string>
+    <string name="ai_fix_grammar">Fix Grammar</string>
+    <string name="ai_explain">Explain</string>
+    <string name="ai_desc_make_shorter">The selected text will be rewritten to be more concise.</string>
+    <string name="ai_desc_fix_grammar">Grammar, spelling, and punctuation will be corrected.</string>
+    <string name="ai_desc_explain">The selected text will be explained in simple terms.</string>
+    <string name="ai_chat_hint_make_shorter">Text to shorten</string>
+    <string name="ai_chat_hint_fix_grammar">Text to fix</string>
+    <string name="ai_chat_hint_explain">Text to explain</string>
+    <string name="ai_chat_prompt_make_shorter">Make this text more concise</string>
+    <string name="ai_chat_prompt_fix_grammar">Fix grammar and spelling</string>
+    <string name="ai_chat_prompt_explain">Explain this text</string>
+    <string name="ai_chip_summarize">📝 Summarize</string>
+    <string name="ai_chip_rewrite">✏️ Rewrite</string>
+    <string name="ai_chip_translate">🌐 Translate</string>
+    <string name="ai_chip_make_shorter">📏 Make Shorter</string>
+    <string name="ai_chip_fix_grammar">✅ Fix Grammar</string>
+    <string name="ai_chip_explain">💬 Explain</string>
+    <string name="ai_panel_chat">Chat</string>
+    <string name="ai_panel_placeholder">Ask AI to generate, rewrite, or suggest…</string>
+    <string name="ai_progress_title">AI Processing…</string>
+    <string name="ai_progress_summarizing">Summarizing…</string>
+    <string name="ai_progress_rewriting">Rewriting…</string>
+    <string name="ai_progress_translating">Translating…</string>
+    <string name="ai_progress_making_shorter">Making shorter…</string>
+    <string name="ai_progress_fixing_grammar">Fixing grammar…</string>
+    <string name="ai_progress_explaining">Explaining…</string>
+    <string name="ai_context_quick_actions">Quick actions</string>
+    <string name="ai_context_rewrite_style">Re-write style:</string>
+    <string name="ai_context_target_language">Target language:</string>
+    <string name="ai_session_title_new">New Chat</string>
+    <string name="ai_error_inplace">Error during AI processing</string>
+    <string name="ai_error_no_session">No active session</string>
+    <string name="ai_error_load_model">Error loading model</string>
+    <string name="ai_error_unknown">Unknown error</string>
+    <string name="ai_error_connection">Connection error</string>
+    <string name="ai_error_unexpected">Unexpected error</string>
+    <string name="ai_user_msg_generate">Generate text</string>
+    <string name="ai_user_msg_summarize">Summarize: %1$s</string>
+    <string name="ai_user_msg_rewrite">Rewrite in %1$s style: %2$s</string>
+    <string name="ai_user_msg_translate">Translate to %1$s: %2$s</string>
+    <string name="ai_user_msg_make_shorter">Make shorter: %1$s</string>
+    <string name="ai_user_msg_fix_grammar">Fix grammar: %1$s</string>
+    <string name="ai_user_msg_explain">Explain: %1$s</string>
+    <string name="ai_lang_en">English</string>
+    <string name="ai_lang_es">Español</string>
+    <string name="ai_lang_pt">Português</string>
+    <string name="ai_lang_fr">Français</string>
+    <string name="ai_lang_de">Deutsch</string>
+    <string name="ai_lang_it">Italiano</string>
+    <string name="ai_lang_ja">日本語</string>
+    <string name="ai_lang_zh">中文</string>
+    <string name="ai_lang_ru">Русский</string>
+    <string name="ai_lang_ar">العربية</string>
     </resources>

@@ -140,6 +140,18 @@ class AiViewModel(
     private val _pendingInsert = MutableStateFlow<String?>(null)
     val pendingInsert: StateFlow<String?> = _pendingInsert.asStateFlow()
 
+    private val _inPlaceStreamingText = MutableStateFlow<String?>(null)
+    val inPlaceStreamingText: StateFlow<String?> = _inPlaceStreamingText.asStateFlow()
+
+    private val _inPlaceResult = MutableStateFlow<String?>(null)
+    val inPlaceResult: StateFlow<String?> = _inPlaceResult.asStateFlow()
+
+    private val _inPlaceProcessing = MutableStateFlow(false)
+    val inPlaceProcessing: StateFlow<Boolean> = _inPlaceProcessing.asStateFlow()
+
+    private val _inPlaceAction = MutableStateFlow<AiAction?>(null)
+    val inPlaceAction: StateFlow<AiAction?> = _inPlaceAction.asStateFlow()
+
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Unknown)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
@@ -230,6 +242,60 @@ class AiViewModel(
         _pendingInsert.value = null
     }
 
+    fun executeInPlace(
+        action: AiAction,
+        text: String,
+        rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
+        targetLanguage: String = "en"
+    ) {
+        currentJob?.cancel()
+        _inPlaceResult.value = null
+        _inPlaceStreamingText.value = ""
+        _inPlaceProcessing.value = true
+        _inPlaceAction.value = action
+
+        val resolvedPrompt = _systemPrompt.value.ifBlank {
+            AiPromptBuilder.resolveSystemPromptResource(getApplication(), action, "")
+        }
+        val request = AiRequest(
+            action = action,
+            selectedText = text,
+            context = text,
+            rewriteStyle = rewriteStyle,
+            targetLanguage = targetLanguage,
+            customSystemPrompt = resolvedPrompt,
+            temperature = _temperature.value,
+            topK = _topK.value,
+            topP = _topP.value,
+            repetitionPenalty = _repetitionPenalty.value,
+            maxTokens = _maxTokens.value.coerceAtMost(512)
+        )
+
+        currentJob = viewModelScope.launch {
+            try {
+                val fullText = StringBuilder()
+                currentService.executeStreaming(request).collect { token ->
+                    fullText.append(token)
+                    _inPlaceStreamingText.value = fullText.toString()
+                }
+                _inPlaceResult.value = fullText.toString()
+            } catch (e: Exception) {
+                _inPlaceResult.value = null
+                _errorMessage.value = e.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_inplace)
+            } finally {
+                _inPlaceStreamingText.value = null
+                _inPlaceProcessing.value = false
+            }
+        }
+    }
+
+    fun clearInPlaceResult() {
+        _inPlaceResult.value = null
+        _inPlaceStreamingText.value = null
+        _inPlaceProcessing.value = false
+        _inPlaceAction.value = null
+    }
+
     fun setBackend(backend: AiBackend) {
         _backend.value = backend
         prefsRepository.setAiBackend(if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama")
@@ -315,7 +381,7 @@ class AiViewModel(
     fun loadSelectedModel() {
         val model = _selectedOnDeviceModel.value ?: return
         val path = modelDownloader.getModelPath(model) ?: run {
-            _errorMessage.value = "El modelo aún no se ha descargado"
+            _errorMessage.value = getApplication<android.app.Application>().getString(com.example.R.string.ai_ondevice_not_downloaded)
             return
         }
         viewModelScope.launch {
@@ -324,7 +390,7 @@ class AiViewModel(
                 setOnDeviceModelPath(path)
                 _errorMessage.value = null
             } else {
-                _errorMessage.value = result.exceptionOrNull()?.message ?: "Error al cargar el modelo"
+                _errorMessage.value = result.exceptionOrNull()?.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_load_model)
             }
         }
     }
@@ -347,7 +413,7 @@ class AiViewModel(
             val result = ollamaService.testConnection()
             _connectionState.value = result.fold(
                 onSuccess = { models -> ConnectionState.Connected(models) },
-                onFailure = { error -> ConnectionState.Failed(error.message ?: "Error desconocido") }
+                onFailure = { error -> ConnectionState.Failed(error.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_unknown)) }
             )
         }
     }
@@ -489,7 +555,7 @@ class AiViewModel(
 
         if (sessionId <= 0) {
             viewModelScope.launch {
-                _errorMessage.value = "No active session"
+                _errorMessage.value = getApplication<android.app.Application>().getString(com.example.R.string.ai_error_no_session)
                 _isProcessing.value = false
             }
             return
@@ -515,11 +581,15 @@ class AiViewModel(
             enrichedRequest = enrichedRequest.copy(messages = chatMessages)
         }
 
+        val app = getApplication<android.app.Application>()
         val userMessage = when (request.action) {
-            AiAction.REWRITE -> "Reescribe en estilo ${request.rewriteStyle}: ${request.selectedText}"
-            AiAction.SUMMARIZE -> "Resume: ${request.selectedText.ifBlank { request.context }}"
-            AiAction.TRANSLATE -> "Traduce a ${request.targetLanguage}: ${request.selectedText}"
-            AiAction.GENERATE -> request.prompt.ifBlank { "Generar texto" }
+            AiAction.REWRITE -> app.getString(com.example.R.string.ai_user_msg_rewrite, request.rewriteStyle.name.lowercase(), request.selectedText)
+            AiAction.SUMMARIZE -> app.getString(com.example.R.string.ai_user_msg_summarize, request.selectedText.ifBlank { request.context })
+            AiAction.TRANSLATE -> app.getString(com.example.R.string.ai_user_msg_translate, request.targetLanguage, request.selectedText)
+            AiAction.GENERATE -> request.prompt.ifBlank { app.getString(com.example.R.string.ai_user_msg_generate) }
+            AiAction.MAKE_SHORTER -> app.getString(com.example.R.string.ai_user_msg_make_shorter, request.selectedText.ifBlank { request.context })
+            AiAction.FIX_GRAMMAR -> app.getString(com.example.R.string.ai_user_msg_fix_grammar, request.selectedText.ifBlank { request.context })
+            AiAction.EXPLAIN -> app.getString(com.example.R.string.ai_user_msg_explain, request.selectedText.ifBlank { request.context })
         }
 
         val isFirstMessage = currentHistory.isEmpty()
@@ -539,7 +609,7 @@ class AiViewModel(
                 )
             }
             if (isFirstMessage || isNewSession) {
-                val title = userMessage.take(50).ifBlank { "New Chat" }
+                val title = userMessage.take(50).ifBlank { getApplication<android.app.Application>().getString(com.example.R.string.ai_session_title_new) }
                 _sessionTitle.value = title
                 withContext(Dispatchers.IO) {
                     chatSessionDao.updateTitle(sessionId, title)
@@ -591,9 +661,9 @@ class AiViewModel(
                 _streamingText.value = null
                 _isProcessing.value = false
             } catch (e: IOException) {
-                addErrorTurn(sessionId, e.message ?: "Error de conexión")
+                addErrorTurn(sessionId, e.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_connection))
             } catch (e: Throwable) {
-                addErrorTurn(sessionId, e.message ?: "Error inesperado")
+                addErrorTurn(sessionId, e.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_unexpected))
             }
         }
     }

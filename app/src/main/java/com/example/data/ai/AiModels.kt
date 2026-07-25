@@ -4,7 +4,10 @@ enum class AiAction {
     GENERATE,
     SUMMARIZE,
     REWRITE,
-    TRANSLATE
+    TRANSLATE,
+    MAKE_SHORTER,
+    FIX_GRAMMAR,
+    EXPLAIN
 }
 
 enum class AiBackend {
