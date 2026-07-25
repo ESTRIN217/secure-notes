@@ -89,22 +89,22 @@ val MODEL_CATALOG = listOf(
     ),
     // Qwen 3
     OnDeviceModel(
-        id = "qwen3-0.5b",
-        displayName = "Qwen3 0.5B",
+        id = "qwen3-0.6b",
+        displayName = "Qwen3 0.6B",
         minRamMb = 768,
         recommendedRamMb = 1536,
         fileSizeMb = 492,
-        huggingFaceRepo = "Qwen/Qwen3-0.5B-Instruct-GGUF",
-        ggufFileName = "qwen3-0.5b-instruct-q4_k_m.gguf"
+        huggingFaceRepo = "bartowski/Qwen_Qwen3-0.6B-GGUF",
+        ggufFileName = "Qwen_Qwen3-0.6B-Q4_K_M.gguf"
     ),
     OnDeviceModel(
         id = "qwen3-1.7b",
         displayName = "Qwen3 1.7B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
-        fileSizeMb = 1010,
-        huggingFaceRepo = "Qwen/Qwen3-1.7B-Instruct-GGUF",
-        ggufFileName = "qwen3-1.7b-instruct-q4_k_m.gguf"
+        fileSizeMb = 1280,
+        huggingFaceRepo = "bartowski/Qwen_Qwen3-1.7B-GGUF",
+        ggufFileName = "Qwen_Qwen3-1.7B-Q4_K_M.gguf"
     ),
     // Qwen 2.5 1.5B
     OnDeviceModel(
@@ -112,7 +112,7 @@ val MODEL_CATALOG = listOf(
         displayName = "Qwen 2.5 1.5B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
-        fileSizeMb = 985,
+        fileSizeMb = 1040,
         huggingFaceRepo = "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
         ggufFileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
     ),
@@ -122,8 +122,8 @@ val MODEL_CATALOG = listOf(
         displayName = "Gemma 3 1B",
         minRamMb = 1024,
         recommendedRamMb = 2048,
-        fileSizeMb = 795,
-        huggingFaceRepo = "google/gemma-3-1b-it-GGUF",
+        fileSizeMb = 769,
+        huggingFaceRepo = "unsloth/gemma-3-1b-it-GGUF",
         ggufFileName = "gemma-3-1b-it-Q4_K_M.gguf"
     ),
     OnDeviceModel(
@@ -131,8 +131,8 @@ val MODEL_CATALOG = listOf(
         displayName = "Gemma 3 2B",
         minRamMb = 2048,
         recommendedRamMb = 4096,
-        fileSizeMb = 1380,
-        huggingFaceRepo = "google/gemma-3-2b-it-GGUF",
+        fileSizeMb = 1500,
+        huggingFaceRepo = "unsloth/gemma-3-2b-it-GGUF",
         ggufFileName = "gemma-3-2b-it-Q4_K_M.gguf"
     ),
     // DeepSeek
@@ -141,9 +141,19 @@ val MODEL_CATALOG = listOf(
         displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
-        fileSizeMb = 985,
-        huggingFaceRepo = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
-        ggufFileName = "deepseek-r1-distill-qwen-1.5b-q4_k_m.gguf"
+        fileSizeMb = 1040,
+        huggingFaceRepo = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
+        ggufFileName = "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf"
+    ),
+    // Gemma 4
+    OnDeviceModel(
+        id = "gemma4-e2b",
+        displayName = "Gemma 4 E2B",
+        minRamMb = 2048,
+        recommendedRamMb = 4096,
+        fileSizeMb = 1600,
+        huggingFaceRepo = "unsloth/gemma-4-E2B-it-GGUF",
+        ggufFileName = "gemma-4-E2B-it-Q4_K_M.gguf"
     )
 )
 
