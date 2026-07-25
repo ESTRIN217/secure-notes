@@ -258,8 +258,7 @@ sealed class Screen {
                 viewModel = context.chatHistoryViewModel,
                 aiViewModel = context.aiViewModel,
                 onNavigateToChat = { sessionId -> context.navigator.onNavigateTo(Screen.AiChatSession(sessionId)) },
-                onBack = { context.navigator.onNavigateBack(Screen.MainList) },
-                onNavigateToSearch = { context.navigator.onNavigateTo(Screen.ChatSearch) }
+                onBack = { context.navigator.onNavigateBack(Screen.MainList) }
             )
         }
     }

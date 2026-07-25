@@ -41,13 +41,18 @@ data class ConversationTurn(
     val processingTimeMs: Long? = null,
     val status: MessageStatus = MessageStatus.COMPLETED,
     val timestamp: Long = System.currentTimeMillis(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val id: Long = idCounter++
 ) {
     val formattedTime: String
         get() = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
 
     val formattedDuration: String?
         get() = processingTimeMs?.let { "%.1fs".format(it / 1000.0) }
+
+    companion object {
+        private var idCounter = 0L
+    }
 }
 
 sealed class ConnectionState {

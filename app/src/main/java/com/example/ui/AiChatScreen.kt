@@ -1172,7 +1172,7 @@ fun ChatMessageList(
     ) {
         items(
             items = conversationHistory,
-            key = { "${it.role}_${it.timestamp}_${it.status}" }
+            key = { "msg_${it.id}" }
         ) { turn ->
             AnimatedVisibility(
                 visible = true,

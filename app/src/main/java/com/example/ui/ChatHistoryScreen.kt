@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,8 +38,7 @@ fun ChatHistoryScreen(
     viewModel: ChatHistoryViewModel,
     aiViewModel: AiViewModel,
     onNavigateToChat: (Int) -> Unit,
-    onBack: () -> Unit,
-    onNavigateToSearch: () -> Unit
+    onBack: () -> Unit
 ) {
     val sessions by viewModel.sessions.collectAsStateWithLifecycle()
     val latestSessionId by viewModel.latestSessionId.collectAsStateWithLifecycle()
@@ -49,6 +47,15 @@ fun ChatHistoryScreen(
     var showDeleteDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
     var showRenameDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
     var renameText by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredSessions = remember(sessions, searchQuery) {
+        if (searchQuery.isBlank()) sessions
+        else sessions.filter {
+            it.title.contains(searchQuery, ignoreCase = true) ||
+            it.previewText?.contains(searchQuery, ignoreCase = true) == true
+        }
+    }
 
     BackHandler(onBack = onBack)
 
@@ -76,7 +83,7 @@ fun ChatHistoryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (sessions.isEmpty()) {
+            if (filteredSessions.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -105,8 +112,8 @@ Icons.Default.Chat,
                     }
                 }
             } else {
-                val pinnedSessions = sessions.filter { it.isPinned }
-                val otherSessions = sessions.filter { !it.isPinned }
+                val pinnedSessions = filteredSessions.filter { it.isPinned }
+                val otherSessions = filteredSessions.filter { !it.isPinned }
 
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -169,18 +176,13 @@ Icons.Default.Chat,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
                         placeholder = { Text(stringResource(R.string.chat_search_hint)) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onNavigateToSearch() },
-                        readOnly = true,
-                        shape = RoundedCornerShape(24.dp),
-                        trailingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         )
