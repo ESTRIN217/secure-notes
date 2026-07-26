@@ -447,6 +447,8 @@ fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
         "|<(img|video|audio)=([^>]+)>" +
         "|<item\\s+checked=\"(true|false)\">[\\s\\S]*?</item>" +
         "|<table[^>]*>[\\s\\S]*?</table>" +
+        "|<ol>[\\s\\S]*?</ol>" +
+        "|<ul>[\\s\\S]*?</ul>" +
         "|<hr\\s*/?>" +
         "|<details>[\\s\\S]*?</details>" +
         "|<cl>[\\s\\S]*?</cl>" +
@@ -486,6 +488,8 @@ fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
         val isCl = match.value.startsWith("<cl>")
         val isAlign = match.value.startsWith("<align") && match.value != "</align>"
         val isSplit = match.value.startsWith("<split")
+        val isOl = match.value.startsWith("<ol>")
+        val isUl = match.value.startsWith("<ul>")
 
         when {
             match.value == "</align>" -> alignStack.removeLastOrNull()
@@ -568,6 +572,15 @@ fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
                 val tableContent = match.value.substringAfter(">").substringBeforeLast("</table>")
                 val tableBlock = parseTableTagToBlock(tableContent)
                 results.add(BlockRange(tableBlock, match.range))
+            }
+            isOl || isUl -> {
+                val listParseResult = RichTextParser.parseWithMapping(match.value, hideTags = true)
+                if (listParseResult.text.text.isNotBlank()) {
+                    results.add(BlockRange(
+                        NoteContentBlock.TextBlock(listParseResult, rawStart = match.range.first),
+                        match.range
+                    ))
+                }
             }
             isHr -> {
                 results.add(BlockRange(NoteContentBlock.HorizontalRuleBlock, match.range))

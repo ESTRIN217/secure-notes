@@ -32,8 +32,13 @@ fun EditableTextBlock(
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue(text = rawText, selection = TextRange(rawText.length)))
     }
+    var isFocused by remember { mutableStateOf(false) }
 
-    val visualTransformation = remember(rawText) {
+    if (!isFocused && rawText != textFieldValue.text) {
+        textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
+    }
+
+    val visualTransformation = remember {
         VisualTransformation { text ->
             val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = true)
             val offsetMapping = object : OffsetMapping {
@@ -73,6 +78,7 @@ fun EditableTextBlock(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
                 onFocusChange(focusState.isFocused)
                 if (focusState.isFocused) {
                     onCursorChange(textFieldValue.selection.start)

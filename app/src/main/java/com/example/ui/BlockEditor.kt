@@ -56,6 +56,17 @@ fun BlockEditor(
         pendingTagInsert.value = null
     }
 
+    val attachmentBlocks = remember(attachments) {
+        attachments.mapNotNull { att ->
+            when (att.type) {
+                "drawing" -> NoteContentBlock.DrawingBlock(jsonPath = att.path, previewPath = att.name)
+                "voice" -> NoteContentBlock.VoiceBlock(path = att.path)
+                "file" -> NoteContentBlock.FileBlock(name = att.name.ifEmpty { att.path.substringAfterLast('/') }, path = att.path)
+                else -> null
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -134,6 +145,30 @@ fun BlockEditor(
                     )
                 }
             }
+        }
+        attachmentBlocks.forEach { block ->
+            NoteContentBlockCard(
+                block = block,
+                content = rawContent,
+                noteId = noteId,
+                onDeleteBlock = { deletedBlock ->
+                    val target = when (deletedBlock) {
+                        is NoteContentBlock.DrawingBlock -> attachments.find { it.type == "drawing" && it.path == deletedBlock.jsonPath }
+                        is NoteContentBlock.VoiceBlock -> attachments.find { it.type == "voice" && it.path == deletedBlock.path }
+                        is NoteContentBlock.FileBlock -> attachments.find { it.type != "drawing" && it.type != "voice" && it.name == deletedBlock.name }
+                        else -> null
+                    }
+                    if (target != null) {
+                        val newContent = removeAttachmentFromContent(rawContent, target)
+                        if (newContent != rawContent) {
+                            onRawContentChange(newContent)
+                        }
+                    }
+                },
+                onNavigateToMediaViewer = onNavigateToMediaViewer,
+                onNavigateToDrawing = onNavigateToDrawing,
+                onUrlClicked = { _, _ -> }
+            )
         }
     }
 }
