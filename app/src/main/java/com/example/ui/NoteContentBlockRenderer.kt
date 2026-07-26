@@ -106,7 +106,6 @@ private fun NoteContentBlock.TextBlock.renderTextBlock(
                         }
                 }
             )
-            DeleteOverlay { context.onDeleteBlock(block) }
         }
     }
 }
@@ -141,7 +140,6 @@ private fun NoteContentBlock.ChecklistItemBlock.renderChecklistItemBlock(
                 }
             )
         }
-        DeleteOverlay { context.onDeleteBlock(block) }
     }
 }
 
