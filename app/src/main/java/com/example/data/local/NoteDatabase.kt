@@ -9,12 +9,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.Note
 import com.example.data.model.Tag
 
-@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class], version = 7, exportSchema = false)
+@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class, MemoryEntity::class], version = 9, exportSchema = false)
 abstract class NoteDatabase : RoomDatabase() {
     abstract val noteDao: NoteDao
     abstract val tagDao: TagDao
     abstract val conversationDao: ConversationDao
     abstract val chatSessionDao: ChatSessionDao
+    abstract val memoryDao: MemoryDao
 
     companion object {
         @Volatile
@@ -79,6 +80,27 @@ abstract class NoteDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE conversations ADD COLUMN attachmentsJson TEXT")
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS memories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sessionId INTEGER NOT NULL,
+                        type TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        summary TEXT,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            }
+        }
+
         fun getDatabase(context: Context): NoteDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -86,7 +108,7 @@ abstract class NoteDatabase : RoomDatabase() {
                     NoteDatabase::class.java,
                     "secure_notes_database"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

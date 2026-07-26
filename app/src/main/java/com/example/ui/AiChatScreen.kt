@@ -1,6 +1,9 @@
 package com.example.ui
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloat
@@ -17,6 +20,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -86,6 +90,9 @@ fun AiChatScreen(
     var editingMessage by remember { mutableStateOf<String?>(null) }
     var showNotePicker by remember { mutableStateOf(false) }
     var notePickerSearchQuery by remember { mutableStateOf("") }
+    var showAttachmentMenu by remember { mutableStateOf(false) }
+
+    val pendingAttachments by viewModel.pendingAttachments.collectAsStateWithLifecycle()
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val streamingText by viewModel.streamingText.collectAsStateWithLifecycle()
@@ -97,6 +104,7 @@ fun AiChatScreen(
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
     val noteTitle by viewModel.chatNoteTitle.collectAsStateWithLifecycle()
+    val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
@@ -107,6 +115,20 @@ fun AiChatScreen(
     var showRenameDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
     var renameText by remember { mutableStateOf("") }
     var drawerSearchQuery by remember { mutableStateOf("") }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val name = uri.lastPathSegment ?: "file"
+            val content = try {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
+            } catch (_: Exception) { "" }
+            if (content.isNotBlank()) {
+                viewModel.addPendingAttachment(FileAttachment(name = name, content = content, source = "external"))
+            }
+        }
+    }
 
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
@@ -233,6 +255,22 @@ fun AiChatScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            if (activeMemories.isNotEmpty()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Psychology,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        text = "${activeMemories.size} memories",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
                         }
                     },
                     navigationIcon = {
@@ -296,23 +334,64 @@ fun AiChatScreen(
                             }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        if (pendingAttachments.isNotEmpty()) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) {
+                                items(pendingAttachments.size) { index ->
+                                    InputChip(
+                                        selected = false,
+                                        onClick = { viewModel.removePendingAttachment(index) },
+                                        label = { Text(pendingAttachments[index].name.take(20), style = MaterialTheme.typography.labelSmall) },
+                                        trailingIcon = {
+                                            Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            IconButton(
-                                onClick = {
-                                    showNotePicker = true
-                                    notePickerSearchQuery = ""
-                                    viewModel.loadAvailableNotes()
-                                },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.AttachFile,
-                                    contentDescription = stringResource(R.string.attach),
-                                    modifier = Modifier.size(20.dp)
-                                )
+                            Box {
+                                IconButton(
+                                    onClick = { showAttachmentMenu = true },
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.AttachFile,
+                                        contentDescription = stringResource(R.string.attach),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showAttachmentMenu,
+                                    onDismissRequest = { showAttachmentMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.attach_note)) },
+                                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                        onClick = {
+                                            showAttachmentMenu = false
+                                            showNotePicker = true
+                                            notePickerSearchQuery = ""
+                                            viewModel.loadAvailableNotes()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.attach_file)) },
+                                        leadingIcon = { Icon(Icons.Default.InsertDriveFile, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                        onClick = {
+                                            showAttachmentMenu = false
+                                            filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
+                                        }
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             OutlinedTextField(
@@ -603,6 +682,7 @@ fun MessageBubble(
     onResend: (String) -> Unit,
     onRetry: () -> Unit,
     onEdit: (String) -> Unit,
+    onPinToMemory: (String) -> Unit,
     modelName: String
 ) {
     val isUser = turn.role == "user"
@@ -722,6 +802,22 @@ fun MessageBubble(
                             text = RichTextParser.parse(turn.content, hideTags = true),
                             style = MaterialTheme.typography.bodyMedium.copy(color = textColor)
                         )
+                        if (turn.files.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            turn.files.forEach { file ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                                    Icon(Icons.Default.InsertDriveFile, contentDescription = null, modifier = Modifier.size(14.dp), tint = textColor.copy(alpha = 0.6f))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = file.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textColor.copy(alpha = 0.7f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -834,6 +930,16 @@ fun MessageBubble(
                         leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             onInsert()
+                            showMenu = false
+                        }
+                    )
+                }
+                if (turn.content.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.ai_pin_memory)) },
+                        leadingIcon = { Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            onPinToMemory(turn.content)
                             showMenu = false
                         }
                     )
@@ -1229,6 +1335,7 @@ fun ChatMessageList(
                         }
                     },
                     onEdit = onEdit,
+                    onPinToMemory = { content -> viewModel.savePinnedMemory(effectiveSessionId, content) },
                     modelName = turn.modelName ?: displayModelName
                 )
             }

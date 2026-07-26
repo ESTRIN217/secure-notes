@@ -12,5 +12,6 @@ data class ConversationEntity(
     val content: String,
     val processingTimeMs: Long? = null,
     val modelName: String? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val attachmentsJson: String? = null
 )

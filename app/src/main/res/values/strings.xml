@@ -671,6 +671,9 @@
     <string name="ai_generation_failed">Failed to generate response</string>
     <string name="share">Share</string>
     <string name="attach">Attach</string>
+    <string name="attach_note">Attach Note</string>
+    <string name="attach_file">Attach File</string>
+    <string name="ai_pin_memory">Pin to Memory</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>

@@ -219,7 +219,8 @@ class MainActivity : ComponentActivity() {
                             db.conversationDao,
                             db.chatSessionDao,
                             db.noteDao,
-                            cipherService
+                            cipherService,
+                            memoryDao = db.memoryDao
                         ) as T
                     }
                 }

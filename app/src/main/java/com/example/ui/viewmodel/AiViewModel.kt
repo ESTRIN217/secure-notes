@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,7 +46,8 @@ data class ConversationTurn(
     val status: MessageStatus = MessageStatus.COMPLETED,
     val timestamp: Long = System.currentTimeMillis(),
     val errorMessage: String? = null,
-    val id: Long = idCounter++
+    val id: Long = idCounter++,
+    val files: List<FileAttachment> = emptyList()
 ) {
     val formattedTime: String
         get() = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
@@ -54,6 +57,31 @@ data class ConversationTurn(
 
     companion object {
         private var idCounter = 0L
+
+        fun filesToJson(files: List<FileAttachment>): String {
+            return JSONArray(files.map { f ->
+                JSONObject().apply {
+                    put("name", f.name)
+                    put("content", f.content)
+                    put("source", f.source)
+                }
+            }).toString()
+        }
+
+        fun jsonToFiles(json: String?): List<FileAttachment> {
+            if (json.isNullOrBlank()) return emptyList()
+            return try {
+                val arr = JSONArray(json)
+                (0 until arr.length()).map { i ->
+                    val obj = arr.getJSONObject(i)
+                    FileAttachment(
+                        name = obj.optString("name", "file"),
+                        content = obj.optString("content", ""),
+                        source = obj.optString("source", "external")
+                    )
+                }
+            } catch (_: Exception) { emptyList() }
+        }
     }
 }
 
@@ -73,8 +101,61 @@ class AiViewModel(
     private val conversationDao: ConversationDao,
     private val chatSessionDao: ChatSessionDao,
     private val noteDao: NoteDao,
-    private val cipherService: CipherService = EncryptionServiceImpl()
+    private val cipherService: CipherService = EncryptionServiceImpl(),
+    private val memoryDao: com.example.data.local.MemoryDao? = null
 ) : AndroidViewModel(application) {
+
+    private val memoryManager = memoryDao?.let { MemoryManager(it) }
+
+    private val toolRegistry = ToolRegistry().apply {
+        register(
+            com.example.data.ai.tools.SearchNotesTool.spec,
+            { args ->
+                val query = args["query"]?.toString() ?: return@register ""
+                val maxResults = (args["max_results"] as? Number)?.toInt() ?: 5
+                val allNotes = kotlinx.coroutines.runBlocking {
+                    withContext(Dispatchers.IO) { noteDao.getAllNotes() }
+                }
+                val matching = allNotes.filter { !it.isDeleted && (it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true)) }
+                matching.take(maxResults).joinToString("\n") { note ->
+                    val content = if (note.isEncrypted) "[Encrypted]" else note.content.take(200)
+                    "[${note.id}] ${note.title}: $content"
+                }.ifEmpty { "No notes found for: $query" }
+            }
+        )
+        register(
+            com.example.data.ai.tools.GetNoteTool.spec,
+            { args ->
+                val noteId = (args["note_id"] as? Number)?.toInt() ?: return@register "Invalid note_id"
+                val note = kotlinx.coroutines.runBlocking {
+                    withContext(Dispatchers.IO) { noteDao.getNoteById(noteId) }
+                }
+                if (note == null) return@register "Note #$noteId not found"
+                if (note.isEncrypted) {
+                    val password = _masterPassword.value ?: ""
+                    if (password.isEmpty()) return@register "Note #$noteId is encrypted. Unlock to read."
+                    val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv).getOrDefault("")
+                    val decContent = cipherService.decrypt(note.content, password, note.salt, note.iv).getOrDefault("")
+                    "Title: $decTitle\n\n$decContent"
+                } else {
+                    "Title: ${note.title}\n\n${note.content}"
+                }
+            }
+        )
+        register(
+            com.example.data.ai.tools.CreateNoteTool.spec,
+            { args ->
+                val title = args["title"]?.toString() ?: "Untitled"
+                val content = args["content"]?.toString() ?: ""
+                kotlinx.coroutines.runBlocking {
+                    withContext(Dispatchers.IO) {
+                        noteDao.insertNote(com.example.data.model.Note(title = title, content = content))
+                    }
+                }
+                "Note '$title' created successfully."
+            }
+        )
+    }
 
     private val _aiEnabled = MutableStateFlow(prefsRepository.getAiEnabled())
     val aiEnabled: StateFlow<Boolean> = _aiEnabled.asStateFlow()
@@ -140,6 +221,9 @@ class AiViewModel(
     private val _pendingInsert = MutableStateFlow<String?>(null)
     val pendingInsert: StateFlow<String?> = _pendingInsert.asStateFlow()
 
+    private val _pendingAttachments = MutableStateFlow<List<FileAttachment>>(emptyList())
+    val pendingAttachments: StateFlow<List<FileAttachment>> = _pendingAttachments.asStateFlow()
+
     private val _inPlaceStreamingText = MutableStateFlow<String?>(null)
     val inPlaceStreamingText: StateFlow<String?> = _inPlaceStreamingText.asStateFlow()
 
@@ -165,6 +249,9 @@ class AiViewModel(
 
     private val _conversationHistory = MutableStateFlow<Map<Int, List<ConversationTurn>>>(emptyMap())
     val conversationHistory: StateFlow<Map<Int, List<ConversationTurn>>> = _conversationHistory.asStateFlow()
+
+    private val _activeMemories = MutableStateFlow<List<String>>(emptyList())
+    val activeMemories: StateFlow<List<String>> = _activeMemories.asStateFlow()
 
     private val _currentSessionId = MutableStateFlow(0)
     val currentSessionId: StateFlow<Int> = _currentSessionId.asStateFlow()
@@ -481,6 +568,18 @@ class AiViewModel(
         }
     }
 
+    fun addPendingAttachment(attachment: FileAttachment) {
+        _pendingAttachments.update { it + attachment }
+    }
+
+    fun removePendingAttachment(index: Int) {
+        _pendingAttachments.update { it.toMutableList().apply { removeAt(index) } }
+    }
+
+    fun clearPendingAttachments() {
+        _pendingAttachments.value = emptyList()
+    }
+
     fun detachNote() {
         _chatNoteContext.value = ""
         _chatSelectedText.value = ""
@@ -538,7 +637,12 @@ class AiViewModel(
             if (turns.isNotEmpty()) {
                 _conversationHistory.update { current ->
                     current + (sessionId to turns.map { entity ->
-                        ConversationTurn(entity.role, entity.content, entity.processingTimeMs, modelName = entity.modelName)
+                        ConversationTurn(
+                            entity.role, entity.content, entity.processingTimeMs,
+                            modelName = entity.modelName, timestamp = entity.timestamp,
+                            id = entity.id.toLong(),
+                            files = ConversationTurn.jsonToFiles(entity.attachmentsJson)
+                        )
                     })
                 }
             }
@@ -582,7 +686,14 @@ class AiViewModel(
         }
 
         val app = getApplication<android.app.Application>()
-        val userMessage = when (request.action) {
+        val pendingFiles = _pendingAttachments.value
+        val attachmentsContext = if (pendingFiles.isNotEmpty()) {
+            pendingFiles.joinToString("\n\n---\n") { f ->
+                "[Attached file: ${f.name}]\n${f.content}"
+            } + "\n\n---\n"
+        } else ""
+
+        val userPrompt = when (request.action) {
             AiAction.REWRITE -> app.getString(com.example.R.string.ai_user_msg_rewrite, request.rewriteStyle.name.lowercase(), request.selectedText)
             AiAction.SUMMARIZE -> app.getString(com.example.R.string.ai_user_msg_summarize, request.selectedText.ifBlank { request.context })
             AiAction.TRANSLATE -> app.getString(com.example.R.string.ai_user_msg_translate, request.targetLanguage, request.selectedText)
@@ -591,21 +702,49 @@ class AiViewModel(
             AiAction.FIX_GRAMMAR -> app.getString(com.example.R.string.ai_user_msg_fix_grammar, request.selectedText.ifBlank { request.context })
             AiAction.EXPLAIN -> app.getString(com.example.R.string.ai_user_msg_explain, request.selectedText.ifBlank { request.context })
         }
+        val userMessage = if (attachmentsContext.isNotBlank()) {
+            "$attachmentsContext$userPrompt"
+        } else userPrompt
+        val filesJson = ConversationTurn.filesToJson(pendingFiles)
+
+        val attachmentsContextForAi = if (pendingFiles.isNotEmpty()) {
+            pendingFiles.joinToString("\n\n") { f -> "--- ${f.name} ---\n${f.content}" } + "\n\n"
+        } else ""
+        val memories = if (memoryManager != null && sessionId > 0) {
+            val memTexts = kotlinx.coroutines.runBlocking {
+                memoryManager.getRelevantMemories(sessionId)
+            }
+            _activeMemories.value = memTexts
+            if (memTexts.isEmpty()) "" else "Relevant memories from previous conversations:\n" + memTexts.joinToString("\n") + "\n\n"
+        } else ""
+        val toolSpecs = if (toolRegistry.isNotEmpty() && _backend.value == AiBackend.OLLAMA) {
+            toolRegistry.getSpecsForApi()
+        } else emptyList<Map<String, Any>>()
+
+        enrichedRequest = enrichedRequest.copy(
+            attachments = pendingFiles,
+            tools = toolSpecs,
+            context = if (memories.isNotBlank()) "$memories$attachmentsContextForAi${request.context}"
+                      else if (attachmentsContextForAi.isNotBlank()) "$attachmentsContextForAi${request.context}"
+                      else request.context
+        )
 
         val isFirstMessage = currentHistory.isEmpty()
         val isNewSession = _conversationHistory.value[sessionId] == null
 
         _conversationHistory.update { current ->
             val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                add(ConversationTurn("user", userMessage, status = MessageStatus.SENT, modelName = currentModelName()))
+                add(ConversationTurn("user", userMessage, status = MessageStatus.SENT, modelName = currentModelName(), files = pendingFiles))
             }
             current + (sessionId to updated)
         }
 
+        _pendingAttachments.value = emptyList()
+
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 conversationDao.insert(
-                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage, modelName = currentModelName())
+                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage, modelName = currentModelName(), attachmentsJson = filesJson.ifBlank { null })
                 )
             }
             if (isFirstMessage || isNewSession) {
@@ -638,24 +777,78 @@ class AiViewModel(
                     fullText.append(token)
                     _streamingText.value = fullText.toString()
                 }
+                var finalResult = fullText.toString()
+                val toolCallPrefix = "TOOL_CALLS:"
+                if (finalResult.startsWith(toolCallPrefix) && toolRegistry.isNotEmpty()) {
+                    val toolCallData = finalResult.removePrefix(toolCallPrefix)
+                    val toolResults = toolCallData.split("|||").mapNotNull { tcStr ->
+                        val parts = tcStr.split(":::", limit = 3)
+                        if (parts.size < 3) return@mapNotNull null
+                        val (tcId, name, argsStr) = parts
+                        val args = try {
+                            org.json.JSONObject(argsStr).keys().asSequence().associateWith { key ->
+                                org.json.JSONObject(argsStr).get(key) as Any
+                            }
+                        } catch (_: Exception) { emptyMap<String, Any>() }
+                        val result = toolRegistry.execute(name, args)
+                        ToolResult(tcId, name, result)
+                    }
+                    if (toolResults.isNotEmpty()) {
+                        val toolRequest = enrichedRequest.copy(
+                            messages = enrichedRequest.messages + listOf(
+                                ChatMessage("assistant", finalResult)
+                            ) + toolResults.map { ChatMessage("tool", it.result) },
+                            toolResults = toolResults,
+                            tools = emptyList()
+                        )
+                        val secondResult = withContext(Dispatchers.IO) {
+                            currentService.execute(toolRequest).getOrDefault("")
+                        }
+                        if (secondResult.isNotBlank()) {
+                            finalResult = secondResult
+                        }
+                    }
+                }
+
                 val elapsed = System.currentTimeMillis() - startTime
                 _processingTimeMs.value = elapsed
-                val result = fullText.toString()
-                _resultText.value = result
+                _resultText.value = finalResult
 
                 _conversationHistory.update { current ->
                     val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                        add(ConversationTurn("assistant", result, elapsed, modelName = currentModelName(), status = MessageStatus.COMPLETED))
+                        add(ConversationTurn("assistant", finalResult, elapsed, modelName = currentModelName(), status = MessageStatus.COMPLETED))
                     }
                     current + (sessionId to updated)
                 }
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
                         conversationDao.insert(
-                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = result, processingTimeMs = elapsed, modelName = currentModelName())
+                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = finalResult, processingTimeMs = elapsed, modelName = currentModelName())
                         )
                         val count = conversationDao.countBySessionId(sessionId)
                         chatSessionDao.updateMetadata(sessionId, System.currentTimeMillis(), count)
+                    }
+                }
+                viewModelScope.launch {
+                    if (memoryManager != null && memoryManager.shouldSummarize(sessionId)) {
+                        val turns = _conversationHistory.value[sessionId] ?: emptyList()
+                        val summaryPrompt = memoryManager.buildMemoryPrompt(turns)
+                        if (summaryPrompt != null) {
+                            try {
+                                val summaryRequest = AiRequest(
+                                    action = AiAction.SUMMARIZE,
+                                    prompt = summaryPrompt,
+                                    context = summaryPrompt,
+                                    maxTokens = 256
+                                )
+                                val summary = withContext(Dispatchers.IO) {
+                                    currentService.execute(summaryRequest).getOrDefault("")
+                                }
+                                if (summary.isNotBlank()) {
+                                    memoryManager.saveSummary(sessionId, summary)
+                                }
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
                 _streamingText.value = null
@@ -688,6 +881,21 @@ class AiViewModel(
         _errorMessage.value = null
     }
 
+    fun savePinnedMemory(sessionId: Int, content: String) {
+        if (memoryManager == null) return
+        viewModelScope.launch {
+            memoryManager.savePinnedMemory(sessionId, content)
+        }
+    }
+
+    fun clearSessionMemories(sessionId: Int) {
+        if (memoryManager == null) return
+        _activeMemories.value = emptyList()
+        viewModelScope.launch {
+            memoryManager.clearSessionMemories(sessionId)
+        }
+    }
+
     fun clearResult() {
         _resultText.value = null
         _errorMessage.value = null
@@ -708,7 +916,10 @@ class AiViewModel(
             val time = turn.formattedTime
             val role = if (turn.role == "user") "You" else "AI"
             val model = turn.modelName?.let { " ($it)" } ?: ""
-            sb.appendLine("[$role$model · $time]")
+            val files = if (turn.files.isNotEmpty()) {
+                " [" + turn.files.joinToString(", ") { it.name } + "]"
+            } else ""
+            sb.appendLine("[$role$model$files · $time]")
             sb.appendLine(turn.content)
             sb.appendLine()
         }

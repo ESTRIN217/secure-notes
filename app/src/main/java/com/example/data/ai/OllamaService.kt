@@ -89,11 +89,18 @@ class OllamaService(
             val jsonResponse = JSONObject(responseBody)
             val message = jsonResponse.optJSONObject("message")
             val text = message?.optString("content", "") ?: ""
-            if (text.isBlank()) {
+            val toolCalls = parseToolCalls(message)
+            if (text.isBlank() && toolCalls.isEmpty()) {
                 return@withContext Result.failure(IOException("Respuesta vacía del modelo"))
             }
 
-            Result.success(text.trim())
+            val resultText = if (toolCalls.isNotEmpty()) {
+                "TOOL_CALLS:" + toolCalls.joinToString("|||") { (tcId, tcName, tcArgs) ->
+                    "$tcId:::$tcName:::${org.json.JSONObject(tcArgs)}"
+                }
+            } else text.trim()
+
+            Result.success(resultText)
         } catch (e: SSLHandshakeException) {
             Log.e(TAG, "SSL handshake failed", e)
             Result.failure(SSLHandshakeException(
@@ -186,12 +193,49 @@ class OllamaService(
             })
         }
 
+        if (request.tools.isNotEmpty()) {
+            val toolsArray = JSONArray()
+            request.tools.forEach { toolMap ->
+                toolsArray.put(JSONObject(toolMap))
+            }
+            jsonBody.put("tools", toolsArray)
+        }
+
+        if (request.toolResults.isNotEmpty()) {
+            request.toolResults.forEach { result ->
+                messages.put(JSONObject().apply {
+                    put("role", "tool")
+                    put("content", result.result)
+                })
+            }
+        }
+
         val body = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
 
         return Request.Builder()
             .url("$endpointUrl/api/chat")
             .post(body)
             .build()
+    }
+
+    private fun parseToolCalls(message: JSONObject?): List<Triple<String, String, Map<String, Any>>> {
+        val result = mutableListOf<Triple<String, String, Map<String, Any>>>()
+        if (message == null) return result
+        val toolCalls = message.optJSONArray("tool_calls") ?: return result
+        for (i in 0 until toolCalls.length()) {
+            val tc = toolCalls.optJSONObject(i) ?: continue
+            val fn = tc.optJSONObject("function") ?: continue
+            val name = fn.optString("name", "")
+            val rawArgs = fn.optString("arguments", "{}")
+            val args = try {
+                val jsonArgs = JSONObject(rawArgs)
+                jsonArgs.keys().asSequence().associateWith { key ->
+                    jsonArgs.get(key)
+                }
+            } catch (_: Exception) { emptyMap() }
+            result.add(Triple("tc_${i}", name, args))
+        }
+        return result
     }
 
     companion object {
