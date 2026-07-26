@@ -22,8 +22,8 @@ abstract class NoteDatabase : RoomDatabase() {
         private var INSTANCE: NoteDatabase? = null
 
         private val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("""
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS conversations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         noteId INTEGER NOT NULL,
@@ -37,8 +37,8 @@ abstract class NoteDatabase : RoomDatabase() {
         }
 
         private val MIGRATION_5_6 = object : Migration(5, 6) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("""
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS chat_sessions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         title TEXT NOT NULL DEFAULT 'New Chat',
@@ -52,8 +52,8 @@ abstract class NoteDatabase : RoomDatabase() {
                         isPinned INTEGER NOT NULL DEFAULT 0
                     )
                 """)
-                database.execSQL("ALTER TABLE conversations ADD COLUMN sessionId INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("""
+                db.execSQL("ALTER TABLE conversations ADD COLUMN sessionId INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("""
                     INSERT INTO chat_sessions (title, noteId, noteTitle, backend, createdAt, updatedAt, messageCount)
                     SELECT 
                         COALESCE((SELECT title FROM notes WHERE id = c.noteId), 'Chat'),
@@ -66,7 +66,7 @@ abstract class NoteDatabase : RoomDatabase() {
                     FROM conversations c
                     GROUP BY c.noteId
                 """)
-                database.execSQL("""
+                db.execSQL("""
                     UPDATE conversations SET sessionId = (
                         SELECT id FROM chat_sessions WHERE chat_sessions.noteId = conversations.noteId
                     ) WHERE sessionId = 0
@@ -75,20 +75,20 @@ abstract class NoteDatabase : RoomDatabase() {
         }
 
         private val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("ALTER TABLE conversations ADD COLUMN modelName TEXT")
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN modelName TEXT")
             }
         }
 
         private val MIGRATION_7_8 = object : Migration(7, 8) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("ALTER TABLE conversations ADD COLUMN attachmentsJson TEXT")
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE conversations ADD COLUMN attachmentsJson TEXT")
             }
         }
 
         private val MIGRATION_8_9 = object : Migration(8, 9) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("""
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
                     CREATE TABLE IF NOT EXISTS memories (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         sessionId INTEGER NOT NULL,

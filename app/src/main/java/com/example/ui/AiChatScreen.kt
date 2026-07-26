@@ -26,7 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -385,7 +385,7 @@ fun AiChatScreen(
                                     )
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.attach_file)) },
-                                        leadingIcon = { Icon(Icons.Default.InsertDriveFile, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.InsertDriveFile, contentDescription = null, modifier = Modifier.size(18.dp)) },
                                         onClick = {
                                             showAttachmentMenu = false
                                             filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
@@ -482,7 +482,7 @@ fun AiChatScreen(
                                 if (isProcessing) {
                                     Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.ai_stop))
                                 } else {
-                                    Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_send))
+                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.ai_send))
                                 }
                             }
                             LaunchedEffect(buttonScale) {
@@ -806,7 +806,7 @@ fun MessageBubble(
                             Spacer(modifier = Modifier.height(6.dp))
                             turn.files.forEach { file ->
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-                                    Icon(Icons.Default.InsertDriveFile, contentDescription = null, modifier = Modifier.size(14.dp), tint = textColor.copy(alpha = 0.6f))
+                                    Icon(Icons.AutoMirrored.Filled.InsertDriveFile, contentDescription = null, modifier = Modifier.size(14.dp), tint = textColor.copy(alpha = 0.6f))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = file.name,
@@ -1588,7 +1588,7 @@ fun ChatHistoryDrawerContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.Chat,
+                        Icons.AutoMirrored.Filled.Chat,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)

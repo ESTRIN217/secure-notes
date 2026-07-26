@@ -207,8 +207,8 @@ class MainActivity : ComponentActivity() {
             val onDeviceService = OnDeviceService(llamaEngine)
             val aiViewModel: AiViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
                         val db = NoteDatabase.getDatabase(this@MainActivity.applicationContext)
                         return AiViewModel(
                             appContext as android.app.Application,
@@ -317,8 +317,8 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
 
     val chatHistoryViewModel: ChatHistoryViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
                 val db = com.example.data.local.NoteDatabase.getDatabase(context.applicationContext)
                 return ChatHistoryViewModel(
                     context.applicationContext as Application,
@@ -441,7 +441,7 @@ fun NavigationRailContent(
                 Triple(com.example.data.model.NavigationSection.SETTINGS, Icons.Default.Settings, R.string.nav_settings)
             )
 
-            val chatNavItem = Triple(null, Icons.Default.Chat, R.string.nav_chats)
+            val chatNavItem = Triple(null, Icons.AutoMirrored.Filled.Chat, R.string.nav_chats)
 
             Column(
                 modifier = Modifier
