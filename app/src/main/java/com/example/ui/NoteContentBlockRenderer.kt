@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.rotate
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.R
 import com.example.data.model.BlockRenderContext
 import com.example.data.model.ColumnAlignment
@@ -169,7 +171,7 @@ private fun NoteContentBlock.ImageBlock.renderImageBlock(
 ) {
     val block = this
     MediaCard(modifier = modifier.heightIn(max = 200.dp).wrapContentHeight()) {
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = src,
             contentDescription = stringResource(R.string.attachment_image),
             modifier = Modifier
@@ -182,7 +184,39 @@ private fun NoteContentBlock.ImageBlock.renderImageBlock(
                         context.onNavigateToMediaViewer("image", src)
                     }
                 },
-            contentScale = ContentScale.FillWidth
+            contentScale = ContentScale.FillWidth,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            },
+            error = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = stringResource(R.string.note_image_load_error),
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.note_image_load_error),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
         )
         DeleteOverlay { context.onDeleteBlock(block) }
     }

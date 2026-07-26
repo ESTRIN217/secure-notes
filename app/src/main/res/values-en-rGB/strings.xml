@@ -835,4 +835,5 @@
     <string name="toast_auth_error">Authentication error</string>
     <string name="toast_note_created_with_audio">Note created with audio</string>
     <string name="toast_note_created_with_image">Note created with image</string>
+    <string name="note_image_load_error">Could not load image</string>
 </resources>

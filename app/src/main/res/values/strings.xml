@@ -241,6 +241,7 @@
     <string name="attachment_drawing">Drawing Attachment</string>
     <string name="attachment_file">File Attachment</string>
     <string name="attachment_image">Image Attachment</string>
+    <string name="note_image_load_error">Could not load image</string>
     <string name="attachment_remove">Remove Attachment</string>
     <string name="add_drawing">Add Drawing</string>
     <string name="add_attachment">Add Attachment</string>

@@ -431,6 +431,202 @@ fun removeAttachmentFromContent(content: String, target: Attachment): String {
     return createRawContent(cleanText, updated)
 }
 
+data class BlockRange(
+    val block: NoteContentBlock,
+    val range: IntRange
+)
+
+fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
+    val results = mutableListOf<BlockRange>()
+    val regex = Regex(
+        "\\[!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)\\]\\(([^\\)]+)\\)" +
+        "|!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)" +
+        "|!video\\s*\\[[^\\]]*\\]\\(([^\\)]+)\\)" +
+        "|!audio\\s*\\[[^\\]]*\\]\\(([^\\)]+)\\)" +
+        "|<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>" +
+        "|<(img|video|audio)=([^>]+)>" +
+        "|<item\\s+checked=\"(true|false)\">[\\s\\S]*?</item>" +
+        "|<table[^>]*>[\\s\\S]*?</table>" +
+        "|<hr\\s*/?>" +
+        "|<details>[\\s\\S]*?</details>" +
+        "|<cl>[\\s\\S]*?</cl>" +
+        "|<align\\s*=\\s*\"?(center|left|right|justify)\"?\\s*>|</align>" +
+        "|<split\\s*/?>"
+    )
+
+    var lastEnd = 0
+    var checklistIndex = 0
+    val alignStack = mutableListOf<androidx.compose.ui.text.style.TextAlign>()
+
+    for (match in regex.findAll(rawContent)) {
+        if (lastEnd < match.range.first) {
+            val text = rawContent.substring(lastEnd, match.range.first)
+            if (text.isNotBlank()) {
+                val currentAlign = alignStack.lastOrNull()
+                val parseResult = RichTextParser.parseWithMapping(text, hideTags = true)
+                if (parseResult.text.text.isNotBlank()) {
+                    results.add(BlockRange(
+                        NoteContentBlock.TextBlock(parseResult, rawStart = lastEnd, textAlign = currentAlign),
+                        lastEnd until match.range.first
+                    ))
+                }
+            }
+        }
+
+        val isLinkedImg = match.groupValues[3].isNotEmpty()
+        val isMdImg = match.groupValues[5].isNotEmpty()
+        val isMdVideo = match.groupValues[6].isNotEmpty()
+        val isMdAudio = match.groupValues[7].isNotEmpty()
+        val isHtmlMedia = match.groupValues[8].isNotEmpty()
+        val isHtmlShortMedia = match.groupValues[10].isNotEmpty()
+        val isItem = match.groupValues[12].isNotEmpty()
+        val isTable = match.value.startsWith("<table")
+        val isHr = match.value.startsWith("<hr")
+        val isDetails = match.value.startsWith("<details")
+        val isCl = match.value.startsWith("<cl>")
+        val isAlign = match.value.startsWith("<align") && match.value != "</align>"
+        val isSplit = match.value.startsWith("<split")
+
+        when {
+            match.value == "</align>" -> alignStack.removeLastOrNull()
+            isAlign -> {
+                val alignValue = match.groupValues[13].takeIf { it.isNotEmpty() } ?: run {
+                    val nameMatch = Regex("""<align\s*=\s*"?(center|left|right|justify)"?\s*>""").find(match.value)
+                    nameMatch?.groupValues?.get(1)
+                }
+                val align = when (alignValue) {
+                    "center" -> androidx.compose.ui.text.style.TextAlign.Center
+                    "right" -> androidx.compose.ui.text.style.TextAlign.End
+                    "justify" -> androidx.compose.ui.text.style.TextAlign.Justify
+                    else -> androidx.compose.ui.text.style.TextAlign.Start
+                }
+                alignStack.add(align)
+            }
+            isLinkedImg -> {
+                val src = match.groupValues[2]
+                val link = match.groupValues[3]
+                results.add(BlockRange(
+                    NoteContentBlock.ImageBlock(src, linkUrl = link),
+                    match.range
+                ))
+            }
+            isMdImg -> {
+                val src = match.groupValues[5]
+                results.add(BlockRange(
+                    NoteContentBlock.ImageBlock(src),
+                    match.range
+                ))
+            }
+            isMdVideo -> {
+                val src = match.groupValues[6]
+                results.add(BlockRange(
+                    NoteContentBlock.VideoBlock(src),
+                    match.range
+                ))
+            }
+            isMdAudio -> {
+                val src = match.groupValues[7]
+                results.add(BlockRange(
+                    NoteContentBlock.AudioBlock(src),
+                    match.range
+                ))
+            }
+            isHtmlMedia -> {
+                val mediaType = match.groupValues[8]
+                val src = match.groupValues[9]
+                when (mediaType) {
+                    "img" -> results.add(BlockRange(NoteContentBlock.ImageBlock(src), match.range))
+                    "video" -> results.add(BlockRange(NoteContentBlock.VideoBlock(src), match.range))
+                    "audio" -> results.add(BlockRange(NoteContentBlock.AudioBlock(src), match.range))
+                }
+            }
+            isHtmlShortMedia -> {
+                val mediaType = match.groupValues[10]
+                val src = match.groupValues[11]
+                when (mediaType) {
+                    "img" -> results.add(BlockRange(NoteContentBlock.ImageBlock(src), match.range))
+                    "video" -> results.add(BlockRange(NoteContentBlock.VideoBlock(src), match.range))
+                    "audio" -> results.add(BlockRange(NoteContentBlock.AudioBlock(src), match.range))
+                }
+            }
+            isItem -> {
+                val isChecked = match.groupValues[12] == "true"
+                val itemContent = match.value.substringAfter(">").substringBeforeLast("</item>")
+                val itemParseResult = RichTextParser.parseWithMapping(itemContent, hideTags = true)
+                results.add(BlockRange(
+                    NoteContentBlock.ChecklistItemBlock(
+                        isChecked = isChecked,
+                        parseResult = itemParseResult,
+                        rawStart = match.range.first + match.value.indexOf(itemContent),
+                        globalIndex = checklistIndex
+                    ),
+                    match.range
+                ))
+                checklistIndex++
+            }
+            isTable -> {
+                val tableContent = match.value.substringAfter(">").substringBeforeLast("</table>")
+                val tableBlock = parseTableTagToBlock(tableContent)
+                results.add(BlockRange(tableBlock, match.range))
+            }
+            isHr -> {
+                results.add(BlockRange(NoteContentBlock.HorizontalRuleBlock, match.range))
+            }
+            isDetails -> {
+                val detailsContent = match.value.substringAfter(">").substringBeforeLast("</details>")
+                val summaryRegex = Regex("<summary>(.*?)</summary>", RegexOption.DOT_MATCHES_ALL)
+                val summaryMatch = summaryRegex.find(detailsContent)
+                val summary = summaryMatch?.groupValues?.get(1)?.trim() ?: ""
+                val body = detailsContent.replace(summaryRegex, "").trim()
+                results.add(BlockRange(NoteContentBlock.CollapsibleBlock(summary = summary, content = body), match.range))
+            }
+            isSplit -> { }
+            isCl -> {
+                val clContent = match.value.removePrefix("<cl>").removeSuffix("</cl>")
+                val itemRegex = Regex("<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>")
+                itemRegex.findAll(clContent).forEach { itemMatch ->
+                    val isChecked = itemMatch.groupValues[1] == "true"
+                    val itemText = itemMatch.groupValues[2]
+                    val itemParseResult = RichTextParser.parseWithMapping(itemText, hideTags = true)
+                    results.add(BlockRange(
+                        NoteContentBlock.ChecklistItemBlock(
+                            isChecked = isChecked,
+                            parseResult = itemParseResult,
+                            rawStart = match.range.first + itemMatch.range.first,
+                            globalIndex = checklistIndex
+                        ),
+                        match.range
+                    ))
+                    checklistIndex++
+                }
+            }
+        }
+        lastEnd = match.range.last + 1
+    }
+
+    if (lastEnd < rawContent.length) {
+        val text = rawContent.substring(lastEnd)
+        if (text.isNotBlank()) {
+            val currentAlign = alignStack.lastOrNull()
+            val parseResult = RichTextParser.parseWithMapping(text, hideTags = true)
+            if (parseResult.text.text.isNotBlank()) {
+                results.add(BlockRange(
+                    NoteContentBlock.TextBlock(parseResult, rawStart = lastEnd, textAlign = currentAlign),
+                    lastEnd until rawContent.length
+                ))
+            }
+        }
+    }
+
+    return results.ifEmpty {
+        val parseResult = RichTextParser.parseWithMapping(rawContent, hideTags = true)
+        listOf(BlockRange(
+            NoteContentBlock.TextBlock(parseResult, rawStart = 0),
+            0 until rawContent.length
+        ))
+    }
+}
+
 fun buildPreviewBlocks(content: String): List<NoteContentBlock> {
     val (cleanText, attachments) = parseNoteContentAndAttachments(content)
     val blocks = parseToContentBlocks(cleanText).toMutableList()

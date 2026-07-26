@@ -181,6 +181,7 @@ fun NoteEditorScreen(
     val history = remember { mutableStateListOf<String>() }
     var historyIndex by remember { mutableStateOf(-1) }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
+    val pendingTagInsert = remember { mutableStateOf<String?>(null) }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
@@ -818,43 +819,11 @@ fun NoteEditorScreen(
                     
                     // Bold, Italic, Underline, Strikethrough Helpers
                     val applyTag: (String) -> Unit = { tag ->
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        val newText = if (selStart != selEnd) {
-                            val selectedText = text.substring(selStart, selEnd)
-                            text.substring(0, selStart) + "<$tag>" + selectedText + "</$tag>" + text.substring(selEnd)
-                        } else {
-                            text.substring(0, selStart) + "<$tag></$tag>" + text.substring(selEnd)
-                        }
-                        val newCursor = if (selStart != selEnd) {
-                            selEnd + tag.length * 2 + 5
-                        } else {
-                            selStart + tag.length + 2
-                        }
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                        content = newText
-                        saveToHistory(newText)
+                        pendingTagInsert.value = "<$tag></$tag>"
                     }
 
                     val applyTagWithVal: (String, String) -> Unit = { tag, value ->
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        val newText = if (selStart != selEnd) {
-                            val selectedText = text.substring(selStart, selEnd)
-                            text.substring(0, selStart) + "<$tag=$value>" + selectedText + "</$tag>" + text.substring(selEnd)
-                        } else {
-                            text.substring(0, selStart) + "<$tag=$value></$tag>" + text.substring(selEnd)
-                        }
-                        val newCursor = if (selStart != selEnd) {
-                            selEnd + tag.length * 2 + value.length + 8
-                        } else {
-                            selStart + tag.length + value.length + 3
-                        }
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                        content = newText
-                        saveToHistory(newText)
+                        pendingTagInsert.value = "<$tag=$value></$tag>"
                     }
                     
                     FilledTonalIconToggleButton(
@@ -1581,7 +1550,7 @@ fun NoteEditorScreen(
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
-                              // Live dual-pane view (Source Editor on top, parsed live render below)
+
                 if (isPreviewMode) {
                     val currentContentForPreview = remember(content, attachments) {
                         createRawContent(content.trim(), attachments)
@@ -1707,60 +1676,21 @@ fun NoteEditorScreen(
                         }
                     }
                 } else {
-                    val visualTransformation = remember(searchQuery, searchCaseSensitive, searchFullWord, currentMatchIndex, isSearchActive) {
-                        var cachedText: String? = null
-                        var cachedResult: RichTextParser.ParseResult? = null
-                        VisualTransformation { text ->
-                            if (cachedText != text.text) {
-                                cachedText = text.text
-                                cachedResult = RichTextParser.parseWithMapping(text.text, hideTags = false, showTagsGray = true)
-                            }
-                            val parseResult = cachedResult!!
-                            val annotated = if (isSearchActive && searchQuery.isNotEmpty()) {
-                                highlightMatches(
-                                    annotatedString = parseResult.text,
-                                    query = searchQuery,
-                                    caseSensitive = searchCaseSensitive,
-                                    fullWord = searchFullWord,
-                                    currentIndex = currentMatchIndex,
-                                    highlightColor = Color(0xFFFFF59D), // Light yellow highlight
-                                    currentHighlightColor = Color(0xFFFFCC80) // Soft orange for selected
-                                )
-                            } else {
-                                parseResult.text
-                            }
-                            val offsetMapping = object : OffsetMapping {
-                                override fun originalToTransformed(offset: Int): Int {
-                                    return parseResult.originalToTransformed(offset)
-                                }
-
-                                override fun transformedToOriginal(offset: Int): Int {
-                                    return parseResult.transformedToOriginal(offset)
-                                }
-                            }
-                            TransformedText(annotated, offsetMapping)
-                        }
-                    }
-                    OutlinedTextField(
-                        value = contentValue,
-                        onValueChange = { newValue ->
-                            contentValue = newValue
-                            content = newValue.text
+                    BlockEditor(
+                        rawContent = content,
+                        onRawContentChange = { newContent ->
+                            content = newContent
+                            contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
+                            saveToHistory(newContent)
                         },
-                        label = { Text(stringResource(id = R.string.label_content)) },
+                        attachments = attachments,
+                        noteId = noteId,
+                        onNavigateToMediaViewer = onNavigateToMediaViewer,
+                        onNavigateToDrawing = onNavigateToDrawing,
+                        pendingTagInsert = pendingTagInsert,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .focusRequester(editorFocusRequester)
-                            .testTag("note_content_input"),
-                        shape = RoundedCornerShape(10.dp),
-                        visualTransformation = visualTransformation,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                        )
                     )
                 }
 
