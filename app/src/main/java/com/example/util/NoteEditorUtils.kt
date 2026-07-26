@@ -204,54 +204,82 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
     val blocks = mutableListOf<NoteContentBlock>()
 
     val regex = Regex(
-        "(?:!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
+        "(?:\\[!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)\\]\\(([^\\)]+)\\))" +
+        "|(?:!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
         "|(?:!video\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
         "|(?:!audio\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
         "|(?:<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>)" +
         "|(?:<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>|<(img|video|audio)=([^>]+)>)" +
         "|(?:<table>([\\s\\S]*?)</table>)" +
         "|(?:<hr\\s*/?>)" +
+        "|(?:<details>([\\s\\S]*?)</details>)" +
+        "|(?:<align\\s*=\\s*\"?(center|left|right|justify)\"?\\s*>)" +
+        "|(</align>)" +
         "|(<cl>|</cl>)"
     )
 
     var lastIndex = 0
     val matches = regex.findAll(processed)
     var checklistItemIndex = 0
+    val alignStack = mutableListOf<androidx.compose.ui.text.style.TextAlign>()
 
     for (match in matches) {
         val preText = processed.substring(lastIndex, match.range.first)
         if (preText.isNotEmpty()) {
+            val currentAlign = alignStack.lastOrNull()
             val parseResult = RichTextParser.parseWithMapping(preText, hideTags = true)
             if (parseResult.text.text.isNotBlank()) {
-                blocks.add(NoteContentBlock.TextBlock(parseResult, rawStart = lastIndex))
+                blocks.add(NoteContentBlock.TextBlock(parseResult, rawStart = lastIndex, textAlign = currentAlign))
             }
         }
 
-        val isMdImg = match.groupValues[2].isNotEmpty() && match.groupValues[1].isNotEmpty() || (match.groupValues[2].isNotEmpty() && match.value.startsWith("!"))
-        val isMdVideo = match.groupValues[4].isNotEmpty()
-        val isMdAudio = match.groupValues[6].isNotEmpty()
-        val isItem = match.groupValues[7].isNotEmpty()
-        val isHtmlMedia = match.groupValues[9].isNotEmpty()
-        val isHtmlShortMedia = match.groupValues[11].isNotEmpty()
-        val isTable = match.groupValues[13].isNotEmpty()
-        val isHr = !isTable && match.value.startsWith("<hr")
+        val isLinkedImg = match.groupValues[3].isNotEmpty()
+        val isMdImg = !isLinkedImg && (match.groupValues[5].isNotEmpty() && match.groupValues[4].isNotEmpty() || (match.groupValues[5].isNotEmpty() && match.value.startsWith("!")))
+        val isMdVideo = match.groupValues[7].isNotEmpty()
+        val isMdAudio = match.groupValues[9].isNotEmpty()
+        val isItem = match.groupValues[10].isNotEmpty()
+        val isHtmlMedia = match.groupValues[12].isNotEmpty()
+        val isHtmlShortMedia = match.groupValues[14].isNotEmpty()
+        val isTable = match.groupValues[16].isNotEmpty()
+        val isDetails = match.groupValues[17].isNotEmpty()
+        val isAlign = match.groupValues[18].isNotEmpty()
+        val isAlignClose = match.groupValues[19].isNotEmpty()
+        val isHr = !isTable && !isDetails && match.value.startsWith("<hr")
 
         when {
-            isMdImg -> {
+            isAlign -> {
+                val alignValue = match.groupValues[18]
+                val align = when (alignValue.lowercase()) {
+                    "center" -> androidx.compose.ui.text.style.TextAlign.Center
+                    "right" -> androidx.compose.ui.text.style.TextAlign.End
+                    "justify" -> androidx.compose.ui.text.style.TextAlign.Justify
+                    else -> androidx.compose.ui.text.style.TextAlign.Start
+                }
+                alignStack.add(align)
+            }
+            isAlignClose -> {
+                alignStack.removeLastOrNull()
+            }
+            isLinkedImg -> {
                 val src = match.groupValues[2]
+                val link = match.groupValues[3]
+                blocks.add(NoteContentBlock.ImageBlock(src, linkUrl = link))
+            }
+            isMdImg -> {
+                val src = match.groupValues[5]
                 blocks.add(NoteContentBlock.ImageBlock(src))
             }
             isMdVideo -> {
-                val src = match.groupValues[4]
+                val src = match.groupValues[7]
                 blocks.add(NoteContentBlock.VideoBlock(src))
             }
             isMdAudio -> {
-                val src = match.groupValues[6]
+                val src = match.groupValues[9]
                 blocks.add(NoteContentBlock.AudioBlock(src))
             }
             isItem -> {
-                val isChecked = match.groupValues[7] == "true"
-                val itemText = match.groupValues[8]
+                val isChecked = match.groupValues[10] == "true"
+                val itemText = match.groupValues[11]
                 val parseResult = RichTextParser.parseWithMapping(itemText, hideTags = true)
                 val relativeStart = match.value.indexOf(itemText)
                 val itemTextStart = match.range.first + relativeStart
@@ -264,8 +292,8 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
                 checklistItemIndex++
             }
             isHtmlMedia -> {
-                val mediaType = match.groupValues[9]
-                val src = match.groupValues[10]
+                val mediaType = match.groupValues[12]
+                val src = match.groupValues[13]
                 when (mediaType) {
                     "img" -> blocks.add(NoteContentBlock.ImageBlock(src))
                     "video" -> blocks.add(NoteContentBlock.VideoBlock(src))
@@ -273,8 +301,8 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
                 }
             }
             isHtmlShortMedia -> {
-                val mediaType = match.groupValues[11]
-                val src = match.groupValues[12]
+                val mediaType = match.groupValues[14]
+                val src = match.groupValues[15]
                 when (mediaType) {
                     "img" -> blocks.add(NoteContentBlock.ImageBlock(src))
                     "video" -> blocks.add(NoteContentBlock.VideoBlock(src))
@@ -282,9 +310,17 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
                 }
             }
             isTable -> {
-                val tableContent = match.groupValues[13]
+                val tableContent = match.groupValues[16]
                 val tableBlock = parseTableTagToBlock(tableContent)
                 blocks.add(tableBlock)
+            }
+            isDetails -> {
+                val detailsContent = match.groupValues[17]
+                val summaryRegex = Regex("<summary>(.*?)</summary>", RegexOption.DOT_MATCHES_ALL)
+                val summaryMatch = summaryRegex.find(detailsContent)
+                val summary = summaryMatch?.groupValues?.get(1)?.trim() ?: ""
+                val body = detailsContent.replace(summaryRegex, "").trim()
+                blocks.add(NoteContentBlock.CollapsibleBlock(summary = summary, content = body))
             }
             isHr -> {
                 blocks.add(NoteContentBlock.HorizontalRuleBlock)
@@ -297,9 +333,10 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
     if (lastIndex < processed.length) {
         val remainingText = processed.substring(lastIndex)
         if (remainingText.isNotEmpty()) {
+            val currentAlign = alignStack.lastOrNull()
             val parseResult = RichTextParser.parseWithMapping(remainingText, hideTags = true)
             if (parseResult.text.text.isNotBlank()) {
-                blocks.add(NoteContentBlock.TextBlock(parseResult, rawStart = lastIndex))
+                blocks.add(NoteContentBlock.TextBlock(parseResult, rawStart = lastIndex, textAlign = currentAlign))
             }
         }
     }

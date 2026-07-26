@@ -452,6 +452,8 @@
     <string name="cd_remove">Remove</string>
     <string name="cd_checked">Checked</string>
     <string name="cd_unchecked">Unchecked</string>
+    <string name="cd_expand">Expand</string>
+    <string name="cd_collapse">Collapse</string>
     <string name="cd_play_pause_audio">Play/Pause Audio</string>
     <string name="cd_remove_tag">Remove tag</string>
     <string name="cd_bg_preview">Background preview</string>

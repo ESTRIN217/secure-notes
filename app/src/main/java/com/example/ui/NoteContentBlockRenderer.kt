@@ -3,6 +3,9 @@ package com.example.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -14,9 +17,14 @@ import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,11 +36,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.rotate
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.model.BlockRenderContext
 import com.example.data.model.ColumnAlignment
 import com.example.data.model.NoteContentBlock
+import com.example.util.RichTextParser
 
 @Composable
 fun NoteContentBlock.RenderContent(
@@ -50,6 +60,7 @@ fun NoteContentBlock.RenderContent(
         is NoteContentBlock.FileBlock -> renderFileBlock(context, modifier)
         is NoteContentBlock.TableBlock -> renderTableBlock(context, modifier)
         is NoteContentBlock.HorizontalRuleBlock -> renderHorizontalRuleBlock(modifier)
+        is NoteContentBlock.CollapsibleBlock -> renderCollapsibleBlock(context, modifier)
     }
 }
 
@@ -97,7 +108,10 @@ private fun NoteContentBlock.TextBlock.renderTextBlock(
             @Suppress("DEPRECATION")
             ClickableText(
                 text = annotatedString,
-                style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = textAlign ?: TextAlign.Start
+                ),
                 onClick = { offset ->
                     annotatedString.getStringAnnotations("URL", offset, offset)
                         .firstOrNull()?.let { annotation ->
@@ -117,7 +131,12 @@ private fun NoteContentBlock.ChecklistItemBlock.renderChecklistItemBlock(
 ) {
     val block = this
     Box(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable {
+                context.onChecklistToggle?.invoke(globalIndex, isChecked)
+            }
+        ) {
             Icon(
                 imageVector = if (isChecked) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
                 contentDescription = if (isChecked) stringResource(id = R.string.cd_checked) else stringResource(id = R.string.cd_unchecked),
@@ -156,7 +175,13 @@ private fun NoteContentBlock.ImageBlock.renderImageBlock(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
-                .clickable { context.onNavigateToMediaViewer("image", src) },
+                .clickable {
+                    if (linkUrl != null) {
+                        context.onUrlClicked(linkUrl, 0)
+                    } else {
+                        context.onNavigateToMediaViewer("image", src)
+                    }
+                },
             contentScale = ContentScale.FillWidth
         )
         DeleteOverlay { context.onDeleteBlock(block) }
@@ -360,4 +385,64 @@ private fun renderHorizontalRuleBlock(modifier: Modifier) {
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant
     )
+}
+
+@Composable
+private fun NoteContentBlock.CollapsibleBlock.renderCollapsibleBlock(
+    context: BlockRenderContext,
+    modifier: Modifier
+) {
+    val block = this
+    var expanded by remember { mutableStateOf(isExpanded) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = stringResource(if (expanded) R.string.cd_collapse else R.string.cd_expand),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(if (expanded) 180f else 0f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Box(modifier = Modifier.padding(start = 32.dp, end = 12.dp, bottom = 10.dp)) {
+                    if (content.isNotBlank()) {
+                        @Suppress("DEPRECATION")
+                        ClickableText(
+                            text = RichTextParser.parse(content, hideTags = true),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            onClick = { }
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

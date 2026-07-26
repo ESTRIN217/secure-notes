@@ -1681,7 +1681,8 @@ fun NoteEditorScreen(
                                                             saveToHistory(newText)
                                                         }
                                                     }
-                                                    is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock -> { }
+                                                    is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock,
+                                                    is NoteContentBlock.CollapsibleBlock -> { }
                                                 }
                                             },
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
@@ -1690,6 +1691,14 @@ fun NoteEditorScreen(
                                                 clickedUrlAddress = url
                                                 clickedUrlAbsoluteOffset = rawOffset
                                                 showUrlDialog = true
+                                            },
+                                            onChecklistToggle = { globalIndex, isChecked ->
+                                                val newText = toggleNthChecklistItem(currentContentForPreview, globalIndex)
+                                                if (newText != currentContentForPreview) {
+                                                    content = newText
+                                                    contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                    saveToHistory(newText)
+                                                }
                                             }
                                         )
                                     }

@@ -128,6 +128,9 @@ class RichTextParser {
                     endStyle(activeStyles, "h1", builder)
                     endStyle(activeStyles, "h2", builder)
                     endStyle(activeStyles, "h3", builder)
+                    endStyle(activeStyles, "h4", builder)
+                    endStyle(activeStyles, "h5", builder)
+                    endStyle(activeStyles, "h6", builder)
                     endStyle(activeStyles, "quote", builder)
                 }
             } else {
@@ -174,6 +177,9 @@ class RichTextParser {
 
         data class LineMarker(val prefix: String, val style: SpanStyle?, val type: String, val replacement: String? = null)
         val lineMarkers = listOf(
+            LineMarker("###### ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFBF360C)), "h6"),
+            LineMarker("##### ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFBF360C)), "h5"),
+            LineMarker("#### ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFBF360C)), "h4"),
             LineMarker("### ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFFE65100)), "h3"),
             LineMarker("## ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFF57C00)), "h2"),
             LineMarker("# ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFFB8C00)), "h1"),

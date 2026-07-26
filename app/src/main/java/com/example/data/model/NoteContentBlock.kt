@@ -1,5 +1,6 @@
 package com.example.data.model
 
+import androidx.compose.ui.text.style.TextAlign
 import com.example.util.RichTextParser
 
 data class BlockRenderContext(
@@ -9,13 +10,15 @@ data class BlockRenderContext(
     val onNavigateToMediaViewer: (String, String) -> Unit,
     val onNavigateToDrawing: (Int, String?) -> Unit,
     val onUrlClicked: (url: String, rawOffset: Int) -> Unit,
-    val onEditTable: ((NoteContentBlock.TableBlock) -> Unit)? = null
+    val onEditTable: ((NoteContentBlock.TableBlock) -> Unit)? = null,
+    val onChecklistToggle: ((globalIndex: Int, isChecked: Boolean) -> Unit)? = null
 )
 
 sealed interface NoteContentBlock {
     data class TextBlock(
         val parseResult: RichTextParser.ParseResult,
-        val rawStart: Int
+        val rawStart: Int,
+        val textAlign: TextAlign? = null
     ) : NoteContentBlock {
         val annotatedString: androidx.compose.ui.text.AnnotatedString get() = parseResult.text
     }
@@ -29,7 +32,7 @@ sealed interface NoteContentBlock {
         val text: androidx.compose.ui.text.AnnotatedString get() = parseResult.text
     }
 
-    data class ImageBlock(val src: String) : NoteContentBlock
+    data class ImageBlock(val src: String, val linkUrl: String? = null) : NoteContentBlock
     data class VideoBlock(val src: String) : NoteContentBlock
     data class AudioBlock(val src: String) : NoteContentBlock
     data class DrawingBlock(val jsonPath: String, val previewPath: String) : NoteContentBlock
@@ -43,6 +46,12 @@ sealed interface NoteContentBlock {
     ) : NoteContentBlock
 
     data object HorizontalRuleBlock : NoteContentBlock
+
+    data class CollapsibleBlock(
+        val summary: String,
+        val content: String,
+        val isExpanded: Boolean = false
+    ) : NoteContentBlock
 }
 
 enum class ColumnAlignment { Start, Center, End }

@@ -70,6 +70,9 @@ class HtmlTagParser {
             "h1" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp)
             "h2" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)
             "h3" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            "h4" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            "h5" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            "h6" -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 11.sp)
             "normal" -> SpanStyle(fontWeight = FontWeight.Normal, fontSize = 16.sp)
             "sub" -> SpanStyle(fontSize = 11.sp, baselineShift = BaselineShift.Subscript)
             "sup" -> SpanStyle(fontSize = 11.sp, baselineShift = BaselineShift.Superscript)
@@ -96,18 +99,29 @@ class HtmlTagParser {
                 SpanStyle(fontSize = sz.sp)
             }
             "url" -> SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+            "mark" -> SpanStyle(background = Color(0xFFFFEB3B))
+            "highlight" -> {
+                val c = JsonColorizer.parseColor(tagValue)
+                if (c != null) SpanStyle(background = c) else SpanStyle(background = Color(0xFFFFEB3B))
+            }
+            "small" -> SpanStyle(fontSize = 12.sp)
+            "kbd" -> SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFF37474F))
+            "var" -> SpanStyle(fontStyle = FontStyle.Italic)
+            "samp" -> SpanStyle(fontFamily = FontFamily.Monospace)
             else -> null
         }
     }
 
     fun tagNeedsStyle(tagName: String): Boolean = tagName in listOf(
         "b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font", "size",
-        "h1", "h2", "h3", "normal", "sub", "sup", "url"
+        "h1", "h2", "h3", "h4", "h5", "h6", "normal", "sub", "sup", "url",
+        "mark", "highlight", "small", "kbd", "var", "samp"
     )
 
     fun tagIsStructural(tagName: String): Boolean = tagName in listOf(
         "ol", "ul", "cl", "indent", "li", "item", "img", "video", "audio",
-        "table", "tr", "td", "th", "hr"
+        "table", "tr", "td", "th", "hr",
+        "details", "summary"
     )
 
     fun tagIsListContainer(tagName: String): Boolean = tagName in listOf("ol", "ul")
@@ -115,9 +129,12 @@ class HtmlTagParser {
     companion object {
         val closingTags = listOf(
             "b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font",
-            "size", "h1", "h2", "h3", "normal", "sub", "sup", "indent", "url",
+            "size", "h1", "h2", "h3", "h4", "h5", "h6", "normal", "sub", "sup",
+            "indent", "url",
             "ol", "ul", "cl", "img", "video", "audio",
-            "table", "tr", "td", "th", "hr"
+            "table", "tr", "td", "th", "hr",
+            "mark", "highlight", "small", "kbd", "var", "samp",
+            "align", "details", "summary"
         )
 
         private val default = HtmlTagParser()
