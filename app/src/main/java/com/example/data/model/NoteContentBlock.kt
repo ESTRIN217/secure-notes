@@ -42,7 +42,8 @@ sealed interface NoteContentBlock {
     data class TableBlock(
         val headers: List<String>,
         val rows: List<List<String>>,
-        val columnAlignment: List<ColumnAlignment> = emptyList()
+        val columnAlignment: List<ColumnAlignment> = emptyList(),
+        val cellAlignment: List<List<ColumnAlignment>> = emptyList()
     ) : NoteContentBlock
 
     data object HorizontalRuleBlock : NoteContentBlock

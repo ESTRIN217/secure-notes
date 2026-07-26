@@ -210,7 +210,7 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
         "|(?:!audio\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
         "|(?:<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>)" +
         "|(?:<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>|<(img|video|audio)=([^>]+)>)" +
-        "|(?:<table>([\\s\\S]*?)</table>)" +
+        "|(?:<table[^>]*>([\\s\\S]*?)</table>)" +
         "|(?:<hr\\s*/?>)" +
         "|(?:<details>([\\s\\S]*?)</details>)" +
         "|(?:<align\\s*=\\s*\"?(center|left|right|justify)\"?\\s*>)" +
@@ -347,31 +347,71 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
     }
 }
 
+private fun parseAlignAttr(tdTag: String): ColumnAlignment {
+    val alignMatch = Regex("""align\s*=\s*"([^"]+)"""").find(tdTag)
+        ?: Regex("""align\s*=\s*'([^']+)'""").find(tdTag)
+    return when (alignMatch?.groupValues?.get(1)?.lowercase()) {
+        "center" -> ColumnAlignment.Center
+        "right" -> ColumnAlignment.End
+        else -> ColumnAlignment.Start
+    }
+}
+
 private fun parseTableTagToBlock(tableContent: String): NoteContentBlock.TableBlock {
     val headers = mutableListOf<String>()
     val rows = mutableListOf<List<String>>()
     val alignment = mutableListOf<ColumnAlignment>()
+    val cellAlignment = mutableListOf<List<ColumnAlignment>>()
 
-    val thRegex = Regex("<th>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
+    val thRegex = Regex("<th[^>]*>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
     headers.addAll(thRegex.findAll(tableContent).map {
         it.groupValues[1].trim()
     })
+    val thAligns = thRegex.findAll(tableContent).map {
+        val tdTag = it.value.substringBefore(">").substringAfter("<th")
+        parseAlignAttr(tdTag)
+    }.toList()
+    if (thAligns.isNotEmpty()) {
+        thAligns.forEachIndexed { col, align ->
+            if (alignment.size <= col) alignment.add(align)
+            else if (alignment[col] == ColumnAlignment.Start) alignment[col] = align
+        }
+    }
 
     val trRegex = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
     for (trMatch in trRegex.findAll(tableContent)) {
-        val tdRegex = Regex("<td>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
-        val cells = tdRegex.findAll(trMatch.groupValues[1]).map {
-            it.groupValues[1].trim()
-        }.toList()
+        val tdRegex = Regex("<td([^>]*)>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+        val cells = mutableListOf<String>()
+        val aligns = mutableListOf<ColumnAlignment>()
+        for (tdMatch in tdRegex.findAll(trMatch.groupValues[1])) {
+            cells.add(tdMatch.groupValues[2].trim())
+            aligns.add(parseAlignAttr(tdMatch.groupValues[1]))
+        }
         if (cells.isNotEmpty()) {
             rows.add(cells)
+            cellAlignment.add(aligns)
+        }
+    }
+
+    // Infer column-level alignment from cell alignment (majority per column)
+    if (cellAlignment.isNotEmpty()) {
+        val maxCols = cellAlignment.maxOf { it.size }
+        for (col in 0 until maxCols) {
+            val counts = mutableMapOf(ColumnAlignment.Start to 0, ColumnAlignment.Center to 0, ColumnAlignment.End to 0)
+            for (rowAligns in cellAlignment) {
+                if (col < rowAligns.size) {
+                    counts[rowAligns[col]] = (counts[rowAligns[col]] ?: 0) + 1
+                }
+            }
+            alignment.add(counts.maxByOrNull { it.value }?.key ?: ColumnAlignment.Start)
         }
     }
 
     return NoteContentBlock.TableBlock(
         headers = headers,
         rows = rows,
-        columnAlignment = alignment
+        columnAlignment = alignment,
+        cellAlignment = cellAlignment
     )
 }
 

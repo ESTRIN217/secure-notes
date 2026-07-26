@@ -348,7 +348,8 @@ private fun NoteContentBlock.TableBlock.renderTableBlock(
                     val cellCount = maxOf(row.size, if (headers.isNotEmpty()) headers.size else row.size)
                     for (colIndex in 0 until cellCount) {
                         val cell = row.getOrElse(colIndex) { "" }
-                        val align = columnAlignment.getOrNull(colIndex) ?: ColumnAlignment.Start
+                        val cellAlign = cellAlignment.getOrNull(rowIndex)?.getOrNull(colIndex)
+                        val align = cellAlign ?: columnAlignment.getOrNull(colIndex) ?: ColumnAlignment.Start
                         Box(
                             modifier = Modifier
                                 .weight(1f)

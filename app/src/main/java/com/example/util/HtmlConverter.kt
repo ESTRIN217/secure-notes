@@ -41,9 +41,12 @@ class HtmlConverter {
             .replace(Regex("<align\\s*=\\s*\"?(center|left|right|justify)\"?\\s*>(.*?)</align>", RegexOption.DOT_MATCHES_ALL)) {
                 "<div align=\"${it.groupValues[1]}\">${it.groupValues[2]}</div>"
             }
-            .replace(Regex("<table>([\\s\\S]*?)</table>")) { tableMatch ->
-                val inner = tableMatch.groupValues[1]
-                val sb = StringBuilder("<table style=\"border-collapse:collapse; width:100%;\">\n")
+            .replace(Regex("<table([^>]*)>([\\s\\S]*?)</table>")) { tableMatch ->
+                val attrs = tableMatch.groupValues[1]
+                val inner = tableMatch.groupValues[2]
+                val tableAlign = Regex("align=\"([^\"]+)\"").find(attrs)?.groupValues?.get(1)
+                val alignStyle = if (tableAlign != null) " text-align:$tableAlign; margin-${if (tableAlign == "center") "left:auto;margin-right:auto" else "$tableAlign:0"}" else ""
+                val sb = StringBuilder("<table style=\"border-collapse:collapse; width:100%;$alignStyle\">\n")
                 val thMatch = Regex("<th>(.*?)</th>", RegexOption.DOT_MATCHES_ALL).find(inner)
                 if (thMatch != null) {
                     sb.append("<thead><tr>")
@@ -57,10 +60,13 @@ class HtmlConverter {
                 val trRegex = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
                 for (tr in trRegex.findAll(inner)) {
                     sb.append("<tr>")
-                    Regex("<td>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+                    Regex("<td([^>]*)>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
                         .findAll(tr.groupValues[1])
                         .forEach { td ->
-                            sb.append("<td style=\"border:1px solid #ddd; padding:8px;\">${escapeHtml(td.groupValues[1])}</td>")
+                            val tdAttrs = td.groupValues[1]
+                            val tdAlign = Regex("align=\"([^\"]+)\"").find(tdAttrs)?.groupValues?.get(1)
+                            val tdStyle = if (tdAlign != null) " text-align:$tdAlign;" else ""
+                            sb.append("<td style=\"border:1px solid #ddd; padding:8px;$tdStyle\">${escapeHtml(td.groupValues[2])}</td>")
                         }
                     sb.append("</tr>\n")
                 }
@@ -81,6 +87,8 @@ class HtmlConverter {
         s = s.replace(Regex("<!DOCTYPE[^>]*>", RegexOption.IGNORE_CASE), "")
         s = s.replace(Regex("</?(html|head|body|meta|link|script|style)[^>]*>", RegexOption.IGNORE_CASE), "")
         s = s.replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
+        s = s.replace(Regex("<p\\s+[^>]*align=\"([^\"]+)\"[^>]*>(.*?)</p>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<align=$1>$2</align>")
+        s = s.replace(Regex("<p\\s+[^>]*align='([^']+)'[^>]*>(.*?)</p>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<align=$1>$2</align>")
         s = s.replace(Regex("</?(p|div|section|article|nav|header|footer|main|aside)(\\s[^>]*)?>", RegexOption.IGNORE_CASE), "\n")
         s = s.replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
         s = s.replace(Regex("<h1[^>]*>(.*?)</h1>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "<h1>$1</h1>")
