@@ -106,7 +106,8 @@ class HtmlTagParser {
     )
 
     fun tagIsStructural(tagName: String): Boolean = tagName in listOf(
-        "ol", "ul", "cl", "indent", "li", "item", "img", "video", "audio"
+        "ol", "ul", "cl", "indent", "li", "item", "img", "video", "audio",
+        "table", "tr", "td", "th", "hr"
     )
 
     fun tagIsListContainer(tagName: String): Boolean = tagName in listOf("ol", "ul")
@@ -115,7 +116,8 @@ class HtmlTagParser {
         val closingTags = listOf(
             "b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font",
             "size", "h1", "h2", "h3", "normal", "sub", "sup", "indent", "url",
-            "ol", "ul", "cl", "img", "video", "audio"
+            "ol", "ul", "cl", "img", "video", "audio",
+            "table", "tr", "td", "th", "hr"
         )
 
         private val default = HtmlTagParser()

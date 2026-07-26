@@ -8,7 +8,8 @@ data class BlockRenderContext(
     val onDeleteBlock: (NoteContentBlock) -> Unit,
     val onNavigateToMediaViewer: (String, String) -> Unit,
     val onNavigateToDrawing: (Int, String?) -> Unit,
-    val onUrlClicked: (url: String, rawOffset: Int) -> Unit
+    val onUrlClicked: (url: String, rawOffset: Int) -> Unit,
+    val onEditTable: ((NoteContentBlock.TableBlock) -> Unit)? = null
 )
 
 sealed interface NoteContentBlock {
@@ -34,4 +35,14 @@ sealed interface NoteContentBlock {
     data class DrawingBlock(val jsonPath: String, val previewPath: String) : NoteContentBlock
     data class VoiceBlock(val path: String) : NoteContentBlock
     data class FileBlock(val name: String, val path: String) : NoteContentBlock
+
+    data class TableBlock(
+        val headers: List<String>,
+        val rows: List<List<String>>,
+        val columnAlignment: List<ColumnAlignment> = emptyList()
+    ) : NoteContentBlock
+
+    data object HorizontalRuleBlock : NoteContentBlock
 }
+
+enum class ColumnAlignment { Start, Center, End }

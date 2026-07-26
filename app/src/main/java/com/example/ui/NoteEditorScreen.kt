@@ -185,6 +185,10 @@ fun NoteEditorScreen(
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
     var showInsertUrlDialog by remember { mutableStateOf(false) }
+    var showInsertTableDialog by remember { mutableStateOf(false) }
+    var tableRows by remember { mutableIntStateOf(3) }
+    var tableCols by remember { mutableIntStateOf(3) }
+    var tableHasHeader by remember { mutableStateOf(true) }
     var isImageLinkExpanded by remember { mutableStateOf(false) }
     var isVideoLinkExpanded by remember { mutableStateOf(false) }
     
@@ -1285,6 +1289,24 @@ fun NoteEditorScreen(
                         )
                     }
 
+                    // Insert Table Button
+                    IconButton(onClick = { showInsertTableDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.BorderAll,
+                            contentDescription = "Insert Table",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Insert Horizontal Rule Button
+                    IconButton(onClick = { insertAtCursor("<hr/>") }) {
+                        Icon(
+                            imageVector = Icons.Default.HorizontalRule,
+                            contentDescription = "Insert Horizontal Rule",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     // Insert URL Button
                     IconButton(onClick = {
                         val selStart = contentValue.selection.start
@@ -1641,6 +1663,24 @@ fun NoteEditorScreen(
                                                             onSavedBlock(attachments - target)
                                                         }
                                                     }
+                                                    is NoteContentBlock.TableBlock -> {
+                                                        val tableRegex = Regex("<table>[\\s\\S]*?</table>")
+                                                        val match = tableRegex.find(content)
+                                                        if (match != null) {
+                                                            val newText = content.substring(0, match.range.first) + content.substring(match.range.last + 1)
+                                                            content = newText
+                                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                            saveToHistory(newText)
+                                                        }
+                                                    }
+                                                    is NoteContentBlock.HorizontalRuleBlock -> {
+                                                        val newText = content.replaceFirst("<hr\\s*/?>".toRegex(), "")
+                                                        if (newText != content) {
+                                                            content = newText
+                                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
+                                                            saveToHistory(newText)
+                                                        }
+                                                    }
                                                     is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock -> { }
                                                 }
                                             },
@@ -1833,6 +1873,84 @@ fun NoteEditorScreen(
                     )
                 }
                 
+                // Insert Table Dialog
+                if (showInsertTableDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showInsertTableDialog = false },
+                        title = { Text("Insert Table") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Rows:", style = MaterialTheme.typography.bodyMedium)
+                                    Slider(
+                                        value = tableRows.toFloat(),
+                                        onValueChange = { tableRows = it.toInt() },
+                                        valueRange = 1f..10f,
+                                        steps = 8,
+                                        modifier = Modifier.width(120.dp)
+                                    )
+                                    Text("$tableRows", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Cols:", style = MaterialTheme.typography.bodyMedium)
+                                    Slider(
+                                        value = tableCols.toFloat(),
+                                        onValueChange = { tableCols = it.toInt() },
+                                        valueRange = 1f..8f,
+                                        steps = 6,
+                                        modifier = Modifier.width(120.dp)
+                                    )
+                                    Text("$tableCols", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = tableHasHeader,
+                                        onCheckedChange = { tableHasHeader = it }
+                                    )
+                                    Text("Include header row", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    val sb = StringBuilder("<table>")
+                                    if (tableHasHeader) {
+                                        sb.append("<th>")
+                                        sb.append((1..tableCols).joinToString("</th><th>") { "Header $it" })
+                                        sb.append("</th>")
+                                    }
+                                    for (r in 1..tableRows) {
+                                        sb.append("<tr><td>")
+                                        sb.append((1..tableCols).joinToString("</td><td>") { "" })
+                                        sb.append("</td></tr>")
+                                    }
+                                    sb.append("</table>")
+                                    insertAtCursor(sb.toString())
+                                    showInsertTableDialog = false
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.btn_insert))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    showInsertTableDialog = false
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.btn_cancel))
+                            }
+                        }
+                    )
+                }
+
                 // URL Click Action Dialog (Open, Copy, Delete)
                 if (showUrlDialog) {
                     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current

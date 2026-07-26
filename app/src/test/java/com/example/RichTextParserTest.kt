@@ -145,4 +145,98 @@ class RichTextParserTest {
         assertTrue(toggledRaw2.contains("<item checked=\"false\">Task One</item>"))
         assertTrue(toggledRaw2.contains("<item checked=\"false\">Task Two</item>"))
     }
+
+    @Test
+    fun testHorizontalRuleMarkdown() {
+        val raw = "Text above\n---\nText below"
+        val parsedHide = RichTextParser.parse(raw, hideTags = true)
+        assertTrue(parsedHide.text.contains("Text above"))
+        assertTrue(parsedHide.text.contains("Text below"))
+
+        val raw2 = "Text above\n***\nText below"
+        val parsedHide2 = RichTextParser.parse(raw2, hideTags = true)
+        assertTrue(parsedHide2.text.contains("Text above"))
+        assertTrue(parsedHide2.text.contains("Text below"))
+    }
+
+    @Test
+    fun testAutoLinkParsing() {
+        val raw = "Visit https://example.com/path for info."
+        val parsed = RichTextParser.parse(raw, hideTags = true)
+        assertEquals("Visit https://example.com/path for info.", parsed.text)
+        assertTrue(parsed.text.contains("https://example.com/path"))
+    }
+
+    @Test
+    fun testBackslashEscaping() {
+        val raw = "This is \\*not\\* italic and \\_not\\_ emphasized."
+        val parsedHide = RichTextParser.parse(raw, hideTags = true)
+        assertEquals("This is *not* italic and _not_ emphasized.", parsedHide.text)
+
+        val raw2 = "Escaped \\# heading"
+        val parsedHide2 = RichTextParser.parse(raw2, hideTags = true)
+        assertEquals("Escaped # heading", parsedHide2.text)
+    }
+
+    @Test
+    fun testNestedBlockquote() {
+        val raw = "> Single\n> > Double\n> > > Triple"
+        val parsedHide = RichTextParser.parse(raw, hideTags = true)
+        assertEquals("SingleDoubleTriple", parsedHide.text.trim().replace("\n", ""))
+
+        val parsedGray = RichTextParser.parse(raw, hideTags = false, showTagsGray = true)
+        assertTrue(parsedGray.text.contains(">"))
+    }
+
+    @Test
+    fun testNestedLists() {
+        val raw = "- Item 1\n  - Sub item\n- Item 2"
+        val parsedHide = RichTextParser.parse(raw, hideTags = true)
+        assertTrue(parsedHide.text.contains("•"))
+        assertTrue(parsedHide.text.contains("Item 1"))
+        assertTrue(parsedHide.text.contains("Sub item"))
+    }
+
+    @Test
+    fun testPipeTablePreprocessing() {
+        val raw = "Before\n| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\nAfter"
+        val blocks = parseToContentBlocks(raw)
+        assertTrue(blocks.any { it is NoteContentBlock.TableBlock })
+        val tableBlock = blocks.find { it is NoteContentBlock.TableBlock } as NoteContentBlock.TableBlock
+        assertEquals(listOf("Header 1", "Header 2"), tableBlock.headers)
+        assertEquals(1, tableBlock.rows.size)
+        assertEquals(listOf("Cell 1", "Cell 2"), tableBlock.rows[0])
+    }
+
+    @Test
+    fun testTableTagParsing() {
+        val raw = "Before\n<table><th>H1</th><th>H2</th><tr><td>A</td><td>B</td></tr></table>\nAfter"
+        val blocks = parseToContentBlocks(raw)
+        assertTrue(blocks.any { it is NoteContentBlock.TableBlock })
+        val tableBlock = blocks.find { it is NoteContentBlock.TableBlock } as NoteContentBlock.TableBlock
+        assertEquals(listOf("H1", "H2"), tableBlock.headers)
+        assertEquals(1, tableBlock.rows.size)
+        assertEquals(listOf("A", "B"), tableBlock.rows[0])
+    }
+
+    @Test
+    fun testHorizontalRuleInParseToContentBlocks() {
+        val raw = "Text\n<hr/>\nMore text"
+        val blocks = parseToContentBlocks(raw)
+        assertTrue(blocks.any { it is NoteContentBlock.HorizontalRuleBlock })
+    }
+
+    @Test
+    fun testCombinedMarkdownFeatures() {
+        val raw = "# Heading\n> Quote with **bold**\n\n| Col A | Col B |\n| --- | --- |\n| 1 | 2 |\n\n---\n\nFinal text with auto-link https://example.com"
+        val parsed = RichTextParser.parse(raw, hideTags = true)
+        assertTrue(parsed.text.contains("Heading"))
+        assertTrue(parsed.text.contains("Quote with bold"))
+        assertTrue(parsed.text.contains("Final text with auto-link"))
+        assertTrue(parsed.text.contains("https://example.com"))
+
+        val blocks = parseToContentBlocks(raw)
+        assertTrue(blocks.any { it is NoteContentBlock.TableBlock })
+        assertTrue(blocks.any { it is NoteContentBlock.HorizontalRuleBlock })
+    }
 }

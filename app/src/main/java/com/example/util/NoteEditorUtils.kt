@@ -1,6 +1,7 @@
 package com.example.util
 
 import com.example.data.model.Attachment
+import com.example.data.model.ColumnAlignment
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.createRawContent
@@ -115,7 +116,91 @@ fun toggleNthChecklistItem(rawText: String, indexToToggle: Int): String {
     return rawText
 }
 
+fun preprocessMarkdownBlocks(text: String): String {
+    val lines = text.split("\n")
+    val result = StringBuilder()
+    var i = 0
+    while (i < lines.size) {
+        val trimmed = lines[i].trim()
+        val hrCounts = listOf(
+            trimmed.count { it == '-' },
+            trimmed.count { it == '*' },
+            trimmed.count { it == '_' }
+        )
+        if (!trimmed.contains('|') && hrCounts.any { it >= 3 } && trimmed.matches(Regex("^[-*_ ]+$"))) {
+            result.append("<hr/>")
+            i++
+            continue
+        }
+        if (trimmed.startsWith("|") && trimmed.count { it == '|' } >= 2) {
+            val tableLines = mutableListOf<String>()
+            while (i < lines.size) {
+                val line = lines[i].trim()
+                if (line.startsWith("|") && line.count { it == '|' } >= 2) {
+                    tableLines.add(line)
+                    i++
+                } else {
+                    break
+                }
+            }
+            result.append(parsePipeTableToHtml(tableLines))
+            if (result.lastOrNull() != '\n' && i < lines.size) {
+                result.append("\n")
+            }
+        } else {
+            result.append(lines[i])
+            if (i < lines.size - 1) {
+                result.append("\n")
+            }
+            i++
+        }
+    }
+    return result.toString()
+}
+
+private fun parsePipeTableToHtml(tableLines: List<String>): String {
+    if (tableLines.isEmpty()) return ""
+
+    fun parseRow(line: String): List<String> {
+        return line.trim().removeSurrounding("|").split("|").map { it.trim() }
+    }
+
+    val sepIndex = tableLines.indexOfFirst { line ->
+        line.replace("\\s".toRegex(), "").let { it.count { c -> c == '-' } >= 3 }
+    }
+
+    val alignment = if (sepIndex >= 0) {
+        parseRow(tableLines[sepIndex]).map { col ->
+            val trimmed = col.trim()
+            when {
+                trimmed.startsWith(":") && trimmed.endsWith(":") -> ColumnAlignment.Center
+                trimmed.endsWith(":") -> ColumnAlignment.End
+                else -> ColumnAlignment.Start
+            }
+        }
+    } else emptyList()
+
+    val headers = if (sepIndex >= 0) parseRow(tableLines[0]) else emptyList()
+    val bodyLines = if (sepIndex >= 0) tableLines.drop(sepIndex + 1) else tableLines
+
+    val sb = StringBuilder("<table>")
+    if (headers.isNotEmpty()) {
+        sb.append("<th>")
+        sb.append(headers.joinToString("</th><th>") { it })
+        sb.append("</th>")
+    }
+    for (bodyLine in bodyLines) {
+        val cells = parseRow(bodyLine)
+        sb.append("<tr><td>")
+        sb.append(cells.joinToString("</td><td>") { it })
+        sb.append("</td></tr>")
+    }
+    sb.append("</table>")
+    return sb.toString()
+}
+
 fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
+    val processed = preprocessMarkdownBlocks(rawText)
     val blocks = mutableListOf<NoteContentBlock>()
 
     val regex = Regex(
@@ -124,15 +209,17 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
         "|(?:!audio\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\))" +
         "|(?:<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>)" +
         "|(?:<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>|<(img|video|audio)=([^>]+)>)" +
+        "|(?:<table>([\\s\\S]*?)</table>)" +
+        "|(?:<hr\\s*/?>)" +
         "|(<cl>|</cl>)"
     )
 
     var lastIndex = 0
-    val matches = regex.findAll(rawText)
+    val matches = regex.findAll(processed)
     var checklistItemIndex = 0
 
     for (match in matches) {
-        val preText = rawText.substring(lastIndex, match.range.first)
+        val preText = processed.substring(lastIndex, match.range.first)
         if (preText.isNotEmpty()) {
             val parseResult = RichTextParser.parseWithMapping(preText, hideTags = true)
             if (parseResult.text.text.isNotBlank()) {
@@ -146,6 +233,8 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
         val isItem = match.groupValues[7].isNotEmpty()
         val isHtmlMedia = match.groupValues[9].isNotEmpty()
         val isHtmlShortMedia = match.groupValues[11].isNotEmpty()
+        val isTable = match.groupValues[13].isNotEmpty()
+        val isHr = !isTable && match.value.startsWith("<hr")
 
         when {
             isMdImg -> {
@@ -192,13 +281,21 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
                     "audio" -> blocks.add(NoteContentBlock.AudioBlock(src))
                 }
             }
+            isTable -> {
+                val tableContent = match.groupValues[13]
+                val tableBlock = parseTableTagToBlock(tableContent)
+                blocks.add(tableBlock)
+            }
+            isHr -> {
+                blocks.add(NoteContentBlock.HorizontalRuleBlock)
+            }
         }
 
         lastIndex = match.range.last + 1
     }
 
-    if (lastIndex < rawText.length) {
-        val remainingText = rawText.substring(lastIndex)
+    if (lastIndex < processed.length) {
+        val remainingText = processed.substring(lastIndex)
         if (remainingText.isNotEmpty()) {
             val parseResult = RichTextParser.parseWithMapping(remainingText, hideTags = true)
             if (parseResult.text.text.isNotBlank()) {
@@ -208,9 +305,37 @@ fun parseToContentBlocks(rawText: String): List<NoteContentBlock> {
     }
 
     return blocks.ifEmpty {
-        val parseResult = RichTextParser.parseWithMapping(rawText, hideTags = true)
+        val parseResult = RichTextParser.parseWithMapping(processed, hideTags = true)
         listOf(NoteContentBlock.TextBlock(parseResult, rawStart = 0))
     }
+}
+
+private fun parseTableTagToBlock(tableContent: String): NoteContentBlock.TableBlock {
+    val headers = mutableListOf<String>()
+    val rows = mutableListOf<List<String>>()
+    val alignment = mutableListOf<ColumnAlignment>()
+
+    val thRegex = Regex("<th>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
+    headers.addAll(thRegex.findAll(tableContent).map {
+        it.groupValues[1].trim()
+    })
+
+    val trRegex = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
+    for (trMatch in trRegex.findAll(tableContent)) {
+        val tdRegex = Regex("<td>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+        val cells = tdRegex.findAll(trMatch.groupValues[1]).map {
+            it.groupValues[1].trim()
+        }.toList()
+        if (cells.isNotEmpty()) {
+            rows.add(cells)
+        }
+    }
+
+    return NoteContentBlock.TableBlock(
+        headers = headers,
+        rows = rows,
+        columnAlignment = alignment
+    )
 }
 
 fun removeMediaFromContent(text: String, src: String, type: String): String {

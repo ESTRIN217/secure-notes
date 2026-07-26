@@ -58,6 +58,7 @@ class RichTextParser {
         var i = 0
         var isLineStart = true
         var inCodeBlock = false
+        val escapedChars = setOf('\\', '`', '*', '_', '~', '[', ']', '(', ')', '<', '>', '#', '-', '!', '|', '{', '}')
 
         while (i < N) {
             val char = rawText[i]
@@ -91,6 +92,14 @@ class RichTextParser {
                 appendChar(rawText[i], builder, mapping, i)
                 if (char == '\n') isLineStart = true else isLineStart = false
                 i++
+                continue
+            }
+
+            if ((hideTags || showTagsGray) && char == '\\' && i + 1 < N && rawText[i + 1] in escapedChars) {
+                skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, showTagsGray)
+                appendChar(rawText[i + 1], builder, mapping, i + 1)
+                i += 2
+                isLineStart = false
                 continue
             }
 
@@ -146,12 +155,28 @@ class RichTextParser {
         hideTags: Boolean, showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>,
         olIndexStack: MutableList<Int>, ulStack: MutableList<Boolean>, listContainerStack: MutableList<String>
     ): Int? {
+        val lineEnd = rawText.indexOf('\n', i).let { if (it == -1) rawText.length else it }
+        val lineContent = rawText.substring(i, lineEnd)
+
+        if (!lineContent.contains('|')) {
+            val hrCounts = listOf(
+                lineContent.count { it == '-' },
+                lineContent.count { it == '*' },
+                lineContent.count { it == '_' }
+            )
+            if (hrCounts.any { it >= 3 } && lineContent.matches(Regex("^[-*_ ]+$"))) {
+                skipOrGrayTagChars(rawText, builder, mapping, i, lineEnd, showTagsGray)
+                OffsetMapper.addChar(mapping, i, builder.length)
+                builder.append('\u2000')
+                return lineEnd
+            }
+        }
+
         data class LineMarker(val prefix: String, val style: SpanStyle?, val type: String, val replacement: String? = null)
         val lineMarkers = listOf(
             LineMarker("### ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFFE65100)), "h3"),
             LineMarker("## ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFF57C00)), "h2"),
             LineMarker("# ", SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFFB8C00)), "h1"),
-            LineMarker("> ", SpanStyle(fontStyle = FontStyle.Italic, color = Color(0xFF546E7A)), "quote"),
             LineMarker("- [ ] ", null, "unchecked", if (showTagsGray) null else "☐ "),
             LineMarker("* [ ] ", null, "unchecked", if (showTagsGray) null else "☐ "),
             LineMarker("- [x] ", null, "checked", if (showTagsGray) null else "☑ "),
@@ -161,6 +186,39 @@ class RichTextParser {
             LineMarker("- ", null, "list", if (showTagsGray) null else "• "),
             LineMarker("* ", null, "list", if (showTagsGray) null else "• ")
         )
+
+        val lineFromI = rawText.substring(i)
+        var bqLevel = 0
+        var pos = 0
+        while (pos < lineFromI.length) {
+            if (lineFromI[pos] == '>') {
+                bqLevel++
+                pos++
+            } else if (lineFromI[pos] == ' ' && bqLevel > 0) {
+                if (pos + 1 < lineFromI.length && lineFromI[pos + 1] == '>') {
+                    pos++
+                } else {
+                    pos++
+                    break
+                }
+            } else {
+                break
+            }
+        }
+        val hasBlockquote = bqLevel >= 1
+
+        if (hasBlockquote) {
+            val level = bqLevel
+            val tagEnd = i + pos
+            skipOrGrayTagChars(rawText, builder, mapping, i, tagEnd, showTagsGray)
+            val quoteColors = listOf(
+                Color(0xFF546E7A), Color(0xFF6A8A9E), Color(0xFF80A6C2),
+                Color(0xFF96C2E6), Color(0xFFB0D4F0)
+            )
+            val bqColor = quoteColors.getOrElse(level - 1) { quoteColors.last() }
+            startStyle(activeStyles, "quote", SpanStyle(fontStyle = FontStyle.Italic, color = bqColor), builder)
+            return tagEnd
+        }
 
         for (marker in lineMarkers) {
             if (rawText.startsWith(marker.prefix, i)) {
@@ -177,6 +235,17 @@ class RichTextParser {
                 }
                 return tagEnd
             }
+        }
+
+        val nestedListMatch = Regex("^( {2,})([-*])(\\s+)").find(rawText.substring(i))
+        if (nestedListMatch != null && rawText.substring(i).startsWith(nestedListMatch.value)) {
+            val indent = nestedListMatch.groupValues[1].length
+            val tagEnd = i + nestedListMatch.value.length
+            skipOrGrayTagChars(rawText, builder, mapping, i, tagEnd, showTagsGray)
+            val indentStr = "  ".repeat(indent / 2).let { if (it.isEmpty()) "  " else it }
+            OffsetMapper.addChar(mapping, i, builder.length)
+            builder.append(indentStr + "• ")
+            return tagEnd
         }
 
         val numListMatch = Regex("^\\d+\\.\\s+").find(rawText.substring(i))
@@ -282,7 +351,7 @@ class RichTextParser {
             tagName == "cl" -> {
                 skipOrGrayTagChars(rawText, builder, mapping, tagInfo.startIndex, tagEnd, showTagsGray)
             }
-            tagName in listOf("img", "video", "audio") -> {
+            tagName in listOf("img", "video", "audio", "table", "tr", "td", "th", "hr") -> {
                 skipOrGrayTagChars(rawText, builder, mapping, tagInfo.startIndex, tagEnd, showTagsGray)
             }
             else -> {
@@ -375,6 +444,20 @@ class RichTextParser {
                 if (isActive) endStyle(activeStyles, marker, builder) else startStyle(activeStyles, marker, codeStyle, builder)
             }
             return i + 1
+        }
+
+        val autoLinkMatch = Regex("^https?://[^\\s<>\"'(){}|\\\\^`\\[\\]]+").find(rawText.substring(i))
+        if (autoLinkMatch != null) {
+            val url = autoLinkMatch.value
+            val urlEnd = i + url.length
+            val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+            startStyle(activeStyles, "url", linkStyle, builder, annotation = url)
+            for (k in i until urlEnd) {
+                OffsetMapper.addChar(mapping, k, builder.length)
+                builder.append(rawText[k])
+            }
+            endStyle(activeStyles, "url", builder)
+            return urlEnd
         }
 
         return null

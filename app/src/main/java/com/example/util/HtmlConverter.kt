@@ -16,10 +16,46 @@ class HtmlConverter {
             .replace(Regex("<color=#?([0-9A-Fa-f]+)>(.*?)</color>")) {
                 "<span style=\"color:#${it.groupValues[1]}\">${it.groupValues[2]}</span>"
             }
-            .replace(Regex("<cl([^>]*)>(.*?)</cl>")) { it.groupValues[2] }
+            .replace(Regex("<cl[^>]*>(.*?)</cl>")) { it.groupValues[2] }
             .replace(Regex("<img src=\"(.*?)\" />")) {
                 "<br><img src=\"${it.groupValues[1]}\" style=\"max-width:100%; height:auto;\" /><br>"
             }
+            .replace(Regex("<hr\\s*/?>")) {
+                "<hr>"
+            }
+            .replace(Regex("<table>([\\s\\S]*?)</table>")) { tableMatch ->
+                val inner = tableMatch.groupValues[1]
+                val sb = StringBuilder("<table style=\"border-collapse:collapse; width:100%;\">\n")
+                val thMatch = Regex("<th>(.*?)</th>", RegexOption.DOT_MATCHES_ALL).find(inner)
+                if (thMatch != null) {
+                    sb.append("<thead><tr>")
+                    val cells = thMatch.groupValues[1].split("</th><th>").map { it.trim() }
+                    for (cell in cells) {
+                        sb.append("<th style=\"border:1px solid #ddd; padding:8px; text-align:left; background:#f5f5f5;\">${escapeHtml(cell)}</th>")
+                    }
+                    sb.append("</tr></thead>\n")
+                }
+                sb.append("<tbody>\n")
+                val trRegex = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
+                for (tr in trRegex.findAll(inner)) {
+                    sb.append("<tr>")
+                    Regex("<td>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+                        .findAll(tr.groupValues[1])
+                        .forEach { td ->
+                            sb.append("<td style=\"border:1px solid #ddd; padding:8px;\">${escapeHtml(td.groupValues[1])}</td>")
+                        }
+                    sb.append("</tr>\n")
+                }
+                sb.append("</tbody>\n</table>")
+                sb.toString()
+            }
+    }
+
+    private fun escapeHtml(text: String): String {
+        return text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
     }
 
     fun convertHtmlToSecureNotes(html: String): String {

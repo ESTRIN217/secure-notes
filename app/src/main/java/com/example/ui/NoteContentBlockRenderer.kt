@@ -4,7 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
@@ -21,11 +23,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.model.BlockRenderContext
+import com.example.data.model.ColumnAlignment
 import com.example.data.model.NoteContentBlock
 
 @Composable
@@ -42,6 +48,8 @@ fun NoteContentBlock.RenderContent(
         is NoteContentBlock.DrawingBlock -> renderDrawingBlock(context, modifier)
         is NoteContentBlock.VoiceBlock -> renderVoiceBlock(context, modifier)
         is NoteContentBlock.FileBlock -> renderFileBlock(context, modifier)
+        is NoteContentBlock.TableBlock -> renderTableBlock(context, modifier)
+        is NoteContentBlock.HorizontalRuleBlock -> renderHorizontalRuleBlock(modifier)
     }
 }
 
@@ -252,4 +260,106 @@ private fun NoteContentBlock.FileBlock.renderFileBlock(
         }
         DeleteOverlay { context.onDeleteBlock(block) }
     }
+}
+
+@Composable
+private fun NoteContentBlock.TableBlock.renderTableBlock(
+    context: BlockRenderContext,
+    modifier: Modifier
+) {
+    val block = this
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .clickable {
+                    context.onEditTable?.invoke(block)
+                }
+        ) {
+            if (headers.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                ) {
+                    headers.forEachIndexed { colIndex, header ->
+                        val align = columnAlignment.getOrNull(colIndex) ?: ColumnAlignment.Start
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            contentAlignment = when (align) {
+                                ColumnAlignment.Center -> Alignment.Center
+                                ColumnAlignment.End -> Alignment.CenterEnd
+                                else -> Alignment.CenterStart
+                            }
+                        ) {
+                            Text(
+                                text = header,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            }
+
+            rows.forEachIndexed { rowIndex, row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (rowIndex % 2 == 1)
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                            else Color.Transparent
+                        )
+                ) {
+                    val cellCount = maxOf(row.size, if (headers.isNotEmpty()) headers.size else row.size)
+                    for (colIndex in 0 until cellCount) {
+                        val cell = row.getOrElse(colIndex) { "" }
+                        val align = columnAlignment.getOrNull(colIndex) ?: ColumnAlignment.Start
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = when (align) {
+                                ColumnAlignment.Center -> Alignment.Center
+                                ColumnAlignment.End -> Alignment.CenterEnd
+                                else -> Alignment.CenterStart
+                            }
+                        ) {
+                            Text(
+                                text = cell,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+                if (rowIndex < rows.lastIndex) {
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun renderHorizontalRuleBlock(modifier: Modifier) {
+    HorizontalDivider(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant
+    )
 }
