@@ -61,7 +61,6 @@ import com.example.util.exportToPdf
 import com.example.util.exportSingleNoteToJson
 import com.example.util.MediaBlock
 import com.example.util.RichTextParser
-import com.example.util.buildPreviewBlocks
 import com.example.util.findEnclosingMarkdownLinkRange
 import com.example.util.findEnclosingUrlTagRange
 import com.example.util.highlightMatches
@@ -173,11 +172,9 @@ fun NoteEditorScreen(
     }
     
     var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
     var isEncrypted by remember { mutableStateOf(isPasswordSet) }
-    var isPreviewMode by remember { mutableStateOf(noteId != 0) }
-    
     var contentValue by remember { mutableStateOf(TextFieldValue("")) }
+    val content by remember { derivedStateOf { contentValue.text } }
     val history = remember { mutableStateListOf<String>() }
     var historyIndex by remember { mutableStateOf(-1) }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
@@ -315,7 +312,6 @@ fun NoteEditorScreen(
         val newText = text.substring(0, selStart) + tag + text.substring(selEnd)
         val newCursor = selStart + tag.length
         contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        content = newText
         saveToHistory(newText)
     }
     
@@ -344,7 +340,6 @@ fun NoteEditorScreen(
         val newText = currentText.substring(0, selStart) + result + currentText.substring(selEnd)
         val newCursor = selStart + result.length
         contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        content = newText
         saveToHistory(newText)
         viewModel.saveNote(
             id = noteId,
@@ -372,7 +367,6 @@ fun NoteEditorScreen(
             val chunk = text.substring(0, i + 1)
             val newText = baseText.substring(0, insertFrom) + chunk + baseText.substring(insertEnd)
             contentValue = TextFieldValue(text = newText, selection = TextRange(insertFrom + chunk.length))
-            content = newText
             kotlinx.coroutines.delay(15)
         }
         saveToHistory(content)
@@ -497,7 +491,6 @@ fun NoteEditorScreen(
                 title = match.title
 
                 val (cleanText, parsedAttachments) = parseNoteContentAndAttachments(match.content)
-                content = cleanText
                 contentValue = TextFieldValue(text = cleanText, selection = TextRange(cleanText.length))
                 attachments = parsedAttachments
 
@@ -600,16 +593,6 @@ fun NoteEditorScreen(
                     IconButton(onClick = handleSaveAndExit) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                    IconButton(
-                        onClick = { isPreviewMode = !isPreviewMode },
-                        modifier = Modifier.testTag("toggle_preview_btn")
-                    ) {
-                        Icon(
-                            imageVector = if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
-                            contentDescription = if (isPreviewMode) stringResource(R.string.desc_switch_edit) else stringResource(R.string.desc_switch_preview),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
                     Spacer(modifier = Modifier.weight(1f))
                     IconButton(
                         onClick = { showMoreSheet = true },
@@ -633,7 +616,8 @@ fun NoteEditorScreen(
                 .fillMaxSize()
                 .background(currentBgColor)
                 .padding(innerPadding)
-                .imePadding()
+                .imePadding(),
+            contentAlignment = Alignment.BottomCenter
         ) {
             selectedBgImagePath?.let { bgPath ->
                 AsyncImage(
@@ -652,34 +636,21 @@ fun NoteEditorScreen(
                     .padding(top = 16.dp)
                     .padding(bottom = 72.dp)
             ) {
-                if (isPreviewMode) {
-                    Text(
-                        text = title.ifEmpty { stringResource(R.string.untitled_note) },
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(id = R.string.label_title)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("note_title_input"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
                     )
-                } else {
-                    // Title Outlined State
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text(stringResource(id = R.string.label_title)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("note_title_input"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                        )
-                    )
-                }
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -725,8 +696,7 @@ fun NoteEditorScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                if (!isPreviewMode) {
-                    // Rich Text Formatter Toolbar
+                // Rich Text Formatter Toolbar
                     Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -745,7 +715,6 @@ fun NoteEditorScreen(
                                     text = prev,
                                     selection = TextRange(prev.length)
                                 )
-                                content = prev
                             }
                         },
                         enabled = historyIndex > 0
@@ -766,7 +735,6 @@ fun NoteEditorScreen(
                                     text = next,
                                     selection = TextRange(next.length)
                                 )
-                                content = next
                             }
                         },
                         enabled = historyIndex < history.lastIndex
@@ -817,13 +785,34 @@ fun NoteEditorScreen(
                     val activeFontColor = toolbarState.activeFontColor
                     val activeBgColor = toolbarState.activeBgColor
                     
-                    // Bold, Italic, Underline, Strikethrough Helpers
                     val applyTag: (String) -> Unit = { tag ->
-                        pendingTagInsert.value = "<$tag></$tag>"
+                        val selStart = contentValue.selection.start
+                        val selEnd = contentValue.selection.end
+                        val text = contentValue.text
+                        if (selStart != selEnd) {
+                            val selected = text.substring(selStart, selEnd)
+                            val newText = text.substring(0, selStart) + "<$tag>" + selected + "</$tag>" + text.substring(selEnd)
+                            val newCursor = selStart + selected.length + tag.length * 2 + 5
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                            saveToHistory(newText)
+                        } else {
+                            pendingTagInsert.value = "<$tag></$tag>"
+                        }
                     }
 
                     val applyTagWithVal: (String, String) -> Unit = { tag, value ->
-                        pendingTagInsert.value = "<$tag=$value></$tag>"
+                        val selStart = contentValue.selection.start
+                        val selEnd = contentValue.selection.end
+                        val text = contentValue.text
+                        if (selStart != selEnd) {
+                            val selected = text.substring(selStart, selEnd)
+                            val newText = text.substring(0, selStart) + "<$tag=$value>" + selected + "</$tag>" + text.substring(selEnd)
+                            val newCursor = selStart + selected.length + tag.length * 2 + value.length + 6
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                            saveToHistory(newText)
+                        } else {
+                            pendingTagInsert.value = "<$tag=$value></$tag>"
+                        }
                     }
                     
                     FilledTonalIconToggleButton(
@@ -888,6 +877,65 @@ fun NoteEditorScreen(
                     ) {
                         Text("x²", fontSize = 14.sp)
                     }
+
+                    // Mark Button
+                    FilledTonalIconToggleButton(
+                        checked = false,
+                        onCheckedChange = { applyTag("mark") },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Text("M", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFFFD54F))
+                    }
+
+                    // Small Button
+                    FilledTonalIconToggleButton(
+                        checked = false,
+                        onCheckedChange = { applyTag("small") },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Text("a⁻", fontSize = 11.sp)
+                    }
+
+                    // Kbd Button
+                    FilledTonalIconToggleButton(
+                        checked = false,
+                        onCheckedChange = { applyTag("kbd") },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Text("⌨", fontSize = 14.sp)
+                    }
+
+                    // Align Dropdown
+                    var showAlignDropdown by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(
+                            onClick = { showAlignDropdown = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("≡", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp))
+                        }
+                        DropdownMenu(
+                            expanded = showAlignDropdown,
+                            onDismissRequest = { showAlignDropdown = false }
+                        ) {
+                            listOf("left", "center", "right", "justify").forEach { align ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = align.replaceFirstChar { it.uppercase() },
+                                            fontSize = 13.sp
+                                        )
+                                    },
+                                    onClick = {
+                                        applyTagWithVal("align", align)
+                                        showAlignDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                     
                     VerticalDivider(modifier = Modifier.height(24.dp))
 
@@ -906,15 +954,18 @@ fun NoteEditorScreen(
                             expanded = showHeadingDropdown,
                             onDismissRequest = { showHeadingDropdown = false }
                         ) {
-                            listOf("normal", "h1", "h2", "h3").forEach { heading ->
+                            listOf("normal", "h1", "h2", "h3", "h4", "h5", "h6").forEach { heading ->
                                 DropdownMenuItem(
                                     text = { 
                                         Text(
-                                                    text = when (heading) {
+                                            text = when (heading) {
                                                 "normal" -> stringResource(R.string.normal_text)
                                                 "h1" -> stringResource(R.string.heading_1)
                                                 "h2" -> stringResource(R.string.heading_2)
                                                 "h3" -> stringResource(R.string.heading_3)
+                                                "h4" -> "Heading 4"
+                                                "h5" -> "Heading 5"
+                                                "h6" -> "Heading 6"
                                                 else -> heading
                                             },
                                             fontWeight = if (heading == "normal") FontWeight.Normal else FontWeight.Bold,
@@ -923,6 +974,9 @@ fun NoteEditorScreen(
                                                 "h1" -> 18.sp
                                                 "h2" -> 16.sp
                                                 "h3" -> 14.sp
+                                                "h4" -> 13.sp
+                                                "h5" -> 12.sp
+                                                "h6" -> 11.sp
                                                 else -> 14.sp
                                             }
                                         ) 
@@ -1053,19 +1107,19 @@ fun NoteEditorScreen(
                             val selStart = contentValue.selection.start
                             val selEnd = contentValue.selection.end
                             val text = contentValue.text
+                            val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
+                            val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
                             if (selStart == selEnd) {
-                                val cleaned = text.replace(Regex("<[^>]+>"), "")
+                                val cleaned = text.replace(inlineRegex, "")
                                 contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
-                                content = cleaned
                                 saveToHistory(cleaned)
                             } else {
                                 val before = text.substring(0, selStart)
                                 val selected = text.substring(selStart, selEnd)
                                 val after = text.substring(selEnd)
-                                val cleanedSelected = selected.replace(Regex("<[^>]+>"), "")
+                                val cleanedSelected = selected.replace(inlineRegex, "")
                                 val newText = before + cleanedSelected + after
                                 contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
-                                content = newText
                                 saveToHistory(newText)
                             }
                         }
@@ -1097,7 +1151,6 @@ fun NoteEditorScreen(
                             val newText = text.substring(0, selStart) + "<$listType>\n$formattedLines\n</$listType>" + text.substring(selEnd)
                             val newCursor = selStart + newText.length - text.length + (selEnd - selStart)
                             contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            content = newText
                             saveToHistory(newText)
                         } else {
                             val emptyTag = if (listType == "cl") {
@@ -1108,7 +1161,6 @@ fun NoteEditorScreen(
                             val newText = text.substring(0, selStart) + emptyTag + text.substring(selEnd)
                             val newCursor = selStart + emptyTag.indexOf("</")
                             contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            content = newText
                             saveToHistory(newText)
                         }
                     }
@@ -1128,7 +1180,6 @@ fun NoteEditorScreen(
                             }
                             val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
                             contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length))
-                            content = newText
                             saveToHistory(newText)
                         } else {
                             val beforeCursor = text.substring(0, selStart)
@@ -1145,7 +1196,6 @@ fun NoteEditorScreen(
                                 }
                                 val newText = newBefore + newAfter
                                 contentValue = TextFieldValue(text = newText, selection = TextRange(newBefore.length))
-                                content = newText
                                 saveToHistory(newText)
                             }
                         }
@@ -1163,7 +1213,6 @@ fun NoteEditorScreen(
                                 val defaultTitle = context.getString(R.string.title_imported_note)
                                 val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
                                 title = importedTitle
-                                content = importedContent
                                 contentValue = TextFieldValue(text = importedContent, selection = TextRange(importedContent.length))
                                 saveToHistory(importedContent)
                                 Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
@@ -1176,7 +1225,6 @@ fun NoteEditorScreen(
                                 val newText = text.substring(0, selStart) + converted + text.substring(selEnd)
                                 val newCursor = selStart + converted.length
                                 contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                content = newText
                                 saveToHistory(newText)
                             }
                         }
@@ -1191,7 +1239,6 @@ fun NoteEditorScreen(
                         val newText = text.substring(0, selStart) + formattedDate + text.substring(selEnd)
                         val newCursor = selStart + formattedDate.length
                         contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                        content = newText
                         saveToHistory(newText)
                     }
 
@@ -1345,7 +1392,6 @@ fun NoteEditorScreen(
                         )
                     }
                 }
-
                 // Inline Search Bar
                 if (isSearchActive) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1547,152 +1593,23 @@ fun NoteEditorScreen(
                         }
                     }
                 }
-                }
-                
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (isPreviewMode) {
-                    val currentContentForPreview = remember(content, attachments) {
-                        createRawContent(content.trim(), attachments)
-                    }
-                    val blocks = remember(currentContentForPreview) { buildPreviewBlocks(currentContentForPreview) }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .testTag("note_preview_area"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        SelectionContainer {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (blocks.isEmpty() || (blocks.size == 1 && blocks[0] is NoteContentBlock.TextBlock && (blocks[0] as NoteContentBlock.TextBlock).annotatedString.text.isBlank())) {
-                                    Text(
-                                        text = stringResource(R.string.label_empty_preview),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                } else {
-                                    blocks.forEach { block ->
-                                        NoteContentBlockCard(
-                                            block = block,
-                                            content = currentContentForPreview,
-                                            noteId = noteId,
-                                            onDeleteBlock = { deletedBlock ->
-                                                val onSavedBlock: (List<Attachment>) -> Unit = { updatedAttachments ->
-                                                    val raw = createRawContent(content.trim(), updatedAttachments)
-                                                    scope.launch { viewModel.saveNote(id = noteId, title = title.trim(), content = raw, isEncrypted = isEncrypted, tagsList = selectedNoteTags, backgroundColor = selectedBgColorId, backgroundImagePath = selectedBgImagePath, isPinned = isPinned, isFavorite = isFavorite, isArchived = isArchived) }
-                                                }
-                                                when (deletedBlock) {
-                                                    is NoteContentBlock.ImageBlock -> {
-                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "image")
-                                                        content = newText
-                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                        saveToHistory(newText)
-                                                    }
-                                                    is NoteContentBlock.VideoBlock -> {
-                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "video")
-                                                        content = newText
-                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                        saveToHistory(newText)
-                                                    }
-                                                    is NoteContentBlock.AudioBlock -> {
-                                                        val newText = removeMediaFromContent(content, deletedBlock.src, "audio")
-                                                        content = newText
-                                                        contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                        saveToHistory(newText)
-                                                    }
-                                                    is NoteContentBlock.DrawingBlock -> {
-                                                        val target = attachments.find { it.type == "drawing" && it.path == deletedBlock.jsonPath }
-                                                        if (target != null) {
-                                                            attachments = attachments - target
-                                                            onSavedBlock(attachments - target)
-                                                        }
-                                                    }
-                                                    is NoteContentBlock.VoiceBlock -> {
-                                                        val target = attachments.find { it.type == "voice" && it.path == deletedBlock.path }
-                                                        if (target != null) {
-                                                            attachments = attachments - target
-                                                            onSavedBlock(attachments - target)
-                                                        }
-                                                    }
-                                                    is NoteContentBlock.FileBlock -> {
-                                                        val target = attachments.find { it.type != "drawing" && it.type != "voice" && it.name == deletedBlock.name }
-                                                        if (target != null) {
-                                                            attachments = attachments - target
-                                                            onSavedBlock(attachments - target)
-                                                        }
-                                                    }
-                                                    is NoteContentBlock.TableBlock -> {
-                                                        val tableRegex = Regex("<table>[\\s\\S]*?</table>")
-                                                        val match = tableRegex.find(content)
-                                                        if (match != null) {
-                                                            val newText = content.substring(0, match.range.first) + content.substring(match.range.last + 1)
-                                                            content = newText
-                                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                            saveToHistory(newText)
-                                                        }
-                                                    }
-                                                    is NoteContentBlock.HorizontalRuleBlock -> {
-                                                        val newText = content.replaceFirst("<hr\\s*/?>".toRegex(), "")
-                                                        if (newText != content) {
-                                                            content = newText
-                                                            contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                            saveToHistory(newText)
-                                                        }
-                                                    }
-                                                    is NoteContentBlock.TextBlock, is NoteContentBlock.ChecklistItemBlock,
-                                                    is NoteContentBlock.CollapsibleBlock -> { }
-                                                }
-                                            },
-                                            onNavigateToMediaViewer = onNavigateToMediaViewer,
-                                            onNavigateToDrawing = onNavigateToDrawing,
-                                            onUrlClicked = { url, rawOffset ->
-                                                clickedUrlAddress = url
-                                                clickedUrlAbsoluteOffset = rawOffset
-                                                showUrlDialog = true
-                                            },
-                                            onChecklistToggle = { globalIndex, isChecked ->
-                                                val newText = toggleNthChecklistItem(currentContentForPreview, globalIndex)
-                                                if (newText != currentContentForPreview) {
-                                                    content = newText
-                                                    contentValue = TextFieldValue(text = newText, selection = TextRange(newText.length))
-                                                    saveToHistory(newText)
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    BlockEditor(
-                        rawContent = content,
-                        onRawContentChange = { newContent ->
-                            content = newContent
-                            contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                            saveToHistory(newContent)
-                        },
-                        attachments = attachments,
-                        noteId = noteId,
-                        onNavigateToMediaViewer = onNavigateToMediaViewer,
-                        onNavigateToDrawing = onNavigateToDrawing,
-                        pendingTagInsert = pendingTagInsert,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
-                }
+                BlockEditor(
+                    rawContent = content,
+                    onRawContentChange = { newContent ->
+                        contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
+                        saveToHistory(newContent)
+                    },
+                    attachments = attachments,
+                    noteId = noteId,
+                    onNavigateToMediaViewer = onNavigateToMediaViewer,
+                    onNavigateToDrawing = onNavigateToDrawing,
+                    pendingTagInsert = pendingTagInsert,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
 
                 // Insert Image Dialog
                 InsertMediaDialog(
@@ -1964,7 +1881,6 @@ fun NoteEditorScreen(
                                         val rangeToDelete = findEnclosingUrlTagRange(content, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(content, clickedUrlAbsoluteOffset)
                                         if (rangeToDelete != null) {
                                             val newContent = content.removeRange(rangeToDelete)
-                                            content = newContent
                                             contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
                                             saveToHistory(newContent)
                                         }
@@ -2004,7 +1920,6 @@ fun NoteEditorScreen(
             // Bottom floating toolbar
             OutlinedCard(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
                     .widthIn(max = 400.dp)
                     .fillMaxWidth(0.9f)
