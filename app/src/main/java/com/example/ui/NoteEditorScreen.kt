@@ -179,6 +179,9 @@ fun NoteEditorScreen(
     var historyIndex by remember { mutableStateOf(-1) }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
     val pendingTagInsert = remember { mutableStateOf<String?>(null) }
+    val pendingInsert = remember { mutableStateOf<String?>(null) }
+    var toolbarActiveBlockIndex by remember { mutableIntStateOf(-1) }
+    var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
@@ -306,13 +309,7 @@ fun NoteEditorScreen(
     }
 
     val insertAtCursor: (String) -> Unit = { tag ->
-        val selStart = contentValue.selection.start
-        val selEnd = contentValue.selection.end
-        val text = contentValue.text
-        val newText = text.substring(0, selStart) + tag + text.substring(selEnd)
-        val newCursor = selStart + tag.length
-        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        saveToHistory(newText)
+        pendingInsert.value = tag
     }
     
     val allTags by viewModel.availableTags.collectAsState()
@@ -1158,10 +1155,7 @@ fun NoteEditorScreen(
                             } else {
                                 "<$listType>\n  <li></li>\n</$listType>"
                             }
-                            val newText = text.substring(0, selStart) + emptyTag + text.substring(selEnd)
-                            val newCursor = selStart + emptyTag.indexOf("</")
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            saveToHistory(newText)
+                            pendingInsert.value = emptyTag
                         }
                     }
 
@@ -1204,9 +1198,6 @@ fun NoteEditorScreen(
                     // Paste clipboard helper lambda
                     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                     val pasteFromClipboard: () -> Unit = {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
                         val clipText = clipboardManager.getText()?.text ?: ""
                         if (clipText.isNotEmpty()) {
                             if (RichTextParser.isSecureNotesJson(clipText)) {
@@ -1222,24 +1213,15 @@ fun NoteEditorScreen(
                                 } else {
                                     clipText
                                 }
-                                val newText = text.substring(0, selStart) + converted + text.substring(selEnd)
-                                val newCursor = selStart + converted.length
-                                contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                                saveToHistory(newText)
+                                pendingInsert.value = converted
                             }
                         }
                     }
 
                     // Date inserter helper lambda
                     val insertCurrentDate: () -> Unit = {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
                         val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
-                        val newText = text.substring(0, selStart) + formattedDate + text.substring(selEnd)
-                        val newCursor = selStart + formattedDate.length
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                        saveToHistory(newText)
+                        pendingInsert.value = formattedDate
                     }
 
                     // Numbered List Button
@@ -1606,6 +1588,9 @@ fun NoteEditorScreen(
                     onNavigateToMediaViewer = onNavigateToMediaViewer,
                     onNavigateToDrawing = onNavigateToDrawing,
                     pendingTagInsert = pendingTagInsert,
+                    pendingInsert = pendingInsert,
+                    onActiveBlockChange = { toolbarActiveBlockIndex = it },
+                    onActiveCursorChange = { toolbarActiveCursorOffset = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)

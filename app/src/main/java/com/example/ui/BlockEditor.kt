@@ -33,6 +33,9 @@ fun BlockEditor(
     onNavigateToMediaViewer: (String, String) -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
     pendingTagInsert: MutableState<String?>,
+    pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
+    onActiveBlockChange: (Int) -> Unit = {},
+    onActiveCursorChange: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val blockRanges by remember(rawContent) {
@@ -54,6 +57,31 @@ fun BlockEditor(
         val newContent = rawContent.replaceRange(range, newBlockRaw)
         onRawContentChange(newContent)
         pendingTagInsert.value = null
+    }
+
+    LaunchedEffect(pendingInsert.value) {
+        val insert = pendingInsert.value ?: return@LaunchedEffect
+        if (activeBlockIndex == -1 || activeBlockIndex >= blockRanges.size) {
+            onRawContentChange(rawContent + "\n" + insert)
+            pendingInsert.value = null
+            return@LaunchedEffect
+        }
+        val (block, range) = blockRanges.getOrNull(activeBlockIndex) ?: run {
+            onRawContentChange(rawContent + "\n" + insert)
+            pendingInsert.value = null
+            return@LaunchedEffect
+        }
+        if (block !is NoteContentBlock.TextBlock) {
+            onRawContentChange(rawContent + "\n" + insert)
+            pendingInsert.value = null
+            return@LaunchedEffect
+        }
+        val blockRaw = rawContent.substring(range)
+        val insertPos = activeCursorOffset.coerceIn(0, blockRaw.length)
+        val newBlockRaw = blockRaw.substring(0, insertPos) + insert + blockRaw.substring(insertPos)
+        val newContent = rawContent.replaceRange(range, newBlockRaw)
+        onRawContentChange(newContent)
+        pendingInsert.value = null
     }
 
     val attachmentBlocks = remember(attachments) {
@@ -85,11 +113,17 @@ fun BlockEditor(
                             onRawContentChange(newContent)
                         },
                         onFocusChange = { focused ->
-                            if (focused) activeBlockIndex = index
-                            else if (activeBlockIndex == index) activeBlockIndex = -1
+                            if (focused) {
+                                activeBlockIndex = index
+                                onActiveBlockChange(index)
+                            } else if (activeBlockIndex == index) {
+                                activeBlockIndex = -1
+                                onActiveBlockChange(-1)
+                            }
                         },
                         onCursorChange = { cursor ->
                             activeCursorOffset = cursor
+                            onActiveCursorChange(cursor)
                         }
                     )
                 }
