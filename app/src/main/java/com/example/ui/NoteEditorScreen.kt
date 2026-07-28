@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -43,6 +44,8 @@ import com.example.R
 import com.example.data.ai.AiAction
 import com.example.data.ai.RewriteStyle
 import com.example.data.model.Attachment
+import com.example.data.model.BlockType
+import com.example.data.model.DataBlock
 import com.example.data.model.DecryptedNote
 import com.example.data.model.Note
 import com.example.data.model.NoteContentBlock
@@ -83,6 +86,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -173,14 +177,18 @@ fun NoteEditorScreen(
     
     var title by remember { mutableStateOf("") }
     var isEncrypted by remember { mutableStateOf(isPasswordSet) }
+    var blocks by remember { mutableStateOf<List<DataBlock>>(emptyList()) }
     var contentValue by remember { mutableStateOf(TextFieldValue("")) }
-    val content by remember { derivedStateOf { contentValue.text } }
-    val history = remember { mutableStateListOf<String>() }
+    val content by remember { derivedStateOf { DataBlock.serialize(blocks) } }
+    val history = remember { mutableStateListOf<List<DataBlock>>() }
     var historyIndex by remember { mutableStateOf(-1) }
+    var showSlashMenu by remember { mutableStateOf(false) }
+    var slashFilter by remember { mutableStateOf("") }
+    var slashBlockIndex by remember { mutableIntStateOf(-1) }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
     val pendingTagInsert = remember { mutableStateOf<String?>(null) }
     val pendingInsert = remember { mutableStateOf<String?>(null) }
-    var toolbarActiveBlockIndex by remember { mutableIntStateOf(-1) }
+    var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
     var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
@@ -234,8 +242,9 @@ fun NoteEditorScreen(
         style: RewriteStyle = RewriteStyle.FORMAL,
         language: String = "en"
     ) {
+        val allContent = blocks.joinToString("\n") { it.content }
         val text = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
-            .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
+            .takeIf { aiSelectionStart != aiSelectionEnd } ?: allContent
         aiViewModel.executeInPlace(action, text, style, language)
         showAiContextSheet = false
         showAiStyleSubmenu = false
@@ -298,13 +307,28 @@ fun NoteEditorScreen(
         }
     }
     
-    val saveToHistory: (String) -> Unit = { text ->
-        if (historyIndex == -1 || history.getOrNull(historyIndex) != text) {
+    fun saveBlocksToHistory() {
+        if (historyIndex == -1 || history.getOrNull(historyIndex) != blocks) {
             while (history.size > historyIndex + 1) {
                 history.removeAt(history.size - 1)
             }
-            history.add(text)
+            history.add(blocks.toList())
             historyIndex = history.size - 1
+        }
+    }
+
+    fun syncActiveBlock() {
+        if (toolbarActiveBlockIndex in blocks.indices) {
+            val updated = blocks[toolbarActiveBlockIndex].copy(content = contentValue.text)
+            blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
+        }
+    }
+
+    fun switchActiveBlock(newIndex: Int) {
+        syncActiveBlock()
+        toolbarActiveBlockIndex = newIndex
+        if (newIndex in blocks.indices) {
+            contentValue = TextFieldValue(text = blocks[newIndex].content, selection = TextRange(blocks[newIndex].content.length))
         }
     }
 
@@ -337,11 +361,13 @@ fun NoteEditorScreen(
         val newText = currentText.substring(0, selStart) + result + currentText.substring(selEnd)
         val newCursor = selStart + result.length
         contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        saveToHistory(newText)
+        syncActiveBlock(); saveBlocksToHistory()
+        val saveJson = DataBlock.serialize(blocks)
+        val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
         viewModel.saveNote(
             id = noteId,
             title = title.trim(),
-            content = createRawContent(newText.trim(), attachments),
+            content = saveContent,
             isEncrypted = isEncrypted,
             tagsList = selectedNoteTags,
             backgroundColor = selectedBgColorId,
@@ -366,11 +392,13 @@ fun NoteEditorScreen(
             contentValue = TextFieldValue(text = newText, selection = TextRange(insertFrom + chunk.length))
             kotlinx.coroutines.delay(15)
         }
-        saveToHistory(content)
+        syncActiveBlock(); saveBlocksToHistory()
+        val saveJson = DataBlock.serialize(blocks)
+        val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
         viewModel.saveNote(
             id = noteId,
             title = title.trim(),
-            content = createRawContent(content.trim(), attachments),
+            content = saveContent,
             isEncrypted = isEncrypted,
             tagsList = selectedNoteTags,
             backgroundColor = selectedBgColorId,
@@ -487,12 +515,21 @@ fun NoteEditorScreen(
                 originalNote = match.note
                 title = match.title
 
-                val (cleanText, parsedAttachments) = parseNoteContentAndAttachments(match.content)
-                contentValue = TextFieldValue(text = cleanText, selection = TextRange(cleanText.length))
+                val rawContent = match.content
+                val parsedBlocks = DataBlock.deserialize(rawContent)
+                    ?: DataBlock.migrateLegacyContent(rawContent)
+                blocks = parsedBlocks
+
+                val (_, parsedAttachments) = parseNoteContentAndAttachments(rawContent)
                 attachments = parsedAttachments
 
+                if (blocks.isNotEmpty()) {
+                    contentValue = TextFieldValue(text = blocks[0].content, selection = TextRange(blocks[0].content.length))
+                    toolbarActiveBlockIndex = 0
+                }
+
                 history.clear()
-                history.add(cleanText)
+                history.add(blocks.toList())
                 historyIndex = 0
 
                 isEncrypted = match.note.isEncrypted
@@ -529,8 +566,41 @@ fun NoteEditorScreen(
     LaunchedEffect(content) {
         if (content.isNotEmpty()) {
             kotlinx.coroutines.delay(800)
-            saveToHistory(content)
+            syncActiveBlock(); saveBlocksToHistory()
         }
+    }
+
+    LaunchedEffect(contentValue.text, contentValue.selection) {
+        val text = contentValue.text
+        val cursor = contentValue.selection.start
+        if (text.startsWith("/") && cursor in 1..text.length && !text.substring(0, cursor).contains(" ")) {
+            if (!showSlashMenu) showSlashMenu = true
+            slashFilter = text.substring(1, cursor)
+            slashBlockIndex = toolbarActiveBlockIndex
+        } else {
+            if (showSlashMenu) showSlashMenu = false
+        }
+    }
+
+    fun handleSlashSelect(block: DataBlock) {
+        showSlashMenu = false
+        val idx = slashBlockIndex.coerceIn(0, blocks.size)
+        val newBlocks = blocks.toMutableList()
+        if (idx < blocks.size && blocks.getOrNull(idx)?.content?.startsWith("/") == true) {
+            newBlocks[idx] = block.copy(content = block.content)
+        } else {
+            newBlocks.add(idx, block)
+        }
+        blocks = newBlocks
+        contentValue = TextFieldValue(text = block.content, selection = TextRange(block.content.length))
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        saveBlocksToHistory()
+    }
+
+    val contentForSave: () -> String = {
+        val jsonContent = DataBlock.serialize(blocks)
+        if (attachments.isEmpty()) jsonContent
+        else createRawContent(jsonContent, attachments)
     }
 
     LaunchedEffect(Unit) {
@@ -543,7 +613,7 @@ fun NoteEditorScreen(
                 viewModel.saveNote(
                     id = noteId,
                     title = title.trim(),
-                    content = createRawContent(content.trim(), attachments),
+                    content = contentForSave(),
                     isEncrypted = isEncrypted,
                     tagsList = selectedNoteTags,
                     backgroundColor = selectedBgColorId,
@@ -561,7 +631,7 @@ fun NoteEditorScreen(
             viewModel.saveNote(
                 id = noteId,
                 title = title.trim(),
-                content = createRawContent(content.trim(), attachments),
+                content = contentForSave(),
                 isEncrypted = isEncrypted,
                 tagsList = selectedNoteTags,
                 backgroundColor = selectedBgColorId,
@@ -624,6 +694,210 @@ fun NoteEditorScreen(
                     contentScale = ContentScale.Crop,
                     alpha = 0.22f
                 )
+            }
+
+            var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
+            var showFontColorDialog by remember { mutableStateOf(false) }
+            var showBgColorDialog by remember { mutableStateOf(false) }
+            var showMoreFormatting by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                snapshotFlow { contentValue.text }
+                    .debounce(80)
+                    .collectLatest { text ->
+                        toolbarParseResult = RichTextParser.parseWithMapping(text, hideTags = true)
+                    }
+            }
+            data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
+            val toolbarState = remember(toolbarParseResult, contentValue.selection) {
+                val parsed = toolbarParseResult
+                val cursorIndex = contentValue.selection.start
+                val transformedIndex = parsed.originalToTransformed(cursorIndex)
+                val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
+                val activeStyles = buildSet {
+                    for (range in parsed.text.spanStyles) {
+                        if (range.start <= targetIndex && targetIndex < range.end) {
+                            if (range.item.fontWeight == FontWeight.Bold) add("b")
+                            if (range.item.fontStyle == FontStyle.Italic) add("i")
+                            if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) add("u")
+                            if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) add("s")
+                        }
+                    }
+                }
+                val activeFontColor = parsed.text.spanStyles.lastOrNull { range ->
+                    range.start <= targetIndex && targetIndex < range.end && range.item.color != Color.Unspecified
+                }?.item?.color
+                val activeBgColor = parsed.text.spanStyles.lastOrNull { range ->
+                    range.start <= targetIndex && targetIndex < range.end && range.item.background != Color.Unspecified && range.item.background != Color.Transparent
+                }?.item?.background
+                ToolbarState(activeStyles, activeFontColor, activeBgColor)
+            }
+            val activeTextStyles = toolbarState.activeStyles
+            val activeFontColor = toolbarState.activeFontColor
+            val activeBgColor = toolbarState.activeBgColor
+
+            fun isRangeAllStyled(tag: String, trStart: Int, trEnd: Int): Boolean {
+                if (trStart >= trEnd) return false
+                val parsed = toolbarParseResult
+                val stylePredicate: (SpanStyle) -> Boolean = when (tag) {
+                    "b" -> { s: SpanStyle -> s.fontWeight == FontWeight.Bold }
+                    "i" -> { s: SpanStyle -> s.fontStyle == FontStyle.Italic }
+                    "u" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.Underline) == true }
+                    "s" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.LineThrough) == true }
+                    else -> { _: SpanStyle -> false }
+                }
+                var pos = trStart
+                while (pos < trEnd) {
+                    val span = parsed.text.spanStyles.firstOrNull { it.start <= pos && pos < it.end }
+                    if (span == null || !stylePredicate(span.item)) return false
+                    pos = span.end
+                }
+                return true
+            }
+
+            val applyTag: (String) -> Unit = { tag ->
+                val selStart = contentValue.selection.start
+                val selEnd = contentValue.selection.end
+                val text = contentValue.text
+                val openTag = "<$tag>"
+                val closeTag = "</$tag>"
+                if (selStart != selEnd) {
+                    val selected = text.substring(selStart, selEnd)
+                    val trStart = toolbarParseResult.originalToTransformed(selStart)
+                    val trEnd = toolbarParseResult.originalToTransformed(selEnd)
+                    val allStyled = isRangeAllStyled(tag, trStart, trEnd)
+                    val cleaned = selected.replace(openTag, "").replace(closeTag, "")
+                    if (allStyled) {
+                        val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
+                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length))
+                        syncActiveBlock(); saveBlocksToHistory()
+                    } else {
+                        val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
+                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length))
+                        syncActiveBlock(); saveBlocksToHistory()
+                    }
+                } else {
+                    val beforeCursor = text.substring(0, selStart)
+                    val afterCursor = text.substring(selStart)
+                    if (beforeCursor.endsWith(openTag) && afterCursor.startsWith(closeTag)) {
+                        val newText = beforeCursor.dropLast(openTag.length) + afterCursor.drop(closeTag.length)
+                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart - openTag.length))
+                        syncActiveBlock(); saveBlocksToHistory()
+                    } else {
+                        pendingTagInsert.value = openTag + closeTag
+                    }
+                }
+            }
+
+            val applyTagWithVal: (String, String) -> Unit = { tag, value ->
+                val selStart = contentValue.selection.start
+                val selEnd = contentValue.selection.end
+                val text = contentValue.text
+                val openTag = "<$tag=$value>"
+                val closeTag = "</$tag>"
+                if (selStart != selEnd) {
+                    val selected = text.substring(selStart, selEnd)
+                    val cleaned = selected.replace(Regex("<$tag[^>]*>"), "").replace(closeTag, "")
+                    val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
+                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length))
+                    syncActiveBlock(); saveBlocksToHistory()
+                } else {
+                    pendingTagInsert.value = openTag + closeTag
+                }
+            }
+
+            val applyListTag: (String) -> Unit = { listType ->
+                val selStart = contentValue.selection.start
+                val selEnd = contentValue.selection.end
+                val text = contentValue.text
+                if (selStart != selEnd) {
+                    val selectedText = text.substring(selStart, selEnd)
+                    val lines = selectedText.split("\n")
+                    val formattedLines = lines.map { line ->
+                        if (listType == "cl") {
+                            "<item checked=\"false\">$line</item>"
+                        } else {
+                            "<li>$line</li>"
+                        }
+                    }.joinToString("\n")
+                    val newText = text.substring(0, selStart) + "<$listType>\n$formattedLines\n</$listType>" + text.substring(selEnd)
+                    val newCursor = selStart + newText.length - text.length + (selEnd - selStart)
+                    contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                    syncActiveBlock(); saveBlocksToHistory()
+                } else {
+                    val emptyTag = if (listType == "cl") {
+                        "<cl>\n  <item checked=\"false\"></item>\n</cl>"
+                    } else {
+                        "<$listType>\n  <li></li>\n</$listType>"
+                    }
+                    pendingInsert.value = emptyTag
+                }
+            }
+
+            val decreaseIndent: () -> Unit = {
+                val selStart = contentValue.selection.start
+                val selEnd = contentValue.selection.end
+                val text = contentValue.text
+                if (selStart != selEnd) {
+                    val selectedText = text.substring(selStart, selEnd)
+                    var cleaned = selectedText
+                    if (cleaned.startsWith("<indent>") && cleaned.endsWith("</indent>")) {
+                        cleaned = cleaned.substring(8, cleaned.length - 9)
+                    } else {
+                        cleaned = cleaned.replaceFirst("<indent>", "").replaceFirst("</indent>", "")
+                    }
+                    val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
+                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length))
+                    syncActiveBlock(); saveBlocksToHistory()
+                } else {
+                    val beforeCursor = text.substring(0, selStart)
+                    val afterCursor = text.substring(selStart)
+                    val lastIndentIdx = beforeCursor.lastIndexOf("<indent>")
+                    val lastCloseIndentIdx = beforeCursor.lastIndexOf("</indent>")
+                    if (lastIndentIdx != -1 && lastIndentIdx > lastCloseIndentIdx) {
+                        val newBefore = beforeCursor.removeRange(lastIndentIdx, lastIndentIdx + 8)
+                        val firstCloseIdx = afterCursor.indexOf("</indent>")
+                        val newAfter = if (firstCloseIdx != -1) {
+                            afterCursor.removeRange(firstCloseIdx, firstCloseIdx + 9)
+                        } else {
+                            afterCursor
+                        }
+                        val newText = newBefore + newAfter
+                        contentValue = TextFieldValue(text = newText, selection = TextRange(newBefore.length))
+                        syncActiveBlock(); saveBlocksToHistory()
+                    }
+                }
+            }
+
+            val clipboardManager = LocalClipboardManager.current
+            val pasteFromClipboard: () -> Unit = {
+                val clipText = clipboardManager.getText()?.text ?: ""
+                if (clipText.isNotEmpty()) {
+                    if (RichTextParser.isSecureNotesJson(clipText)) {
+                        val defaultTitle = context.getString(R.string.title_imported_note)
+                        val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
+                        title = importedTitle
+                        blocks = DataBlock.migrateLegacyContent(importedContent)
+                        if (blocks.isNotEmpty()) {
+                            contentValue = TextFieldValue(text = blocks[0].content, selection = TextRange(blocks[0].content.length))
+                            toolbarActiveBlockIndex = 0
+                        }
+                        saveBlocksToHistory()
+                        Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
+                    } else {
+                        val converted = if (clipText.trimStart().startsWith("<") || clipText.contains("</")) {
+                            try { RichTextParser.convertHtmlToSecureNotes(clipText) } catch (e: Exception) { clipText }
+                        } else {
+                            clipText
+                        }
+                        pendingInsert.value = converted
+                    }
+                }
+            }
+
+            val insertCurrentDate: () -> Unit = {
+                val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                pendingInsert.value = formattedDate
             }
 
             Column(
@@ -693,687 +967,6 @@ fun NoteEditorScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Rich Text Formatter Toolbar
-                    Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Undo/Redo
-                    IconButton(
-                        onClick = {
-                            if (historyIndex > 0) {
-                                historyIndex--
-                                val prev = history[historyIndex]
-                                contentValue = contentValue.copy(
-                                    text = prev,
-                                    selection = TextRange(prev.length)
-                                )
-                            }
-                        },
-                        enabled = historyIndex > 0
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = stringResource(id = R.string.rich_undo),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    
-                    IconButton(
-                        onClick = {
-                            if (historyIndex < history.lastIndex) {
-                                historyIndex++
-                                val next = history[historyIndex]
-                                contentValue = contentValue.copy(
-                                    text = next,
-                                    selection = TextRange(next.length)
-                                )
-                            }
-                        },
-                        enabled = historyIndex < history.lastIndex
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Redo,
-                            contentDescription = stringResource(id = R.string.rich_redo),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    
-                    VerticalDivider(modifier = Modifier.height(24.dp))
-                    
-                    // Debounced toolbar parse — avoids re-parsing on every keystroke
-                    var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
-                    LaunchedEffect(Unit) {
-                        snapshotFlow { contentValue.text }
-                            .debounce(80)
-                            .collectLatest { text ->
-                                toolbarParseResult = RichTextParser.parseWithMapping(text, hideTags = true)
-                            }
-                    }
-                    data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
-                    val toolbarState = remember(toolbarParseResult, contentValue.selection) {
-                        val parsed = toolbarParseResult
-                        val cursorIndex = contentValue.selection.start
-                        val transformedIndex = parsed.originalToTransformed(cursorIndex)
-                        val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
-                        val activeStyles = buildSet {
-                            for (range in parsed.text.spanStyles) {
-                                if (range.start <= targetIndex && targetIndex < range.end) {
-                                    if (range.item.fontWeight == FontWeight.Bold) add("b")
-                                    if (range.item.fontStyle == FontStyle.Italic) add("i")
-                                    if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) add("u")
-                                    if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) add("s")
-                                }
-                            }
-                        }
-                        val activeFontColor = parsed.text.spanStyles.lastOrNull { range ->
-                            range.start <= targetIndex && targetIndex < range.end && range.item.color != Color.Unspecified
-                        }?.item?.color
-                        val activeBgColor = parsed.text.spanStyles.lastOrNull { range ->
-                            range.start <= targetIndex && targetIndex < range.end && range.item.background != Color.Unspecified && range.item.background != Color.Transparent
-                        }?.item?.background
-                        ToolbarState(activeStyles, activeFontColor, activeBgColor)
-                    }
-                    val activeTextStyles = toolbarState.activeStyles
-                    val activeFontColor = toolbarState.activeFontColor
-                    val activeBgColor = toolbarState.activeBgColor
-                    
-                    val applyTag: (String) -> Unit = { tag ->
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        if (selStart != selEnd) {
-                            val selected = text.substring(selStart, selEnd)
-                            val newText = text.substring(0, selStart) + "<$tag>" + selected + "</$tag>" + text.substring(selEnd)
-                            val newCursor = selStart + selected.length + tag.length * 2 + 5
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            saveToHistory(newText)
-                        } else {
-                            pendingTagInsert.value = "<$tag></$tag>"
-                        }
-                    }
-
-                    val applyTagWithVal: (String, String) -> Unit = { tag, value ->
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        if (selStart != selEnd) {
-                            val selected = text.substring(selStart, selEnd)
-                            val newText = text.substring(0, selStart) + "<$tag=$value>" + selected + "</$tag>" + text.substring(selEnd)
-                            val newCursor = selStart + selected.length + tag.length * 2 + value.length + 6
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            saveToHistory(newText)
-                        } else {
-                            pendingTagInsert.value = "<$tag=$value></$tag>"
-                        }
-                    }
-                    
-                    FilledTonalIconToggleButton(
-                        checked = "b" in activeTextStyles,
-                        onCheckedChange = { applyTag("b") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("B", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                    
-                    FilledTonalIconToggleButton(
-                        checked = "i" in activeTextStyles,
-                        onCheckedChange = { applyTag("i") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("I", fontStyle = FontStyle.Italic, fontSize = 14.sp)
-                    }
-                    
-                    FilledTonalIconToggleButton(
-                        checked = "u" in activeTextStyles,
-                        onCheckedChange = { applyTag("u") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 14.sp)
-                    }
-                    
-                    FilledTonalIconToggleButton(
-                        checked = "s" in activeTextStyles,
-                        onCheckedChange = { applyTag("s") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 14.sp)
-                    }
-
-                    // Inline Code Tag Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("code") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Code,
-                            contentDescription = stringResource(id = R.string.rich_inline_code),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    // Subscript Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("sub") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("x₂", fontSize = 14.sp)
-                    }
-
-                    // Superscript Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("sup") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("x²", fontSize = 14.sp)
-                    }
-
-                    // Mark Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("mark") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("M", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFFFD54F))
-                    }
-
-                    // Small Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("small") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("a⁻", fontSize = 11.sp)
-                    }
-
-                    // Kbd Button
-                    FilledTonalIconToggleButton(
-                        checked = false,
-                        onCheckedChange = { applyTag("kbd") },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Text("⌨", fontSize = 14.sp)
-                    }
-
-                    // Align Dropdown
-                    var showAlignDropdown by remember { mutableStateOf(false) }
-                    Box {
-                        OutlinedButton(
-                            onClick = { showAlignDropdown = true },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text("≡", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp))
-                        }
-                        DropdownMenu(
-                            expanded = showAlignDropdown,
-                            onDismissRequest = { showAlignDropdown = false }
-                        ) {
-                            listOf("left", "center", "right", "justify").forEach { align ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = align.replaceFirstChar { it.uppercase() },
-                                            fontSize = 13.sp
-                                        )
-                                    },
-                                    onClick = {
-                                        applyTagWithVal("align", align)
-                                        showAlignDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    VerticalDivider(modifier = Modifier.height(24.dp))
-
-                    // Heading Selection Dropdown
-                    var showHeadingDropdown by remember { mutableStateOf(false) }
-                    Box {
-                        OutlinedButton(
-                            onClick = { showHeadingDropdown = true },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text(stringResource(id = R.string.rich_heading), fontSize = 12.sp)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                        }
-                        DropdownMenu(
-                            expanded = showHeadingDropdown,
-                            onDismissRequest = { showHeadingDropdown = false }
-                        ) {
-                            listOf("normal", "h1", "h2", "h3", "h4", "h5", "h6").forEach { heading ->
-                                DropdownMenuItem(
-                                    text = { 
-                                        Text(
-                                            text = when (heading) {
-                                                "normal" -> stringResource(R.string.normal_text)
-                                                "h1" -> stringResource(R.string.heading_1)
-                                                "h2" -> stringResource(R.string.heading_2)
-                                                "h3" -> stringResource(R.string.heading_3)
-                                                "h4" -> "Heading 4"
-                                                "h5" -> "Heading 5"
-                                                "h6" -> "Heading 6"
-                                                else -> heading
-                                            },
-                                            fontWeight = if (heading == "normal") FontWeight.Normal else FontWeight.Bold,
-                                            fontSize = when (heading) {
-                                                "normal" -> 15.sp
-                                                "h1" -> 18.sp
-                                                "h2" -> 16.sp
-                                                "h3" -> 14.sp
-                                                "h4" -> 13.sp
-                                                "h5" -> 12.sp
-                                                "h6" -> 11.sp
-                                                else -> 14.sp
-                                            }
-                                        ) 
-                                    },
-                                    onClick = {
-                                        applyTag(heading)
-                                        showHeadingDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Font Selection Dropdown
-                    var showFontDropdown by remember { mutableStateOf(false) }
-                    val applyFont: (String) -> Unit = { font ->
-                        applyTagWithVal("font", font)
-                    }
-                    
-                    Box {
-                        OutlinedButton(
-                            onClick = { showFontDropdown = true },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text(stringResource(id = R.string.rich_font_family), fontSize = 12.sp)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                        }
-                        DropdownMenu(
-                            expanded = showFontDropdown,
-                            onDismissRequest = { showFontDropdown = false }
-                        ) {
-                            listOf("default", "serif", "monospace", "sans-serif", "cursive").forEach { font ->
-                                DropdownMenuItem(
-                                    text = { 
-                                        Text(
-                                            text = font.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }, 
-                                            fontFamily = when (font) {
-                                                "serif" -> FontFamily.Serif
-                                                "monospace" -> FontFamily.Monospace
-                                                "sans-serif" -> FontFamily.SansSerif
-                                                "cursive" -> FontFamily.Cursive
-                                                else -> FontFamily.Default
-                                            }
-                                        ) 
-                                    },
-                                    onClick = {
-                                        applyFont(font)
-                                        showFontDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Font Size Dropdown
-                    var showSizeDropdown by remember { mutableStateOf(false) }
-                    
-                    Box {
-                        OutlinedButton(
-                            onClick = { showSizeDropdown = true },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text(stringResource(id = R.string.rich_font_size), fontSize = 12.sp)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-                        }
-                        DropdownMenu(
-                            expanded = showSizeDropdown,
-                            onDismissRequest = { showSizeDropdown = false }
-                        ) {
-                            listOf("default", "12", "14", "16", "18", "20", "24", "28").forEach { size ->
-                                DropdownMenuItem(
-                                    text = { Text(if (size == "default") stringResource(R.string.text_default) else "${size}sp") },
-                                    onClick = {
-                                        applyTagWithVal("size", size)
-                                        showSizeDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    var showFontColorDialog by remember { mutableStateOf(false) }
-                    IconButton(onClick = { showFontColorDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.FormatColorText,
-                            contentDescription = stringResource(id = R.string.rich_font_color),
-                            modifier = Modifier.size(20.dp),
-                            tint = activeFontColor ?: MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    if (showFontColorDialog) {
-                        ColorSelectionDialog(
-                            title = stringResource(id = R.string.dialog_font_color_title),
-                            onDismiss = { showFontColorDialog = false },
-                            onColorSelected = { color ->
-                                applyTagWithVal("color", color)
-                            }
-                        )
-                    }
-
-                    // Background Color Picker Trigger Button
-                    var showBgColorDialog by remember { mutableStateOf(false) }
-                    IconButton(onClick = { showBgColorDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.FormatColorFill,
-                            contentDescription = stringResource(id = R.string.rich_bg_color),
-                            modifier = Modifier.size(20.dp),
-                            tint = activeBgColor ?: MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    if (showBgColorDialog) {
-                        ColorSelectionDialog(
-                            title = stringResource(id = R.string.dialog_bg_color_title),
-                            onDismiss = { showBgColorDialog = false },
-                            onColorSelected = { color ->
-                                applyTagWithVal("bg", color)
-                            }
-                        )
-                    }
-
-                    VerticalDivider(modifier = Modifier.height(24.dp))
-
-                    // Remove Formatting Action Button
-                    IconButton(
-                        onClick = {
-                            val selStart = contentValue.selection.start
-                            val selEnd = contentValue.selection.end
-                            val text = contentValue.text
-                            val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
-                            val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
-                            if (selStart == selEnd) {
-                                val cleaned = text.replace(inlineRegex, "")
-                                contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
-                                saveToHistory(cleaned)
-                            } else {
-                                val before = text.substring(0, selStart)
-                                val selected = text.substring(selStart, selEnd)
-                                val after = text.substring(selEnd)
-                                val cleanedSelected = selected.replace(inlineRegex, "")
-                                val newText = before + cleanedSelected + after
-                                contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
-                                saveToHistory(newText)
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FormatClear,
-                            contentDescription = stringResource(id = R.string.rich_remove_format),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    VerticalDivider(modifier = Modifier.height(24.dp))
-
-                    // Apply List helper lambda
-                    val applyListTag: (String) -> Unit = { listType ->
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        if (selStart != selEnd) {
-                            val selectedText = text.substring(selStart, selEnd)
-                            val lines = selectedText.split("\n")
-                            val formattedLines = lines.map { line ->
-                                if (listType == "cl") {
-                                    "<item checked=\"false\">$line</item>"
-                                } else {
-                                    "<li>$line</li>"
-                                }
-                            }.joinToString("\n")
-                            val newText = text.substring(0, selStart) + "<$listType>\n$formattedLines\n</$listType>" + text.substring(selEnd)
-                            val newCursor = selStart + newText.length - text.length + (selEnd - selStart)
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-                            saveToHistory(newText)
-                        } else {
-                            val emptyTag = if (listType == "cl") {
-                                "<cl>\n  <item checked=\"false\"></item>\n</cl>"
-                            } else {
-                                "<$listType>\n  <li></li>\n</$listType>"
-                            }
-                            pendingInsert.value = emptyTag
-                        }
-                    }
-
-                    // Decrease Indent helper lambda
-                    val decreaseIndent: () -> Unit = {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        if (selStart != selEnd) {
-                            val selectedText = text.substring(selStart, selEnd)
-                            var cleaned = selectedText
-                            if (cleaned.startsWith("<indent>") && cleaned.endsWith("</indent>")) {
-                                cleaned = cleaned.substring(8, cleaned.length - 9)
-                            } else {
-                                cleaned = cleaned.replaceFirst("<indent>", "").replaceFirst("</indent>", "")
-                            }
-                            val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length))
-                            saveToHistory(newText)
-                        } else {
-                            val beforeCursor = text.substring(0, selStart)
-                            val afterCursor = text.substring(selStart)
-                            val lastIndentIdx = beforeCursor.lastIndexOf("<indent>")
-                            val lastCloseIndentIdx = beforeCursor.lastIndexOf("</indent>")
-                            if (lastIndentIdx != -1 && lastIndentIdx > lastCloseIndentIdx) {
-                                val newBefore = beforeCursor.removeRange(lastIndentIdx, lastIndentIdx + 8)
-                                val firstCloseIdx = afterCursor.indexOf("</indent>")
-                                val newAfter = if (firstCloseIdx != -1) {
-                                    afterCursor.removeRange(firstCloseIdx, firstCloseIdx + 9)
-                                } else {
-                                    afterCursor
-                                }
-                                val newText = newBefore + newAfter
-                                contentValue = TextFieldValue(text = newText, selection = TextRange(newBefore.length))
-                                saveToHistory(newText)
-                            }
-                        }
-                    }
-
-                    // Paste clipboard helper lambda
-                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                    val pasteFromClipboard: () -> Unit = {
-                        val clipText = clipboardManager.getText()?.text ?: ""
-                        if (clipText.isNotEmpty()) {
-                            if (RichTextParser.isSecureNotesJson(clipText)) {
-                                val defaultTitle = context.getString(R.string.title_imported_note)
-                                val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
-                                title = importedTitle
-                                contentValue = TextFieldValue(text = importedContent, selection = TextRange(importedContent.length))
-                                saveToHistory(importedContent)
-                                Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
-                            } else {
-                                val converted = if (clipText.trimStart().startsWith("<") || clipText.contains("</")) {
-                                    try { RichTextParser.convertHtmlToSecureNotes(clipText) } catch (e: Exception) { clipText }
-                                } else {
-                                    clipText
-                                }
-                                pendingInsert.value = converted
-                            }
-                        }
-                    }
-
-                    // Date inserter helper lambda
-                    val insertCurrentDate: () -> Unit = {
-                        val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
-                        pendingInsert.value = formattedDate
-                    }
-
-                    // Numbered List Button
-                    IconButton(onClick = { applyListTag("ol") }) {
-                        Icon(
-                            imageVector = Icons.Default.FormatListNumbered,
-                            contentDescription = stringResource(id = R.string.rich_numbered_list),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Bulleted List Button
-                    IconButton(onClick = { applyListTag("ul") }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
-                            contentDescription = stringResource(id = R.string.rich_bulleted_list),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Checklist Button
-                    IconButton(onClick = { applyListTag("cl") }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.FactCheck,
-                            contentDescription = stringResource(id = R.string.rich_checklist),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Code Block Button
-                    IconButton(onClick = { applyTag("pre") }) {
-                        Icon(
-                            imageVector = Icons.Default.Terminal,
-                            contentDescription = stringResource(id = R.string.rich_code_block),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Quote Button
-                    IconButton(onClick = { applyTag("quote") }) {
-                        Icon(
-                            imageVector = Icons.Default.FormatQuote,
-                            contentDescription = stringResource(id = R.string.rich_quote),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Increase Indent Button
-                    IconButton(onClick = { applyTag("indent") }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.FormatIndentIncrease,
-                            contentDescription = stringResource(id = R.string.rich_increase_indent),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Decrease Indent Button
-                    IconButton(onClick = { decreaseIndent() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.FormatIndentDecrease,
-                            contentDescription = stringResource(id = R.string.rich_decrease_indent),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Insert Table Button
-                    IconButton(onClick = { showInsertTableDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.BorderAll,
-                            contentDescription = "Insert Table",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Insert Horizontal Rule Button
-                    IconButton(onClick = { insertAtCursor("<hr/>") }) {
-                        Icon(
-                            imageVector = Icons.Default.HorizontalRule,
-                            contentDescription = "Insert Horizontal Rule",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Insert URL Button
-                    IconButton(onClick = {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        if (selStart != selEnd) {
-                            urlInputText = text.substring(selStart, selEnd)
-                        } else {
-                            urlInputText = ""
-                        }
-                        urlInputAddress = ""
-                        showInsertUrlDialog = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Link,
-                            contentDescription = stringResource(id = R.string.rich_insert_url),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Search Button
-                    IconButton(onClick = { isSearchActive = !isSearchActive }) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(id = R.string.rich_search),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // AI Assistant Button
-                    if (aiEnabled) {
-                        VerticalDivider(modifier = Modifier.height(24.dp))
-                        IconButton(onClick = {
-                            aiSelectionStart = contentValue.selection.start
-                            aiSelectionEnd = contentValue.selection.end
-                            if (contentValue.selection.start != contentValue.selection.end) {
-                                showAiContextSheet = true
-                            } else {
-                                aiViewModel.prepareChatForNote(content, "", title)
-                                onNavigateToAiChat(noteId)
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = stringResource(id = R.string.ai_assistant),
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // Paste Button
-                    IconButton(onClick = { pasteFromClipboard() }) {
-                        Icon(
-                            imageVector = Icons.Default.ContentPaste,
-                            contentDescription = stringResource(id = R.string.rich_paste),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Insert Date Button
-                    IconButton(onClick = { insertCurrentDate() }) {
-                        Icon(
-                            imageVector = Icons.Default.Today,
-                            contentDescription = stringResource(id = R.string.rich_insert_date),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
                 // Inline Search Bar
                 if (isSearchActive) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1577,24 +1170,39 @@ fun NoteEditorScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                BlockEditor(
-                    rawContent = content,
-                    onRawContentChange = { newContent ->
-                        contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                        saveToHistory(newContent)
-                    },
-                    attachments = attachments,
-                    noteId = noteId,
-                    onNavigateToMediaViewer = onNavigateToMediaViewer,
-                    onNavigateToDrawing = onNavigateToDrawing,
-                    pendingTagInsert = pendingTagInsert,
-                    pendingInsert = pendingInsert,
-                    onActiveBlockChange = { toolbarActiveBlockIndex = it },
-                    onActiveCursorChange = { toolbarActiveCursorOffset = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    BlockEditor(
+                        blocks = blocks,
+                        onBlocksChange = { newBlocks ->
+                            val newIdx = toolbarActiveBlockIndex.coerceIn(0, (newBlocks.size - 1).coerceAtLeast(0))
+                            blocks = newBlocks
+                            toolbarActiveBlockIndex = newIdx
+                            val blockText = blocks.getOrNull(newIdx)?.content ?: ""
+                            contentValue = TextFieldValue(text = blockText, selection = TextRange(blockText.length))
+                            saveBlocksToHistory()
+                        },
+                        activeBlockIndex = toolbarActiveBlockIndex,
+                        onActiveBlockChange = { switchActiveBlock(it) },
+                        attachments = attachments,
+                        noteId = noteId,
+                        onNavigateToMediaViewer = onNavigateToMediaViewer,
+                        onNavigateToDrawing = onNavigateToDrawing,
+                        pendingTagInsert = pendingTagInsert,
+                        pendingInsert = pendingInsert,
+                        onActiveCursorChange = { toolbarActiveCursorOffset = it },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    if (showSlashMenu) {
+                        Box(modifier = Modifier.align(Alignment.TopStart).padding(start = 40.dp, top = 4.dp)) {
+                            SlashCommandMenu(
+                                filter = slashFilter,
+                                onSelect = { block -> handleSlashSelect(block) },
+                                onDismiss = { showSlashMenu = false }
+                            )
+                        }
+                }
+                    }
 
                 // Insert Image Dialog
                 InsertMediaDialog(
@@ -1863,11 +1471,12 @@ fun NoteEditorScreen(
                                 
                                 OutlinedButton(
                                     onClick = {
-                                        val rangeToDelete = findEnclosingUrlTagRange(content, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(content, clickedUrlAbsoluteOffset)
+                                        val searchText = contentValue.text
+                                        val rangeToDelete = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(searchText, clickedUrlAbsoluteOffset)
                                         if (rangeToDelete != null) {
                                             val newContent = content.removeRange(rangeToDelete)
                                             contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                                            saveToHistory(newContent)
+                                            syncActiveBlock(); saveBlocksToHistory()
                                         }
                                         showUrlDialog = false
                                     },
@@ -1902,133 +1511,405 @@ fun NoteEditorScreen(
 
             }
 
-            // Bottom floating toolbar
+            if (showFontColorDialog) {
+                ColorSelectionDialog(
+                    title = stringResource(id = R.string.dialog_font_color_title),
+                    onDismiss = { showFontColorDialog = false },
+                    onColorSelected = { color ->
+                        applyTagWithVal("color", color)
+                    }
+                )
+            }
+            if (showBgColorDialog) {
+                ColorSelectionDialog(
+                    title = stringResource(id = R.string.dialog_bg_color_title),
+                    onDismiss = { showBgColorDialog = false },
+                    onColorSelected = { color ->
+                        applyTagWithVal("bg", color)
+                    }
+                )
+            }
+
+            // Merged floating toolbar
             OutlinedCard(
                 modifier = Modifier
                     .padding(bottom = 16.dp)
-                    .widthIn(max = 400.dp)
-                    .fillMaxWidth(0.9f)
+                    .widthIn(max = 440.dp)
+                    .fillMaxWidth(0.93f)
                     .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.outlinedCardColors(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
                 )
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = { showPaletteSheet = true },
-                        modifier = Modifier.testTag("palette_toolbar_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Palette,
-                            contentDescription = stringResource(id = R.string.option_note_styling),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            if (isSpeaking) {
-                                tts?.stop()
-                                isSpeaking = false
-                            } else {
-                                val textToRead = "$title. $content"
-                                if (textToRead.isNotBlank()) {
-                                    val params = android.os.Bundle().apply {
-                                        putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "NoteTTS")
+                Column {
+                    val hasSelection = contentValue.selection.start != contentValue.selection.end
+                    if (hasSelection || toolbarActiveBlockIndex != -1) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (historyIndex > 0) {
+                                        historyIndex--
+                                        val prevBlocks = history[historyIndex]
+                                        blocks = prevBlocks
+                                        val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                                        toolbarActiveBlockIndex = idx
+                                        contentValue = TextFieldValue(text = blocks.getOrNull(idx)?.content ?: "", selection = TextRange.Zero)
                                     }
-                                    tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
-                                    isSpeaking = true
-                                } else {
-                                    Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
-                                }
+                                },
+                                enabled = historyIndex > 0,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(R.string.rich_undo), modifier = Modifier.size(16.dp))
                             }
-                        },
-                        modifier = Modifier.testTag("tts_toolbar_btn")
-                    ) {
-                        Icon(
-                            imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
-                            tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                        )
-                    }
+                            IconButton(
+                                onClick = {
+                                    if (historyIndex < history.lastIndex) {
+                                        historyIndex++
+                                        val nextBlocks = history[historyIndex]
+                                        blocks = nextBlocks
+                                        val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                                        toolbarActiveBlockIndex = idx
+                                        contentValue = TextFieldValue(text = blocks.getOrNull(idx)?.content ?: "", selection = TextRange.Zero)
+                                    }
+                                },
+                                enabled = historyIndex < history.lastIndex,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = stringResource(R.string.rich_redo), modifier = Modifier.size(16.dp))
+                            }
 
-                    IconButton(
-                        onClick = {
-                            hasNavigatingToDrawing = true
-                            scope.launch {
-                                val savedId = viewModel.saveNoteAndGetId(
-                                    id = noteId,
-                                    title = title.trim(),
-                                    content = createRawContent(content.trim(), attachments),
-                                    isEncrypted = isEncrypted,
-                                    tagsList = selectedNoteTags,
-                                    backgroundColor = selectedBgColorId,
-                                    backgroundImagePath = selectedBgImagePath,
-                                    isPinned = isPinned,
-                                    isFavorite = isFavorite,
-                                    isArchived = isArchived
+                            VerticalDivider(modifier = Modifier.height(20.dp))
+
+                            FilledTonalIconToggleButton(
+                                checked = "b" in activeTextStyles,
+                                onCheckedChange = { applyTag("b") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("B", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+
+                            FilledTonalIconToggleButton(
+                                checked = "i" in activeTextStyles,
+                                onCheckedChange = { applyTag("i") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("I", fontStyle = FontStyle.Italic, fontSize = 12.sp) }
+
+                            FilledTonalIconToggleButton(
+                                checked = "u" in activeTextStyles,
+                                onCheckedChange = { applyTag("u") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 12.sp) }
+
+                            FilledTonalIconToggleButton(
+                                checked = "s" in activeTextStyles,
+                                onCheckedChange = { applyTag("s") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 12.sp) }
+
+                            VerticalDivider(modifier = Modifier.height(20.dp))
+
+                            FilledTonalIconToggleButton(
+                                checked = false,
+                                onCheckedChange = { applyTag("h1") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("H1", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+
+                            FilledTonalIconToggleButton(
+                                checked = false,
+                                onCheckedChange = { applyTag("h2") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("H2", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+
+                            FilledTonalIconToggleButton(
+                                checked = false,
+                                onCheckedChange = { applyTag("h3") },
+                                modifier = Modifier.size(32.dp)
+                            ) { Text("H3", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+
+                            VerticalDivider(modifier = Modifier.height(20.dp))
+
+                            IconButton(
+                                onClick = { showFontColorDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.FormatColorText,
+                                    contentDescription = stringResource(R.string.rich_font_color),
+                                    modifier = Modifier.size(16.dp),
+                                    tint = activeFontColor ?: MaterialTheme.colorScheme.onSurface
                                 )
-                                onNavigateToDrawing(savedId, null)
                             }
-                        },
-                        modifier = Modifier.testTag("drawing_toolbar_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Gesture,
-                            contentDescription = stringResource(R.string.add_drawing),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
 
-                    IconButton(
-                        onClick = { showVoiceFileSheet = true },
-                        modifier = Modifier.testTag("attachments_toolbar_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AttachFile,
-                            contentDescription = stringResource(R.string.add_attachment),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                            IconButton(
+                                onClick = { showBgColorDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.FormatColorFill,
+                                    contentDescription = stringResource(R.string.rich_bg_color),
+                                    modifier = Modifier.size(16.dp),
+                                    tint = activeBgColor ?: MaterialTheme.colorScheme.onSurface
+                                )
+                            }
 
-                    if (aiEnabled) {
-                        IconButton(
-                            onClick = {
-                                aiSelectionStart = contentValue.selection.start
-                                aiSelectionEnd = contentValue.selection.end
-                                if (contentValue.selection.start != contentValue.selection.end) {
-                                    showAiContextSheet = true
-                                } else {
-                                    aiViewModel.prepareChatForNote(content, "", title)
-                                    onNavigateToAiChat(noteId)
+                            IconButton(
+                                onClick = {
+                                    val selStart = contentValue.selection.start
+                                    val selEnd = contentValue.selection.end
+                                    val text = contentValue.text
+                                    val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
+                                    val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
+                                    if (selStart == selEnd) {
+                                        val cleaned = text.replace(inlineRegex, "")
+                                        contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
+                                        syncActiveBlock(); saveBlocksToHistory()
+                                    } else {
+                                        val before = text.substring(0, selStart)
+                                        val selected = text.substring(selStart, selEnd)
+                                        val after = text.substring(selEnd)
+                                        val cleanedSelected = selected.replace(inlineRegex, "")
+                                        val newText = before + cleanedSelected + after
+                                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
+                                        syncActiveBlock(); saveBlocksToHistory()
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.FormatClear, contentDescription = stringResource(R.string.rich_remove_format), modifier = Modifier.size(16.dp))
+                            }
+
+                            VerticalDivider(modifier = Modifier.height(20.dp))
+
+                            Box {
+                                IconButton(
+                                    onClick = { showMoreFormatting = true },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.MoreHoriz, contentDescription = "More", modifier = Modifier.size(16.dp))
                                 }
-                            },
-                            modifier = Modifier.testTag("ai_toolbar_btn")
+                                DropdownMenu(
+                                    expanded = showMoreFormatting,
+                                    onDismissRequest = { showMoreFormatting = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Inline Code", fontSize = 12.sp) },
+                                        onClick = { applyTag("code"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.Code, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Subscript", fontSize = 12.sp) },
+                                        onClick = { applyTag("sub"); showMoreFormatting = false },
+                                        leadingIcon = { Text("x₂", fontSize = 12.sp) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Superscript", fontSize = 12.sp) },
+                                        onClick = { applyTag("sup"); showMoreFormatting = false },
+                                        leadingIcon = { Text("x²", fontSize = 12.sp) }
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Numbered List", fontSize = 12.sp) },
+                                        onClick = { applyListTag("ol"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.FormatListNumbered, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Bulleted List", fontSize = 12.sp) },
+                                        onClick = { applyListTag("ul"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Checklist", fontSize = 12.sp) },
+                                        onClick = { applyListTag("cl"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FactCheck, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Code Block", fontSize = 12.sp) },
+                                        onClick = { applyTag("pre"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.Terminal, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Quote", fontSize = 12.sp) },
+                                        onClick = { applyTag("quote"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.FormatQuote, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Indent", fontSize = 12.sp) },
+                                        onClick = { applyTag("indent"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatIndentIncrease, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Unindent", fontSize = 12.sp) },
+                                        onClick = { decreaseIndent(); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatIndentDecrease, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Table", fontSize = 12.sp) },
+                                        onClick = { showInsertTableDialog = true; showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.BorderAll, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Horizontal Rule", fontSize = 12.sp) },
+                                        onClick = { insertAtCursor("<hr/>"); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.HorizontalRule, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("URL Link", fontSize = 12.sp) },
+                                        onClick = {
+                                            val ss = contentValue.selection.start
+                                            val se = contentValue.selection.end
+                                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
+                                            urlInputAddress = ""
+                                            showInsertUrlDialog = true
+                                            showMoreFormatting = false
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Link, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Search", fontSize = 12.sp) },
+                                        onClick = { isSearchActive = !isSearchActive; showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Paste", fontSize = 12.sp) },
+                                        onClick = { pasteFromClipboard(); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.ContentPaste, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Insert Date", fontSize = 12.sp) },
+                                        onClick = { insertCurrentDate(); showMoreFormatting = false },
+                                        leadingIcon = { Icon(Icons.Default.Today, null, modifier = Modifier.size(16.dp)) }
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { showPaletteSheet = true },
+                            modifier = Modifier.testTag("palette_toolbar_btn")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = stringResource(R.string.ai_assistant),
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = stringResource(id = R.string.option_note_styling),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                    }
-                    // AI Panel Toggle
-                    if (aiEnabled) {
+
                         IconButton(
-                            onClick = { showAiPanel = !showAiPanel }
+                            onClick = {
+                                if (isSpeaking) {
+                                    tts?.stop()
+                                    isSpeaking = false
+                                } else {
+                                    val textToRead = "$title. $content"
+                                    if (textToRead.isNotBlank()) {
+                                        val params = android.os.Bundle().apply {
+                                            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "NoteTTS")
+                                        }
+                                        tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
+                                        isSpeaking = true
+                                    } else {
+                                        Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("tts_toolbar_btn")
                         ) {
                             Icon(
-                                imageVector = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
-                                contentDescription = "AI Panel",
+                                imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
+                                tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                hasNavigatingToDrawing = true
+                                scope.launch {
+                                    val savedId = viewModel.saveNoteAndGetId(
+                                        id = noteId,
+                                        title = title.trim(),
+                                        content = contentForSave(),
+                                        isEncrypted = isEncrypted,
+                                        tagsList = selectedNoteTags,
+                                        backgroundColor = selectedBgColorId,
+                                        backgroundImagePath = selectedBgImagePath,
+                                        isPinned = isPinned,
+                                        isFavorite = isFavorite,
+                                        isArchived = isArchived
+                                    )
+                                    onNavigateToDrawing(savedId, null)
+                                }
+                            },
+                            modifier = Modifier.testTag("drawing_toolbar_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Gesture,
+                                contentDescription = stringResource(R.string.add_drawing),
                                 tint = MaterialTheme.colorScheme.primary
                             )
+                        }
+
+                        IconButton(
+                            onClick = { showVoiceFileSheet = true },
+                            modifier = Modifier.testTag("attachments_toolbar_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AttachFile,
+                                contentDescription = stringResource(R.string.add_attachment),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        if (aiEnabled) {
+                            IconButton(
+                                onClick = {
+                                    aiSelectionStart = contentValue.selection.start
+                                    aiSelectionEnd = contentValue.selection.end
+                                    if (contentValue.selection.start != contentValue.selection.end) {
+                                        showAiContextSheet = true
+                                    } else {
+                                        aiViewModel.prepareChatForNote(content, "", title)
+                                        onNavigateToAiChat(noteId)
+                                    }
+                                },
+                                modifier = Modifier.testTag("ai_toolbar_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = stringResource(R.string.ai_assistant),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        if (aiEnabled) {
+                            IconButton(
+                                onClick = { showAiPanel = !showAiPanel }
+                            ) {
+                                Icon(
+                                    imageVector = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
+                                    contentDescription = "AI Panel",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -2384,7 +2265,7 @@ fun NoteEditorScreen(
                             viewModel.saveNote(
                                 id = noteId,
                                 title = title.trim(),
-                                content = createRawContent(content.trim(), attachments),
+                                content = contentForSave(),
                                 isEncrypted = isEncrypted,
                                 tagsList = selectedNoteTags,
                                 backgroundColor = selectedBgColorId,
@@ -2670,7 +2551,7 @@ fun NoteEditorScreen(
                                                 viewModel.saveNote(
                                                     id = noteId,
                                                     title = title.trim(),
-                                                    content = createRawContent(content.trim(), attachments),
+                                                    content = contentForSave(),
                                                     isEncrypted = isEncrypted,
                                                     tagsList = selectedNoteTags,
                                                     backgroundColor = selectedBgColorId,

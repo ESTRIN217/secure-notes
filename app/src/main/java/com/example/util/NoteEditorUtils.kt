@@ -597,18 +597,21 @@ fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
             isCl -> {
                 val clContent = match.value.removePrefix("<cl>").removeSuffix("</cl>")
                 val itemRegex = Regex("<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>")
+                val clStart = match.range.first + 4
                 itemRegex.findAll(clContent).forEach { itemMatch ->
                     val isChecked = itemMatch.groupValues[1] == "true"
                     val itemText = itemMatch.groupValues[2]
                     val itemParseResult = RichTextParser.parseWithMapping(itemText, hideTags = true)
+                    val itemRangeStart = clStart + itemMatch.range.first
+                    val itemRangeEnd = itemRangeStart + itemMatch.value.length
                     results.add(BlockRange(
                         NoteContentBlock.ChecklistItemBlock(
                             isChecked = isChecked,
                             parseResult = itemParseResult,
-                            rawStart = match.range.first + itemMatch.range.first,
+                            rawStart = clStart + itemMatch.range.first + itemMatch.value.indexOf(itemText),
                             globalIndex = checklistIndex
                         ),
-                        match.range
+                        itemRangeStart until itemRangeEnd
                     ))
                     checklistIndex++
                 }
@@ -626,6 +629,21 @@ fun parseEditorBlockRanges(rawContent: String): List<BlockRange> {
                 results.add(BlockRange(
                     NoteContentBlock.TextBlock(parseResult, rawStart = lastEnd, textAlign = currentAlign),
                     lastEnd until rawContent.length
+                ))
+            }
+        }
+    }
+
+    if (rawContent.isNotEmpty()) {
+        val lastBlock = results.lastOrNull()?.block
+        if (lastBlock == null || lastBlock !is NoteContentBlock.TextBlock) {
+            val trailingRange = lastEnd until rawContent.length
+            val trailingText = rawContent.substring(trailingRange)
+            if (trailingText.isBlank()) {
+                val emptyParse = RichTextParser.parseWithMapping("", hideTags = true)
+                results.add(BlockRange(
+                    NoteContentBlock.TextBlock(emptyParse, rawStart = lastEnd),
+                    lastEnd until lastEnd
                 ))
             }
         }

@@ -8,23 +8,24 @@ import com.example.data.model.NoteContentBlock
 @Composable
 fun NoteContentBlockCard(
     block: NoteContentBlock,
-    content: String,
-    noteId: Int,
-    onDeleteBlock: (NoteContentBlock) -> Unit,
-    onNavigateToMediaViewer: (String, String) -> Unit,
-    onNavigateToDrawing: (Int, String?) -> Unit,
-    onUrlClicked: (url: String, rawOffset: Int) -> Unit = { _, _ -> },
+    content: String? = null,
+    noteId: Int = 0,
+    attachments: List<com.example.data.model.Attachment>? = null,
+    onDeleteBlock: ((NoteContentBlock) -> Unit)? = null,
+    onNavigateToMediaViewer: ((String, String) -> Unit)? = null,
+    onNavigateToDrawing: ((Int, String?) -> Unit)? = null,
+    onUrlClicked: ((url: String, rawOffset: Int) -> Unit)? = null,
     onChecklistToggle: ((globalIndex: Int, isChecked: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = BlockRenderContext(
-        content = content,
+        content = content ?: "",
         noteId = noteId,
-        onDeleteBlock = onDeleteBlock,
-        onNavigateToMediaViewer = onNavigateToMediaViewer,
-        onNavigateToDrawing = onNavigateToDrawing,
-        onUrlClicked = onUrlClicked,
-        onChecklistToggle = onChecklistToggle
+        onDeleteBlock = onDeleteBlock ?: {},
+        onNavigateToMediaViewer = onNavigateToMediaViewer ?: { _, _ -> },
+        onNavigateToDrawing = onNavigateToDrawing ?: { _, _ -> },
+        onUrlClicked = onUrlClicked ?: { _, _ -> },
+        onChecklistToggle = onChecklistToggle ?: { _, _ -> }
     )
     block.RenderContent(context, modifier)
 }
