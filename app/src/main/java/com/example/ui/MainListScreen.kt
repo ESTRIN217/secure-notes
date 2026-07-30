@@ -1731,12 +1731,55 @@ fun NoteCardItem(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            val (cleanNoteText, allAttachments) = remember(decryptedNote.content) {
-                com.example.data.model.parseNoteContentAndAttachments(decryptedNote.content)
+            val (displayText, visualAttachments) = remember(decryptedNote.content) {
+                val content = decryptedNote.content
+                val blocks = com.example.data.model.DataBlock.deserialize(content)
+                if (blocks != null) {
+                    val textParts = mutableListOf<String>()
+                    val attachments = mutableListOf<Triple<String, String, String>>()
+                    for (block in blocks) {
+                        when (block.type) {
+                            com.example.data.model.BlockType.TEXT,
+                            com.example.data.model.BlockType.BULLET_LIST,
+                            com.example.data.model.BlockType.NUMBERED_LIST,
+                            com.example.data.model.BlockType.QUOTE,
+                            com.example.data.model.BlockType.CODE_BLOCK -> textParts.add(block.content)
+                            com.example.data.model.BlockType.CHECKLIST_ITEM -> {
+                                val prefix = if (block.meta["checked"] == "true") "☑ " else "☐ "
+                                textParts.add("$prefix${block.content}")
+                            }
+                            com.example.data.model.BlockType.HEADING1,
+                            com.example.data.model.BlockType.HEADING2,
+                            com.example.data.model.BlockType.HEADING3 -> textParts.add(block.content)
+                            com.example.data.model.BlockType.IMAGE -> attachments.add(Triple("image", block.content, ""))
+                            com.example.data.model.BlockType.VIDEO -> attachments.add(Triple("video", block.content, ""))
+                            com.example.data.model.BlockType.DRAWING -> {
+                                val previewPath = block.meta["previewPath"] ?: ""
+                                attachments.add(Triple("drawing", block.content, previewPath))
+                            }
+                            else -> {}
+                        }
+                    }
+                    Pair(textParts.joinToString("\n"), attachments)
+                } else {
+                    val (cleanNoteText, allAttachments) = com.example.data.model.parseNoteContentAndAttachments(content)
+                    val fromLegacy = allAttachments.filter { it.type in listOf("drawing", "image", "video") }
+                    val fromMediaTags = mutableListOf<Pair<String, String>>()
+                    val regex = Regex("<(img|video)\\s+src=\"([^\"]+)\"\\s*/>")
+                    regex.findAll(cleanNoteText).forEach { match ->
+                        val tagType = match.groupValues[1]
+                        val src = match.groupValues[2]
+                        val normType = when (tagType) { "img" -> "image"; else -> tagType }
+                        fromMediaTags.add(normType to src)
+                    }
+                    val attachList = fromLegacy.map { Triple(it.type, it.path, it.name) } +
+                        fromMediaTags.map { Triple(it.first, it.second, "") }
+                    Pair(cleanNoteText, attachList)
+                }
             }
 
-            val formattedContent = remember(cleanNoteText) {
-                com.example.util.RichTextParser.parse(cleanNoteText, hideTags = true)
+            val formattedContent = remember(displayText) {
+                com.example.util.RichTextParser.parse(displayText, hideTags = true)
             }
 
             Text(
@@ -1746,20 +1789,6 @@ fun NoteCardItem(
                 maxLines = if (isGrid) 3 else 4,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-
-            val visualAttachments = remember(allAttachments, cleanNoteText) {
-                val fromLegacy = allAttachments.filter { it.type in listOf("drawing", "image", "video") }
-                val fromMediaTags = mutableListOf<Pair<String, String>>()
-                val regex = Regex("<(img|video)\\s+src=\"([^\"]+)\"\\s*/>")
-                regex.findAll(cleanNoteText).forEach { match ->
-                    val tagType = match.groupValues[1]
-                    val src = match.groupValues[2]
-                    val normType = when (tagType) { "img" -> "image"; else -> tagType }
-                    fromMediaTags.add(normType to src)
-                }
-                fromLegacy.map { Triple(it.type, it.path, it.name) } +
-                    fromMediaTags.map { Triple(it.first, it.second, "") }
-            }
 
             if (visualAttachments.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))

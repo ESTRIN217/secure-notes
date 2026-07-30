@@ -54,6 +54,7 @@ object NoteContentBlockConverter {
                     1 -> BlockType.HEADING1
                     2 -> BlockType.HEADING2
                     3 -> BlockType.HEADING3
+                    4 -> BlockType.HEADING4
                     else -> BlockType.TEXT
                 }
                 blocks.add(DataBlock(type = htype, content = trimmed.substring(heading.value.length)))

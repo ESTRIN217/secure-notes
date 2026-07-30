@@ -563,8 +563,8 @@ fun NoteEditorScreen(
             }
     }
 
-    LaunchedEffect(content) {
-        if (content.isNotEmpty()) {
+    LaunchedEffect(contentValue.text) {
+        if (contentValue.text.isNotEmpty()) {
             kotlinx.coroutines.delay(800)
             syncActiveBlock(); saveBlocksToHistory()
         }
@@ -605,10 +605,11 @@ fun NoteEditorScreen(
 
     LaunchedEffect(Unit) {
         snapshotFlow {
-            listOf(content, title, selectedNoteTags.size, selectedBgColorId)
+            listOf(contentValue.text, content, title, selectedNoteTags.size, selectedBgColorId)
         }
         .debounce(2000)
         .collectLatest {
+            syncActiveBlock()
             if ((title.isNotBlank() || content.isNotBlank()) && noteId != 0) {
                 viewModel.saveNote(
                     id = noteId,
@@ -699,11 +700,12 @@ fun NoteEditorScreen(
             var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
             var showFontColorDialog by remember { mutableStateOf(false) }
             var showBgColorDialog by remember { mutableStateOf(false) }
-            var showMoreFormatting by remember { mutableStateOf(false) }
+            var showMoreFormattingSheet by remember { mutableStateOf(false) }
+            val isKeyboardVisible = WindowInsets.isImeVisible
 
             LaunchedEffect(Unit) {
                 snapshotFlow { contentValue.text }
-                    .debounce(80)
+                    .debounce(16)
                     .collectLatest { text ->
                         toolbarParseResult = RichTextParser.parseWithMapping(text, hideTags = true)
                     }
@@ -714,22 +716,31 @@ fun NoteEditorScreen(
                 val cursorIndex = contentValue.selection.start
                 val transformedIndex = parsed.originalToTransformed(cursorIndex)
                 val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
-                val activeStyles = buildSet {
-                    for (range in parsed.text.spanStyles) {
-                        if (range.start <= targetIndex && targetIndex < range.end) {
-                            if (range.item.fontWeight == FontWeight.Bold) add("b")
-                            if (range.item.fontStyle == FontStyle.Italic) add("i")
-                            if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) add("u")
-                            if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) add("s")
+                val activeStyles = mutableSetOf<String>()
+                val headingSizes = setOf(24.sp, 20.sp, 17.sp, 15.sp, 13.sp, 11.sp)
+                for (range in parsed.text.spanStyles) {
+                    if (range.start <= targetIndex && targetIndex < range.end) {
+                        if (range.item.fontSize in headingSizes) {
+                            val h = when (range.item.fontSize) {
+                                24.sp -> "h1"; 20.sp -> "h2"; 17.sp -> "h3"
+                                15.sp -> "h4"; 13.sp -> "h5"; else -> "h6"
+                            }
+                            activeStyles.add(h)
                         }
+                        if (range.item.fontWeight == FontWeight.Bold) {
+                            if (activeStyles.none { it.startsWith("h") }) activeStyles.add("b")
+                        }
+                        if (range.item.fontStyle == FontStyle.Italic) activeStyles.add("i")
+                        if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) activeStyles.add("u")
+                        if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) activeStyles.add("s")
                     }
                 }
-                val activeFontColor = parsed.text.spanStyles.lastOrNull { range ->
-                    range.start <= targetIndex && targetIndex < range.end && range.item.color != Color.Unspecified
-                }?.item?.color
-                val activeBgColor = parsed.text.spanStyles.lastOrNull { range ->
-                    range.start <= targetIndex && targetIndex < range.end && range.item.background != Color.Unspecified && range.item.background != Color.Transparent
-                }?.item?.background
+                val activeFontColor = parsed.text.spanStyles
+                    .filter { it.start <= targetIndex && targetIndex < it.end && it.item.color != Color.Unspecified }
+                    .maxByOrNull { it.start }?.item?.color
+                val activeBgColor = parsed.text.spanStyles
+                    .filter { it.start <= targetIndex && targetIndex < it.end && it.item.background != Color.Unspecified && it.item.background != Color.Transparent }
+                    .maxByOrNull { it.start }?.item?.background
                 ToolbarState(activeStyles, activeFontColor, activeBgColor)
             }
             val activeTextStyles = toolbarState.activeStyles
@@ -744,6 +755,9 @@ fun NoteEditorScreen(
                     "i" -> { s: SpanStyle -> s.fontStyle == FontStyle.Italic }
                     "u" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.Underline) == true }
                     "s" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.LineThrough) == true }
+                    "h1" -> { s: SpanStyle -> s.fontSize == 24.sp }
+                    "h2" -> { s: SpanStyle -> s.fontSize == 20.sp }
+                    "h3" -> { s: SpanStyle -> s.fontSize == 17.sp }
                     else -> { _: SpanStyle -> false }
                 }
                 var pos = trStart
@@ -783,8 +797,28 @@ fun NoteEditorScreen(
                         val newText = beforeCursor.dropLast(openTag.length) + afterCursor.drop(closeTag.length)
                         contentValue = TextFieldValue(text = newText, selection = TextRange(selStart - openTag.length))
                         syncActiveBlock(); saveBlocksToHistory()
+                    } else if (tag in activeTextStyles && tag in setOf("b", "i", "u", "s")) {
+                        val lastOpen = beforeCursor.lastIndexOf(openTag)
+                        val firstClose = afterCursor.indexOf(closeTag)
+                        if (lastOpen >= 0 && firstClose >= 0) {
+                            val textBeforeOpen = text.substring(0, lastOpen)
+                            val innerStart = lastOpen + openTag.length
+                            val innerEnd = selStart + firstClose
+                            val textBetween = text.substring(innerStart, innerEnd)
+                            val textAfterClose = text.substring(innerEnd + closeTag.length)
+                            val newText = textBeforeOpen + textBetween + textAfterClose
+                            val newCursor = lastOpen + textBetween.length
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor.coerceIn(0, newText.length)))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        } else {
+                            val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        }
                     } else {
-                        pendingTagInsert.value = openTag + closeTag
+                        val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
+                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
+                        syncActiveBlock(); saveBlocksToHistory()
                     }
                 }
             }
@@ -802,7 +836,9 @@ fun NoteEditorScreen(
                     contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length))
                     syncActiveBlock(); saveBlocksToHistory()
                 } else {
-                    pendingTagInsert.value = openTag + closeTag
+                    val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
+                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
+                    syncActiveBlock(); saveBlocksToHistory()
                 }
             }
 
@@ -1174,6 +1210,7 @@ fun NoteEditorScreen(
                     BlockEditor(
                         blocks = blocks,
                         onBlocksChange = { newBlocks ->
+                            syncActiveBlock()
                             val newIdx = toolbarActiveBlockIndex.coerceIn(0, (newBlocks.size - 1).coerceAtLeast(0))
                             blocks = newBlocks
                             toolbarActiveBlockIndex = newIdx
@@ -1474,7 +1511,7 @@ fun NoteEditorScreen(
                                         val searchText = contentValue.text
                                         val rangeToDelete = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(searchText, clickedUrlAbsoluteOffset)
                                         if (rangeToDelete != null) {
-                                            val newContent = content.removeRange(rangeToDelete)
+                                            val newContent = contentValue.text.removeRange(rangeToDelete)
                                             contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
                                             syncActiveBlock(); saveBlocksToHistory()
                                         }
@@ -1530,6 +1567,7 @@ fun NoteEditorScreen(
                 )
             }
 
+            if (isKeyboardVisible) {
             // Merged floating toolbar
             OutlinedCard(
                 modifier = Modifier
@@ -1543,8 +1581,6 @@ fun NoteEditorScreen(
                 )
             ) {
                 Column {
-                    val hasSelection = contentValue.selection.start != contentValue.selection.end
-                    if (hasSelection || toolbarActiveBlockIndex != -1) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1555,13 +1591,15 @@ fun NoteEditorScreen(
                         ) {
                             IconButton(
                                 onClick = {
+                                    syncActiveBlock()
                                     if (historyIndex > 0) {
                                         historyIndex--
                                         val prevBlocks = history[historyIndex]
                                         blocks = prevBlocks
                                         val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
                                         toolbarActiveBlockIndex = idx
-                                        contentValue = TextFieldValue(text = blocks.getOrNull(idx)?.content ?: "", selection = TextRange.Zero)
+                                        val text = blocks.getOrNull(idx)?.content ?: ""
+                                        contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
                                     }
                                 },
                                 enabled = historyIndex > 0,
@@ -1571,13 +1609,15 @@ fun NoteEditorScreen(
                             }
                             IconButton(
                                 onClick = {
+                                    syncActiveBlock()
                                     if (historyIndex < history.lastIndex) {
                                         historyIndex++
                                         val nextBlocks = history[historyIndex]
                                         blocks = nextBlocks
                                         val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
                                         toolbarActiveBlockIndex = idx
-                                        contentValue = TextFieldValue(text = blocks.getOrNull(idx)?.content ?: "", selection = TextRange.Zero)
+                                        val text = blocks.getOrNull(idx)?.content ?: ""
+                                        contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
                                     }
                                 },
                                 enabled = historyIndex < history.lastIndex,
@@ -1615,19 +1655,19 @@ fun NoteEditorScreen(
                             VerticalDivider(modifier = Modifier.height(20.dp))
 
                             FilledTonalIconToggleButton(
-                                checked = false,
+                                checked = "h1" in activeTextStyles,
                                 onCheckedChange = { applyTag("h1") },
                                 modifier = Modifier.size(32.dp)
                             ) { Text("H1", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
 
                             FilledTonalIconToggleButton(
-                                checked = false,
+                                checked = "h2" in activeTextStyles,
                                 onCheckedChange = { applyTag("h2") },
                                 modifier = Modifier.size(32.dp)
                             ) { Text("H2", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
 
                             FilledTonalIconToggleButton(
-                                checked = false,
+                                checked = "h3" in activeTextStyles,
                                 onCheckedChange = { applyTag("h3") },
                                 modifier = Modifier.size(32.dp)
                             ) { Text("H3", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
@@ -1686,114 +1726,15 @@ fun NoteEditorScreen(
 
                             VerticalDivider(modifier = Modifier.height(20.dp))
 
-                            Box {
-                                IconButton(
-                                    onClick = { showMoreFormatting = true },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.Default.MoreHoriz, contentDescription = "More", modifier = Modifier.size(16.dp))
-                                }
-                                DropdownMenu(
-                                    expanded = showMoreFormatting,
-                                    onDismissRequest = { showMoreFormatting = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Inline Code", fontSize = 12.sp) },
-                                        onClick = { applyTag("code"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.Code, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Subscript", fontSize = 12.sp) },
-                                        onClick = { applyTag("sub"); showMoreFormatting = false },
-                                        leadingIcon = { Text("x₂", fontSize = 12.sp) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Superscript", fontSize = 12.sp) },
-                                        onClick = { applyTag("sup"); showMoreFormatting = false },
-                                        leadingIcon = { Text("x²", fontSize = 12.sp) }
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = { Text("Numbered List", fontSize = 12.sp) },
-                                        onClick = { applyListTag("ol"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.FormatListNumbered, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Bulleted List", fontSize = 12.sp) },
-                                        onClick = { applyListTag("ul"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Checklist", fontSize = 12.sp) },
-                                        onClick = { applyListTag("cl"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FactCheck, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = { Text("Code Block", fontSize = 12.sp) },
-                                        onClick = { applyTag("pre"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.Terminal, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Quote", fontSize = 12.sp) },
-                                        onClick = { applyTag("quote"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.FormatQuote, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Indent", fontSize = 12.sp) },
-                                        onClick = { applyTag("indent"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatIndentIncrease, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Unindent", fontSize = 12.sp) },
-                                        onClick = { decreaseIndent(); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatIndentDecrease, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = { Text("Table", fontSize = 12.sp) },
-                                        onClick = { showInsertTableDialog = true; showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.BorderAll, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Horizontal Rule", fontSize = 12.sp) },
-                                        onClick = { insertAtCursor("<hr/>"); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.HorizontalRule, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("URL Link", fontSize = 12.sp) },
-                                        onClick = {
-                                            val ss = contentValue.selection.start
-                                            val se = contentValue.selection.end
-                                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
-                                            urlInputAddress = ""
-                                            showInsertUrlDialog = true
-                                            showMoreFormatting = false
-                                        },
-                                        leadingIcon = { Icon(Icons.Default.Link, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = { Text("Search", fontSize = 12.sp) },
-                                        onClick = { isSearchActive = !isSearchActive; showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Paste", fontSize = 12.sp) },
-                                        onClick = { pasteFromClipboard(); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.ContentPaste, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Insert Date", fontSize = 12.sp) },
-                                        onClick = { insertCurrentDate(); showMoreFormatting = false },
-                                        leadingIcon = { Icon(Icons.Default.Today, null, modifier = Modifier.size(16.dp)) }
-                                    )
-                                }
+                            IconButton(
+                                onClick = { showMoreFormattingSheet = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.MoreHoriz, contentDescription = "More", modifier = Modifier.size(16.dp))
                             }
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-                    }
 
                     Row(
                         modifier = Modifier
@@ -1914,6 +1855,178 @@ fun NoteEditorScreen(
                     }
                 }
             }
+            }
+
+        if (showMoreFormattingSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showMoreFormattingSheet = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Bloques básicos", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("T", "Texto", Icons.Default.Title) {
+                            handleSlashSelect(DataBlock(type = BlockType.TEXT))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("H1", "Encabezado 1", Icons.Default.Title) {
+                            handleSlashSelect(DataBlock(type = BlockType.HEADING1))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("H2", "Encabezado 2", Icons.Default.Title) {
+                            handleSlashSelect(DataBlock(type = BlockType.HEADING2))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("H3", "Encabezado 3", Icons.Default.Title) {
+                            handleSlashSelect(DataBlock(type = BlockType.HEADING3))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("H4", "Encabezado 4", Icons.Default.Title) {
+                            handleSlashSelect(DataBlock(type = BlockType.HEADING4))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("≡", "Lista viñetas", Icons.AutoMirrored.Filled.FormatListBulleted) {
+                            handleSlashSelect(DataBlock(type = BlockType.BULLET_LIST))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("1.", "Lista numerada", Icons.Default.FormatListNumbered) {
+                            handleSlashSelect(DataBlock(type = BlockType.NUMBERED_LIST))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("☐", "Lista tareas", Icons.Default.CheckBox) {
+                            handleSlashSelect(DataBlock(type = BlockType.CHECKLIST_ITEM, meta = mapOf("checked" to "false")))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("▾", "Lista despl.", Icons.Default.KeyboardArrowDown) {
+                            handleSlashSelect(DataBlock(type = BlockType.COLLAPSIBLE))
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("🔗", "Página", Icons.Default.Link) {
+                            val ss = contentValue.selection.start
+                            val se = contentValue.selection.end
+                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
+                            urlInputAddress = ""
+                            showInsertUrlDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Destacado", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("🖉", "Destacado", Icons.Default.Edit) {
+                            applyTag("mark")
+                            showMoreFormattingSheet = false
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Cita", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("❝", "Cita", Icons.Default.FormatQuote) {
+                            applyTag("quote")
+                            showMoreFormattingSheet = false
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Bloques", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("⊞", "Tabla", Icons.Default.BorderAll) {
+                            showInsertTableDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("—", "Divisor", Icons.Default.HorizontalRule) {
+                            insertAtCursor("<hr/>")
+                            showMoreFormattingSheet = false
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Enlace", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("🔗", "Enlace", Icons.Default.Link) {
+                            val ss = contentValue.selection.start
+                            val se = contentValue.selection.end
+                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
+                            urlInputAddress = ""
+                            showInsertUrlDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Text("Contenido Multimedia", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BlockGridItem("🖼", "Imagen", Icons.Default.Image) {
+                            showInsertImageDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("▶", "Video", Icons.Default.Videocam) {
+                            showInsertVideoDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("♪", "Audio", Icons.Default.MusicNote) {
+                            showVoiceFileSheet = true
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("<>", "Código", Icons.Default.Code) {
+                            applyTag("pre")
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("📎", "Archivo", Icons.Default.AttachFile) {
+                            showVoiceFileSheet = true
+                            showMoreFormattingSheet = false
+                        }
+                        BlockGridItem("🔖", "Marcador", Icons.Default.Bookmark) {
+                            val ss = contentValue.selection.start
+                            val se = contentValue.selection.end
+                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
+                            urlInputAddress = ""
+                            showInsertUrlDialog = true
+                            showMoreFormattingSheet = false
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
         }
 
         // ── Level 2: Floating AI Panel ──────────────────────────
@@ -2766,6 +2879,45 @@ fun NoteEditorScreen(
             )
         }
 
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BlockGridItem(
+    iconText: String,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.width(80.dp).height(88.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

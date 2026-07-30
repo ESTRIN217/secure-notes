@@ -53,6 +53,7 @@ private val COMMANDS = listOf(
     SlashCommand("Heading 1", Icons.Default.Title, "Large heading", BlockType.HEADING1, ""),
     SlashCommand("Heading 2", Icons.Default.Title, "Medium heading", BlockType.HEADING2, ""),
     SlashCommand("Heading 3", Icons.Default.Title, "Small heading", BlockType.HEADING3, ""),
+    SlashCommand("Heading 4", Icons.Default.Title, "Extra small heading", BlockType.HEADING4, ""),
     SlashCommand("Bulleted List", Icons.AutoMirrored.Filled.FormatListBulleted, "Bulleted list item", BlockType.BULLET_LIST, ""),
     SlashCommand("Numbered List", Icons.Default.FormatListNumbered, "Numbered list item", BlockType.NUMBERED_LIST, ""),
     SlashCommand("Checklist", Icons.Default.CheckBox, "Checklist item", BlockType.CHECKLIST_ITEM, "", mapOf("checked" to "false")),

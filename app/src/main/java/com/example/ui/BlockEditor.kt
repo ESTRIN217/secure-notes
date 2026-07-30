@@ -169,7 +169,8 @@ fun BlockEditor(
                         onSplit = { before, after ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = block.copy(content = before)
-                            newBlocks.add(index + 1, DataBlock(type = block.type, content = after))
+                            val splitType = if (block.type.name.startsWith("HEADING")) BlockType.TEXT else block.type
+                            newBlocks.add(index + 1, DataBlock(type = splitType, content = after))
                             onBlocksChange(newBlocks)
                             onActiveBlockChange(index + 1)
                         },
@@ -292,7 +293,7 @@ private fun BlockRow(
         )
 
         when (block.type) {
-            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3,
+            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
             BlockType.QUOTE, BlockType.CODE_BLOCK -> {
                 EditableTextBlock(
@@ -511,6 +512,7 @@ private val BlockType.displayName: String
         BlockType.HEADING1 -> "Heading 1"
         BlockType.HEADING2 -> "Heading 2"
         BlockType.HEADING3 -> "Heading 3"
+        BlockType.HEADING4 -> "Heading 4"
         BlockType.BULLET_LIST -> "Bulleted List"
         BlockType.NUMBERED_LIST -> "Numbered List"
         BlockType.CHECKLIST_ITEM -> "Checklist"
@@ -542,7 +544,7 @@ private fun BlockAddButton(onAdd: () -> Unit) {
 }
 
 private val convertibleTypes = setOf(
-    BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3,
+    BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
     BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM,
     BlockType.QUOTE, BlockType.CODE_BLOCK
 )

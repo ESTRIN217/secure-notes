@@ -11,6 +11,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,8 +56,10 @@ fun EditableTextBlock(
     }
     var isFocused by remember { mutableStateOf(false) }
 
-    if (!isFocused && rawText != textFieldValue.text) {
-        textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
+    LaunchedEffect(rawText) {
+        if (!isFocused || rawText.startsWith("<") || rawText.length > textFieldValue.text.length + 20) {
+            textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
+        }
     }
 
     val visualTransformation = remember {
@@ -84,6 +87,7 @@ fun EditableTextBlock(
         BlockType.HEADING1 -> MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         BlockType.HEADING2 -> MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         BlockType.HEADING3 -> MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+        BlockType.HEADING4 -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         BlockType.QUOTE -> MaterialTheme.typography.bodyLarge.copy(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Normal

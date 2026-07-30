@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class BlockType {
-    TEXT, HEADING1, HEADING2, HEADING3,
+    TEXT, HEADING1, HEADING2, HEADING3, HEADING4,
     BULLET_LIST, NUMBERED_LIST, CHECKLIST_ITEM,
     QUOTE, CODE_BLOCK,
     IMAGE, VIDEO, AUDIO, DRAWING, VOICE, FILE,
@@ -30,7 +30,7 @@ data class DataBlock(
 
     fun toLegacyString(): String {
         return when (type) {
-            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3,
+            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
             BlockType.QUOTE, BlockType.CODE_BLOCK -> content
             BlockType.CHECKLIST_ITEM -> "<item checked=\"${meta["checked"] ?: "false"}\">$content</item>"
