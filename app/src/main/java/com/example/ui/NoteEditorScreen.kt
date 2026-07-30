@@ -702,14 +702,6 @@ fun NoteEditorScreen(
             var showBgColorDialog by remember { mutableStateOf(false) }
             var showMoreFormattingSheet by remember { mutableStateOf(false) }
             val isKeyboardVisible = WindowInsets.isImeVisible
-
-            LaunchedEffect(Unit) {
-                snapshotFlow { contentValue.text }
-                    .debounce(16)
-                    .collectLatest { text ->
-                        toolbarParseResult = RichTextParser.parseWithMapping(text, hideTags = true)
-                    }
-            }
             data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
             val toolbarState = remember(toolbarParseResult, contentValue.selection) {
                 val parsed = toolbarParseResult
@@ -718,6 +710,8 @@ fun NoteEditorScreen(
                 val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
                 val activeStyles = mutableSetOf<String>()
                 val headingSizes = setOf(24.sp, 20.sp, 17.sp, 15.sp, 13.sp, 11.sp)
+                var activeFontColor: Color? = null
+                var activeBgColor: Color? = null
                 for (range in parsed.text.spanStyles) {
                     if (range.start <= targetIndex && targetIndex < range.end) {
                         if (range.item.fontSize in headingSizes) {
@@ -733,14 +727,15 @@ fun NoteEditorScreen(
                         if (range.item.fontStyle == FontStyle.Italic) activeStyles.add("i")
                         if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) activeStyles.add("u")
                         if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) activeStyles.add("s")
+                        if (range.item.color != Color.Unspecified) {
+                            activeFontColor = range.item.color
+                        }
+                        if (range.item.background != Color.Unspecified && range.item.background != Color.Transparent) {
+                            activeBgColor = range.item.background
+                        }
+                        if (activeStyles.size >= 5 && activeFontColor != null && activeBgColor != null) break
                     }
                 }
-                val activeFontColor = parsed.text.spanStyles
-                    .filter { it.start <= targetIndex && targetIndex < it.end && it.item.color != Color.Unspecified }
-                    .maxByOrNull { it.start }?.item?.color
-                val activeBgColor = parsed.text.spanStyles
-                    .filter { it.start <= targetIndex && targetIndex < it.end && it.item.background != Color.Unspecified && it.item.background != Color.Transparent }
-                    .maxByOrNull { it.start }?.item?.background
                 ToolbarState(activeStyles, activeFontColor, activeBgColor)
             }
             val activeTextStyles = toolbarState.activeStyles
@@ -1227,6 +1222,7 @@ fun NoteEditorScreen(
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
+                        onParseResult = { toolbarParseResult = it },
                         modifier = Modifier.fillMaxSize()
                     )
 

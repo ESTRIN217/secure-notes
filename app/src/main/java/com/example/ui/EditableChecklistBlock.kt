@@ -5,14 +5,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
@@ -61,7 +58,7 @@ fun EditableChecklistBlock(
                 .size(24.dp)
                 .clickable { onToggle(globalIndex) }
         )
-        OutlinedTextField(
+        BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
                 textFieldValue = newValue
@@ -78,16 +75,9 @@ fun EditableChecklistBlock(
                         onCursorChange(textFieldValue.selection.start)
                     }
                 },
-            shape = RoundedCornerShape(8.dp),
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = if (isChecked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (isChecked) TextDecoration.LineThrough else null
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
             ),
             singleLine = true
         )

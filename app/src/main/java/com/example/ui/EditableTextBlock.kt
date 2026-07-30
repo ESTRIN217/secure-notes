@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,12 +47,14 @@ fun EditableTextBlock(
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {},
+    onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue(text = rawText, selection = TextRange(rawText.length)))
     }
     var isFocused by remember { mutableStateOf(false) }
+    var internalParseResult by remember { mutableStateOf<RichTextParser.ParseResult?>(null) }
 
     LaunchedEffect(rawText) {
         if (!isFocused || rawText.startsWith("<") || rawText.length > textFieldValue.text.length + 20) {
@@ -62,9 +62,14 @@ fun EditableTextBlock(
         }
     }
 
+    LaunchedEffect(internalParseResult) {
+        internalParseResult?.let { onParseResult?.invoke(it) }
+    }
+
     val visualTransformation = remember {
         VisualTransformation { text ->
             val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = true)
+            internalParseResult = parseResult
             val offsetMapping = object : OffsetMapping {
                 override fun originalToTransformed(offset: Int): Int =
                     parseResult.originalToTransformed(offset)
@@ -102,12 +107,6 @@ fun EditableTextBlock(
         else -> MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     }
 
-    val borderColor = when (blockType) {
-        BlockType.QUOTE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-        BlockType.CODE_BLOCK -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
-    }
-
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -129,7 +128,7 @@ fun EditableTextBlock(
             Modifier.weight(1f)
         }
 
-        OutlinedTextField(
+        BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
                 val oldText = textFieldValue.text
@@ -144,7 +143,7 @@ fun EditableTextBlock(
                         onCursorChange(before.length)
                         onFocusChange(true)
                         onSplit(before, after)
-                        return@OutlinedTextField
+                        return@BasicTextField
                     }
                 }
 
@@ -188,14 +187,7 @@ fun EditableTextBlock(
                         }
                     } else false
                 },
-            shape = RoundedCornerShape(8.dp),
-            textStyle = textStyle,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = borderColor,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-            )
+            textStyle = textStyle
         )
     }
 }

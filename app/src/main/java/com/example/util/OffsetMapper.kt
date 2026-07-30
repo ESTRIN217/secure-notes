@@ -6,13 +6,14 @@ class OffsetMapper {
 
     fun createMapping(sourceLength: Int): MappingArrays {
         val sourceToTransformed = IntArray(sourceLength + 1) { -1 }
-        val transformedToSource = mutableListOf<Int>()
-        return MappingArrays(sourceToTransformed, transformedToSource)
+        val transformedToSource = IntArray(sourceLength + 1)
+        return MappingArrays(sourceToTransformed, transformedToSource, 0)
     }
 
     data class MappingArrays(
         val sourceToTransformed: IntArray,
-        val transformedToSource: MutableList<Int>
+        val transformedToSource: IntArray,
+        var transformedCount: Int
     )
 
     data class FinalMapping(
@@ -21,18 +22,21 @@ class OffsetMapper {
     )
 
     fun addChar(mapping: MappingArrays, sourceIndex: Int, builderLength: Int) {
-        mapping.transformedToSource.add(sourceIndex)
+        val idx = mapping.transformedCount
+        mapping.transformedToSource[idx] = sourceIndex
         mapping.sourceToTransformed[sourceIndex] = builderLength
+        mapping.transformedCount = idx + 1
     }
 
     fun skipChar(mapping: MappingArrays, sourceIndex: Int) {
-        mapping.sourceToTransformed[sourceIndex] = mapping.sourceToTransformed.getOrElse(sourceIndex) { 0 }
     }
 
     fun finalize(mapping: MappingArrays, builderLength: Int, sourceLength: Int): FinalMapping {
-        val (stt, tts) = mapping
+        val (stt, tts, count) = mapping
         stt[sourceLength] = builderLength
-        tts.add(sourceLength)
+
+        val totalTransformed = count + 1
+        tts[count] = sourceLength
 
         var lastT = 0
         for (idx in 0..sourceLength) {
@@ -46,7 +50,7 @@ class OffsetMapper {
         val M = builderLength
         val filledTts = IntArray(M + 1)
         for (idx in 0..M) {
-            filledTts[idx] = if (idx < tts.size) {
+            filledTts[idx] = if (idx < totalTransformed) {
                 tts[idx].coerceIn(0, sourceLength)
             } else {
                 sourceLength

@@ -167,7 +167,7 @@ class RichTextParser {
                 lineContent.count { it == '*' },
                 lineContent.count { it == '_' }
             )
-            if (hrCounts.any { it >= 3 } && lineContent.matches(Regex("^[-*_ ]+$"))) {
+            if (hrCounts.any { it >= 3 } && lineContent.matches(hrLineRegex)) {
                 skipOrGrayTagChars(rawText, builder, mapping, i, lineEnd, showTagsGray)
                 OffsetMapper.addChar(mapping, i, builder.length)
                 builder.append('\u2000')
@@ -243,7 +243,7 @@ class RichTextParser {
             }
         }
 
-        val nestedListMatch = Regex("^( {2,})([-*])(\\s+)").find(rawText.substring(i))
+        val nestedListMatch = nestedListRegex.find(rawText.substring(i))
         if (nestedListMatch != null && rawText.substring(i).startsWith(nestedListMatch.value)) {
             val indent = nestedListMatch.groupValues[1].length
             val tagEnd = i + nestedListMatch.value.length
@@ -254,7 +254,7 @@ class RichTextParser {
             return tagEnd
         }
 
-        val numListMatch = Regex("^\\d+\\.\\s+").find(rawText.substring(i))
+        val numListMatch = numListRegex.find(rawText.substring(i))
         if (numListMatch != null) {
             val tagLen = numListMatch.value.length
             val tagEnd = i + tagLen
@@ -371,7 +371,7 @@ class RichTextParser {
         rawText: String, i: Int, builder: AnnotatedString.Builder, mapping: OffsetMapper.MappingArrays,
         hideTags: Boolean, showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>
     ): Int? {
-        val linkMatch = Regex("^\\[([^\\]]*)\\]\\(([^\\)]+)\\)").find(rawText.substring(i))
+        val linkMatch = markdownLinkRegex.find(rawText.substring(i))
         if (linkMatch != null) {
             val full = linkMatch.value
             val display = linkMatch.groupValues[1]
@@ -452,7 +452,7 @@ class RichTextParser {
             return i + 1
         }
 
-        val autoLinkMatch = Regex("^https?://[^\\s<>\"'(){}|\\\\^`\\[\\]]+").find(rawText.substring(i))
+        val autoLinkMatch = autoLinkRegex.find(rawText.substring(i))
         if (autoLinkMatch != null) {
             val url = autoLinkMatch.value
             val urlEnd = i + url.length
@@ -510,15 +510,13 @@ class RichTextParser {
 
     fun parseMediaBlocks(rawText: String): List<MediaBlock> {
         var preprocessed = rawText
-        preprocessed = preprocessed.replace(Regex("!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)"), "<img src=\"$2\" />")
-        preprocessed = preprocessed.replace(Regex("!video\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)"), "<video src=\"$2\" />")
-        preprocessed = preprocessed.replace(Regex("!audio\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)"), "<audio src=\"$2\" />")
+        preprocessed = preprocessed.replace(mediaImgRegex, "<img src=\"$2\" />")
+        preprocessed = preprocessed.replace(mediaVideoRegex, "<video src=\"$2\" />")
+        preprocessed = preprocessed.replace(mediaAudioRegex, "<audio src=\"$2\" />")
 
         val blocks = mutableListOf<MediaBlock>()
         var currentStart = 0
-        val regex = Regex("<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>|<(img|video|audio)=([^>]+)>")
-
-        val matches = regex.findAll(preprocessed)
+        val matches = mediaTagRegex.findAll(preprocessed)
         for (match in matches) {
             val preText = preprocessed.substring(currentStart, match.range.first)
             if (preText.isNotEmpty()) {
@@ -550,6 +548,16 @@ class RichTextParser {
 
     companion object {
         private val default = RichTextParser()
+
+        private val hrLineRegex = Regex("^[-*_ ]+$")
+        private val nestedListRegex = Regex("^( {2,})([-*])(\\s+)")
+        private val numListRegex = Regex("^\\d+\\.\\s+")
+        private val markdownLinkRegex = Regex("^\\[([^\\]]*)\\]\\(([^\\)]+)\\)")
+        private val autoLinkRegex = Regex("^https?://[^\\s<>\"'(){}|\\\\^`\\[\\]]+")
+        private val mediaImgRegex = Regex("!\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)")
+        private val mediaVideoRegex = Regex("!video\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)")
+        private val mediaAudioRegex = Regex("!audio\\s*\\[([^\\]]*)\\]\\(([^\\)]+)\\)")
+        private val mediaTagRegex = Regex("<(img|video|audio)\\s+src=\"([^\"]+)\"\\s*/>|<(img|video|audio)=([^>]+)>")
 
         fun parseWithMapping(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false) = default.parseWithMapping(rawText, hideTags, showTagsGray)
         fun parse(rawText: String, hideTags: Boolean, showTagsGray: Boolean = false) = default.parse(rawText, hideTags, showTagsGray)

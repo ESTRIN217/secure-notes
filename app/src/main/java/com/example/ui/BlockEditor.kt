@@ -1,16 +1,14 @@
 package com.example.ui
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,7 +17,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Title
@@ -41,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -48,6 +46,7 @@ import com.example.data.model.Attachment
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.NoteContentBlock
+import com.example.util.RichTextParser
 
 @Composable
 fun BlockEditor(
@@ -62,6 +61,7 @@ fun BlockEditor(
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
+    onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -71,9 +71,7 @@ fun BlockEditor(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .verticalScroll(scrollState),
         ) {
             blocks.forEachIndexed { index, block ->
                 val isDragging = dragState?.draggedIndex == index
@@ -96,12 +94,71 @@ fun BlockEditor(
                                 }
                             else Modifier
                         )
+                        .then(
+                            if (index != activeBlockIndex && !isDragging) Modifier.pointerInput(index) {
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
+                                    val startTime = System.nanoTime()
+                                    var longPressed = false
+                                    var lastPosition = down.position
+
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                                        if (!change.pressed) break
+
+                                        if (!longPressed) {
+                                            val now = System.nanoTime()
+                                            val elapsed = now - startTime
+                                            if (elapsed >= viewConfiguration.longPressTimeoutMillis.toLong() * 1_000_000) {
+                                                longPressed = true
+                                                change.consume()
+                                                lastPosition = change.position
+                                                dragState = DragState(
+                                                    draggedIndex = index,
+                                                    startOffset = 0f,
+                                                    offset = 0f,
+                                                    initialScrollOffset = scrollState.value
+                                                )
+                                            } else {
+                                                val distance = (change.position - down.position).getDistance()
+                                                if (distance > viewConfiguration.touchSlop) break
+                                            }
+                                        }
+
+                                        if (longPressed) {
+                                            change.consume()
+                                            val delta = change.position.y - lastPosition.y
+                                            lastPosition = change.position
+                                            val state = dragState
+                                            if (state != null) {
+                                                val newOffset = state.offset + delta
+                                                val moveDelta = (newOffset / 72f).toInt()
+                                                val tentativeIndex = (index + moveDelta).coerceIn(0, blocks.size - 1)
+                                                dragState = state.copy(offset = newOffset, tentativeIndex = tentativeIndex)
+                                            }
+                                        }
+                                    }
+
+                                    if (longPressed) {
+                                        val state = dragState
+                                        if (state != null && state.tentativeIndex != null && state.tentativeIndex != index) {
+                                            val newBlocks = blocks.toMutableList()
+                                            val item = newBlocks.removeAt(index)
+                                            newBlocks.add(state.tentativeIndex, item)
+                                            onBlocksChange(newBlocks)
+                                            onActiveBlockChange(state.tentativeIndex)
+                                        }
+                                        dragState = null
+                                    }
+                                }
+                            } else Modifier
+                        )
                 ) {
                     if (dropAbove) {
                         HorizontalDivider(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 40.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             thickness = 2.dp,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -115,7 +172,6 @@ fun BlockEditor(
                         index = index,
                         blockCount = blocks.size,
                         isActive = index == activeBlockIndex,
-                        isDragging = isDragging,
                         onActivate = { onActiveBlockChange(index) },
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
@@ -191,42 +247,13 @@ fun BlockEditor(
                                 onActiveBlockChange(focusIdx)
                             }
                         },
-                        onDragStart = {
-                            dragState = DragState(
-                                draggedIndex = index,
-                                startOffset = 0f,
-                                offset = 0f,
-                                initialScrollOffset = scrollState.value
-                            )
-                        },
-                        onDrag = { delta ->
-                            val state = dragState
-                            if (state != null) {
-                                val newOffset = state.offset + delta
-                                val moveDelta = (newOffset / 72f).toInt()
-                                val tentativeIndex = (index + moveDelta).coerceIn(0, blocks.size - 1)
-                                dragState = state.copy(offset = newOffset, tentativeIndex = tentativeIndex)
-                            }
-                        },
-                        onDragEnd = {
-                            val state = dragState
-                            if (state != null && state.tentativeIndex != null && state.tentativeIndex != index) {
-                                val newBlocks = blocks.toMutableList()
-                                val item = newBlocks.removeAt(index)
-                                newBlocks.add(state.tentativeIndex, item)
-                                onBlocksChange(newBlocks)
-                                onActiveBlockChange(state.tentativeIndex)
-                            }
-                            dragState = null
-                        },
-                        onDragCancel = { dragState = null }
+                        onParseResult = onParseResult
                     )
 
                     if (dropBelow) {
                         HorizontalDivider(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 40.dp)
                                 .align(Alignment.BottomCenter),
                             thickness = 2.dp,
                             color = MaterialTheme.colorScheme.primary
@@ -257,7 +284,6 @@ private fun BlockRow(
     index: Int,
     blockCount: Int,
     isActive: Boolean,
-    isDragging: Boolean = false,
     onActivate: () -> Unit,
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
@@ -268,29 +294,17 @@ private fun BlockRow(
     onInsertBelow: () -> Unit,
     onSplit: (String, String) -> Unit,
     onCursorChange: (Int) -> Unit,
+    onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingTagInsert: MutableState<String?>,
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
-    onDeleteBlock: () -> Unit = {},
-    onDragStart: () -> Unit = {},
-    onDrag: (Float) -> Unit = {},
-    onDragEnd: () -> Unit = {},
-    onDragCancel: () -> Unit = {}
+    onDeleteBlock: () -> Unit = {}
 ) {
     var showBlockMenu by remember { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier.padding(vertical = 2.dp),
         verticalAlignment = Alignment.Top
     ) {
-        BlockHandle(
-            isActive = isActive || isDragging,
-            onClick = { showBlockMenu = true },
-            onDragStart = onDragStart,
-            onDrag = onDrag,
-            onDragEnd = onDragEnd,
-            onDragCancel = onDragCancel
-        )
 
         when (block.type) {
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
@@ -306,6 +320,7 @@ private fun BlockRow(
                     onMoveToPreviousBlock = onMoveToPreviousBlock,
                     onMoveToNextBlock = onMoveToNextBlock,
                     onDeleteBlock = onDeleteBlock,
+                    onParseResult = onParseResult,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -355,41 +370,6 @@ private fun BlockRow(
                 onInsertBelow = onInsertBelow
             )
         }
-    }
-}
-
-@Composable
-private fun BlockHandle(
-    isActive: Boolean,
-    onClick: () -> Unit,
-    onDragStart: () -> Unit = {},
-    onDrag: (Float) -> Unit = {},
-    onDragEnd: () -> Unit = {},
-    onDragCancel: () -> Unit = {}
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .width(40.dp)
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { onDragStart() },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.y)
-                    },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragCancel() }
-                )
-            }
-    ) {
-        Icon(
-            Icons.Default.DragHandle,
-            contentDescription = "Block menu",
-            tint = if (isActive) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-            modifier = Modifier.padding(2.dp)
-        )
     }
 }
 
