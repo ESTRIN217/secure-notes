@@ -8,7 +8,7 @@ import org.json.JSONObject
 enum class BlockType {
     TEXT, HEADING1, HEADING2, HEADING3, HEADING4,
     BULLET_LIST, NUMBERED_LIST, CHECKLIST_ITEM,
-    QUOTE, CODE_BLOCK,
+    QUOTE, CODE_BLOCK, CALLOUT, PAGE,
     IMAGE, VIDEO, AUDIO, DRAWING, VOICE, FILE,
     TABLE, HORIZONTAL_RULE, COLLAPSIBLE
 }
@@ -33,6 +33,12 @@ data class DataBlock(
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
             BlockType.QUOTE, BlockType.CODE_BLOCK -> content
+            BlockType.CALLOUT -> "<mark>$content</mark>"
+            BlockType.PAGE -> {
+                val noteId = meta["noteId"] ?: ""
+                if (noteId.isNotBlank()) "<url=note://$noteId>${content.ifBlank { "Página" }}</url>"
+                else content
+            }
             BlockType.CHECKLIST_ITEM -> "<item checked=\"${meta["checked"] ?: "false"}\">$content</item>"
             BlockType.IMAGE -> {
                 val link = meta["linkUrl"]
@@ -97,6 +103,7 @@ data class DataBlock(
                 "|<(img|video|audio)=([^>]+)>" +
                 "|<item\\s+checked=\"(true|false)\">[\\s\\S]*?</item>" +
                 "|<table[^>]*>[\\s\\S]*?</table>" +
+                "|<callout>[\\s\\S]*?</callout>" +
                 "|<ol>[\\s\\S]*?</ol>" +
                 "|<ul>[\\s\\S]*?</ul>" +
                 "|<hr\\s*/?>" +
@@ -150,6 +157,10 @@ data class DataBlock(
                     matchVal.startsWith("<table") -> {
                         val tContent = matchVal.substringAfter(">").substringBeforeLast("</table>")
                         blocks.add(DataBlock(type = BlockType.TABLE, content = tContent))
+                    }
+                    matchVal.startsWith("<callout") -> {
+                        val cContent = matchVal.removePrefix("<callout>").removeSuffix("</callout>")
+                        blocks.add(DataBlock(type = BlockType.CALLOUT, content = cContent.trim()))
                     }
                     matchVal.startsWith("<details") -> {
                         val dContent = matchVal.substringAfter(">").substringBeforeLast("</details>")

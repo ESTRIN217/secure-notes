@@ -123,7 +123,8 @@ fun NoteEditorScreen(
     onBack: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> },
     onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> },
-    onNavigateToAiChat: (Int) -> Unit = {}
+    onNavigateToAiChat: (Int) -> Unit = {},
+    onNavigateToNote: (Int) -> Unit = { _ -> }
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -184,12 +185,12 @@ fun NoteEditorScreen(
     var historyIndex by remember { mutableStateOf(-1) }
     var showSlashMenu by remember { mutableStateOf(false) }
     var slashFilter by remember { mutableStateOf("") }
-    var slashBlockIndex by remember { mutableIntStateOf(-1) }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
     val pendingTagInsert = remember { mutableStateOf<String?>(null) }
     val pendingInsert = remember { mutableStateOf<String?>(null) }
     var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
     var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
+    var pendingFocusBlockIndex by remember { mutableIntStateOf(-1) }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
@@ -576,7 +577,6 @@ fun NoteEditorScreen(
         if (text.startsWith("/") && cursor in 1..text.length && !text.substring(0, cursor).contains(" ")) {
             if (!showSlashMenu) showSlashMenu = true
             slashFilter = text.substring(1, cursor)
-            slashBlockIndex = toolbarActiveBlockIndex
         } else {
             if (showSlashMenu) showSlashMenu = false
         }
@@ -584,12 +584,16 @@ fun NoteEditorScreen(
 
     fun handleSlashSelect(block: DataBlock) {
         showSlashMenu = false
-        val idx = slashBlockIndex.coerceIn(0, blocks.size)
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock?.content?.startsWith("/") == true
         val newBlocks = blocks.toMutableList()
-        if (idx < blocks.size && blocks.getOrNull(idx)?.content?.startsWith("/") == true) {
-            newBlocks[idx] = block.copy(content = block.content)
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = block.copy(content = block.content)
         } else {
             newBlocks.add(idx, block)
+            pendingFocusBlockIndex = idx
         }
         blocks = newBlocks
         contentValue = TextFieldValue(text = block.content, selection = TextRange(block.content.length))
@@ -601,6 +605,77 @@ fun NoteEditorScreen(
         val jsonContent = DataBlock.serialize(blocks)
         if (attachments.isEmpty()) jsonContent
         else createRawContent(jsonContent, attachments)
+    }
+
+    fun handleBlockCommand(cmd: BlockCommand) {
+        showSlashMenu = false
+        fun clearSlashPlaceholder() {
+            val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+            val currentBlock = blocks.getOrNull(currentIdx)
+            if (currentBlock?.content?.startsWith("/") == true) {
+                val newBlocks = blocks.toMutableList()
+                newBlocks[currentIdx] = currentBlock.copy(content = "")
+                blocks = newBlocks
+                contentValue = TextFieldValue(text = "")
+            }
+        }
+        when (cmd.action) {
+            BlockAction.NONE -> cmd.blockType?.let { type ->
+                handleSlashSelect(DataBlock(type = type, content = cmd.defaultContent, meta = cmd.meta))
+            }
+            BlockAction.URL_DIALOG -> {
+                clearSlashPlaceholder()
+                val ss = contentValue.selection.start
+                val se = contentValue.selection.end
+                urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
+                urlInputAddress = ""
+                showInsertUrlDialog = true
+            }
+            BlockAction.TABLE_DIALOG -> {
+                clearSlashPlaceholder()
+                showInsertTableDialog = true
+            }
+            BlockAction.IMAGE_DIALOG -> {
+                clearSlashPlaceholder()
+                showInsertImageDialog = true
+            }
+            BlockAction.VIDEO_DIALOG -> {
+                clearSlashPlaceholder()
+                showInsertVideoDialog = true
+            }
+            BlockAction.VOICE_FILE_DIALOG -> {
+                clearSlashPlaceholder()
+                showVoiceFileSheet = true
+            }
+            BlockAction.INSERT_PAGE -> scope.launch {
+                syncActiveBlock()
+                val newId = viewModel.saveNoteAndGetId(
+                    id = 0,
+                    title = "",
+                    content = "",
+                    isEncrypted = isEncrypted,
+                    tagsList = selectedNoteTags
+                )
+                if (newId != 0) {
+                    handleSlashSelect(DataBlock(type = BlockType.PAGE, content = "", meta = mapOf("noteId" to newId.toString())))
+                    if (noteId != 0) {
+                        viewModel.saveNoteAndGetId(
+                            id = noteId,
+                            title = title.trim(),
+                            content = contentForSave(),
+                            isEncrypted = isEncrypted,
+                            tagsList = selectedNoteTags,
+                            backgroundColor = selectedBgColorId,
+                            backgroundImagePath = selectedBgImagePath,
+                            isPinned = isPinned,
+                            isFavorite = isFavorite,
+                            isArchived = isArchived
+                        )
+                    }
+                    onNavigateToNote(newId)
+                }
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -1223,6 +1298,8 @@ fun NoteEditorScreen(
                         pendingInsert = pendingInsert,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
                         onParseResult = { toolbarParseResult = it },
+                        pendingFocusBlockIndex = pendingFocusBlockIndex,
+                        onFocusHandled = { pendingFocusBlockIndex = -1 },
                         modifier = Modifier.fillMaxSize()
                     )
 
@@ -1230,7 +1307,7 @@ fun NoteEditorScreen(
                         Box(modifier = Modifier.align(Alignment.TopStart).padding(start = 40.dp, top = 4.dp)) {
                             SlashCommandMenu(
                                 filter = slashFilter,
-                                onSelect = { block -> handleSlashSelect(block) },
+                                onSelect = { cmd -> handleBlockCommand(cmd) },
                                 onDismiss = { showSlashMenu = false }
                             )
                         }
@@ -1866,159 +1943,35 @@ fun NoteEditorScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Bloques básicos", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("T", "Texto", Icons.Default.Title) {
-                            handleSlashSelect(DataBlock(type = BlockType.TEXT))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("H1", "Encabezado 1", Icons.Default.Title) {
-                            handleSlashSelect(DataBlock(type = BlockType.HEADING1))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("H2", "Encabezado 2", Icons.Default.Title) {
-                            handleSlashSelect(DataBlock(type = BlockType.HEADING2))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("H3", "Encabezado 3", Icons.Default.Title) {
-                            handleSlashSelect(DataBlock(type = BlockType.HEADING3))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("H4", "Encabezado 4", Icons.Default.Title) {
-                            handleSlashSelect(DataBlock(type = BlockType.HEADING4))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("≡", "Lista viñetas", Icons.AutoMirrored.Filled.FormatListBulleted) {
-                            handleSlashSelect(DataBlock(type = BlockType.BULLET_LIST))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("1.", "Lista numerada", Icons.Default.FormatListNumbered) {
-                            handleSlashSelect(DataBlock(type = BlockType.NUMBERED_LIST))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("☐", "Lista tareas", Icons.Default.CheckBox) {
-                            handleSlashSelect(DataBlock(type = BlockType.CHECKLIST_ITEM, meta = mapOf("checked" to "false")))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("▾", "Lista despl.", Icons.Default.KeyboardArrowDown) {
-                            handleSlashSelect(DataBlock(type = BlockType.COLLAPSIBLE))
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("🔗", "Página", Icons.Default.Link) {
-                            val ss = contentValue.selection.start
-                            val se = contentValue.selection.end
-                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
-                            urlInputAddress = ""
-                            showInsertUrlDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                    }
+                    Text(stringResource(R.string.block_section_basic), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    BlockCommandSection(
+                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BASIC },
+                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                    )
 
                     HorizontalDivider()
 
-                    Text("Destacado", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("🖉", "Destacado", Icons.Default.Edit) {
-                            applyTag("mark")
-                            showMoreFormattingSheet = false
-                        }
-                    }
+                    Text(stringResource(R.string.block_section_blocks), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    BlockCommandSection(
+                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BLOCKS },
+                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                    )
 
                     HorizontalDivider()
 
-                    Text("Cita", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("❝", "Cita", Icons.Default.FormatQuote) {
-                            applyTag("quote")
-                            showMoreFormattingSheet = false
-                        }
-                    }
+                    Text(stringResource(R.string.block_section_link), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    BlockCommandSection(
+                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.LINK },
+                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                    )
 
                     HorizontalDivider()
 
-                    Text("Bloques", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("⊞", "Tabla", Icons.Default.BorderAll) {
-                            showInsertTableDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("—", "Divisor", Icons.Default.HorizontalRule) {
-                            insertAtCursor("<hr/>")
-                            showMoreFormattingSheet = false
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Text("Enlace", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("🔗", "Enlace", Icons.Default.Link) {
-                            val ss = contentValue.selection.start
-                            val se = contentValue.selection.end
-                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
-                            urlInputAddress = ""
-                            showInsertUrlDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Text("Contenido Multimedia", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BlockGridItem("🖼", "Imagen", Icons.Default.Image) {
-                            showInsertImageDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("▶", "Video", Icons.Default.Videocam) {
-                            showInsertVideoDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("♪", "Audio", Icons.Default.MusicNote) {
-                            showVoiceFileSheet = true
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("<>", "Código", Icons.Default.Code) {
-                            applyTag("pre")
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("📎", "Archivo", Icons.Default.AttachFile) {
-                            showVoiceFileSheet = true
-                            showMoreFormattingSheet = false
-                        }
-                        BlockGridItem("🔖", "Marcador", Icons.Default.Bookmark) {
-                            val ss = contentValue.selection.start
-                            val se = contentValue.selection.end
-                            urlInputText = if (ss != se) contentValue.text.substring(ss, se) else ""
-                            urlInputAddress = ""
-                            showInsertUrlDialog = true
-                            showMoreFormattingSheet = false
-                        }
-                    }
+                    Text(stringResource(R.string.block_section_media), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    BlockCommandSection(
+                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.MEDIA },
+                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }
@@ -2880,8 +2833,27 @@ fun NoteEditorScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+private fun BlockCommandSection(
+    commands: List<BlockCommand>,
+    onClick: (BlockCommand) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        commands.forEach { cmd ->
+            BlockGridItem(
+                label = stringResource(cmd.labelRes),
+                icon = cmd.icon
+            ) { onClick(cmd) }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun BlockGridItem(
-    iconText: String,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit

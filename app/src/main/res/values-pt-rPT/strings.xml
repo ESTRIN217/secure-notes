@@ -276,6 +276,14 @@
     <string name="mic_permission_required">Permissão de microfone é necessária para gravar notas de voz</string>
 
     <!-- Navigation / common -->
+    <string name="page_block_icon">Ícone da página</string>
+    <string name="page_block_emoji">Emoji</string>
+    <string name="page_block_icons">Ícones</string>
+    <string name="page_block_upload">Enviar</string>
+    <string name="page_block_upload_image">Enviar uma imagem</string>
+    <string name="page_block_paste_link">Cole um link</string>
+    <string name="page_block_link_hint">URL da imagem (https://…)</string>
+    <string name="page_block_next">Próximo</string>
     <string name="back">Voltar</string>
     <string name="close">Fechar</string>
     <string name="sync">Sincronizar</string>

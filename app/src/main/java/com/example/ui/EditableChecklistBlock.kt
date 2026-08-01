@@ -12,12 +12,15 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -34,12 +37,22 @@ fun EditableChecklistBlock(
     onToggle: (Int) -> Unit,
     onFocusChange: (Boolean) -> Unit = {},
     onCursorChange: (Int) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requestFocus: Boolean = false,
+    onFocusRequested: () -> Unit = {}
 ) {
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue(text = itemText, selection = TextRange(itemText.length)))
     }
     var isFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) {
+            focusRequester.requestFocus()
+            onFocusRequested()
+        }
+    }
 
     if (!isFocused && itemText != textFieldValue.text) {
         textFieldValue = TextFieldValue(text = itemText, selection = TextRange(itemText.length))
@@ -68,6 +81,7 @@ fun EditableChecklistBlock(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .focusRequester(focusRequester)
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused
                     onFocusChange(focusState.isFocused)

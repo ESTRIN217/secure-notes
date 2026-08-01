@@ -1,15 +1,20 @@
 package com.example.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +31,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,11 +43,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.example.R
 import com.example.data.model.Attachment
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
@@ -58,10 +69,13 @@ fun BlockEditor(
     noteId: Int,
     onNavigateToMediaViewer: (String, String) -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
+    onNavigateToNote: (Int) -> Unit = { _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
+    pendingFocusBlockIndex: Int = -1,
+    onFocusHandled: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -73,7 +87,9 @@ fun BlockEditor(
                 .fillMaxSize()
                 .verticalScroll(scrollState),
         ) {
+            var numberedCounter = 0
             blocks.forEachIndexed { index, block ->
+                numberedCounter = if (block.type == BlockType.NUMBERED_LIST) numberedCounter + 1 else 0
                 val isDragging = dragState?.draggedIndex == index
                 val dragOffset = if (isDragging) dragState?.offset ?: 0f else 0f
                 val droppedIndex = dragState?.tentativeIndex
@@ -172,7 +188,9 @@ fun BlockEditor(
                         index = index,
                         blockCount = blocks.size,
                         isActive = index == activeBlockIndex,
+                        numberIndex = numberedCounter.takeIf { block.type == BlockType.NUMBERED_LIST },
                         onActivate = { onActiveBlockChange(index) },
+                        onNavigateToNote = onNavigateToNote,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -224,14 +242,29 @@ fun BlockEditor(
                         },
                         onSplit = { before, after ->
                             val newBlocks = blocks.toMutableList()
-                            newBlocks[index] = block.copy(content = before)
-                            val splitType = if (block.type.name.startsWith("HEADING")) BlockType.TEXT else block.type
-                            newBlocks.add(index + 1, DataBlock(type = splitType, content = after))
-                            onBlocksChange(newBlocks)
-                            onActiveBlockChange(index + 1)
+                            if (before.isEmpty() && after.isEmpty() && block.type in exitOnEmptyTypes) {
+                                newBlocks[index] = DataBlock(type = BlockType.TEXT)
+                                onBlocksChange(newBlocks)
+                                onActiveBlockChange(index)
+                            } else {
+                                newBlocks[index] = block.copy(content = before)
+                                val splitType = if (block.type.name.startsWith("HEADING")) BlockType.TEXT else block.type
+                                newBlocks.add(index + 1, DataBlock(type = splitType, content = after))
+                                onBlocksChange(newBlocks)
+                                onActiveBlockChange(index + 1)
+                            }
                         },
                         onCursorChange = onActiveCursorChange,
                         pendingTagInsert = pendingTagInsert,
+                        requestFocus = index == pendingFocusBlockIndex,
+                        onFocusRequested = onFocusHandled,
+                        onSplitCollapsibleSummary = { before, after ->
+                            val newBlocks = blocks.toMutableList()
+                            newBlocks[index] = block.copy(meta = block.meta + ("summary" to before))
+                            newBlocks.add(index + 1, DataBlock(type = BlockType.COLLAPSIBLE, content = "", meta = mapOf("summary" to after)))
+                            onBlocksChange(newBlocks)
+                            onActiveBlockChange(index + 1)
+                        },
                         onMoveToPreviousBlock = {
                             if (prevIndex >= 0) onActiveBlockChange(prevIndex)
                         },
@@ -284,7 +317,9 @@ private fun BlockRow(
     index: Int,
     blockCount: Int,
     isActive: Boolean,
+    numberIndex: Int? = null,
     onActivate: () -> Unit,
+    onNavigateToNote: (Int) -> Unit = { _ -> },
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -296,6 +331,9 @@ private fun BlockRow(
     onCursorChange: (Int) -> Unit,
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingTagInsert: MutableState<String?>,
+    requestFocus: Boolean = false,
+    onFocusRequested: () -> Unit = {},
+    onSplitCollapsibleSummary: (String, String) -> Unit = { _, _ -> },
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {}
@@ -309,7 +347,7 @@ private fun BlockRow(
         when (block.type) {
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
-            BlockType.QUOTE, BlockType.CODE_BLOCK -> {
+            BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT -> {
                 EditableTextBlock(
                     rawText = block.content,
                     blockType = block.type,
@@ -320,8 +358,12 @@ private fun BlockRow(
                     onMoveToPreviousBlock = onMoveToPreviousBlock,
                     onMoveToNextBlock = onMoveToNextBlock,
                     onDeleteBlock = onDeleteBlock,
+                    onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     onParseResult = onParseResult,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    numberIndex = numberIndex,
+                    requestFocus = requestFocus,
+                    onFocusRequested = onFocusRequested
                 )
             }
             BlockType.CHECKLIST_ITEM -> {
@@ -335,8 +377,81 @@ private fun BlockRow(
                         onChange(block.copy(meta = mapOf("checked" to (!checked).toString())))
                     },
                     onFocusChange = { if (it) onActivate() },
-                    onCursorChange = onCursorChange
+                    onCursorChange = onCursorChange,
+                    requestFocus = requestFocus,
+                    onFocusRequested = onFocusRequested
                 )
+            }
+            BlockType.COLLAPSIBLE -> {
+                EditableCollapsibleBlock(
+                    summary = block.meta["summary"] ?: "",
+                    content = block.content,
+                    onChange = { newSummary, newContent ->
+                        onChange(block.copy(content = newContent, meta = block.meta + ("summary" to newSummary)))
+                    },
+                    onSplitSummary = onSplitCollapsibleSummary,
+                    onFocusChange = { if (it) onActivate() },
+                    onCursorChange = onCursorChange,
+                    onMoveToPreviousBlock = onMoveToPreviousBlock,
+                    onMoveToNextBlock = onMoveToNextBlock,
+                    modifier = Modifier.weight(1f),
+                    requestFocus = requestFocus,
+                    onFocusRequested = onFocusRequested
+                )
+            }
+            BlockType.PAGE -> {
+                val linkedNoteId = block.meta["noteId"]?.toIntOrNull()
+                val pageTitle = block.content.ifBlank { stringResource(R.string.block_page) }
+                var showIconSheet by remember { mutableStateOf(false) }
+                OutlinedCard(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                                .clickable { showIconSheet = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PageBlockIconContent(
+                                iconType = block.meta["iconType"],
+                                iconValue = block.meta["iconValue"].orEmpty(),
+                                size = 18.dp,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = pageTitle,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { if (linkedNoteId != null) onNavigateToNote(linkedNoteId) }
+                        )
+                    }
+                }
+                if (showIconSheet) {
+                    PageBlockOptionsSheet(
+                        block = block,
+                        onIconSelected = { type, value ->
+                            onChange(block.copy(meta = block.meta + mapOf("iconType" to type, "iconValue" to value)))
+                        },
+                        onDelete = {
+                            showIconSheet = false
+                            onDelete()
+                        },
+                        onDismiss = { showIconSheet = false }
+                    )
+                }
             }
             else -> {
                 val renderingBlock = block.toRenderingBlock()
@@ -498,6 +613,8 @@ private val BlockType.displayName: String
         BlockType.CHECKLIST_ITEM -> "Checklist"
         BlockType.QUOTE -> "Quote"
         BlockType.CODE_BLOCK -> "Code Block"
+        BlockType.CALLOUT -> "Highlight"
+        BlockType.PAGE -> "Page"
         BlockType.HORIZONTAL_RULE -> "Divider"
         BlockType.IMAGE -> "Image"
         BlockType.VIDEO -> "Video"
@@ -528,6 +645,8 @@ private val convertibleTypes = setOf(
     BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM,
     BlockType.QUOTE, BlockType.CODE_BLOCK
 )
+
+private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)
 
 private fun DataBlock.toRenderingBlock(): NoteContentBlock {
     return when (type) {

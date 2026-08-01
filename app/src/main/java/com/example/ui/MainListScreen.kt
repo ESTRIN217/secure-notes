@@ -1650,6 +1650,7 @@ fun NoteCardItem(
 ) {
     val note = decryptedNote.note
     val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
+    val pageBlockLabel = stringResource(R.string.block_page)
     
     val tagsList = remember(note.tagsJson) { note.parseTags() }
 
@@ -1737,27 +1738,57 @@ fun NoteCardItem(
                 if (blocks != null) {
                     val textParts = mutableListOf<String>()
                     val attachments = mutableListOf<Triple<String, String, String>>()
+                    var numberedCounter = 0
                     for (block in blocks) {
                         when (block.type) {
                             com.example.data.model.BlockType.TEXT,
-                            com.example.data.model.BlockType.BULLET_LIST,
-                            com.example.data.model.BlockType.NUMBERED_LIST,
-                            com.example.data.model.BlockType.QUOTE,
-                            com.example.data.model.BlockType.CODE_BLOCK -> textParts.add(block.content)
+                            com.example.data.model.BlockType.CODE_BLOCK -> {
+                                numberedCounter = 0
+                                textParts.add(block.content)
+                            }
+                            com.example.data.model.BlockType.BULLET_LIST -> {
+                                numberedCounter = 0
+                                textParts.add("• ${block.content}")
+                            }
+                            com.example.data.model.BlockType.NUMBERED_LIST -> {
+                                numberedCounter++
+                                textParts.add("$numberedCounter. ${block.content}")
+                            }
+                            com.example.data.model.BlockType.QUOTE -> {
+                                numberedCounter = 0
+                                textParts.add("❝ ${block.content}")
+                            }
+                            com.example.data.model.BlockType.CALLOUT -> {
+                                numberedCounter = 0
+                                textParts.add("▎ ${block.content}")
+                            }
+                            com.example.data.model.BlockType.PAGE -> {
+                                numberedCounter = 0
+                                val icon = if (block.meta["iconType"] == "emoji") block.meta["iconValue"].orEmpty() else "🔗"
+                                textParts.add("$icon ${block.content.ifBlank { pageBlockLabel }}")
+                            }
                             com.example.data.model.BlockType.CHECKLIST_ITEM -> {
+                                numberedCounter = 0
                                 val prefix = if (block.meta["checked"] == "true") "☑ " else "☐ "
                                 textParts.add("$prefix${block.content}")
                             }
                             com.example.data.model.BlockType.HEADING1,
                             com.example.data.model.BlockType.HEADING2,
-                            com.example.data.model.BlockType.HEADING3 -> textParts.add(block.content)
+                            com.example.data.model.BlockType.HEADING3 -> {
+                                numberedCounter = 0
+                                textParts.add(block.content)
+                            }
                             com.example.data.model.BlockType.IMAGE -> attachments.add(Triple("image", block.content, ""))
-                            com.example.data.model.BlockType.VIDEO -> attachments.add(Triple("video", block.content, ""))
+                            com.example.data.model.BlockType.VIDEO -> {
+                                numberedCounter = 0
+                                attachments.add(Triple("video", block.content, ""))
+                            }
                             com.example.data.model.BlockType.DRAWING -> {
+                                numberedCounter = 0
                                 val previewPath = block.meta["previewPath"] ?: ""
                                 attachments.add(Triple("drawing", block.content, previewPath))
                             }
-                            else -> {}
+                            else -> numberedCounter = 0
                         }
                     }
                     Pair(textParts.joinToString("\n"), attachments)

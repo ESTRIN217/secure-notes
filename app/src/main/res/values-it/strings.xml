@@ -262,6 +262,14 @@
     <string name="toast_camera_error">Errore durante l\'avvio della fotocamera</string>
     <string name="camera_permission_required">L\'autorizzazione della fotocamera è necessaria per scattare foto/video</string>
     <string name="mic_permission_required">L\'autorizzazione del microfono è necessaria per registrare note vocali</string>
+    <string name="page_block_icon">Icona pagina</string>
+    <string name="page_block_emoji">Emoji</string>
+    <string name="page_block_icons">Icone</string>
+    <string name="page_block_upload">Carica</string>
+    <string name="page_block_upload_image">Carica un\'immagine</string>
+    <string name="page_block_paste_link">Incolla un link</string>
+    <string name="page_block_link_hint">URL immagine (https://…)</string>
+    <string name="page_block_next">Avanti</string>
     <string name="back">Indietro</string>
     <string name="close">Chiudi</string>
     <string name="sync">Sincronizza</string>

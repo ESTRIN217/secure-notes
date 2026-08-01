@@ -276,6 +276,14 @@
     <string name="mic_permission_required">Microphone permission is required to record voice notes</string>
 
     <!-- Navigation / common -->
+    <string name="page_block_icon">Page icon</string>
+    <string name="page_block_emoji">Emoji</string>
+    <string name="page_block_icons">Icons</string>
+    <string name="page_block_upload">Upload</string>
+    <string name="page_block_upload_image">Upload an image</string>
+    <string name="page_block_paste_link">Paste a link</string>
+    <string name="page_block_link_hint">Image URL (https://…)</string>
+    <string name="page_block_next">Next</string>
     <string name="back">Back</string>
     <string name="close">Close</string>
     <string name="sync">Sync</string>

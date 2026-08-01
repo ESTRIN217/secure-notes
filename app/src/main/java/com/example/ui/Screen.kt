@@ -61,7 +61,8 @@ sealed class Screen {
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
                 onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
-                onNavigateToAiChat = { id -> context.navigator.onNavigateTo(Screen.AiChat(id)) }
+                onNavigateToAiChat = { id -> context.navigator.onNavigateTo(Screen.AiChat(id)) },
+                onNavigateToNote = { id -> context.navigator.onNavigateTo(Screen.NoteEditor(id)) }
             )
         }
     }

@@ -1,10 +1,12 @@
 package com.example.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -47,17 +52,29 @@ fun EditableTextBlock(
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {},
+    onConvertToText: () -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    numberIndex: Int? = null,
+    requestFocus: Boolean = false,
+    onFocusRequested: () -> Unit = {}
 ) {
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue(text = rawText, selection = TextRange(rawText.length)))
     }
     var isFocused by remember { mutableStateOf(false) }
     var internalParseResult by remember { mutableStateOf<RichTextParser.ParseResult?>(null) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) {
+            focusRequester.requestFocus()
+            onFocusRequested()
+        }
+    }
 
     LaunchedEffect(rawText) {
-        if (!isFocused || rawText.startsWith("<") || rawText.length > textFieldValue.text.length + 20) {
+        if (rawText != textFieldValue.text) {
             textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
         }
     }
@@ -82,7 +99,7 @@ fun EditableTextBlock(
 
     val prefix = when (blockType) {
         BlockType.BULLET_LIST -> "• "
-        BlockType.NUMBERED_LIST -> "1. "
+        BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
         BlockType.QUOTE -> "> "
         BlockType.CODE_BLOCK -> "  "
         else -> ""
@@ -107,8 +124,18 @@ fun EditableTextBlock(
         else -> MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     }
 
+    val rowModifier = if (blockType == BlockType.CALLOUT) {
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    } else {
+        modifier.fillMaxWidth()
+    }
+
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (prefix.isNotEmpty()) {
@@ -154,6 +181,7 @@ fun EditableTextBlock(
             visualTransformation = visualTransformation,
             modifier = blockModifier
                 .fillMaxWidth()
+                .focusRequester(focusRequester)
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused
                     onFocusChange(focusState.isFocused)
@@ -179,7 +207,7 @@ fun EditableTextBlock(
                             }
                             Key.Backspace -> {
                                 if (textFieldValue.text.isEmpty()) {
-                                    onDeleteBlock()
+                                    if (blockType in exitOnEmptyTypes) onConvertToText() else onDeleteBlock()
                                     true
                                 } else false
                             }
@@ -191,3 +219,5 @@ fun EditableTextBlock(
         )
     }
 }
+
+private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)

@@ -262,6 +262,14 @@
     <string name="toast_camera_error">Error al iniciar la cámara</string>
     <string name="camera_permission_required">Se requiere permiso de cámara para tomar fotos/videos</string>
     <string name="mic_permission_required">Se requiere permiso de micrófono para grabar notas de voz</string>
+    <string name="page_block_icon">Icono de página</string>
+    <string name="page_block_emoji">Emoji</string>
+    <string name="page_block_icons">Iconos</string>
+    <string name="page_block_upload">Subir</string>
+    <string name="page_block_upload_image">Subir una imagen</string>
+    <string name="page_block_paste_link">Pega un enlace</string>
+    <string name="page_block_link_hint">URL de imagen (https://…)</string>
+    <string name="page_block_next">Siguiente</string>
     <string name="back">Atrás</string>
     <string name="close">Cerrar</string>
     <string name="sync">Sincronizar</string>
