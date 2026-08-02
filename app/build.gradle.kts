@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 android {
   namespace = "com.example"
   ndkVersion = "29.0.14206865"
-  compileSdk { version = release(36) { minorApiLevel = 1 } }
+  compileSdk { version = release(37) { minorApiLevel = 1 } }
 
   defaultConfig {
     applicationId = "com.estrin217.securenotes"

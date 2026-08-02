@@ -41,8 +41,9 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.util.BackupAttachmentHelper
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import java.io.File

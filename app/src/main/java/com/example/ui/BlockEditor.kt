@@ -380,6 +380,7 @@ private fun BlockRow(
                         onChange(block.copy(content = "", meta = block.meta + ("table" to newData.toJson())))
                     },
                     onFocusChange = { if (it) onActivate() },
+                    onDeleteBlock = onDeleteBlock,
                     modifier = Modifier.weight(1f)
                 )
             }

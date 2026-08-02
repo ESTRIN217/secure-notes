@@ -7,16 +7,41 @@ import org.json.JSONObject
 
 data class TableData(
     val headers: List<String> = emptyList(),
-    val rows: List<List<String>> = emptyList()
+    val rows: List<List<String>> = emptyList(),
+    val columnWeights: List<Float> = emptyList(),
+    val bgColorHex: String? = null,
+    val showHeader: Boolean = true
 ) {
+    fun normalizedWeights(): List<Float> {
+        if (columnWeights.size == columnCount && columnWeights.all { it > 0f }) return columnWeights
+        return List(columnCount) { 1f }
+    }
+
+    val columnCount: Int
+        get() = headers.size.coerceAtLeast(rows.maxOfOrNull { it.size } ?: 0)
+
+    fun withWeights(weights: List<Float>): TableData =
+        copy(columnWeights = weights.take(columnCount))
+
     fun toJson(): String = JSONObject().apply {
         put("headers", JSONArray(headers))
         put("rows", JSONArray(rows.map { JSONArray(it) }))
+        if (columnWeights.isNotEmpty()) {
+            put("columnWeights", JSONArray(columnWeights))
+        }
+        if (bgColorHex != null) put("bgColorHex", bgColorHex)
+        put("showHeader", showHeader)
     }.toString()
 
     fun toHtml(): String {
         val sb = StringBuilder("<table>")
-        if (headers.isNotEmpty()) {
+        val weights = normalizedWeights()
+        if (weights.size == columnCount) {
+            sb.append("<colgroup>")
+            weights.forEach { sb.append("<col width=\"$it\"/>") }
+            sb.append("</colgroup>")
+        }
+        if (showHeader && headers.isNotEmpty()) {
             sb.append("<th>").append(headers.joinToString("</th><th>")).append("</th>")
         }
         rows.forEach { row ->
@@ -40,7 +65,12 @@ data class TableData(
                         if (row != null) (0 until row.length()).map { row.getString(it) } else emptyList()
                     }
                 } ?: emptyList()
-                TableData(headers, rows)
+                val weights = obj.optJSONArray("columnWeights")?.let { arr ->
+                    (0 until arr.length()).map { arr.getDouble(it).toFloat() }
+                } ?: emptyList()
+                val bg = obj.optString("bgColorHex").takeIf { it.isNotBlank() }
+                val showHeader = obj.optBoolean("showHeader", true)
+                TableData(headers, rows, weights, bg, showHeader)
             } catch (e: Exception) {
                 null
             }

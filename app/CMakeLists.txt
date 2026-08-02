@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("llamajni")
 
-set(LLAMA_CPP_ROOT "/root/llama.cpp")
+set(LLAMA_CPP_ROOT "/home/DEVELOPER/llama.cpp")
 
 add_library(llama SHARED IMPORTED)
 set_target_properties(llama PROPERTIES IMPORTED_LOCATION

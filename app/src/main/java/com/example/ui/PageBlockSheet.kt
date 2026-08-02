@@ -22,11 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
@@ -56,7 +57,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -96,7 +96,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.example.R
 import com.example.data.model.DataBlock
 import java.io.File
@@ -139,7 +139,7 @@ val PAGE_BLOCK_ICONS: List<Pair<String, ImageVector>> = listOf(
     "share" to Icons.Default.Share,
     "thumb" to Icons.Default.ThumbUp,
     "search" to Icons.Default.Search,
-    "send" to Icons.Default.Send,
+    "send" to Icons.AutoMirrored.Filled.Send,
     "refresh" to Icons.Default.Refresh,
     "build" to Icons.Default.Build,
     "account" to Icons.Default.AccountCircle,
@@ -148,7 +148,7 @@ val PAGE_BLOCK_ICONS: List<Pair<String, ImageVector>> = listOf(
     "flight" to Icons.Default.Flight,
     "restaurant" to Icons.Default.Restaurant,
     "star_border" to Icons.Default.StarBorder,
-    "arrow" to Icons.Default.ArrowForward,
+    "arrow" to Icons.AutoMirrored.Filled.ArrowForward,
     "plus" to Icons.Default.Add
 )
 

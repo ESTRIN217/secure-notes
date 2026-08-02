@@ -38,8 +38,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.rotate
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
+import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
 import com.example.R
 import com.example.data.model.BlockRenderContext
 import com.example.data.model.ColumnAlignment
@@ -349,6 +349,7 @@ private fun NoteContentBlock.TableBlock.renderTableBlock(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
+                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             contentAlignment = when (align) {
                                 ColumnAlignment.Center -> Alignment.Center
@@ -387,6 +388,7 @@ private fun NoteContentBlock.TableBlock.renderTableBlock(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
+                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             contentAlignment = when (align) {
                                 ColumnAlignment.Center -> Alignment.Center
