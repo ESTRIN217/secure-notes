@@ -57,6 +57,7 @@ import com.example.data.model.Attachment
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.NoteContentBlock
+import com.example.data.model.TableData
 import com.example.util.RichTextParser
 
 @Composable
@@ -70,6 +71,7 @@ fun BlockEditor(
     onNavigateToMediaViewer: (String, String) -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
+    noteTitleById: (Int) -> String = { "" },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
@@ -191,6 +193,7 @@ fun BlockEditor(
                         numberIndex = numberedCounter.takeIf { block.type == BlockType.NUMBERED_LIST },
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
+                        noteTitleById = noteTitleById,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -320,6 +323,7 @@ private fun BlockRow(
     numberIndex: Int? = null,
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
+    noteTitleById: (Int) -> String = { "" },
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -366,6 +370,19 @@ private fun BlockRow(
                     onFocusRequested = onFocusRequested
                 )
             }
+            BlockType.TABLE -> {
+                val tableData = TableData.fromJson(block.meta["table"])
+                    ?: TableData.fromLegacyHtml(block.content)
+                    ?: TableData.default3x3()
+                EditableTableBlock(
+                    tableData = tableData,
+                    onChange = { newData ->
+                        onChange(block.copy(content = "", meta = block.meta + ("table" to newData.toJson())))
+                    },
+                    onFocusChange = { if (it) onActivate() },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             BlockType.CHECKLIST_ITEM -> {
                 val checked = block.meta["checked"] == "true"
                 EditableChecklistBlock(
@@ -378,6 +395,8 @@ private fun BlockRow(
                     },
                     onFocusChange = { if (it) onActivate() },
                     onCursorChange = onCursorChange,
+                    onSplit = onSplit,
+                    onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     requestFocus = requestFocus,
                     onFocusRequested = onFocusRequested
                 )
@@ -394,6 +413,7 @@ private fun BlockRow(
                     onCursorChange = onCursorChange,
                     onMoveToPreviousBlock = onMoveToPreviousBlock,
                     onMoveToNextBlock = onMoveToNextBlock,
+                    onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     modifier = Modifier.weight(1f),
                     requestFocus = requestFocus,
                     onFocusRequested = onFocusRequested
@@ -401,7 +421,8 @@ private fun BlockRow(
             }
             BlockType.PAGE -> {
                 val linkedNoteId = block.meta["noteId"]?.toIntOrNull()
-                val pageTitle = block.content.ifBlank { stringResource(R.string.block_page) }
+                val resolvedTitle = linkedNoteId?.let { noteTitleById(it) }.orEmpty()
+                val pageTitle = resolvedTitle.ifBlank { block.content.ifBlank { stringResource(R.string.block_page) } }
                 var showIconSheet by remember { mutableStateOf(false) }
                 OutlinedCard(
                     modifier = Modifier.weight(1f),

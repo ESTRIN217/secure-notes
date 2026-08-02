@@ -1068,6 +1068,7 @@ fun MainListScreen(
                                                 isGrid = true,
                                                 onNavigateToDrawing = onNavigateToDrawing,
                                                 onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                                pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
                                                 onMoveUp = {
                                                     reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
                                                     customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
@@ -1129,6 +1130,7 @@ fun MainListScreen(
                                             isGrid = false,
                                             onNavigateToDrawing = onNavigateToDrawing,
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                            pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
                                             onMoveUp = {
                                                 reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
                                                 customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
@@ -1646,7 +1648,8 @@ fun NoteCardItem(
     onLongClick: () -> Unit,
     dragModifier: Modifier = Modifier,
     onNavigateToDrawing: ((Int, String?) -> Unit)? = null,
-    onNavigateToMediaViewer: ((type: String, src: String) -> Unit)? = null
+    onNavigateToMediaViewer: ((type: String, src: String) -> Unit)? = null,
+    pageTitleById: (Int) -> String = { "" }
 ) {
     val note = decryptedNote.note
     val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
@@ -1756,16 +1759,21 @@ fun NoteCardItem(
                             }
                             com.example.data.model.BlockType.QUOTE -> {
                                 numberedCounter = 0
-                                textParts.add("❝ ${block.content}")
+                                textParts.add("▎ ${block.content}")
                             }
                             com.example.data.model.BlockType.CALLOUT -> {
                                 numberedCounter = 0
-                                textParts.add("▎ ${block.content}")
+                                textParts.add("💡 ${block.content}")
                             }
                             com.example.data.model.BlockType.PAGE -> {
                                 numberedCounter = 0
                                 val icon = if (block.meta["iconType"] == "emoji") block.meta["iconValue"].orEmpty() else "🔗"
-                                textParts.add("$icon ${block.content.ifBlank { pageBlockLabel }}")
+                                val linkedId = block.meta["noteId"]?.toIntOrNull()
+                                val pageText = linkedId?.let { pageTitleById(it) }
+                                    .orEmpty()
+                                    .ifBlank { block.content }
+                                    .ifBlank { pageBlockLabel }
+                                textParts.add("$icon $pageText")
                             }
                             com.example.data.model.BlockType.CHECKLIST_ITEM -> {
                                 numberedCounter = 0

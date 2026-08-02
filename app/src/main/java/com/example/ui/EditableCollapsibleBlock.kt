@@ -57,6 +57,7 @@ fun EditableCollapsibleBlock(
     onCursorChange: (Int) -> Unit = {},
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
+    onConvertToText: () -> Unit = {},
     modifier: Modifier = Modifier,
     requestFocus: Boolean = false,
     onFocusRequested: () -> Unit = {}
@@ -120,6 +121,22 @@ fun EditableCollapsibleBlock(
                 BasicTextField(
                     value = summaryField,
                     onValueChange = { newValue ->
+                        val oldText = summaryField.text
+                        val newText = newValue.text
+
+                        if (onSplitSummary != null && newText.length > oldText.length) {
+                            val diffStart = oldText.commonPrefixWith(newText).length
+                            if (diffStart < newText.length && newText[diffStart] == '\n') {
+                                val before = newText.substring(0, diffStart)
+                                val after = newText.substring(diffStart + 1)
+                                summaryField = TextFieldValue(text = before, selection = TextRange(before.length))
+                                onCursorChange(before.length)
+                                onFocusChange(true)
+                                onSplitSummary(before, after)
+                                return@BasicTextField
+                            }
+                        }
+
                         summaryField = newValue
                         onChange(newValue.text, contentField.text)
                         onCursorChange(newValue.selection.start)
@@ -135,6 +152,12 @@ fun EditableCollapsibleBlock(
                         .onPreviewKeyEvent { event ->
                             if (event.type == KeyEventType.KeyUp) {
                                 when (event.key) {
+                                    Key.Backspace, Key.Delete -> {
+                                        if (summaryField.text.isEmpty()) {
+                                            onConvertToText()
+                                            true
+                                        } else false
+                                    }
                                     Key.Enter -> {
                                         if (onSplitSummary != null) {
                                             val sel = summaryField.selection.start
@@ -165,8 +188,7 @@ fun EditableCollapsibleBlock(
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    singleLine = true
+                    )
                 )
             }
             AnimatedVisibility(

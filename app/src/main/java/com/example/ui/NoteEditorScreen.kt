@@ -49,6 +49,7 @@ import com.example.data.model.DataBlock
 import com.example.data.model.DecryptedNote
 import com.example.data.model.Note
 import com.example.data.model.NoteContentBlock
+import com.example.data.model.TableData
 import com.example.ui.viewmodel.AiViewModel
 import com.example.data.model.createRawContent
 import com.example.data.model.parseNoteContentAndAttachments
@@ -338,6 +339,7 @@ fun NoteEditorScreen(
     }
     
     val allTags by viewModel.availableTags.collectAsState()
+    val allNotes by viewModel.notesList.collectAsState()
     var selectedNoteTags by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedBgColorId by remember { mutableStateOf<Int?>(null) }
     var selectedBgImagePath by remember { mutableStateOf<String?>(null) }
@@ -1294,6 +1296,8 @@ fun NoteEditorScreen(
                         noteId = noteId,
                         onNavigateToMediaViewer = onNavigateToMediaViewer,
                         onNavigateToDrawing = onNavigateToDrawing,
+                        onNavigateToNote = onNavigateToNote,
+                        noteTitleById = { id -> allNotes.find { it.note.id == id }?.title ?: "" },
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
@@ -1479,19 +1483,14 @@ fun NoteEditorScreen(
                         confirmButton = {
                             Button(
                                 onClick = {
-                                    val sb = StringBuilder("<table>")
-                                    if (tableHasHeader) {
-                                        sb.append("<th>")
-                                        sb.append((1..tableCols).joinToString("</th><th>") { "Header $it" })
-                                        sb.append("</th>")
+                                    val headers = if (tableHasHeader) {
+                                        (1..tableCols).map { "Header $it" }
+                                    } else {
+                                        List(tableCols) { "" }
                                     }
-                                    for (r in 1..tableRows) {
-                                        sb.append("<tr><td>")
-                                        sb.append((1..tableCols).joinToString("</td><td>") { "" })
-                                        sb.append("</td></tr>")
-                                    }
-                                    sb.append("</table>")
-                                    insertAtCursor(sb.toString())
+                                    val rows = (1..tableRows).map { List(tableCols) { "" } }
+                                    val tableData = TableData(headers = headers, rows = rows)
+                                    handleSlashSelect(DataBlock(type = BlockType.TABLE, content = "", meta = mapOf("table" to tableData.toJson())))
                                     showInsertTableDialog = false
                                 }
                             ) {

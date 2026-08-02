@@ -5,6 +5,73 @@ import com.example.util.preprocessMarkdownBlocks
 import org.json.JSONArray
 import org.json.JSONObject
 
+data class TableData(
+    val headers: List<String> = emptyList(),
+    val rows: List<List<String>> = emptyList()
+) {
+    fun toJson(): String = JSONObject().apply {
+        put("headers", JSONArray(headers))
+        put("rows", JSONArray(rows.map { JSONArray(it) }))
+    }.toString()
+
+    fun toHtml(): String {
+        val sb = StringBuilder("<table>")
+        if (headers.isNotEmpty()) {
+            sb.append("<th>").append(headers.joinToString("</th><th>")).append("</th>")
+        }
+        rows.forEach { row ->
+            sb.append("<tr><td>").append(row.joinToString("</td><td>")).append("</td></tr>")
+        }
+        sb.append("</table>")
+        return sb.toString()
+    }
+
+    companion object {
+        fun fromJson(json: String?): TableData? {
+            if (json.isNullOrBlank()) return null
+            return try {
+                val obj = JSONObject(json)
+                val headers = obj.optJSONArray("headers")?.let { arr ->
+                    (0 until arr.length()).map { arr.getString(it) }
+                } ?: emptyList()
+                val rows = obj.optJSONArray("rows")?.let { arr ->
+                    (0 until arr.length()).map { idx ->
+                        val row = arr.optJSONArray(idx)
+                        if (row != null) (0 until row.length()).map { row.getString(it) } else emptyList()
+                    }
+                } ?: emptyList()
+                TableData(headers, rows)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        fun fromLegacyHtml(html: String?): TableData? {
+            if (html.isNullOrBlank()) return null
+            return try {
+                val headers = Regex("<th[^>]*>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
+                    .findAll(html).map { it.groupValues[1].trim() }.toList()
+                val rows = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
+                    .findAll(html)
+                    .map { tr ->
+                        Regex("<td[^>]*>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+                            .findAll(tr.groupValues[1]).map { it.groupValues[1].trim() }.toList()
+                    }
+                    .filter { it.isNotEmpty() }
+                    .toList()
+                if (headers.isEmpty() && rows.isEmpty()) null else TableData(headers, rows)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        fun default3x3(): TableData = TableData(
+            headers = List(3) { "" },
+            rows = List(3) { List(3) { "" } }
+        )
+    }
+}
+
 enum class BlockType {
     TEXT, HEADING1, HEADING2, HEADING3, HEADING4,
     BULLET_LIST, NUMBERED_LIST, CHECKLIST_ITEM,
@@ -49,7 +116,10 @@ data class DataBlock(
             BlockType.DRAWING -> ""
             BlockType.VOICE -> ""
             BlockType.FILE -> ""
-            BlockType.TABLE -> "<table>$content</table>"
+            BlockType.TABLE -> {
+                val data = TableData.fromJson(meta["table"])
+                if (data != null) data.toHtml() else "<table>$content</table>"
+            }
             BlockType.HORIZONTAL_RULE -> "<hr/>"
             BlockType.COLLAPSIBLE -> "<details><summary>${meta["summary"] ?: ""}</summary>$content</details>"
         }

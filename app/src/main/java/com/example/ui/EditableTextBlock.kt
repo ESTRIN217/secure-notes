@@ -5,9 +5,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,7 +104,7 @@ fun EditableTextBlock(
     val prefix = when (blockType) {
         BlockType.BULLET_LIST -> "• "
         BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
-        BlockType.QUOTE -> "> "
+        BlockType.QUOTE -> "▎ "
         BlockType.CODE_BLOCK -> "  "
         else -> ""
     }
@@ -145,6 +149,16 @@ fun EditableTextBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.width(4.dp))
+        }
+
+        if (blockType == BlockType.CALLOUT) {
+            Icon(
+                imageVector = Icons.Default.Lightbulb,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(8.dp))
         }
 
         val blockModifier = if (blockType == BlockType.QUOTE) {

@@ -22,10 +22,10 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Title
@@ -72,7 +72,7 @@ val BLOCK_COMMANDS: List<BlockCommand> = listOf(
     BlockCommand(R.string.block_numbered, R.string.block_numbered_desc, Icons.Default.FormatListNumbered, BlockSection.BASIC, BlockType.NUMBERED_LIST),
     BlockCommand(R.string.block_checklist, R.string.block_checklist_desc, Icons.Default.CheckBox, BlockSection.BASIC, BlockType.CHECKLIST_ITEM, meta = mapOf("checked" to "false")),
     BlockCommand(R.string.block_collapsible, R.string.block_collapsible_desc, Icons.Default.KeyboardArrowDown, BlockSection.BASIC, BlockType.COLLAPSIBLE),
-    BlockCommand(R.string.block_highlight, R.string.block_highlight_desc, Icons.Default.Highlight, BlockSection.BASIC, BlockType.CALLOUT),
+    BlockCommand(R.string.block_highlight, R.string.block_highlight_desc, Icons.Default.Lightbulb, BlockSection.BASIC, BlockType.CALLOUT),
     BlockCommand(R.string.block_quote, R.string.block_quote_desc, Icons.Default.FormatQuote, BlockSection.BASIC, BlockType.QUOTE),
     BlockCommand(R.string.block_page, R.string.block_page_desc, Icons.Default.Description, BlockSection.BASIC, action = BlockAction.INSERT_PAGE),
     BlockCommand(R.string.block_table, R.string.block_table_desc, Icons.Default.BorderAll, BlockSection.BLOCKS, action = BlockAction.TABLE_DIALOG),

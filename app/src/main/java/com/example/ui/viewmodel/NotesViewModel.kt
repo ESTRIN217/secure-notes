@@ -93,12 +93,12 @@ class NotesViewModel(
         if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
         val pass = password ?: ""
         if (pass.isEmpty()) return DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
-        val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv).getOrDefault("")
-        val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv).getOrDefault("")
-        return if (decTitle.isEmpty() && decContent.isEmpty()) {
+        val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv)
+        val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv)
+        return if (decTitle.isFailure || decContent.isFailure) {
             DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
         } else {
-            DecryptedNote(note, decTitle, decContent, true)
+            DecryptedNote(note, decTitle.getOrDefault(""), decContent.getOrDefault(""), true)
         }
     }
 
@@ -599,7 +599,6 @@ class NotesViewModel(
                             .getOrDefault("")
                         val decContent = cipherService.decrypt(note.content, oldPassword, note.salt, note.iv)
                             .getOrDefault("")
-                        if (decTitle.isEmpty() && decContent.isEmpty()) return@launch
                         val newSalt = cipherService.generateSalt()
                         val newIv = cipherService.generateIv()
                         cipherService.encrypt(decTitle, newPassword, newSalt, newIv)
