@@ -93,11 +93,7 @@ class ModelDownloader(private val context: Context) {
                 return@withContext
             }
 
-            val body = response.body ?: run {
-                _state.value = DownloadState.Failed("Empty response body")
-                return@withContext
-            }
-
+            val body = response.body
             val contentLength = body.contentLength()
             val totalBytes = if (contentLength > 0) contentLength else model.fileSizeMb * 1024L * 1024L
 

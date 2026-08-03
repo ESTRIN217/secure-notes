@@ -581,7 +581,7 @@ fun EncryptionSection(
                             onValueChange = {},
                             readOnly = true,
                             modifier = Modifier
-                                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable, enabled = true)
+                                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                                 .width(160.dp),
                             textStyle = MaterialTheme.typography.bodySmall,
                             singleLine = true,

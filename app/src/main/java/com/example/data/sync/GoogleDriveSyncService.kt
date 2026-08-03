@@ -44,7 +44,7 @@ class GoogleDriveSyncService : SyncService {
                     override fun onResponse(call: Call, response: Response) {
                         try {
                             if (response.isSuccessful) {
-                                val body = response.body?.string()
+                                val body = response.body.string()
                                 if (!body.isNullOrEmpty()) {
                                     val json = JSONObject(body)
                                     val filesArray = json.optJSONArray("files")
@@ -100,7 +100,7 @@ class GoogleDriveSyncService : SyncService {
                     override fun onResponse(call: Call, response: Response) {
                         try {
                             if (response.isSuccessful) {
-                                val bodyStr = response.body?.string()
+                                val bodyStr = response.body.string()
                                 if (!bodyStr.isNullOrEmpty()) {
                                     val id = JSONObject(bodyStr).optString("id")
                                     continuation.resume(id)
@@ -187,7 +187,7 @@ class GoogleDriveSyncService : SyncService {
                     override fun onResponse(call: Call, response: Response) {
                         try {
                             if (response.isSuccessful) {
-                                continuation.resume(response.body?.string())
+                                continuation.resume(response.body.string())
                             } else {
                                 Log.e(TAG, "Download failed: Code ${response.code} ${response.message}")
                                 continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))
@@ -259,7 +259,7 @@ class GoogleDriveSyncService : SyncService {
                     override fun onResponse(call: Call, response: Response) {
                         try {
                             if (response.isSuccessful) {
-                                continuation.resume(response.body?.bytes())
+                                continuation.resume(response.body.bytes())
                             } else {
                                 Log.e(TAG, "Download bytes failed: Code ${response.code} ${response.message}")
                                 continuation.resumeWithException(IOException("HTTP ${response.code}: ${response.message}"))

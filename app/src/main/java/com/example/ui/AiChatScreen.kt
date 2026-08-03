@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.content.ClipData
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,11 +39,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -106,7 +108,7 @@ fun AiChatScreen(
     val noteTitle by viewModel.chatNoteTitle.collectAsStateWithLifecycle()
     val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -535,7 +537,7 @@ fun AiChatScreen(
                                 streamingText = streamingText,
                                 displayModelName = displayModelName,
                                 listState = listState,
-                                clipboardManager = clipboardManager,
+                                clipboard = clipboard,
                                 haptic = haptic,
                                 onInsert = onInsert,
                                 onResend = { text -> editingMessage = text; inputText = text },
@@ -674,7 +676,7 @@ fun AiChatScreen(
 @Composable
 fun MessageBubble(
     turn: ConversationTurn,
-    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
+    clipboard: Clipboard,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
     isLastAssistant: Boolean,
     showInsert: Boolean,
@@ -702,6 +704,7 @@ fun MessageBubble(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     var swipeOffset by remember { mutableStateOf(0f) }
+    val clipboardScope = rememberCoroutineScope()
 
     val animatedSwipeOffset by androidx.compose.animation.core.animateFloatAsState(
         targetValue = swipeOffset,
@@ -767,7 +770,9 @@ fun MessageBubble(
                                 if (swipeOffset > SWIPE_THRESHOLD && isUser) {
                                     onEdit(turn.content)
                                 } else if (swipeOffset < -SWIPE_THRESHOLD && !isUser) {
-                                    clipboardManager.setText(AnnotatedString(turn.content))
+                                    clipboardScope.launch {
+                                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", turn.content)))
+                                    }
                                 }
                                 swipeOffset = 0f
                             },
@@ -887,7 +892,9 @@ fun MessageBubble(
                     text = { Text(stringResource(R.string.ai_copy)) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     onClick = {
-                        clipboardManager.setText(AnnotatedString(turn.content))
+                        clipboardScope.launch {
+                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", turn.content)))
+                        }
                         showMenu = false
                     }
                 )
@@ -1285,7 +1292,7 @@ fun ChatMessageList(
     streamingText: String?,
     displayModelName: String,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
+    clipboard: Clipboard,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
     onInsert: ((String) -> Unit)?,
     onResend: (String) -> Unit,
@@ -1317,7 +1324,7 @@ fun ChatMessageList(
             ) {
                 MessageBubble(
                     turn = turn,
-                    clipboardManager = clipboardManager,
+                    clipboard = clipboard,
                     haptic = haptic,
                     isLastAssistant = turn == conversationHistory.lastOrNull() && turn.role == "assistant",
                     showInsert = turn.role == "assistant" && onInsert != null,

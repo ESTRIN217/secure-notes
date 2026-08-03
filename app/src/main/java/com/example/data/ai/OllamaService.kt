@@ -47,7 +47,7 @@ class OllamaService(
                 .build()
 
             val response = client.newCall(request).execute()
-            val body = response.body?.string() ?: ""
+            val body = response.body.string()
 
             if (!response.isSuccessful) {
                 return@withContext Result.failure(IOException("HTTP ${response.code}: ${response.message}"))
@@ -74,7 +74,7 @@ class OllamaService(
         try {
             val httpRequest = buildChatRequest(request, stream = false)
             val response = client.newCall(httpRequest).execute()
-            val responseBody = response.body?.string() ?: ""
+            val responseBody = response.body.string()
 
             if (!response.isSuccessful) {
                 Log.e(TAG, "Ollama API error: ${response.code} $responseBody")
@@ -133,13 +133,13 @@ class OllamaService(
 
         if (!response.isSuccessful) {
             val errorBody = try {
-                response.body?.string()?.let { JSONObject(it).optString("error", response.message) }
+                response.body.string().let { JSONObject(it).optString("error", response.message) }
             } catch (_: Exception) { response.message }
             response.close()
             throw IOException(errorBody)
         }
 
-        val body = response.body ?: throw IOException("Empty response body")
+        val body = response.body
         val source = body.source()
         try {
             while (!source.exhausted()) {

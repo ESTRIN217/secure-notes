@@ -4,14 +4,13 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.example.AppConstants
 import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
 import com.example.data.model.toJson
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.data.security.SecurePrefsStore
 import com.example.util.BackupAttachmentHelper
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -33,18 +32,7 @@ class SyncWorker(
     private val cipherService: CipherService = EncryptionServiceImpl()
 
     override suspend fun doWork(): Result {
-        val encryptedPrefs = run {
-            val masterKey = MasterKey.Builder(applicationContext)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-            EncryptedSharedPreferences.create(
-                applicationContext,
-                "secure_notes_secure_prefs",
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-        }
+        val encryptedPrefs = SecurePrefsStore(applicationContext)
 
         val token = encryptedPrefs.getString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, null)
         if (token.isNullOrEmpty()) return Result.failure()

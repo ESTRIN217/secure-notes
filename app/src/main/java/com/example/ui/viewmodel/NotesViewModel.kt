@@ -6,8 +6,6 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -24,6 +22,7 @@ import com.example.data.model.sectionFilters
 import com.example.data.local.NoteDao
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.data.security.SecurePrefsStore
 import com.example.data.security.KeyDerivation
 import com.example.data.sync.CloudSyncManager
 import com.example.data.sync.SyncService
@@ -76,18 +75,7 @@ class NotesViewModel(
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
     private var pendingRestoreContainer: JSONObject? = null
     private var pendingAttachmentRestoreDir: java.io.File? = null
-    private val encryptedPrefs = run {
-        val masterKey = MasterKey.Builder(application)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        EncryptedSharedPreferences.create(
-            application,
-            "secure_notes_secure_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
+    private val encryptedPrefs = SecurePrefsStore(application)
 
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
         if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
@@ -342,11 +330,9 @@ class NotesViewModel(
         }
         val validationHash = validationResult.getOrDefault("")
 
-        encryptedPrefs.edit()
-            .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
-            .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
-            .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
-            .apply()
+        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
+        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
+        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
 
         masterPassword.value = password
         isPasswordSet.value = true
@@ -406,11 +392,9 @@ class NotesViewModel(
     }
 
     fun deletePassword() {
-        encryptedPrefs.edit()
-            .remove(AppConstants.MASTER_PASSWORD_HASH_KEY)
-            .remove(AppConstants.MASTER_PASSWORD_SALT_KEY)
-            .remove(AppConstants.MASTER_PASSWORD_IV_KEY)
-            .apply()
+        encryptedPrefs.remove(AppConstants.MASTER_PASSWORD_HASH_KEY)
+        encryptedPrefs.remove(AppConstants.MASTER_PASSWORD_SALT_KEY)
+        encryptedPrefs.remove(AppConstants.MASTER_PASSWORD_IV_KEY)
         setBiometricEnabled(false)
         
         // Convert all currently encrypted notes back to plain text if unlocked,
@@ -457,7 +441,7 @@ class NotesViewModel(
         var migrated = false
         keys.forEach { key ->
             sharedPrefs.getString(key, null)?.let { value ->
-                encryptedPrefs.edit().putString(key, value).apply()
+                encryptedPrefs.putString(key, value)
                 sharedPrefs.edit().remove(key).apply()
                 migrated = true
             }
@@ -512,10 +496,8 @@ class NotesViewModel(
         setBooleanPref(isBiometricEnabled, AppConstants.BIOMETRIC_ENABLED_KEY, enabled)
         if (!enabled) {
             biometricAuthManager.deleteKey(AppConstants.BIOMETRIC_KEY_ALIAS)
-            encryptedPrefs.edit()
-                .remove(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY)
-                .remove(AppConstants.BIOMETRIC_IV_KEY)
-                .apply()
+            encryptedPrefs.remove(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY)
+            encryptedPrefs.remove(AppConstants.BIOMETRIC_IV_KEY)
         }
     }
 
@@ -546,13 +528,13 @@ class NotesViewModel(
     }
 
     override fun clearCachedPassword() {
-        encryptedPrefs.edit().remove(AppConstants.CACHED_MASTER_PASSWORD_KEY).apply()
+        encryptedPrefs.remove(AppConstants.CACHED_MASTER_PASSWORD_KEY)
     }
 
     private fun cacheMasterPassword() {
         val pass = masterPassword.value
         if (!pass.isNullOrEmpty()) {
-            encryptedPrefs.edit().putString(AppConstants.CACHED_MASTER_PASSWORD_KEY, pass).apply()
+            encryptedPrefs.putString(AppConstants.CACHED_MASTER_PASSWORD_KEY, pass)
         }
     }
 
@@ -561,10 +543,8 @@ class NotesViewModel(
         try {
             val encrypted = cipher.doFinal(password.toByteArray(Charsets.UTF_8))
             val iv = cipher.iv
-            encryptedPrefs.edit()
-                .putString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, android.util.Base64.encodeToString(encrypted, android.util.Base64.NO_WRAP))
-                .putString(AppConstants.BIOMETRIC_IV_KEY, android.util.Base64.encodeToString(iv, android.util.Base64.NO_WRAP))
-                .apply()
+            encryptedPrefs.putString(AppConstants.BIOMETRIC_ENCRYPTED_PASSWORD_KEY, android.util.Base64.encodeToString(encrypted, android.util.Base64.NO_WRAP))
+            encryptedPrefs.putString(AppConstants.BIOMETRIC_IV_KEY, android.util.Base64.encodeToString(iv, android.util.Base64.NO_WRAP))
         } catch (e: Exception) {
             android.util.Log.e("NotesViewModel", "saveBiometricEncryptedPassword failed", e)
         }
@@ -625,11 +605,9 @@ class NotesViewModel(
                     .getOrDefault("")
                     .takeIf { it.isNotEmpty() }
                     ?.let { validationHash ->
-                        encryptedPrefs.edit()
-                            .putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
-                            .putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
-                            .putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
-                            .apply()
+                        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_HASH_KEY, validationHash)
+                        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_SALT_KEY, salt)
+                        encryptedPrefs.putString(AppConstants.MASTER_PASSWORD_IV_KEY, iv)
                     }
                 masterPassword.value = newPassword
                 if (isBiometricEnabled.value && biometricAuthManager.hasKey(AppConstants.BIOMETRIC_KEY_ALIAS)) {
@@ -945,11 +923,9 @@ class NotesViewModel(
     // Google Drive Integration
     override fun linkGoogleDrive(token: String, accountEmail: String, pictureUri: String) {
         val uri = pictureUri.ifEmpty { "https://www.google.com/s2/photos/profile/$accountEmail" }
-        encryptedPrefs.edit()
-            .putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
-            .putString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, accountEmail)
-            .putString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, uri)
-            .apply()
+        encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, token)
+        encryptedPrefs.putString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, accountEmail)
+        encryptedPrefs.putString(AppConstants.DRIVE_PROFILE_PICTURE_KEY, uri)
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, true)
             .apply()
@@ -962,11 +938,9 @@ class NotesViewModel(
     }
 
     override fun unlinkGoogleDrive() {
-        encryptedPrefs.edit()
-            .remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
-            .remove(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY)
-            .remove(AppConstants.DRIVE_PROFILE_PICTURE_KEY)
-            .apply()
+        encryptedPrefs.remove(AppConstants.DRIVE_ACCESS_TOKEN_KEY)
+        encryptedPrefs.remove(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY)
+        encryptedPrefs.remove(AppConstants.DRIVE_PROFILE_PICTURE_KEY)
         sharedPrefs.edit()
             .putBoolean(AppConstants.DRIVE_LINKED_KEY, false)
             .apply()
@@ -1031,7 +1005,7 @@ class NotesViewModel(
                 if (newToken != null) {
                     token = newToken
                     driveAccessToken.value = newToken
-                    encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                    encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
                 }
 
                 val notesArray = JSONArray()
@@ -1183,7 +1157,7 @@ class NotesViewModel(
                     if (newToken != null) {
                         token = newToken
                         driveAccessToken.value = newToken
-                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                        encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
                         fileId = syncService.searchBackupFile(token).getOrNull()
                     }
                 }
@@ -1202,7 +1176,7 @@ class NotesViewModel(
                     if (newToken != null) {
                         token = newToken
                         driveAccessToken.value = newToken
-                        encryptedPrefs.edit().putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken).apply()
+                        encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
                         backupBytes = syncService.downloadFileBytes(token, fileId).getOrNull()
                     }
                 }

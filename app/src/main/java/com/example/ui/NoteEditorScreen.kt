@@ -1,5 +1,6 @@
 package com.example.ui
 
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -31,7 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -977,9 +979,10 @@ fun NoteEditorScreen(
                 }
             }
 
-            val clipboardManager = LocalClipboardManager.current
+            val clipboard = LocalClipboard.current
             val pasteFromClipboard: () -> Unit = {
-                val clipText = clipboardManager.getText()?.text ?: ""
+                scope.launch {
+                val clipText = clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString() ?: ""
                 if (clipText.isNotEmpty()) {
                     if (RichTextParser.isSecureNotesJson(clipText)) {
                         val defaultTitle = context.getString(R.string.title_imported_note)
@@ -1000,6 +1003,7 @@ fun NoteEditorScreen(
                         }
                         pendingInsert.value = converted
                     }
+                }
                 }
             }
 
@@ -1511,7 +1515,7 @@ fun NoteEditorScreen(
 
                 // URL Click Action Dialog (Open, Copy, Delete)
                 if (showUrlDialog) {
-                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                    val clipboard = LocalClipboard.current
                     AlertDialog(
                         onDismissRequest = { showUrlDialog = false },
                         title = {
@@ -1563,7 +1567,9 @@ fun NoteEditorScreen(
                                 
                                 OutlinedButton(
                                     onClick = {
-                                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(clickedUrlAddress))
+                                        scope.launch {
+                                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", clickedUrlAddress)))
+                                        }
                                         Toast.makeText(context, context.getString(R.string.url_dialog_copy) + ": " + clickedUrlAddress, Toast.LENGTH_SHORT).show()
                                         showUrlDialog = false
                                     },

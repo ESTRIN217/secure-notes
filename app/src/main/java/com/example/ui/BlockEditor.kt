@@ -129,7 +129,7 @@ fun BlockEditor(
                                         if (!longPressed) {
                                             val now = System.nanoTime()
                                             val elapsed = now - startTime
-                                            if (elapsed >= viewConfiguration.longPressTimeoutMillis.toLong() * 1_000_000) {
+                                            if (elapsed >= viewConfiguration.longPressTimeoutMillis * 1_000_000) {
                                                 longPressed = true
                                                 change.consume()
                                                 lastPosition = change.position

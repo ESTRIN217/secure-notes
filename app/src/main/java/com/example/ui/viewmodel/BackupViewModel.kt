@@ -11,6 +11,7 @@ import com.example.data.model.SyncStage
 import com.example.data.model.SyncState
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
+import com.example.data.security.SecurePrefsStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,18 +47,7 @@ class BackupViewModel(
 ) : AndroidViewModel(application) {
 
     private val sharedPrefs = application.getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
-    private val encryptedPrefs = run {
-        val masterKey = androidx.security.crypto.MasterKey.Builder(application)
-            .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        androidx.security.crypto.EncryptedSharedPreferences.create(
-            application,
-            "secure_notes_secure_prefs",
-            masterKey,
-            androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
+    private val encryptedPrefs = SecurePrefsStore(application)
     val cloudSyncManagerPublic: CloudSyncManager get() = cloudSyncManager
 
     private val _uiState = MutableStateFlow(BackupUiState())

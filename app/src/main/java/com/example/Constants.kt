@@ -8,7 +8,7 @@ object AppConstants {
     const val SECURE_PREFS_NAME = "secure_notes_secure_prefs"
     const val CUSTOM_ORDER_KEY = "custom_order_ids"
 
-    // Master password verification — stored in EncryptedSharedPreferences
+    // Master password verification — stored in SecurePrefsStore (Keystore-encrypted)
     const val MASTER_PASSWORD_HASH_KEY = "master_password_hash"
     const val MASTER_PASSWORD_SALT_KEY = "master_password_salt"
     const val MASTER_PASSWORD_IV_KEY = "master_password_iv"
