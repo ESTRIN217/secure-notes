@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,8 +24,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -40,9 +41,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -57,7 +60,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.data.model.TableData
 import kotlin.math.roundToInt
 
@@ -75,6 +83,10 @@ private val BG_OPTIONS = listOf(
     BgOption("EDE7F6", "Purple")
 )
 
+private val TableBorderIdle = Color(0xFFE5E7EB)
+private val TableBorderActive = Color(0xFF2563EB)
+private val TableHighlightBg = Color(0x142563EB)
+
 private val LINK_REGEX = Regex("(https?|note)://")
 
 private fun isLink(text: String): Boolean = LINK_REGEX.containsMatchIn(text)
@@ -82,13 +94,20 @@ private fun isLink(text: String): Boolean = LINK_REGEX.containsMatchIn(text)
 private fun parseHex(hex: String?): Color? {
     if (hex.isNullOrBlank()) return null
     return try {
-        Color(android.graphics.Color.parseColor("#$hex"))
+        val cleanHex = hex.hex()
+        val colorInt = cleanHex.toLong(16)
+        if (cleanHex.length == 6) {
+            Color(colorInt or 0xFF000000)
+        } else if (cleanHex.length == 8) {
+            Color(colorInt)
+        } else null
     } catch (e: Exception) {
         null
     }
 }
 
-private fun String.hex(): String = trim().removePrefix("#")
+private fun String.hex(): String = trim().removePrefix("#").toString()
+
 
 private fun keyMoveDirection(key: Key): Pair<Int, Int>? = when (key) {
     Key.DirectionDown, Key.Enter -> Pair(1, 0)
@@ -98,59 +117,115 @@ private fun keyMoveDirection(key: Key): Pair<Int, Int>? = when (key) {
     else -> null
 }
 
-@Composable
-fun EditableTableBlock(
-    tableData: TableData,
-    onChange: (TableData) -> Unit,
-    onFocusChange: (Boolean) -> Unit = {},
-    onDeleteBlock: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    var headers by remember { mutableStateOf(tableData.headers.toMutableList()) }
-    var rows by remember { mutableStateOf(tableData.rows.map { it.toMutableList() }.toMutableList()) }
-    var weights by remember { mutableStateOf(tableData.normalizedWeights().toMutableList()) }
-    var bgColorHex by remember { mutableStateOf(tableData.bgColorHex?.hex()) }
-    var showHeader by remember { mutableStateOf(tableData.showHeader) }
-    var focusedCell by remember { mutableStateOf<FocusedCell?>(null) }
-    var selectedRow by remember { mutableStateOf<Int?>(null) }
-    var showRowMenu by remember { mutableStateOf(false) }
-    var showColMenu by remember { mutableStateOf(false) }
-    var dragRow by remember { mutableStateOf<Int?>(null) }
-    var dragRowTarget by remember { mutableStateOf<Int?>(null) }
-    var dragCol by remember { mutableStateOf<Int?>(null) }
-    var dragColTarget by remember { mutableStateOf<Int?>(null) }
-    var rowHeightPx by remember { mutableStateOf(48f) }
+// ============ 1. STATE HOLDER (SRP) ============
+// Toda la lógica y el estado de la tabla viven aquí. La vista solo observa
+// este estado y delega en él cada mutación. (Mover a un ViewModel si la tabla
+// llegara a persistir en la base de datos.)
+class TableBlockState(initialData: TableData) {
+    var headers by mutableStateOf(initialData.headers.toMutableList())
+    var rows by mutableStateOf(initialData.rows.map { it.toMutableList() }.toMutableList())
+    var weights by mutableStateOf(initialData.normalizedWeights().toMutableList())
+    var bgColorHex by mutableStateOf(initialData.bgColorHex?.hex())
+    var showHeader by mutableStateOf(initialData.showHeader)
+    private var focusedCell by mutableStateOf<FocusedCell?>(null)
+    var selectedRow by mutableStateOf<Int?>(null)
+    var showRowMenu by mutableStateOf(false)
+    var showColMenu by mutableStateOf(false)
+    var dragRow by mutableStateOf<Int?>(null)
+    var dragRowTarget by mutableStateOf<Int?>(null)
+    var dragCol by mutableStateOf<Int?>(null)
+    var dragColTarget by mutableStateOf<Int?>(null)
+    var rowHeightPx by mutableStateOf(48f)
 
-    val focusRequesters = remember { mutableMapOf<Pair<Int, Int>, FocusRequester>() }
+    val focusRequesters = mutableMapOf<Pair<Int, Int>, FocusRequester>()
 
-    LaunchedEffect(tableData) {
-        headers = tableData.headers.toMutableList()
-        rows = tableData.rows.map { it.toMutableList() }.toMutableList()
-        weights = tableData.normalizedWeights().toMutableList()
-        bgColorHex = tableData.bgColorHex?.hex()
-        showHeader = tableData.showHeader
+    private var changeListener: (TableData) -> Unit = {}
+
+    fun registerOnChange(listener: (TableData) -> Unit) {
+        changeListener = listener
     }
 
-    fun notifyChange() {
-        onChange(
-            TableData(
-                headers = headers.toList(),
-                rows = rows.map { it.toList() },
-                columnWeights = weights.toList(),
-                bgColorHex = bgColorHex,
-                showHeader = showHeader
-            )
-        )
+    fun reloadFrom(data: TableData) {
+        val current = toTableData()
+        if (current.headers == data.headers &&
+            current.rows == data.rows &&
+            current.columnWeights == data.columnWeights &&
+            current.bgColorHex == data.bgColorHex &&
+            current.showHeader == data.showHeader
+        ) return
+        headers = data.headers.toMutableList()
+        rows = data.rows.map { it.toMutableList() }.toMutableList()
+        weights = data.normalizedWeights().toMutableList()
+        bgColorHex = data.bgColorHex?.hex()
+        showHeader = data.showHeader
     }
 
-    val columnCount = headers.size.coerceAtLeast(rows.maxOfOrNull { it.size } ?: 0)
-    val focusedRow = focusedCell?.takeIf { it.row >= 0 }?.row
-    val focusedCol = focusedCell?.col
-    val hasFocus = focusedCell != null
-    val activeCol = focusedCol
-    val activeRow = selectedRow ?: focusedRow
+    // --- Derivados (solo lectura) ---
+    val columnCount: Int
+        get() = headers.size.coerceAtLeast(rows.maxOfOrNull { it.size } ?: 0)
+    val focusedRow: Int?
+        get() = focusedCell?.takeIf { it.row >= 0 }?.row
+    val focusedCol: Int?
+        get() = focusedCell?.col
+    val hasFocus: Boolean
+        get() = focusedCell != null
+    val activeCol: Int?
+        get() = focusedCol
+    val activeRow: Int?
+        get() = selectedRow ?: focusedRow
 
     fun cellWeight(col: Int): Float = weights.getOrElse(col) { 1f }.coerceAtLeast(0.1f)
+
+    private fun toTableData() = TableData(
+        headers = headers.toList(),
+        rows = rows.map { it.toList() },
+        columnWeights = weights.toList(),
+        bgColorHex = bgColorHex,
+        showHeader = showHeader
+    )
+
+    private fun notifyChange() {
+        changeListener(toTableData())
+    }
+
+    // --- Mutadores ---
+    fun setHeader(col: Int, value: String) {
+        if (col !in headers.indices) return
+        headers[col] = value
+        notifyChange()
+    }
+
+    fun selectHeaderCell(col: Int, focused: Boolean) {
+        if (focused) {
+            focusedCell = FocusedCell(-1, col)
+            selectedRow = null
+        } else if (focusedCell == FocusedCell(-1, col)) {
+            focusedCell = null
+        }
+    }
+
+    fun selectCell(rowIndex: Int, col: Int, focused: Boolean) {
+        if (focused) {
+            focusedCell = FocusedCell(rowIndex, col)
+        } else if (focusedCell == FocusedCell(rowIndex, col)) {
+            focusedCell = null
+        }
+    }
+
+    fun selectRow(rowIndex: Int) {
+        selectedRow = rowIndex
+        focusedCell = null
+    }
+
+    fun setCellValue(rowIndex: Int, col: Int, value: String) {
+        if (rowIndex !in rows.indices) return
+        val row = rows[rowIndex]
+        while (row.size <= col) row.add("")
+        if (row[col] != value) {
+            row[col] = value
+            notifyChange()
+        }
+    }
 
     fun insertRowAbove(rowIndex: Int) {
         rows.add(rowIndex.coerceIn(0, rows.size), MutableList(columnCount) { "" })
@@ -171,6 +246,7 @@ fun EditableTableBlock(
             rows.removeAt(rowIndex.coerceIn(0, rows.lastIndex))
             selectedRow = null
             focusedCell = null
+            clearFocusRequesters() // Garantiza que no existan referencias corruptas
             notifyChange()
         }
     }
@@ -200,10 +276,16 @@ fun EditableTableBlock(
             if (colIndex < weights.size) weights.removeAt(colIndex)
             focusedCell = null
             selectedRow = null
+            clearFocusRequesters() // Limpia el mapa para regenerar posiciones
             notifyChange()
         }
     }
+    
 
+    private fun clearFocusRequesters() {
+        focusRequesters.clear()
+    }
+    
     fun moveRow(from: Int, to: Int) {
         if (from == to || from !in rows.indices || to !in rows.indices) return
         val item = rows.removeAt(from)
@@ -225,6 +307,34 @@ fun EditableTableBlock(
         notifyChange()
     }
 
+    fun commitRowDrag() {
+        val from = dragRow
+        val to = dragRowTarget
+        dragRow = null
+        dragRowTarget = null
+        if (from != null && to != null) moveRow(from, to)
+    }
+
+    fun commitColumnDrag() {
+        val from = dragCol
+        val to = dragColTarget
+        dragCol = null
+        dragColTarget = null
+        if (from != null && to != null) moveColumn(from, to)
+    }
+
+    fun adjustColumnWidth(col: Int, delta: Float, colUnitPx: Float) {
+        if (col !in weights.indices) return
+        weights[col] = (cellWeight(col) + delta / colUnitPx.coerceAtLeast(1f)).coerceIn(0.1f, 6f)
+        notifyChange()
+    }
+
+    fun adjustRowWidth(col: Int, delta: Float) {
+        if (col !in weights.indices) return
+        weights[col] = (cellWeight(col) + delta / 24f / columnCount.coerceAtLeast(1)).coerceIn(0.1f, 6f)
+        notifyChange()
+    }
+
     fun fitToContent() {
         if (columnCount == 0) return
         weights = (0 until columnCount).map { col ->
@@ -240,6 +350,16 @@ fun EditableTableBlock(
         notifyChange()
     }
 
+    fun toggleHeader() {
+        showHeader = !showHeader
+        notifyChange()
+    }
+
+    fun setBgColor(hex: String?) {
+        bgColorHex = hex?.hex()
+        notifyChange()
+    }
+
     fun moveFocus(dRow: Int, dCol: Int) {
         val cur = focusedCell ?: return
         if (columnCount == 0) return
@@ -250,13 +370,65 @@ fun EditableTableBlock(
         val newCol = (cur.col + dCol).coerceIn(0, columnCount - 1)
         focusRequesters[Pair(newRow, newCol)]?.requestFocus()
     }
+}
 
-    val tableBg = parseHex(bgColorHex) ?: Color.Transparent
+@Composable
+fun rememberTableBlockState(
+    tableData: TableData,
+    onChange: (TableData) -> Unit
+): TableBlockState {
+    val state = remember { TableBlockState(tableData) }
+    val currentOnChange by rememberUpdatedState(onChange)
+    LaunchedEffect(state) {
+        state.registerOnChange { currentOnChange(it) }
+    }
+    LaunchedEffect(tableData) {
+        state.reloadFrom(tableData)
+    }
+    return state
+}
+
+// ============ 2. COMPONENTE ORQUESTADOR (LA TABLA) ============
+@Composable
+fun EditableTableBlock(
+    tableData: TableData,
+    onChange: (TableData) -> Unit,
+    onFocusChange: (Boolean) -> Unit = {},
+    onDeleteBlock: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val state = rememberTableBlockState(tableData, onChange)
+    val tableBg = parseHex(state.bgColorHex) ?: Color.Transparent
     val outline = MaterialTheme.colorScheme.outlineVariant
     val primary = MaterialTheme.colorScheme.primary
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val colUnitPx = with(LocalDensity.current) { maxWidth.toPx() } / columnCount.coerceAtLeast(1)
+        val handleWidth = 32.dp
+        val availableWidthForCols = (maxWidth - handleWidth).coerceAtLeast(0.dp)
+
+        val totalWeight = remember(state.weights, state.columnCount) {
+            (0 until state.columnCount)
+                .sumOf { state.cellWeight(it).toDouble() }
+                .toFloat()
+                .coerceAtLeast(0.1f)
+        }
+
+        val minUnitWidth = 100.dp
+        val totalNaturalWidth = minUnitWidth * totalWeight
+        val fitsOnScreen = totalNaturalWidth <= availableWidthForCols
+
+        val getColumnWidth: (Int) -> Dp = { col ->
+            val weight = state.cellWeight(col)
+            if (fitsOnScreen) {
+                availableWidthForCols * (weight / totalWeight)
+            } else {
+                minUnitWidth * weight
+            }
+        }
+
+        val colUnitPx = with(LocalDensity.current) {
+            if (fitsOnScreen) (availableWidthForCols / totalWeight).toPx() else minUnitWidth.toPx()
+        }
 
         Box(modifier = Modifier.fillMaxWidth()) {
             Card(
@@ -271,140 +443,98 @@ fun EditableTableBlock(
                         .background(tableBg)
                         .horizontalScroll(rememberScrollState())
                 ) {
-                    if (showHeader) {
+                    if (state.showHeader) {
                         TableHeaderRow(
-                            headers = headers,
-                            columnCount = columnCount,
-                            cellWeight = ::cellWeight,
+                            headers = state.headers,
+                            columnCount = state.columnCount,
+                            getColumnWidth = getColumnWidth,
                             outline = outline,
                             primary = primary,
-                            focusedCol = focusedCol,
-                            showColMenu = showColMenu,
-                            onShowColMenuChange = { showColMenu = it },
-                            isDropCol = dragCol != null && dragCol != dragColTarget && dragColTarget != null,
+                            focusedCol = state.focusedCol,
+                            showColMenu = state.showColMenu,
+                            onShowColMenuChange = { state.showColMenu = it },
+                            isDropCol = state.dragCol != null && state.dragCol != state.dragColTarget && state.dragColTarget != null,
                             colUnitPx = colUnitPx,
-                            onHeaderValueChange = { col, value ->
-                                headers[col] = value
-                                notifyChange()
-                            },
+                            onHeaderValueChange = { col, value -> state.setHeader(col, value) },
                             onHeaderSelect = { col, focused ->
-                                if (focused) {
-                                    focusedCell = FocusedCell(-1, col)
-                                    selectedRow = null
-                                } else if (focusedCell == FocusedCell(-1, col)) {
-                                    focusedCell = null
-                                }
+                                state.selectHeaderCell(col, focused)
                                 onFocusChange(focused)
                             },
-                            onInsertLeft = { insertColumnLeft(it) },
-                            onInsertRight = { insertColumnRight(it) },
-                            onDeleteColumn = { deleteColumn(it) },
-                            canDeleteColumn = columnCount > 1,
-                            onResizeColumn = { col, delta ->
-                                weights[col] = (cellWeight(col) + delta / colUnitPx.coerceAtLeast(1f)).coerceIn(0.1f, 6f)
-                                notifyChange()
-                            },
-                            onDragColState = { s, t -> dragCol = s; dragColTarget = t },
-                            onCommitCol = {
-                                val s = dragCol
-                                val t = dragColTarget
-                                dragCol = null
-                                dragColTarget = null
-                                if (s != null && t != null) moveColumn(s, t)
-                            },
-                            onCancelCol = { dragCol = null; dragColTarget = null },
-                            focusRequesters = focusRequesters,
-                            onMoveFocus = ::moveFocus
+                            onInsertLeft = state::insertColumnLeft,
+                            onInsertRight = state::insertColumnRight,
+                            onDeleteColumn = state::deleteColumn,
+                            canDeleteColumn = state.columnCount > 1,
+                            onResizeColumn = { col, delta -> state.adjustColumnWidth(col, delta, colUnitPx) },
+                            onDragColState = { s, t -> state.dragCol = s; state.dragColTarget = t },
+                            onCommitCol = { state.commitColumnDrag() },
+                            onCancelCol = { state.dragCol = null; state.dragColTarget = null },
+                            focusRequesters = state.focusRequesters,
+                            onMoveFocus = state::moveFocus
                         )
-                        HorizontalDivider(thickness = 1.dp, color = outline)
-                    }
+                        }
 
-                    rows.forEachIndexed { rowIndex, row ->
+                    state.rows.forEachIndexed { rowIndex, row ->
                         TableRow(
                             row = row,
                             rowIndex = rowIndex,
-                            columnCount = columnCount,
-                            outline = outline,
+                            columnCount = state.columnCount,
                             primary = primary,
-                            focusedRow = focusedRow,
-                            focusedCol = focusedCol,
-                            selectedRow = selectedRow,
-                            isDropRow = dragRow != null && dragRow != rowIndex && dragRowTarget == rowIndex,
-                            showRowMenu = showRowMenu && selectedRow == rowIndex,
-                            onShowRowMenuChange = { showRowMenu = it },
-                            onCellWeight = ::cellWeight,
-                            onCellValueChange = { col, value ->
-                                while (row.size <= col) row.add("")
-                                row[col] = value
-                                notifyChange()
-                            },
+                            focusedRow = state.focusedRow,
+                            focusedCol = state.focusedCol,
+                            selectedRow = state.selectedRow,
+                            isDropRow = state.dragRow != null && state.dragRow != rowIndex && state.dragRowTarget == rowIndex,
+                            showRowMenu = state.showRowMenu && state.selectedRow == rowIndex,
+                            onShowRowMenuChange = { state.showRowMenu = it },
+                            getColumnWidth = getColumnWidth,
+                            onCellValueChange = { col, value -> state.setCellValue(rowIndex, col, value) },
                             onCellSelect = { col, focused ->
-                                if (focused) {
-                                    focusedCell = FocusedCell(rowIndex, col)
-                                } else if (focusedCell == FocusedCell(rowIndex, col)) {
-                                    focusedCell = null
-                                }
+                                state.selectCell(rowIndex, col, focused)
                                 onFocusChange(focused)
                             },
-                            onRowSelect = {
-                                selectedRow = rowIndex
-                                focusedCell = null
-                            },
-                            onInsertAbove = { insertRowAbove(rowIndex) },
-                            onInsertBelow = { insertRowBelow(rowIndex) },
-                            onDeleteRow = { deleteRow(rowIndex) },
-                            canDeleteRow = rows.size > 1,
-                            onResize = { col, delta ->
-                                weights[col] = (cellWeight(col) + delta / 24f / columnCount.coerceAtLeast(1)).coerceIn(0.1f, 6f)
-                                notifyChange()
-                            },
-                            rowHeightPx = rowHeightPx,
-                            rowCount = rows.size,
-                            onDragRowState = { s, t -> dragRow = s; dragRowTarget = t },
-                            onCommitRow = {
-                                val s = dragRow
-                                val t = dragRowTarget
-                                dragRow = null
-                                dragRowTarget = null
-                                if (s != null && t != null) moveRow(s, t)
-                            },
-                            onCancelRow = { dragRow = null; dragRowTarget = null },
-                            onRowHeight = { rowHeightPx = it },
-                            focusRequesters = focusRequesters,
-                            onMoveFocus = ::moveFocus
+                            onRowSelect = { state.selectRow(rowIndex) },
+                            onInsertAbove = { state.insertRowAbove(rowIndex) },
+                            onInsertBelow = { state.insertRowBelow(rowIndex) },
+                            onDeleteRow = { state.deleteRow(rowIndex) },
+                            canDeleteRow = state.rows.size > 1,
+                            onResize = { col, delta -> state.adjustRowWidth(col, delta) },
+                            rowHeightPx = state.rowHeightPx,
+                            rowCount = state.rows.size,
+                            onDragRowState = { s, t -> state.dragRow = s; state.dragRowTarget = t },
+                            onCommitRow = { state.commitRowDrag() },
+                            onCancelRow = { state.dragRow = null; state.dragRowTarget = null },
+                            onRowHeight = { state.rowHeightPx = it },
+                            focusRequesters = state.focusRequesters,
+                            onMoveFocus = state::moveFocus
                         )
-                        if (rowIndex < rows.lastIndex) {
-                            HorizontalDivider(thickness = 0.5.dp, color = outline.copy(alpha = 0.5f))
-                        }
                     }
 
                     AddRowFooter(
-                        onAddBelow = { insertRowBelow(rows.lastIndex) },
+                        onAddBelow = { state.insertRowBelow(state.rows.lastIndex) },
                         outline = outline,
                         primary = primary
                     )
                 }
             }
 
-            if (hasFocus) {
+            if (state.hasFocus) {
                 FloatingToolbar(
                     modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
-                    canDeleteColumn = columnCount > 1,
-                    canDeleteRow = rows.size > 1,
-                    hasRow = activeRow != null,
-                    hasColumn = activeCol != null,
-                    showHeader = showHeader,
-                    onToggleHeader = { showHeader = !showHeader; notifyChange() },
-                    onFitToScreen = { fitToScreen() },
-                    onFitToContent = { fitToContent() },
-                    onDeleteRow = { activeRow?.let { deleteRow(it) } },
-                    onDeleteColumn = { activeCol?.let { deleteColumn(it) } },
-                    onInsertRowAbove = { activeRow?.let { insertRowAbove(it) } },
-                    onInsertRowBelow = { activeRow?.let { insertRowBelow(it) } },
-                    onInsertColumnBefore = { activeCol?.let { insertColumnLeft(it) } },
-                    onInsertColumnAfter = { activeCol?.let { insertColumnRight(it) } },
+                    canDeleteColumn = state.columnCount > 1,
+                    canDeleteRow = state.rows.size > 1,
+                    hasRow = state.activeRow != null,
+                    hasColumn = state.activeCol != null,
+                    showHeader = state.showHeader,
+                    onToggleHeader = { state.toggleHeader() },
+                    onFitToScreen = { state.fitToScreen() },
+                    onFitToContent = { state.fitToContent() },
+                    onDeleteRow = { state.activeRow?.let { state.deleteRow(it) } },
+                    onDeleteColumn = { state.activeCol?.let { state.deleteColumn(it) } },
+                    onInsertRowAbove = { state.activeRow?.let { state.insertRowAbove(it) } },
+                    onInsertRowBelow = { state.activeRow?.let { state.insertRowBelow(it) } },
+                    onInsertColumnBefore = { state.activeCol?.let { state.insertColumnLeft(it) } },
+                    onInsertColumnAfter = { state.activeCol?.let { state.insertColumnRight(it) } },
                     onDeleteTable = onDeleteBlock,
-                    onSelectBg = { bgColorHex = it?.hex(); notifyChange() }
+                    onSelectBg = { state.setBgColor(it) }
                 )
             }
         }
@@ -415,7 +545,7 @@ fun EditableTableBlock(
 private fun TableHeaderRow(
     headers: List<String>,
     columnCount: Int,
-    cellWeight: (Int) -> Float,
+    getColumnWidth: (Int) -> Dp,
     outline: Color,
     primary: Color,
     focusedCol: Int?,
@@ -446,20 +576,24 @@ private fun TableHeaderRow(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Spacer(modifier = Modifier.width(32.dp))
+
         for (col in 0 until columnCount) {
             val header = headers.getOrElse(col) { "" }
             val selected = focusedCol == col
             val focusRequester = remember { FocusRequester() }
             focusRequesters[Pair(-1, col)] = focusRequester
+            val colWidth = getColumnWidth(col)
             Box(
                 modifier = Modifier
-                    .weight(cellWeight(col))
+                    .width(colWidth)
+                    .zIndex(if (selected) 1f else 0f)
                     .border(
-                        width = if (selected) 2.dp else 1.dp,
-                        color = if (selected) primary else outline.copy(alpha = 0.7f)
+                        width = if (selected) 1.5.dp else 0.5.dp,
+                        color = if (selected) TableBorderActive else TableBorderIdle
                     )
                     .background(
-                        if (selected) primary.copy(alpha = 0.08f) else Color.Transparent
+                        if (selected) TableHighlightBg else Color.Transparent
                     )
                     .clickable { onHeaderSelect(col, true) }
             ) {
@@ -483,9 +617,13 @@ private fun TableHeaderRow(
                             )
                         }
                     }
+                    var headerText by remember { mutableStateOf(TextFieldValue(header)) }
+                    LaunchedEffect(header) {
+                        if (headerText.text != header) headerText = TextFieldValue(header)
+                    }
                     BasicTextField(
-                        value = header,
-                        onValueChange = { onHeaderValueChange(col, it) },
+                        value = headerText,
+                        onValueChange = { headerText = it; onHeaderValueChange(col, it.text) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -539,32 +677,29 @@ private fun HeaderColumnHandle(
     onCancelCol: () -> Unit
 ) {
     Box {
-        Icon(
-            imageVector = Icons.Default.DragHandle,
-            contentDescription = "Column handle",
-            modifier = Modifier
-                .padding(2.dp)
-                .clickable { onShowMenuChange(true) }
-                .pointerInput(col) {
-                    var start = col
-                    var acc = 0f
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = {
-                            start = col
-                            acc = 0f
-                            onDragCol(start, start)
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            acc += dragAmount.x
-                            val target = (start + (acc / colUnitPx.coerceAtLeast(1f)).roundToInt()).coerceIn(0, columnCount - 1)
-                            onDragCol(start, target)
-                        },
-                        onDragEnd = { onCommitCol() },
-                        onDragCancel = { onCancelCol() }
-                    )
-                },
-            tint = primary
+        NotionSelectionHandle(
+            isVertical = false,
+            primary = primary,
+            onClick = { onShowMenuChange(true) },
+            onDragModifier = Modifier.pointerInput(col) {
+                var start = col
+                var acc = 0f
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        start = col
+                        acc = 0f
+                        onDragCol(start, start)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        acc += dragAmount.x
+                        val target = (start + (acc / colUnitPx.coerceAtLeast(1f)).roundToInt()).coerceIn(0, columnCount - 1)
+                        onDragCol(start, target)
+                    },
+                    onDragEnd = { onCommitCol() },
+                    onDragCancel = { onCancelCol() }
+                )
+            }
         )
         DropdownMenu(expanded = showMenu, onDismissRequest = { onShowMenuChange(false) }) {
             DropdownMenuItem(text = { Text("Insert column left") }, onClick = { onShowMenuChange(false); onInsertLeft() })
@@ -579,7 +714,6 @@ private fun TableRow(
     row: List<String>,
     rowIndex: Int,
     columnCount: Int,
-    outline: Color,
     primary: Color,
     focusedRow: Int?,
     focusedCol: Int?,
@@ -587,7 +721,7 @@ private fun TableRow(
     isDropRow: Boolean,
     showRowMenu: Boolean,
     onShowRowMenuChange: (Boolean) -> Unit,
-    onCellWeight: (Int) -> Float,
+    getColumnWidth: (Int) -> Dp,
     onCellValueChange: (Int, String) -> Unit,
     onCellSelect: (Int, Boolean) -> Unit,
     onRowSelect: () -> Unit,
@@ -647,7 +781,6 @@ private fun TableRow(
                 cell = cell,
                 isFocused = cellFocused,
                 inActiveCol = inActiveCol,
-                outline = outline,
                 primary = primary,
                 onValueChange = { onCellValueChange(col, it) },
                 onFocusChange = { onCellSelect(col, it) },
@@ -655,7 +788,7 @@ private fun TableRow(
                 showResize = cellFocused,
                 onMoveFocus = onMoveFocus,
                 focusRequester = focusRequester,
-                modifier = Modifier.weight(onCellWeight(col))
+                modifier = Modifier.width(getColumnWidth(col))
             )
         }
     }
@@ -679,36 +812,34 @@ private fun RowHandle(
     onCommitRow: () -> Unit,
     onCancelRow: () -> Unit
 ) {
-    Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.Center) {
-        Icon(
-            imageVector = Icons.Default.DragIndicator,
-            contentDescription = "Row handle",
-            modifier = Modifier
-                .padding(2.dp)
-                .clickable {
-                    onSelect()
-                    onShowMenuChange(true)
-                }
-                .pointerInput(rowIndex) {
-                    var start = rowIndex
-                    var acc = 0f
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = {
-                            start = rowIndex
-                            acc = 0f
-                            onDragRowState(start, start)
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            acc += dragAmount.y
-                            val target = (start + (acc / rowHeightPx.coerceAtLeast(1f)).roundToInt()).coerceIn(0, rowCount - 1)
-                            onDragRowState(start, target)
-                        },
-                        onDragEnd = { onCommitRow() },
-                        onDragCancel = { onCancelRow() }
-                    )
-                },
-            tint = if (selected) primary else MaterialTheme.colorScheme.outline
+    Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
+        NotionSelectionHandle(
+            isVertical = true,
+            primary = primary,
+            selected = selected,
+            onClick = {
+                onSelect()
+                onShowMenuChange(true)
+            },
+            onDragModifier = Modifier.pointerInput(rowIndex) {
+                var start = rowIndex
+                var acc = 0f
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        start = rowIndex
+                        acc = 0f
+                        onDragRowState(start, start)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        acc += dragAmount.y
+                        val target = (start + (acc / rowHeightPx.coerceAtLeast(1f)).roundToInt()).coerceIn(0, rowCount - 1)
+                        onDragRowState(start, target)
+                    },
+                    onDragEnd = { onCommitRow() },
+                    onDragCancel = { onCancelRow() }
+                )
+            }
         )
         DropdownMenu(expanded = showMenu, onDismissRequest = { onShowMenuChange(false) }) {
             DropdownMenuItem(text = { Text("Insert row above") }, onClick = { onShowMenuChange(false); onInsertAbove() })
@@ -718,12 +849,12 @@ private fun RowHandle(
     }
 }
 
+// ============ 4. CELDA (KISS) ============
 @Composable
 private fun TableCell(
     cell: String,
     isFocused: Boolean,
     inActiveCol: Boolean,
-    outline: Color,
     primary: Color,
     onValueChange: (String) -> Unit,
     onFocusChange: (Boolean) -> Unit,
@@ -733,22 +864,28 @@ private fun TableCell(
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
+    val isHighlighted = isFocused || inActiveCol
     val link = isLink(cell)
+    var text by remember { mutableStateOf(TextFieldValue(cell)) }
+    LaunchedEffect(cell) {
+        if (text.text != cell) text = TextFieldValue(cell)
+    }
     var base = modifier
+        .zIndex(if (isHighlighted) 1f else 0f)
         .border(
-            width = if (isFocused) 2.dp else 1.dp,
-            color = if (isFocused) primary else outline.copy(alpha = 0.7f)
+            width = if (isHighlighted) 1.5.dp else 0.5.dp,
+            color = if (isHighlighted) TableBorderActive else TableBorderIdle
         )
         .background(
-            if (isFocused || inActiveCol) primary.copy(alpha = 0.08f) else Color.Transparent
+            if (isHighlighted) TableHighlightBg else Color.Transparent
         )
     if (link) {
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))
     }
-    Box(base.padding(horizontal = 12.dp, vertical = 10.dp)) {
+    Box(base.height(44.dp).padding(horizontal = 12.dp, vertical = 4.dp), contentAlignment = Alignment.CenterStart) {
         BasicTextField(
-            value = cell,
-            onValueChange = onValueChange,
+            value = text,
+            onValueChange = { text = it; onValueChange(it.text) },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
@@ -824,10 +961,42 @@ private fun AddRowFooter(
             .padding(horizontal = 24.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.width(24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
             Icon(Icons.Default.Add, contentDescription = "Add row", modifier = Modifier.size(18.dp), tint = outline)
         }
         Text("Add row", style = MaterialTheme.typography.bodySmall, color = outline)
+    }
+}
+
+// ============ 3. MANEJADOR ESTILO NOTION (DRY) ============
+@Composable
+fun NotionSelectionHandle(
+    isVertical: Boolean,
+    primary: Color,
+    selected: Boolean = false,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onDragModifier: Modifier = Modifier
+) {
+    val handleText = if (isVertical) "⋮⋮" else "⋯"
+
+    Box(
+        modifier = modifier
+            .size(if (isVertical) 16.dp else 24.dp, if (isVertical) 24.dp else 16.dp)
+            .background(Color.White, RoundedCornerShape(4.dp))
+            .border(1.dp, if (selected) TableBorderActive else Color(0xFFE5E7EB), RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick)
+            .then(onDragModifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = handleText,
+            color = if (selected) primary else Color.Gray,
+            fontSize = if (isVertical) 10.sp else 12.sp,
+            lineHeight = 10.sp,
+            modifier = Modifier.offset(y = if (isVertical) (-2).dp else 0.dp)
+        )
     }
 }
 
@@ -921,5 +1090,26 @@ private fun BackgroundColorRow(onSelect: (String?) -> Unit) {
                     .clickable { onSelect(option.hex) }
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EditableTableBlockPreview() {
+    MaterialTheme {
+        val sampleData = TableData(
+            headers = listOf("Encabezado 1", "Encabezado 2"),
+            rows = listOf(
+                listOf("Dato 1", "Dato 2"),
+                listOf("Dato 3", "Dato 4")
+            ),
+            columnWeights = listOf(1f, 1f),
+            bgColorHex = null,
+            showHeader = true
+        )
+        EditableTableBlock(
+            tableData = sampleData,
+            onChange = {}
+        )
     }
 }
