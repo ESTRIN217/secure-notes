@@ -1,9 +1,11 @@
 package com.example.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,8 +24,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,11 +51,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.R
 import com.example.data.model.Attachment
@@ -72,6 +80,7 @@ fun BlockEditor(
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
+    onEditPageLink: (Int) -> Unit = {},
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
@@ -81,7 +90,7 @@ fun BlockEditor(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    var dragState by remember { mutableStateOf<DragState?>(null) }
+    val dragState = remember { mutableStateOf<DragState?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -92,85 +101,41 @@ fun BlockEditor(
             var numberedCounter = 0
             blocks.forEachIndexed { index, block ->
                 numberedCounter = if (block.type == BlockType.NUMBERED_LIST) numberedCounter + 1 else 0
-                val isDragging = dragState?.draggedIndex == index
-                val dragOffset = if (isDragging) dragState?.offset ?: 0f else 0f
-                val droppedIndex = dragState?.tentativeIndex
-                val draggedIdx = dragState?.draggedIndex
+                val isDragging = dragState.value?.draggedIndex == index
+                val dragOffset = if (isDragging) dragState.value?.offset ?: 0f else 0f
+                val droppedIndex = dragState.value?.tentativeIndex
+                val draggedIdx = dragState.value?.draggedIndex
                 val dropAbove = draggedIdx != null && droppedIndex != null && droppedIndex != draggedIdx && droppedIndex == index
                 val dropBelow = draggedIdx != null && droppedIndex != null && droppedIndex != draggedIdx && index - 1 == droppedIndex
+                val dragViaLongPress = block.type.dragViaLongPress(index != activeBlockIndex)
+
+                fun commitBlockDrop(from: Int, tentativeIndex: Int) {
+                    if (from == tentativeIndex) return
+                    val newBlocks = blocks.toMutableList()
+                    val item = newBlocks.removeAt(from)
+                    newBlocks.add(tentativeIndex, item)
+                    onBlocksChange(newBlocks)
+                    onActiveBlockChange(tentativeIndex)
+                }
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .zIndex(if (isDragging) 10f else 0f)
+                        .graphicsLayer {
+                            translationY = dragOffset
+                            alpha = if (isDragging) 0.9f else 1f
+                            shadowElevation = if (isDragging) 8f else 0f
+                        }
                         .then(
-                            if (isDragging) Modifier
-                                .zIndex(10f)
-                                .graphicsLayer {
-                                    translationY = dragOffset
-                                    alpha = 0.9f
-                                    shadowElevation = 8f
-                                }
-                            else Modifier
-                        )
-                        .then(
-                            if (index != activeBlockIndex && !isDragging) Modifier.pointerInput(index) {
-                                awaitEachGesture {
-                                    val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
-                                    val startTime = System.nanoTime()
-                                    var longPressed = false
-                                    var lastPosition = down.position
-
-                                    while (true) {
-                                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-
-                                        if (!change.pressed) break
-
-                                        if (!longPressed) {
-                                            val now = System.nanoTime()
-                                            val elapsed = now - startTime
-                                            if (elapsed >= viewConfiguration.longPressTimeoutMillis * 1_000_000) {
-                                                longPressed = true
-                                                change.consume()
-                                                lastPosition = change.position
-                                                dragState = DragState(
-                                                    draggedIndex = index,
-                                                    startOffset = 0f,
-                                                    offset = 0f,
-                                                    initialScrollOffset = scrollState.value
-                                                )
-                                            } else {
-                                                val distance = (change.position - down.position).getDistance()
-                                                if (distance > viewConfiguration.touchSlop) break
-                                            }
-                                        }
-
-                                        if (longPressed) {
-                                            change.consume()
-                                            val delta = change.position.y - lastPosition.y
-                                            lastPosition = change.position
-                                            val state = dragState
-                                            if (state != null) {
-                                                val newOffset = state.offset + delta
-                                                val moveDelta = (newOffset / 72f).toInt()
-                                                val tentativeIndex = (index + moveDelta).coerceIn(0, blocks.size - 1)
-                                                dragState = state.copy(offset = newOffset, tentativeIndex = tentativeIndex)
-                                            }
-                                        }
-                                    }
-
-                                    if (longPressed) {
-                                        val state = dragState
-                                        if (state != null && state.tentativeIndex != null && state.tentativeIndex != index) {
-                                            val newBlocks = blocks.toMutableList()
-                                            val item = newBlocks.removeAt(index)
-                                            newBlocks.add(state.tentativeIndex, item)
-                                            onBlocksChange(newBlocks)
-                                            onActiveBlockChange(state.tentativeIndex)
-                                        }
-                                        dragState = null
-                                    }
-                                }
+                            if (dragViaLongPress) Modifier.pointerInput(index) {
+                                awaitBlockDragGesture(
+                                    index = index,
+                                    blockCount = blocks.size,
+                                    scrollState = scrollState,
+                                    dragState = dragState,
+                                    commitDrop = ::commitBlockDrop
+                                )
                             } else Modifier
                         )
                 ) {
@@ -194,6 +159,7 @@ fun BlockEditor(
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
                         noteTitleById = noteTitleById,
+                        onEditPageLink = onEditPageLink,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -283,7 +249,25 @@ fun BlockEditor(
                                 onActiveBlockChange(focusIdx)
                             }
                         },
-                        onParseResult = onParseResult
+                        onParseResult = onParseResult,
+                        dragHandleEnabled = block.type == BlockType.TABLE,
+                        onDragHandleStart = {
+                            dragState.value = DragState(index, 0f, 0f, scrollState.value)
+                        },
+                        onDragHandleBy = { delta ->
+                            val state = dragState.value
+                            if (state != null) {
+                                dragState.value = updateDragOffset(state, delta, index, blocks.size)
+                            }
+                        },
+                        onDragHandleEnd = {
+                            val state = dragState.value
+                            if (state != null && state.tentativeIndex != null && state.tentativeIndex != index) {
+                                commitBlockDrop(index, state.tentativeIndex)
+                            }
+                            dragState.value = null
+                        },
+                        onDragHandleCancel = { dragState.value = null }
                     )
 
                     if (dropBelow) {
@@ -314,6 +298,76 @@ private data class DragState(
     val tentativeIndex: Int? = null
 )
 
+private suspend fun PointerInputScope.awaitBlockDragGesture(
+    index: Int,
+    blockCount: Int,
+    scrollState: ScrollState,
+    dragState: MutableState<DragState?>,
+    commitDrop: (Int, Int) -> Unit
+) {
+    awaitEachGesture {
+        var started = false
+        try {
+            val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
+            val startTime = System.nanoTime()
+            var lastPosition = down.position
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) break
+
+                if (!started) {
+                    val elapsed = System.nanoTime() - startTime
+                    if (elapsed >= viewConfiguration.longPressTimeoutMillis * 1_000_000) {
+                        started = true
+                        change.consume()
+                        lastPosition = change.position
+                        dragState.value = DragState(
+                            draggedIndex = index,
+                            startOffset = 0f,
+                            offset = 0f,
+                            initialScrollOffset = scrollState.value
+                        )
+                    } else {
+                        val distance = (change.position - down.position).getDistance()
+                        if (distance > viewConfiguration.touchSlop) break
+                    }
+                } else {
+                    change.consume()
+                    val delta = change.position.y - lastPosition.y
+                    lastPosition = change.position
+                    val state = dragState.value
+                    if (state != null) {
+                        dragState.value = updateDragOffset(state, delta, index, blockCount)
+                    }
+                }
+            }
+        } finally {
+            val state = dragState.value
+            if (state != null && state.tentativeIndex != null && state.tentativeIndex != index) {
+                commitDrop(index, state.tentativeIndex)
+            }
+            dragState.value = null
+        }
+    }
+}
+
+private fun updateDragOffset(state: DragState, deltaY: Float, index: Int, blockCount: Int): DragState {
+    val newOffset = state.offset + deltaY
+    val moveDelta = (newOffset / 72f).toInt()
+    val tentativeIndex = (index + moveDelta).coerceIn(0, blockCount - 1)
+    return state.copy(offset = newOffset, tentativeIndex = tentativeIndex)
+}
+
+private fun BlockType.dragViaLongPress(isActive: Boolean): Boolean = when (this) {
+    BlockType.TABLE -> false
+    BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
+    BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM, BlockType.COLLAPSIBLE,
+    BlockType.QUOTE, BlockType.CODE_BLOCK -> !isActive
+    else -> true
+}
+
 @Composable
 private fun BlockRow(
     block: DataBlock,
@@ -324,6 +378,7 @@ private fun BlockRow(
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
+    onEditPageLink: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -340,13 +395,66 @@ private fun BlockRow(
     onSplitCollapsibleSummary: (String, String) -> Unit = { _, _ -> },
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
-    onDeleteBlock: () -> Unit = {}
+    onDeleteBlock: () -> Unit = {},
+    dragHandleEnabled: Boolean = false,
+    onDragHandleStart: () -> Unit = {},
+    onDragHandleBy: (Float) -> Unit = {},
+    onDragHandleEnd: () -> Unit = {},
+    onDragHandleCancel: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     var showBlockMenu by remember { mutableStateOf(false) }
+    val (topMargin, bottomMargin) = block.type.blockVerticalMargins()
 
     Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = topMargin, bottom = bottomMargin),
         verticalAlignment = Alignment.Top
     ) {
+
+        if (dragHandleEnabled) {
+            Column(
+                modifier = Modifier.width(36.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                IconButton(
+                    onClick = { showBlockMenu = true },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Block options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(24.dp, 28.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .pointerInput(index) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { onDragHandleStart() },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    onDragHandleBy(dragAmount.y)
+                                },
+                                onDragEnd = onDragHandleEnd,
+                                onDragCancel = onDragHandleCancel
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "\u283F",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
 
         when (block.type) {
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
@@ -430,7 +538,7 @@ private fun BlockRow(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -473,6 +581,59 @@ private fun BlockRow(
                         },
                         onDismiss = { showIconSheet = false }
                     )
+                }
+            }
+            BlockType.PAGE_LINK -> {
+                val linkedNoteId = block.meta["noteId"]?.toIntOrNull()
+                val resolvedTitle = linkedNoteId?.let { noteTitleById(it) }.orEmpty()
+                val pageLinkTitle = resolvedTitle.ifBlank { block.content.ifBlank { stringResource(R.string.block_page_link_pick) } }
+                OutlinedCard(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Link,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = pageLinkTitle,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            color = if (linkedNoteId == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    if (linkedNoteId != null) onNavigateToNote(linkedNoteId)
+                                    else onEditPageLink(index)
+                                }
+                        )
+                        if (linkedNoteId != null) {
+                            IconButton(onClick = { onEditPageLink(index) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.block_page_link_change),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
             else -> {
@@ -637,6 +798,7 @@ private val BlockType.displayName: String
         BlockType.CODE_BLOCK -> "Code Block"
         BlockType.CALLOUT -> "Highlight"
         BlockType.PAGE -> "Page"
+        BlockType.PAGE_LINK -> "Page Link"
         BlockType.HORIZONTAL_RULE -> "Divider"
         BlockType.IMAGE -> "Image"
         BlockType.VIDEO -> "Video"
@@ -669,6 +831,15 @@ private val convertibleTypes = setOf(
 )
 
 private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)
+
+private fun BlockType.blockVerticalMargins(): Pair<Dp, Dp> = when (this) {
+    BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4 -> 24.dp to 8.dp
+    BlockType.PAGE, BlockType.PAGE_LINK, BlockType.TABLE, BlockType.COLLAPSIBLE, BlockType.CALLOUT,
+    BlockType.HORIZONTAL_RULE -> 16.dp to 16.dp
+    BlockType.TEXT, BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM,
+    BlockType.QUOTE, BlockType.CODE_BLOCK -> 8.dp to 8.dp
+    else -> 0.dp to 0.dp
+}
 
 private fun DataBlock.toRenderingBlock(): NoteContentBlock {
     return when (type) {

@@ -302,6 +302,10 @@
     <string name="block_collapsible_desc">Expandable list</string>
     <string name="block_page">Page</string>
     <string name="block_page_desc">Create and open a new page</string>
+    <string name="block_page_link">Link to Page</string>
+    <string name="block_page_link_desc">Link an existing note</string>
+    <string name="block_page_link_pick">Select a note to link</string>
+    <string name="block_page_link_change">Change linked note</string>
     <string name="block_highlight">Highlight</string>
     <string name="block_highlight_desc">Highlighted callout block</string>
     <string name="block_quote">Quote</string>

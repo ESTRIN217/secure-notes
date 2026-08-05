@@ -353,6 +353,9 @@ fun NoteEditorScreen(
     var showPaletteSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
 
+    var showNoteLinkPicker by remember { mutableStateOf(false) }
+    var pageLinkTargetBlockIndex by remember { mutableIntStateOf(-1) }
+
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
 
@@ -678,6 +681,11 @@ fun NoteEditorScreen(
                     }
                     onNavigateToNote(newId)
                 }
+            }
+            BlockAction.LINK_PAGE -> {
+                clearSlashPlaceholder()
+                pageLinkTargetBlockIndex = -1
+                showNoteLinkPicker = true
             }
         }
     }
@@ -1302,6 +1310,10 @@ fun NoteEditorScreen(
                         onNavigateToDrawing = onNavigateToDrawing,
                         onNavigateToNote = onNavigateToNote,
                         noteTitleById = { id -> allNotes.find { it.note.id == id }?.title ?: "" },
+                        onEditPageLink = { idx ->
+                            pageLinkTargetBlockIndex = idx
+                            showNoteLinkPicker = true
+                        },
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
@@ -1646,293 +1658,112 @@ fun NoteEditorScreen(
             }
 
             if (isKeyboardVisible) {
-            // Merged floating toolbar
-            OutlinedCard(
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .widthIn(max = 440.dp)
-                    .fillMaxWidth(0.93f)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                FloatingEditorToolbar(
+                    activeTextStyles = activeTextStyles,
+                    activeFontColor = activeFontColor,
+                    activeBgColor = activeBgColor,
+                    isSpeaking = isSpeaking,
+                    aiEnabled = aiEnabled,
+                    showAiPanel = showAiPanel,
+                    canUndo = historyIndex > 0,
+                    canRedo = historyIndex < history.lastIndex,
+                    onUndo = {
+                        syncActiveBlock()
+                        if (historyIndex > 0) {
+                            historyIndex--
+                            val prevBlocks = history[historyIndex]
+                            blocks = prevBlocks
+                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                            toolbarActiveBlockIndex = idx
+                            val text = blocks.getOrNull(idx)?.content ?: ""
+                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                        }
+                    },
+                    onRedo = {
+                        syncActiveBlock()
+                        if (historyIndex < history.lastIndex) {
+                            historyIndex++
+                            val nextBlocks = history[historyIndex]
+                            blocks = nextBlocks
+                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                            toolbarActiveBlockIndex = idx
+                            val text = blocks.getOrNull(idx)?.content ?: ""
+                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                        }
+                    },
+                    onToggleTag = { applyTag(it) },
+                    onOpenFontColor = { showFontColorDialog = true },
+                    onOpenBgColor = { showBgColorDialog = true },
+                    onClearFormatting = {
+                        val selStart = contentValue.selection.start
+                        val selEnd = contentValue.selection.end
+                        val text = contentValue.text
+                        val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
+                        val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
+                        if (selStart == selEnd) {
+                            val cleaned = text.replace(inlineRegex, "")
+                            contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        } else {
+                            val before = text.substring(0, selStart)
+                            val selected = text.substring(selStart, selEnd)
+                            val after = text.substring(selEnd)
+                            val cleanedSelected = selected.replace(inlineRegex, "")
+                            val newText = before + cleanedSelected + after
+                            contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        }
+                    },
+                    onOpenMoreFormatting = { showMoreFormattingSheet = true },
+                    onOpenPalette = { showPaletteSheet = true },
+                    onTtsToggle = {
+                        if (isSpeaking) {
+                            tts?.stop()
+                            isSpeaking = false
+                        } else {
+                            val textToRead = "$title. $content"
+                            if (textToRead.isNotBlank()) {
+                                val params = android.os.Bundle().apply {
+                                    putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "NoteTTS")
+                                }
+                                tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
+                                isSpeaking = true
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onOpenDrawing = {
+                        hasNavigatingToDrawing = true
+                        scope.launch {
+                            val savedId = viewModel.saveNoteAndGetId(
+                                id = noteId,
+                                title = title.trim(),
+                                content = contentForSave(),
+                                isEncrypted = isEncrypted,
+                                tagsList = selectedNoteTags,
+                                backgroundColor = selectedBgColorId,
+                                backgroundImagePath = selectedBgImagePath,
+                                isPinned = isPinned,
+                                isFavorite = isFavorite,
+                                isArchived = isArchived
+                            )
+                            onNavigateToDrawing(savedId, null)
+                        }
+                    },
+                    onOpenAttachments = { showVoiceFileSheet = true },
+                    onOpenAi = {
+                        aiSelectionStart = contentValue.selection.start
+                        aiSelectionEnd = contentValue.selection.end
+                        if (contentValue.selection.start != contentValue.selection.end) {
+                            showAiContextSheet = true
+                        } else {
+                            aiViewModel.prepareChatForNote(content, "", title)
+                            onNavigateToAiChat(noteId)
+                        }
+                    },
+                    onToggleAiPanel = { showAiPanel = !showAiPanel }
                 )
-            ) {
-                Column {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    syncActiveBlock()
-                                    if (historyIndex > 0) {
-                                        historyIndex--
-                                        val prevBlocks = history[historyIndex]
-                                        blocks = prevBlocks
-                                        val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
-                                        toolbarActiveBlockIndex = idx
-                                        val text = blocks.getOrNull(idx)?.content ?: ""
-                                        contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
-                                    }
-                                },
-                                enabled = historyIndex > 0,
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(R.string.rich_undo), modifier = Modifier.size(16.dp))
-                            }
-                            IconButton(
-                                onClick = {
-                                    syncActiveBlock()
-                                    if (historyIndex < history.lastIndex) {
-                                        historyIndex++
-                                        val nextBlocks = history[historyIndex]
-                                        blocks = nextBlocks
-                                        val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
-                                        toolbarActiveBlockIndex = idx
-                                        val text = blocks.getOrNull(idx)?.content ?: ""
-                                        contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
-                                    }
-                                },
-                                enabled = historyIndex < history.lastIndex,
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = stringResource(R.string.rich_redo), modifier = Modifier.size(16.dp))
-                            }
-
-                            VerticalDivider(modifier = Modifier.height(20.dp))
-
-                            FilledTonalIconToggleButton(
-                                checked = "b" in activeTextStyles,
-                                onCheckedChange = { applyTag("b") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("B", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-
-                            FilledTonalIconToggleButton(
-                                checked = "i" in activeTextStyles,
-                                onCheckedChange = { applyTag("i") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("I", fontStyle = FontStyle.Italic, fontSize = 12.sp) }
-
-                            FilledTonalIconToggleButton(
-                                checked = "u" in activeTextStyles,
-                                onCheckedChange = { applyTag("u") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 12.sp) }
-
-                            FilledTonalIconToggleButton(
-                                checked = "s" in activeTextStyles,
-                                onCheckedChange = { applyTag("s") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 12.sp) }
-
-                            VerticalDivider(modifier = Modifier.height(20.dp))
-
-                            FilledTonalIconToggleButton(
-                                checked = "h1" in activeTextStyles,
-                                onCheckedChange = { applyTag("h1") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("H1", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                            FilledTonalIconToggleButton(
-                                checked = "h2" in activeTextStyles,
-                                onCheckedChange = { applyTag("h2") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("H2", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                            FilledTonalIconToggleButton(
-                                checked = "h3" in activeTextStyles,
-                                onCheckedChange = { applyTag("h3") },
-                                modifier = Modifier.size(32.dp)
-                            ) { Text("H3", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                            VerticalDivider(modifier = Modifier.height(20.dp))
-
-                            IconButton(
-                                onClick = { showFontColorDialog = true },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.FormatColorText,
-                                    contentDescription = stringResource(R.string.rich_font_color),
-                                    modifier = Modifier.size(16.dp),
-                                    tint = activeFontColor ?: MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            IconButton(
-                                onClick = { showBgColorDialog = true },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.FormatColorFill,
-                                    contentDescription = stringResource(R.string.rich_bg_color),
-                                    modifier = Modifier.size(16.dp),
-                                    tint = activeBgColor ?: MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    val selStart = contentValue.selection.start
-                                    val selEnd = contentValue.selection.end
-                                    val text = contentValue.text
-                                    val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
-                                    val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
-                                    if (selStart == selEnd) {
-                                        val cleaned = text.replace(inlineRegex, "")
-                                        contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
-                                        syncActiveBlock(); saveBlocksToHistory()
-                                    } else {
-                                        val before = text.substring(0, selStart)
-                                        val selected = text.substring(selStart, selEnd)
-                                        val after = text.substring(selEnd)
-                                        val cleanedSelected = selected.replace(inlineRegex, "")
-                                        val newText = before + cleanedSelected + after
-                                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
-                                        syncActiveBlock(); saveBlocksToHistory()
-                                    }
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.Default.FormatClear, contentDescription = stringResource(R.string.rich_remove_format), modifier = Modifier.size(16.dp))
-                            }
-
-                            VerticalDivider(modifier = Modifier.height(20.dp))
-
-                            IconButton(
-                                onClick = { showMoreFormattingSheet = true },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.Default.MoreHoriz, contentDescription = "More", modifier = Modifier.size(16.dp))
-                            }
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { showPaletteSheet = true },
-                            modifier = Modifier.testTag("palette_toolbar_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = stringResource(id = R.string.option_note_styling),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                if (isSpeaking) {
-                                    tts?.stop()
-                                    isSpeaking = false
-                                } else {
-                                    val textToRead = "$title. $content"
-                                    if (textToRead.isNotBlank()) {
-                                        val params = android.os.Bundle().apply {
-                                            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "NoteTTS")
-                                        }
-                                        tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
-                                        isSpeaking = true
-                                    } else {
-                                        Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
-                            modifier = Modifier.testTag("tts_toolbar_btn")
-                        ) {
-                            Icon(
-                                imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
-                                tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                hasNavigatingToDrawing = true
-                                scope.launch {
-                                    val savedId = viewModel.saveNoteAndGetId(
-                                        id = noteId,
-                                        title = title.trim(),
-                                        content = contentForSave(),
-                                        isEncrypted = isEncrypted,
-                                        tagsList = selectedNoteTags,
-                                        backgroundColor = selectedBgColorId,
-                                        backgroundImagePath = selectedBgImagePath,
-                                        isPinned = isPinned,
-                                        isFavorite = isFavorite,
-                                        isArchived = isArchived
-                                    )
-                                    onNavigateToDrawing(savedId, null)
-                                }
-                            },
-                            modifier = Modifier.testTag("drawing_toolbar_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Gesture,
-                                contentDescription = stringResource(R.string.add_drawing),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { showVoiceFileSheet = true },
-                            modifier = Modifier.testTag("attachments_toolbar_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AttachFile,
-                                contentDescription = stringResource(R.string.add_attachment),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        if (aiEnabled) {
-                            IconButton(
-                                onClick = {
-                                    aiSelectionStart = contentValue.selection.start
-                                    aiSelectionEnd = contentValue.selection.end
-                                    if (contentValue.selection.start != contentValue.selection.end) {
-                                        showAiContextSheet = true
-                                    } else {
-                                        aiViewModel.prepareChatForNote(content, "", title)
-                                        onNavigateToAiChat(noteId)
-                                    }
-                                },
-                                modifier = Modifier.testTag("ai_toolbar_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = stringResource(R.string.ai_assistant),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        if (aiEnabled) {
-                            IconButton(
-                                onClick = { showAiPanel = !showAiPanel }
-                            ) {
-                                Icon(
-                                    imageVector = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
-                                    contentDescription = "AI Panel",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-            }
             }
 
         if (showMoreFormattingSheet) {
@@ -1954,29 +1785,35 @@ fun NoteEditorScreen(
                         onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
                     )
 
-                    HorizontalDivider()
+                    if (BLOCK_COMMANDS.any { it.section == BlockSection.BLOCKS }) {
+                        HorizontalDivider()
 
-                    Text(stringResource(R.string.block_section_blocks), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    BlockCommandSection(
-                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BLOCKS },
-                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
-                    )
+                        Text(stringResource(R.string.block_section_blocks), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                        BlockCommandSection(
+                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BLOCKS },
+                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                        )
+                    }
 
-                    HorizontalDivider()
+                    if (BLOCK_COMMANDS.any { it.section == BlockSection.LINK }) {
+                        HorizontalDivider()
 
-                    Text(stringResource(R.string.block_section_link), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    BlockCommandSection(
-                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.LINK },
-                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
-                    )
+                        Text(stringResource(R.string.block_section_link), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                        BlockCommandSection(
+                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.LINK },
+                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                        )
+                    }
 
-                    HorizontalDivider()
+                    if (BLOCK_COMMANDS.any { it.section == BlockSection.MEDIA }) {
+                        HorizontalDivider()
 
-                    Text(stringResource(R.string.block_section_media), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                    BlockCommandSection(
-                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.MEDIA },
-                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
-                    )
+                        Text(stringResource(R.string.block_section_media), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                        BlockCommandSection(
+                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.MEDIA },
+                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                        )
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }
@@ -2829,6 +2666,26 @@ fun NoteEditorScreen(
                     TextButton(onClick = { aiViewModel.cancelGeneration() }) {
                         Text(stringResource(R.string.btn_cancel))
                     }
+                }
+            )
+        }
+
+        if (showNoteLinkPicker) {
+            PageLinkNotePickerSheet(
+                notes = allNotes,
+                currentNoteId = noteId,
+                onDismiss = { showNoteLinkPicker = false },
+                onNoteSelected = { linkedId ->
+                    val target = pageLinkTargetBlockIndex
+                    if (target in blocks.indices) {
+                        val newBlocks = blocks.toMutableList()
+                        newBlocks[target] = newBlocks[target].copy(meta = mapOf("noteId" to linkedId.toString()))
+                        blocks = newBlocks
+                        saveBlocksToHistory()
+                    } else {
+                        handleSlashSelect(DataBlock(type = BlockType.PAGE_LINK, content = "", meta = mapOf("noteId" to linkedId.toString())))
+                    }
+                    showNoteLinkPicker = false
                 }
             )
         }

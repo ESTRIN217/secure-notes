@@ -288,6 +288,10 @@
     <string name="block_collapsible_desc">Lista expandible</string>
     <string name="block_page">Página</string>
     <string name="block_page_desc">Crea y abre una nueva página</string>
+    <string name="block_page_link">Enlace a página</string>
+    <string name="block_page_link_desc">Enlaza una nota existente</string>
+    <string name="block_page_link_pick">Selecciona la nota a enlazar</string>
+    <string name="block_page_link_change">Cambiar nota enlazada</string>
     <string name="block_highlight">Destacado</string>
     <string name="block_highlight_desc">Bloque de llamada resaltado</string>
     <string name="block_quote">Cita</string>

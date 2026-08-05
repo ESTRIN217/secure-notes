@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.BlockType
 
-enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE }
+enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE, LINK_PAGE }
 
 enum class BlockSection { BASIC, BLOCKS, LINK, MEDIA }
 
@@ -72,11 +72,12 @@ val BLOCK_COMMANDS: List<BlockCommand> = listOf(
     BlockCommand(R.string.block_numbered, R.string.block_numbered_desc, Icons.Default.FormatListNumbered, BlockSection.BASIC, BlockType.NUMBERED_LIST),
     BlockCommand(R.string.block_checklist, R.string.block_checklist_desc, Icons.Default.CheckBox, BlockSection.BASIC, BlockType.CHECKLIST_ITEM, meta = mapOf("checked" to "false")),
     BlockCommand(R.string.block_collapsible, R.string.block_collapsible_desc, Icons.Default.KeyboardArrowDown, BlockSection.BASIC, BlockType.COLLAPSIBLE),
+    BlockCommand(R.string.block_page, R.string.block_page_desc, Icons.Default.Description, BlockSection.BASIC, action = BlockAction.INSERT_PAGE),
     BlockCommand(R.string.block_highlight, R.string.block_highlight_desc, Icons.Default.Lightbulb, BlockSection.BASIC, BlockType.CALLOUT),
     BlockCommand(R.string.block_quote, R.string.block_quote_desc, Icons.Default.FormatQuote, BlockSection.BASIC, BlockType.QUOTE),
-    BlockCommand(R.string.block_page, R.string.block_page_desc, Icons.Default.Description, BlockSection.BASIC, action = BlockAction.INSERT_PAGE),
-    BlockCommand(R.string.block_table, R.string.block_table_desc, Icons.Default.BorderAll, BlockSection.BLOCKS, action = BlockAction.TABLE_DIALOG),
-    BlockCommand(R.string.block_divider, R.string.block_divider_desc, Icons.Default.HorizontalRule, BlockSection.BLOCKS, BlockType.HORIZONTAL_RULE),
+    BlockCommand(R.string.block_table, R.string.block_table_desc, Icons.Default.BorderAll, BlockSection.BASIC, action = BlockAction.TABLE_DIALOG),
+    BlockCommand(R.string.block_divider, R.string.block_divider_desc, Icons.Default.HorizontalRule, BlockSection.BASIC, BlockType.HORIZONTAL_RULE),
+    BlockCommand(R.string.block_page_link, R.string.block_page_link_desc, Icons.Default.Link, BlockSection.BASIC, action = BlockAction.LINK_PAGE),
     BlockCommand(R.string.block_link, R.string.block_link_desc, Icons.Default.Link, BlockSection.LINK, action = BlockAction.URL_DIALOG),
     BlockCommand(R.string.block_image, R.string.block_image_desc, Icons.Default.Image, BlockSection.MEDIA, action = BlockAction.IMAGE_DIALOG),
     BlockCommand(R.string.block_video, R.string.block_video_desc, Icons.Default.Videocam, BlockSection.MEDIA, action = BlockAction.VIDEO_DIALOG),

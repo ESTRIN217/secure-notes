@@ -105,7 +105,7 @@ data class TableData(
 enum class BlockType {
     TEXT, HEADING1, HEADING2, HEADING3, HEADING4,
     BULLET_LIST, NUMBERED_LIST, CHECKLIST_ITEM,
-    QUOTE, CODE_BLOCK, CALLOUT, PAGE,
+    QUOTE, CODE_BLOCK, CALLOUT, PAGE, PAGE_LINK,
     IMAGE, VIDEO, AUDIO, DRAWING, VOICE, FILE,
     TABLE, HORIZONTAL_RULE, COLLAPSIBLE
 }
@@ -134,6 +134,11 @@ data class DataBlock(
             BlockType.PAGE -> {
                 val noteId = meta["noteId"] ?: ""
                 if (noteId.isNotBlank()) "<url=note://$noteId>${content.ifBlank { "Página" }}</url>"
+                else content
+            }
+            BlockType.PAGE_LINK -> {
+                val noteId = meta["noteId"] ?: ""
+                if (noteId.isNotBlank()) "<url=note://$noteId>🔗 ${content.ifBlank { "Página enlazada" }}</url>"
                 else content
             }
             BlockType.CHECKLIST_ITEM -> "<item checked=\"${meta["checked"] ?: "false"}\">$content</item>"

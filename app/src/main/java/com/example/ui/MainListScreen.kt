@@ -1776,6 +1776,15 @@ fun NoteCardItem(
                                     .ifBlank { pageBlockLabel }
                                 textParts.add("$icon $pageText")
                             }
+                            com.example.data.model.BlockType.PAGE_LINK -> {
+                                numberedCounter = 0
+                                val linkedId = block.meta["noteId"]?.toIntOrNull()
+                                val pageLinkText = linkedId?.let { pageTitleById(it) }
+                                    .orEmpty()
+                                    .ifBlank { block.content }
+                                    .ifBlank { pageBlockLabel }
+                                textParts.add("🔗 $pageLinkText")
+                            }
                             com.example.data.model.BlockType.CHECKLIST_ITEM -> {
                                 numberedCounter = 0
                                 val prefix = if (block.meta["checked"] == "true") "☑ " else "☐ "
