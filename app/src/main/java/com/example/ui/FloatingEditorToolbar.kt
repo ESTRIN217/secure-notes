@@ -1,61 +1,90 @@
 package com.example.ui
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
+import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FormatClear
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.FormatColorText
+import androidx.compose.material.icons.filled.FormatPaint
+import androidx.compose.material.icons.filled.FormatShapes
+import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.Gesture
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RateReview
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalIconToggleButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
+
+// Enum para controlar la vista activa de la barra flotante (Clean State)
+enum class EditorToolbarMode {
+    MAIN,
+    TEXT_FORMAT,
+    SEARCH
+}
 
 @Composable
-fun FloatingEditorToolbar(
+fun EditorToolbarContainer(
     modifier: Modifier = Modifier,
     activeTextStyles: Set<String>,
-    activeFontColor: Color?,
-    activeBgColor: Color?,
     isSpeaking: Boolean,
     aiEnabled: Boolean,
     showAiPanel: Boolean,
@@ -64,8 +93,6 @@ fun FloatingEditorToolbar(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onToggleTag: (String) -> Unit,
-    onOpenFontColor: () -> Unit,
-    onOpenBgColor: () -> Unit,
     onClearFormatting: () -> Unit,
     onOpenMoreFormatting: () -> Unit,
     onOpenPalette: () -> Unit,
@@ -73,209 +100,613 @@ fun FloatingEditorToolbar(
     onOpenDrawing: () -> Unit,
     onOpenAttachments: () -> Unit,
     onOpenAi: () -> Unit,
-    onToggleAiPanel: () -> Unit
+    onToggleAiPanel: () -> Unit,
+    onToggleKeyboard: () -> Unit,
+    onOpenbgFontColor: () -> Unit,
+    onOpenInlineLink: () -> Unit,
+    onOpenEquation: () -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    matchCount: Int,
+    currentMatchIndex: Int,
+    onPreviousMatch: () -> Unit,
+    onNextMatch: () -> Unit,
+    caseSensitive: Boolean,
+    onCaseSensitiveChange: (Boolean) -> Unit,
+    fullWord: Boolean,
+    onFullWordChange: (Boolean) -> Unit
 ) {
+    var currentMode by remember { mutableStateOf(EditorToolbarMode.MAIN) }
+
     OutlinedCard(
         modifier = modifier
-            .padding(bottom = 16.dp)
-            .widthIn(max = 440.dp)
-            .fillMaxWidth(0.93f)
-            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+            .padding(bottom = 8.dp)
+            .fillMaxWidth(0.95f),
+        shape = CircleShape,
         colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onUndo,
-                    enabled = canUndo,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(R.string.rich_undo), modifier = Modifier.size(16.dp))
-                }
-                IconButton(
-                    onClick = onRedo,
-                    enabled = canRedo,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = stringResource(R.string.rich_redo), modifier = Modifier.size(16.dp))
-                }
+        when (currentMode) {
+            EditorToolbarMode.MAIN -> FloatingEditorToolbar(
+                aiEnabled = aiEnabled,
+                showAiPanel = showAiPanel,
+                canUndo = canUndo,
+                canRedo = canRedo,
+                isSpeaking = isSpeaking,
+                onUndo = onUndo,
+                onRedo = onRedo,
+                onClearFormatting = onClearFormatting,
+                onOpenMoreFormatting = onOpenMoreFormatting,
+                onTexto = { currentMode = EditorToolbarMode.TEXT_FORMAT },
+                onOpenSearch = { currentMode = EditorToolbarMode.SEARCH },
+                onOpenPalette = onOpenPalette,
+                onTtsToggle = onTtsToggle,
+                onOpenDrawing = onOpenDrawing,
+                onOpenAttachments = onOpenAttachments,
+                onOpenAi = onOpenAi,
+                onToggleAiPanel = onToggleAiPanel,
+                onToggleKeyboard = onToggleKeyboard
+            )
 
-                VerticalDivider(modifier = Modifier.height(20.dp))
+            EditorToolbarMode.TEXT_FORMAT -> TextoToolbar(
+                activeTextStyles = activeTextStyles,
+                onToggleTag = onToggleTag,
+                onBack = { currentMode = EditorToolbarMode.MAIN },
+                onOpenbgFontColor = onOpenbgFontColor,
+                onOpenInlineLink = onOpenInlineLink,
+                onOpenEquation = onOpenEquation
+            )
 
-                FilledTonalIconToggleButton(
-                    checked = "b" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("b") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("B", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+            EditorToolbarMode.SEARCH -> InlineSearchBar(
+                onClose = { currentMode = EditorToolbarMode.MAIN },
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                matchCount = matchCount,
+                currentMatchIndex = currentMatchIndex,
+                onPrevious = onPreviousMatch,
+                onNext = onNextMatch,
+                caseSensitive = caseSensitive,
+                onCaseSensitiveChange = onCaseSensitiveChange,
+                fullWord = fullWord,
+                onFullWordChange = onFullWordChange
+            )
+        }
+    }
+}
 
-                FilledTonalIconToggleButton(
-                    checked = "i" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("i") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("I", fontStyle = FontStyle.Italic, fontSize = 12.sp) }
-
-                FilledTonalIconToggleButton(
-                    checked = "u" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("u") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 12.sp) }
-
-                FilledTonalIconToggleButton(
-                    checked = "s" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("s") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 12.sp) }
-
-                VerticalDivider(modifier = Modifier.height(20.dp))
-
-                FilledTonalIconToggleButton(
-                    checked = "h1" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("h1") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("H1", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                FilledTonalIconToggleButton(
-                    checked = "h2" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("h2") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("H2", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                FilledTonalIconToggleButton(
-                    checked = "h3" in activeTextStyles,
-                    onCheckedChange = { onToggleTag("h3") },
-                    modifier = Modifier.size(32.dp)
-                ) { Text("H3", fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-
-                VerticalDivider(modifier = Modifier.height(20.dp))
-
-                IconButton(
-                    onClick = onOpenFontColor,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.FormatColorText,
-                        contentDescription = stringResource(R.string.rich_font_color),
-                        modifier = Modifier.size(16.dp),
-                        tint = activeFontColor ?: MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                IconButton(
-                    onClick = onOpenBgColor,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.FormatColorFill,
-                        contentDescription = stringResource(R.string.rich_bg_color),
-                        modifier = Modifier.size(16.dp),
-                        tint = activeBgColor ?: MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                IconButton(
-                    onClick = onClearFormatting,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.Default.FormatClear, contentDescription = stringResource(R.string.rich_remove_format), modifier = Modifier.size(16.dp))
-                }
-
-                VerticalDivider(modifier = Modifier.height(20.dp))
-
-                IconButton(
-                    onClick = onOpenMoreFormatting,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.Default.MoreHoriz, contentDescription = "More", modifier = Modifier.size(16.dp))
-                }
+@Composable
+private fun FloatingEditorToolbar(
+    aiEnabled: Boolean,
+    showAiPanel: Boolean,
+    canUndo: Boolean,
+    canRedo: Boolean,
+    isSpeaking: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onClearFormatting: () -> Unit,
+    onOpenMoreFormatting: () -> Unit,
+    onTexto: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenPalette: () -> Unit,
+    onTtsToggle: () -> Unit,
+    onOpenDrawing: () -> Unit,
+    onOpenAttachments: () -> Unit,
+    onOpenAi: () -> Unit,
+    onToggleAiPanel: () -> Unit,
+    onToggleKeyboard: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (aiEnabled) {
+                ToolbarIconButton(
+                    icon = Icons.Default.AutoAwesome,
+                    contentDescription = "Asistente IA",
+                    tint = MaterialTheme.colorScheme.primary,
+                    onClick = onOpenAi
+                )
+                ToolbarDivider()
             }
 
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+            ToolbarIconButton(
+                icon = Icons.Default.Add,
+                contentDescription = "Bloques",
+                onClick = onOpenMoreFormatting
+            )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            ToolbarIconButton(
+                icon = Icons.Default.FormatShapes,
+                contentDescription = "Opciones de texto",
+                onClick = onTexto
+            )
+
+            ToolbarIconButton(
+                icon = Icons.AutoMirrored.Filled.Undo,
+                contentDescription = "Deshacer",
+                enabled = canUndo,
+                onClick = onUndo
+            )
+
+            ToolbarIconButton(
+                icon = Icons.AutoMirrored.Filled.Redo,
+                contentDescription = "Rehacer",
+                enabled = canRedo,
+                onClick = onRedo
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.FormatClear,
+                contentDescription = "Limpiar formato",
+                onClick = onClearFormatting
+            )
+
+            ToolbarIconButton(
+                icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                contentDescription = "Aumentar sangría",
+                onClick = {}
+            )
+
+            ToolbarIconButton(
+                icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                contentDescription = "Disminuir sangría",
+                onClick = {}
+            )
+
+            ToolbarDivider()
+
+            ToolbarIconButton(
+                icon = Icons.Default.Palette,
+                contentDescription = "Estilo de la nota",
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = onOpenPalette
+            )
+
+            ToolbarIconButton(
+                icon = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                contentDescription = if (isSpeaking) "Detener lectura" else "Leer en voz alta",
+                tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                onClick = onTtsToggle
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.Gesture,
+                contentDescription = "Añadir dibujo",
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = onOpenDrawing
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.AttachFile,
+                contentDescription = "Adjuntar archivo",
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = onOpenAttachments
+            )
+
+            if (aiEnabled) {
+                ToolbarIconButton(
+                    icon = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
+                    contentDescription = "Panel IA",
+                    tint = MaterialTheme.colorScheme.primary,
+                    onClick = onToggleAiPanel
+                )
+            }
+
+            ToolbarDivider()
+
+            ToolbarIconButton(
+                icon = Icons.Default.Search,
+                contentDescription = "Buscar",
+                onClick = onOpenSearch
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.ContentPaste,
+                contentDescription = "Pegar con formato",
+                onClick = {}
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.Today,
+                contentDescription = "Insertar fecha",
+                onClick = {}
+            )
+        }
+
+        ToolbarDivider()
+
+        ToolbarIconButton(
+            icon = Icons.Default.Keyboard,
+            contentDescription = "Alternar teclado",
+            tint = MaterialTheme.colorScheme.primary,
+            onClick = onToggleKeyboard
+        )
+    }
+}
+
+@Composable
+private fun TextoToolbar(
+    activeTextStyles: Set<String>,
+    onToggleTag: (String) -> Unit,
+    onBack: () -> Unit,
+    onOpenbgFontColor: () -> Unit,
+    onOpenInlineLink: () -> Unit,
+    onOpenEquation: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ToolbarIconButton(
+            icon = Icons.Default.ArrowBack,
+            contentDescription = "Volver",
+            tint = MaterialTheme.colorScheme.primary,
+            onClick = onBack
+        )
+
+        ToolbarIconButton(
+            icon = Icons.Default.FormatPaint,
+            contentDescription = "Color de texto y fondo",
+            onClick = onOpenbgFontColor
+        )
+
+        FormattingToggleButton(
+            checked = "b" in activeTextStyles,
+            onCheckedChange = { onToggleTag("b") }
+        ) {
+            Text("B", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        }
+
+        FormattingToggleButton(
+            checked = "i" in activeTextStyles,
+            onCheckedChange = { onToggleTag("i") }
+        ) {
+            Text("I", fontStyle = FontStyle.Italic, fontSize = 13.sp)
+        }
+
+        FormattingToggleButton(
+            checked = "u" in activeTextStyles,
+            onCheckedChange = { onToggleTag("u") }
+        ) {
+            Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 13.sp)
+        }
+
+        FormattingToggleButton(
+            checked = "s" in activeTextStyles,
+            onCheckedChange = { onToggleTag("s") }
+        ) {
+            Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 13.sp)
+        }
+
+        ToolbarIconButton(icon = Icons.Default.Link, contentDescription = "Enlace", onClick = onOpenInlineLink)
+        FormattingToggleButton(
+            checked = "code" in activeTextStyles,
+            onCheckedChange = { onToggleTag("code") }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Code,
+                contentDescription = "Código inline",
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        ToolbarIconButton(icon = Icons.Default.Functions, contentDescription = "Ecuaciones", onClick = onOpenEquation)
+        FilledTonalIconToggleButton(
+            checked = "sub" in activeTextStyles,
+            onCheckedChange = { onToggleTag("sub") },
+            modifier = Modifier.size(36.dp)
+        ) {
+            Text("x₂", fontSize = 14.sp)
+        }
+
+        FilledTonalIconToggleButton(
+            checked = "sup" in activeTextStyles,
+            onCheckedChange = { onToggleTag("sup") },
+            modifier = Modifier.size(36.dp)
+        ) {
+            Text("x²", fontSize = 14.sp)
+        }
+
+        ToolbarDivider()
+
+        // Dropdown Encabezados (Shell Visual)
+        Box {
+            OutlinedButton(
+                onClick = {},
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.height(36.dp)
             ) {
-                IconButton(
-                    onClick = onOpenPalette,
-                    modifier = Modifier.testTag("palette_toolbar_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Palette,
-                        contentDescription = stringResource(id = R.string.option_note_styling),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(
-                    onClick = onTtsToggle,
-                    modifier = Modifier.testTag("tts_toolbar_btn")
-                ) {
-                    Icon(
-                        imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = if (isSpeaking) stringResource(R.string.stop_speaking) else stringResource(R.string.read_aloud),
-                        tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(
-                    onClick = onOpenDrawing,
-                    modifier = Modifier.testTag("drawing_toolbar_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Gesture,
-                        contentDescription = stringResource(R.string.add_drawing),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(
-                    onClick = onOpenAttachments,
-                    modifier = Modifier.testTag("attachments_toolbar_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AttachFile,
-                        contentDescription = stringResource(R.string.add_attachment),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                if (aiEnabled) {
-                    IconButton(
-                        onClick = onOpenAi,
-                        modifier = Modifier.testTag("ai_toolbar_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = stringResource(R.string.ai_assistant),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                if (aiEnabled) {
-                    IconButton(
-                        onClick = onToggleAiPanel
-                    ) {
-                        Icon(
-                            imageVector = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
-                            contentDescription = "AI Panel",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+                Text("rich_heading", fontSize = 12.sp)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
             }
         }
+
+        // Dropdown Tipografía
+        Box {
+            OutlinedButton(
+                onClick = {},
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Text("rich_font_family", fontSize = 12.sp)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        }
+
+        // Dropdown Tamaño
+        Box {
+            OutlinedButton(
+                onClick = {},
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Text("rich_font_size", fontSize = 12.sp)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineSearchBar(
+    onClose: () -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    matchCount: Int,
+    currentMatchIndex: Int,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    caseSensitive: Boolean,
+    onCaseSensitiveChange: (Boolean) -> Unit,
+    fullWord: Boolean,
+    onFullWordChange: (Boolean) -> Unit
+) {
+    var showMoreOptions by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Buscar...", fontSize = 14.sp) },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                )
+            )
+
+            Text(
+                text = if (matchCount == 0) "0/0" else "${currentMatchIndex + 1}/$matchCount",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.ArrowUpward,
+                contentDescription = "Anterior",
+                enabled = searchQuery.isNotEmpty() && matchCount > 0,
+                onClick = onPrevious
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.ArrowDownward,
+                contentDescription = "Siguiente",
+                enabled = searchQuery.isNotEmpty() && matchCount > 0,
+                onClick = onNext
+            )
+
+            ToolbarIconButton(
+                icon = if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = "Más opciones",
+                onClick = { showMoreOptions = !showMoreOptions }
+            )
+
+            ToolbarIconButton(
+                icon = Icons.Default.Close,
+                contentDescription = "Cerrar búsqueda",
+                onClick = onClose
+            )
+        }
+
+        if (showMoreOptions) {
+            SearchMoreOptions(
+                caseSensitive = caseSensitive,
+                onCaseSensitiveChange = onCaseSensitiveChange,
+                fullWord = fullWord,
+                onFullWordChange = onFullWordChange
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchMoreOptions(
+    caseSensitive: Boolean,
+    onCaseSensitiveChange: (Boolean) -> Unit,
+    fullWord: Boolean,
+    onFullWordChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = caseSensitive, onCheckedChange = onCaseSensitiveChange)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Coincidir mayúsculas", style = MaterialTheme.typography.bodySmall)
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = fullWord, onCheckedChange = onFullWordChange)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Palabra completa", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun ToolbarIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.size(36.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = if (enabled) tint else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        )
+    }
+}
+
+@Composable
+fun FormattingToggleButton(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    content: @Composable () -> Unit
+) {
+    FilledTonalIconToggleButton(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = Modifier.size(36.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun ToolbarDivider() {
+    VerticalDivider(
+        modifier = Modifier
+            .height(20.dp)
+            .padding(horizontal = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun TextoPreview() {
+    MaterialTheme {
+        TextoToolbar(
+            activeTextStyles = setOf("b", "i"),
+            onToggleTag = {},
+            onBack = {},
+            onOpenbgFontColor = {},
+            onOpenInlineLink = {},
+            onOpenEquation = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+fun FloatingToolbarContainerPreview() {
+    MaterialTheme {
+        EditorToolbarContainer(
+            activeTextStyles = setOf("b", "i"),
+            isSpeaking = false,
+            aiEnabled = true,
+            showAiPanel = false,
+            canUndo = true,
+            canRedo = false,
+            onUndo = {},
+            onRedo = {},
+            onToggleTag = {},
+            onClearFormatting = {},
+            onOpenMoreFormatting = {},
+            onOpenPalette = {},
+            onTtsToggle = {},
+            onOpenDrawing = {},
+            onOpenAttachments = {},
+            onOpenAi = {},
+            onToggleAiPanel = {},
+            onToggleKeyboard = {},
+            onOpenbgFontColor = {},
+            onOpenInlineLink = {},
+            onOpenEquation = {},
+            searchQuery = "",
+            onSearchQueryChange = {},
+            matchCount = 0,
+            currentMatchIndex = 0,
+            onPreviousMatch = {},
+            onNextMatch = {},
+            caseSensitive = false,
+            onCaseSensitiveChange = {},
+            fullWord = false,
+            onFullWordChange = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun SearchInlinePreview() {
+    InlineSearchBar(
+        searchQuery = "nota",
+        onSearchQueryChange = {},
+        matchCount = 3,
+        currentMatchIndex = 0,
+        onPrevious = {},
+        onNext = {},
+        onClose = {},
+        caseSensitive = false,
+        onCaseSensitiveChange = {},
+        fullWord = false,
+        onFullWordChange = {}
+    )
+}
+
+@Preview
+@Composable
+fun SearchMorePreview() {
+    MaterialTheme {
+        SearchMoreOptions(
+            caseSensitive = false,
+            onCaseSensitiveChange = {},
+            fullWord = false,
+            onFullWordChange = {}
+        )
     }
 }

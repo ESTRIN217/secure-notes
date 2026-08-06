@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -47,7 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.BlockType
 
-enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE, LINK_PAGE }
+enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE, LINK_PAGE, LINK_INLINE, EQUATION_DIALOG }
 
 enum class BlockSection { BASIC, BLOCKS, LINK, MEDIA }
 
@@ -78,6 +79,8 @@ val BLOCK_COMMANDS: List<BlockCommand> = listOf(
     BlockCommand(R.string.block_table, R.string.block_table_desc, Icons.Default.BorderAll, BlockSection.BASIC, action = BlockAction.TABLE_DIALOG),
     BlockCommand(R.string.block_divider, R.string.block_divider_desc, Icons.Default.HorizontalRule, BlockSection.BASIC, BlockType.HORIZONTAL_RULE),
     BlockCommand(R.string.block_page_link, R.string.block_page_link_desc, Icons.Default.Link, BlockSection.BASIC, action = BlockAction.LINK_PAGE),
+    BlockCommand(R.string.block_inline_link, R.string.block_inline_link_desc, Icons.Default.Link, BlockSection.LINK, action = BlockAction.LINK_INLINE),
+    BlockCommand(R.string.block_equation, R.string.block_equation_desc, Icons.Default.Functions, BlockSection.LINK, action = BlockAction.EQUATION_DIALOG),
     BlockCommand(R.string.block_link, R.string.block_link_desc, Icons.Default.Link, BlockSection.LINK, action = BlockAction.URL_DIALOG),
     BlockCommand(R.string.block_image, R.string.block_image_desc, Icons.Default.Image, BlockSection.MEDIA, action = BlockAction.IMAGE_DIALOG),
     BlockCommand(R.string.block_video, R.string.block_video_desc, Icons.Default.Videocam, BlockSection.MEDIA, action = BlockAction.VIDEO_DIALOG),

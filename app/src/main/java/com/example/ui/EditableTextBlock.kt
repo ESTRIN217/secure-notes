@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,10 +62,18 @@ fun EditableTextBlock(
     modifier: Modifier = Modifier,
     numberIndex: Int? = null,
     requestFocus: Boolean = false,
-    onFocusRequested: () -> Unit = {}
+    onFocusRequested: () -> Unit = {},
+    pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
+    initialSelection: Int? = null,
+    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) }
 ) {
     var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(text = rawText, selection = TextRange(rawText.length)))
+        mutableStateOf(
+            TextFieldValue(
+                text = rawText,
+                selection = TextRange((initialSelection ?: rawText.length).coerceIn(0, rawText.length))
+            )
+        )
     }
     var isFocused by remember { mutableStateOf(false) }
     var internalParseResult by remember { mutableStateOf<RichTextParser.ParseResult?>(null) }
@@ -81,6 +90,29 @@ fun EditableTextBlock(
         if (rawText != textFieldValue.text) {
             textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
         }
+    }
+
+    LaunchedEffect(pendingSelection.value) {
+        val range = pendingSelection.value ?: return@LaunchedEffect
+        val text = textFieldValue.text
+        val start = range.first.coerceIn(0, text.length)
+        val end = range.last.coerceIn(start, text.length)
+        textFieldValue = textFieldValue.copy(selection = TextRange(start, end))
+        onCursorChange(start)
+        pendingSelection.value = null
+    }
+
+    LaunchedEffect(pendingInsert.value) {
+        val insert = pendingInsert.value ?: return@LaunchedEffect
+        if (!isFocused) return@LaunchedEffect
+        val text = textFieldValue.text
+        val cursor = textFieldValue.selection.start.coerceIn(0, text.length)
+        val newText = text.substring(0, cursor) + insert + text.substring(cursor)
+        val newCursor = cursor + insert.length
+        textFieldValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+        onChange(newText)
+        onCursorChange(newCursor)
+        pendingInsert.value = null
     }
 
     LaunchedEffect(internalParseResult) {

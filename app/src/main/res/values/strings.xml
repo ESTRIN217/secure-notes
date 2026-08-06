@@ -213,6 +213,7 @@
     <string name="url_dialog_title">URL Actions</string>
     <string name="url_dialog_open">Open</string>
     <string name="url_dialog_copy">Copy</string>
+    <string name="url_dialog_edit">Edit</string>
     <string name="url_dialog_delete">Delete</string>
     <string name="search_up">Up</string>
     <string name="search_down">Down</string>
@@ -306,6 +307,12 @@
     <string name="block_page_link_desc">Link an existing note</string>
     <string name="block_page_link_pick">Select a note to link</string>
     <string name="block_page_link_change">Change linked note</string>
+    <string name="block_inline_link">Inline Page Link</string>
+    <string name="block_inline_link_desc">Link a note inside the current text</string>
+    <string name="block_equation">Equation</string>
+    <string name="block_equation_desc">Insert an equation</string>
+    <string name="dialog_insert_equation_title">Insert Equation</string>
+    <string name="label_equation_latex">LaTeX (e.g. E = mc^2)</string>
     <string name="block_highlight">Highlight</string>
     <string name="block_highlight_desc">Highlighted callout block</string>
     <string name="block_quote">Quote</string>

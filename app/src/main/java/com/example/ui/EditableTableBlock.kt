@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -395,6 +394,10 @@ fun EditableTableBlock(
     onChange: (TableData) -> Unit,
     onFocusChange: (Boolean) -> Unit = {},
     onDeleteBlock: () -> Unit = {},
+    onDragTableStart: () -> Unit = {},
+    onDragTableBy: (Float) -> Unit = {},
+    onDragTableEnd: () -> Unit = {},
+    onDragTableCancel: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state = rememberTableBlockState(tableData, onChange)
@@ -534,7 +537,11 @@ fun EditableTableBlock(
                     onInsertColumnBefore = { state.activeCol?.let { state.insertColumnLeft(it) } },
                     onInsertColumnAfter = { state.activeCol?.let { state.insertColumnRight(it) } },
                     onDeleteTable = onDeleteBlock,
-                    onSelectBg = { state.setBgColor(it) }
+                    onSelectBg = { state.setBgColor(it) },
+                    onDragTableStart = onDragTableStart,
+                    onDragTableBy = onDragTableBy,
+                    onDragTableEnd = onDragTableEnd,
+                    onDragTableCancel = onDragTableCancel
                 )
             }
         }
@@ -576,7 +583,7 @@ private fun TableHeaderRow(
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(modifier = Modifier.width(32.dp))
+        AddColumnFooter(onClick = { onInsertRight(columnCount - 1) }, outline = outline)
 
         for (col in 0 until columnCount) {
             val header = headers.getOrElse(col) { "" }
@@ -656,7 +663,6 @@ private fun TableHeaderRow(
                 }
             }
         }
-        AddColumnFooter(onClick = { onInsertRight(columnCount - 1) }, outline = outline)
     }
 }
 
@@ -1018,7 +1024,11 @@ private fun FloatingToolbar(
     onInsertColumnBefore: () -> Unit,
     onInsertColumnAfter: () -> Unit,
     onDeleteTable: () -> Unit,
-    onSelectBg: (String?) -> Unit
+    onSelectBg: (String?) -> Unit,
+    onDragTableStart: () -> Unit,
+    onDragTableBy: (Float) -> Unit,
+    onDragTableEnd: () -> Unit,
+    onDragTableCancel: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     Surface(
@@ -1029,8 +1039,27 @@ private fun FloatingToolbar(
         color = MaterialTheme.colorScheme.surface
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onFitToContent) {
-                Icon(Icons.Default.FitScreen, contentDescription = "Fit to content", tint = MaterialTheme.colorScheme.primary)
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { onDragTableStart() },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                onDragTableBy(dragAmount.y)
+                            },
+                            onDragEnd = { onDragTableEnd() },
+                            onDragCancel = { onDragTableCancel() }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                NotionSelectionHandle(
+                    isVertical = true,
+                    primary = MaterialTheme.colorScheme.primary,
+                    onClick = {}
+                )
             }
             Box {
                 IconButton(onClick = { expanded = true }) {

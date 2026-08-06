@@ -2,6 +2,7 @@ package com.example
 
 import com.example.util.RichTextParser
 import com.example.util.MediaBlock
+import com.example.util.MathRenderer
 import com.example.data.model.NoteContentBlock
 import com.example.util.parseToContentBlocks
 import com.example.util.toggleNthChecklistItem
@@ -96,6 +97,21 @@ class RichTextParserTest {
         val rawUrl = "Go to <url=https://google.com>Google</url> search."
         val parsedUrl = RichTextParser.parse(rawUrl, hideTags = true)
         assertEquals("Go to Google search.", parsedUrl.text)
+    }
+
+    @Test
+    fun testNoteUrlInlineChip() {
+        val rawUrl = "Go to <url=note://5>Mi Nota</url> search."
+        val parsedUrl = RichTextParser.parse(rawUrl, hideTags = true)
+        assertEquals("Go to ${RichTextParser.NOTE_LINK_GLYPH}Mi Nota search.", parsedUrl.text)
+        val annotations = parsedUrl.getStringAnnotations("URL", 0, parsedUrl.length)
+        assertTrue(annotations.any { it.item == "note://5" })
+        val linkAnnotation = annotations.first { it.item == "note://5" }
+        val glyphStart = "Go to ".length
+        assertTrue(linkAnnotation.start <= glyphStart && linkAnnotation.end > glyphStart)
+        assertTrue(linkAnnotation.end >= parsedUrl.length - " search.".length)
+        val chipStyle = parsedUrl.spanStyles.firstOrNull { it.start <= glyphStart && it.end > glyphStart }
+        assertTrue(chipStyle?.item?.background != null)
     }
 
     @Test
@@ -238,5 +254,45 @@ class RichTextParserTest {
         val blocks = parseToContentBlocks(raw)
         assertTrue(blocks.any { it is NoteContentBlock.TableBlock })
         assertTrue(blocks.any { it is NoteContentBlock.HorizontalRuleBlock })
+    }
+
+    @Test
+    fun testInlineCodeBackticksAndTag() {
+        val rawBackticks = "Run `npm run test` in terminal."
+        val parsedBackticks = RichTextParser.parse(rawBackticks, hideTags = true)
+        assertEquals("Run npm run test in terminal.", parsedBackticks.text)
+
+        val rawTag = "Use <code>val x = 1</code> inline."
+        val parsedTag = RichTextParser.parse(rawTag, hideTags = true)
+        assertEquals("Use val x = 1 inline.", parsedTag.text)
+    }
+
+    @Test
+    fun testColorHexAndNamedTags() {
+        val raw = "<color=#FF0000>Red Hex</color> and <color=red>Red Named</color> and <bg=#00FF00>Green Bg</bg>"
+        val parsed = RichTextParser.parse(raw, hideTags = true)
+        assertEquals("Red Hex and Red Named and Green Bg", parsed.text)
+    }
+
+    @Test
+    fun testEquationParsing() {
+        val raw = "Area is <eq>\\frac{a}{b}</eq> and <eq>E=mc^2</eq>."
+        val parsed = RichTextParser.parse(raw, hideTags = true)
+        assertTrue(parsed.text.contains("a⁄b"))
+        assertTrue(parsed.text.contains("E=mc2"))
+    }
+
+    @Test
+    fun testMathRendererCommands() {
+        assertEquals("a⁄b", MathRenderer.render("\\frac{a}{b}").text)
+        assertEquals("√(2)", MathRenderer.render("\\sqrt{2}").text)
+        assertEquals("(n k)", MathRenderer.render("\\binom{n}{k}").text)
+        assertEquals("sin x", MathRenderer.render("\\sin x").text)
+        assertEquals("x\u0304", MathRenderer.render("\\bar{x}").text)
+        assertEquals("v\u20D7", MathRenderer.render("\\vec{v}").text)
+        assertEquals("∑", MathRenderer.render("\\sum").text)
+        assertEquals("lim" + "i=0" , MathRenderer.render("\\lim_{i=0}").text)
+        assertEquals("E=mc2", MathRenderer.render("E=mc^2").text)
+        assertEquals("%", MathRenderer.render("\\%").text)
     }
 }

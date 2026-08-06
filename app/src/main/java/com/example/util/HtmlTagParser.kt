@@ -99,6 +99,11 @@ class HtmlTagParser {
                 SpanStyle(fontSize = sz.sp)
             }
             "url" -> SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+            "eq" -> SpanStyle(
+                fontFamily = FontFamily.Monospace,
+                color = Color(0xFF3949AB),
+                background = Color(0x1A3949AB)
+            )
             "mark" -> SpanStyle(background = Color(0xFFFFEB3B))
             "highlight" -> {
                 val c = JsonColorizer.parseColor(tagValue)
@@ -115,7 +120,7 @@ class HtmlTagParser {
     fun tagNeedsStyle(tagName: String): Boolean = tagName in listOf(
         "b", "i", "u", "s", "code", "pre", "quote", "color", "bg", "font", "size",
         "h1", "h2", "h3", "h4", "h5", "h6", "normal", "sub", "sup", "url",
-        "mark", "highlight", "small", "kbd", "var", "samp"
+        "mark", "highlight", "small", "kbd", "var", "samp", "eq"
     )
 
     fun tagIsStructural(tagName: String): Boolean = tagName in listOf(
@@ -134,7 +139,7 @@ class HtmlTagParser {
             "ol", "ul", "cl", "img", "video", "audio",
             "table", "tr", "td", "th", "hr",
             "mark", "highlight", "small", "kbd", "var", "samp",
-            "align", "details", "summary"
+            "align", "details", "summary", "eq"
         )
 
         private val default = HtmlTagParser()

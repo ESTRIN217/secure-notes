@@ -5,7 +5,6 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,19 +18,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Title
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.R
 import com.example.data.model.Attachment
@@ -81,8 +68,10 @@ fun BlockEditor(
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
     onEditPageLink: (Int) -> Unit = {},
+    onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
+    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingFocusBlockIndex: Int = -1,
@@ -91,6 +80,8 @@ fun BlockEditor(
 ) {
     val scrollState = rememberScrollState()
     val dragState = remember { mutableStateOf<DragState?>(null) }
+    var tapFocusIndex by remember { mutableIntStateOf(-1) }
+    var tapFocusOffset by remember { mutableIntStateOf(0) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -153,8 +144,6 @@ fun BlockEditor(
                     BlockRow(
                         block = block,
                         index = index,
-                        blockCount = blocks.size,
-                        isActive = index == activeBlockIndex,
                         numberIndex = numberedCounter.takeIf { block.type == BlockType.NUMBERED_LIST },
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
@@ -173,42 +162,6 @@ fun BlockEditor(
                                 onActiveBlockChange(newBlocks.size - 1)
                             }
                         },
-                        onMoveUp = {
-                            if (index > 0) {
-                                val newBlocks = blocks.toMutableList()
-                                val item = newBlocks.removeAt(index)
-                                newBlocks.add(index - 1, item)
-                                onBlocksChange(newBlocks)
-                                onActiveBlockChange(index - 1)
-                            }
-                        },
-                        onMoveDown = {
-                            if (index < blocks.size - 1) {
-                                val newBlocks = blocks.toMutableList()
-                                val item = newBlocks.removeAt(index)
-                                newBlocks.add(index + 1, item)
-                                onBlocksChange(newBlocks)
-                                onActiveBlockChange(index + 1)
-                            }
-                        },
-                        onDuplicate = {
-                            val newBlocks = blocks.toMutableList()
-                            newBlocks.add(index + 1, block.copy(content = block.content))
-                            onBlocksChange(newBlocks)
-                            onActiveBlockChange(index + 1)
-                        },
-                        onInsertAbove = {
-                            val newBlocks = blocks.toMutableList()
-                            newBlocks.add(index, DataBlock(type = BlockType.TEXT))
-                            onBlocksChange(newBlocks)
-                            onActiveBlockChange(index)
-                        },
-                        onInsertBelow = {
-                            val newBlocks = blocks.toMutableList()
-                            newBlocks.add(index + 1, DataBlock(type = BlockType.TEXT))
-                            onBlocksChange(newBlocks)
-                            onActiveBlockChange(index + 1)
-                        },
                         onSplit = { before, after ->
                             val newBlocks = blocks.toMutableList()
                             if (before.isEmpty() && after.isEmpty() && block.type in exitOnEmptyTypes) {
@@ -225,8 +178,21 @@ fun BlockEditor(
                         },
                         onCursorChange = onActiveCursorChange,
                         pendingTagInsert = pendingTagInsert,
-                        requestFocus = index == pendingFocusBlockIndex,
-                        onFocusRequested = onFocusHandled,
+                        pendingInsert = pendingInsert,
+                        pendingSelection = pendingSelection,
+                        onTapToEdit = { originalOffset ->
+                            tapFocusIndex = index
+                            tapFocusOffset = originalOffset
+                            onActiveBlockChange(index)
+                        },
+                        onUrlClicked = onUrlClicked,
+                        activeBlockIndex = activeBlockIndex,
+                        requestFocus = index == pendingFocusBlockIndex || index == tapFocusIndex,
+                        initialSelection = if (index == tapFocusIndex) tapFocusOffset else null,
+                        onFocusRequested = {
+                            tapFocusIndex = -1
+                            onFocusHandled()
+                        },
                         onSplitCollapsibleSummary = { before, after ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = block.copy(meta = block.meta + ("summary" to before))
@@ -250,7 +216,6 @@ fun BlockEditor(
                             }
                         },
                         onParseResult = onParseResult,
-                        dragHandleEnabled = block.type == BlockType.TABLE,
                         onDragHandleStart = {
                             dragState.value = DragState(index, 0f, 0f, scrollState.value)
                         },
@@ -372,8 +337,6 @@ private fun BlockType.dragViaLongPress(isActive: Boolean): Boolean = when (this)
 private fun BlockRow(
     block: DataBlock,
     index: Int,
-    blockCount: Int,
-    isActive: Boolean,
     numberIndex: Int? = null,
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
@@ -381,29 +344,28 @@ private fun BlockRow(
     onEditPageLink: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onDuplicate: () -> Unit,
-    onInsertAbove: () -> Unit,
-    onInsertBelow: () -> Unit,
     onSplit: (String, String) -> Unit,
     onCursorChange: (Int) -> Unit,
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingTagInsert: MutableState<String?>,
+    pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
+    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    onTapToEdit: (Int) -> Unit = { _ -> },
+    onUrlClicked: (String, Int) -> Unit = { _, _ -> },
+    activeBlockIndex: Int = -1,
     requestFocus: Boolean = false,
+    initialSelection: Int? = null,
     onFocusRequested: () -> Unit = {},
     onSplitCollapsibleSummary: (String, String) -> Unit = { _, _ -> },
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {},
-    dragHandleEnabled: Boolean = false,
     onDragHandleStart: () -> Unit = {},
     onDragHandleBy: (Float) -> Unit = {},
     onDragHandleEnd: () -> Unit = {},
     onDragHandleCancel: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var showBlockMenu by remember { mutableStateOf(false) }
     val (topMargin, bottomMargin) = block.type.blockVerticalMargins()
 
     Row(
@@ -413,70 +375,41 @@ private fun BlockRow(
         verticalAlignment = Alignment.Top
     ) {
 
-        if (dragHandleEnabled) {
-            Column(
-                modifier = Modifier.width(36.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                IconButton(
-                    onClick = { showBlockMenu = true },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Block options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(24.dp, 28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                        .pointerInput(index) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { onDragHandleStart() },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    onDragHandleBy(dragAmount.y)
-                                },
-                                onDragEnd = onDragHandleEnd,
-                                onDragCancel = onDragHandleCancel
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "\u283F",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-
         when (block.type) {
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
             BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT -> {
-                EditableTextBlock(
-                    rawText = block.content,
-                    blockType = block.type,
-                    onChange = { onChange(block.copy(content = it)) },
-                    onFocusChange = { if (it) onActivate() },
-                    onCursorChange = onCursorChange,
-                    onSplit = onSplit,
-                    onMoveToPreviousBlock = onMoveToPreviousBlock,
-                    onMoveToNextBlock = onMoveToNextBlock,
-                    onDeleteBlock = onDeleteBlock,
-                    onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
-                    onParseResult = onParseResult,
-                    modifier = Modifier.weight(1f),
-                    numberIndex = numberIndex,
-                    requestFocus = requestFocus,
-                    onFocusRequested = onFocusRequested
-                )
+                if (index == activeBlockIndex) {
+                    EditableTextBlock(
+                        rawText = block.content,
+                        blockType = block.type,
+                        onChange = { onChange(block.copy(content = it)) },
+                        onFocusChange = { if (it) onActivate() },
+                        onCursorChange = onCursorChange,
+                        onSplit = onSplit,
+                        onMoveToPreviousBlock = onMoveToPreviousBlock,
+                        onMoveToNextBlock = onMoveToNextBlock,
+                        onDeleteBlock = onDeleteBlock,
+                        onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
+                        onParseResult = onParseResult,
+                        modifier = Modifier.weight(1f),
+                        numberIndex = numberIndex,
+                        requestFocus = requestFocus,
+                        onFocusRequested = onFocusRequested,
+                        pendingInsert = pendingInsert,
+                        initialSelection = initialSelection,
+                        pendingSelection = pendingSelection
+                    )
+                } else {
+                    ReadOnlyTextBlock(
+                        rawText = block.content,
+                        blockType = block.type,
+                        numberIndex = numberIndex,
+                        onActivate = onTapToEdit,
+                        onUrlClicked = onUrlClicked,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
             BlockType.TABLE -> {
                 val tableData = TableData.fromJson(block.meta["table"])
@@ -489,6 +422,10 @@ private fun BlockRow(
                     },
                     onFocusChange = { if (it) onActivate() },
                     onDeleteBlock = onDeleteBlock,
+                    onDragTableStart = onDragHandleStart,
+                    onDragTableBy = onDragHandleBy,
+                    onDragTableEnd = onDragHandleEnd,
+                    onDragTableCancel = onDragHandleCancel,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -642,145 +579,11 @@ private fun BlockRow(
                     block = renderingBlock,
                     noteId = 0,
                     onDeleteBlock = { onDelete() },
+                    onUrlClicked = onUrlClicked,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
-
-        if (showBlockMenu) {
-            BlockMenuPopup(
-                block = block,
-                index = index,
-                isActive = isActive,
-                canMoveUp = index > 0,
-                canMoveDown = index < blockCount - 1,
-                onDismiss = { showBlockMenu = false },
-                onDelete = onDelete,
-                onConvert = { newType ->
-                    onChange(block.copy(type = newType))
-                    showBlockMenu = false
-                },
-                onActivate = onActivate,
-                onMoveUp = onMoveUp,
-                onMoveDown = onMoveDown,
-                onDuplicate = onDuplicate,
-                onInsertAbove = onInsertAbove,
-                onInsertBelow = onInsertBelow
-            )
-        }
-    }
-}
-
-data class ExpandableMenuState(
-    val expanded: Boolean = false,
-    val showConvertSubmenu: Boolean = false
-)
-
-@Composable
-private fun BlockMenuPopup(
-    block: DataBlock,
-    index: Int,
-    isActive: Boolean,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-    onConvert: (BlockType) -> Unit,
-    onActivate: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onDuplicate: () -> Unit,
-    onInsertAbove: () -> Unit,
-    onInsertBelow: () -> Unit
-) {
-    val convertExpanded = remember { mutableStateOf(false) }
-
-    DropdownMenu(
-        expanded = true,
-        onDismissRequest = onDismiss
-    ) {
-        if (!isActive) {
-            DropdownMenuItem(
-                text = { Text("Edit") },
-                leadingIcon = { Icon(Icons.Default.Title, null, modifier = Modifier.size(18.dp)) },
-                onClick = {
-                    onActivate()
-                    onDismiss()
-                }
-            )
-        }
-        DropdownMenuItem(
-            text = { Text("Insert Above") },
-            leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, null, modifier = Modifier.size(18.dp)) },
-            onClick = {
-                onInsertAbove()
-                onDismiss()
-            }
-        )
-        DropdownMenuItem(
-            text = { Text("Insert Below") },
-            leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, null, modifier = Modifier.size(18.dp)) },
-            onClick = {
-                onInsertBelow()
-                onDismiss()
-            }
-        )
-        if (canMoveUp) {
-            DropdownMenuItem(
-                text = { Text("Move Up") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(18.dp)) },
-                onClick = {
-                    onMoveUp()
-                    onDismiss()
-                }
-            )
-        }
-        if (canMoveDown) {
-            DropdownMenuItem(
-                text = { Text("Move Down") },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp)) },
-                onClick = {
-                    onMoveDown()
-                    onDismiss()
-                }
-            )
-        }
-        DropdownMenuItem(
-            text = { Text("Duplicate") },
-            leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp)) },
-            onClick = {
-                onDuplicate()
-                onDismiss()
-            }
-        )
-        if (block.type in convertibleTypes) {
-            HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text("Turn into") },
-                onClick = { convertExpanded.value = !convertExpanded.value }
-            )
-            if (convertExpanded.value) {
-                convertibleTypes.forEach { type ->
-                    DropdownMenuItem(
-                        text = { Text(type.displayName) },
-                        onClick = {
-                            onConvert(type)
-                            onDismiss()
-                        },
-                        enabled = type != block.type
-                    )
-                }
-            }
-        }
-        HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-            leadingIcon = { Icon(Icons.Default.Delete, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) },
-            onClick = {
-                onDelete()
-                onDismiss()
-            }
-        )
     }
 }
 
@@ -823,12 +626,6 @@ private fun BlockAddButton(onAdd: () -> Unit) {
         )
     }
 }
-
-private val convertibleTypes = setOf(
-    BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
-    BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM,
-    BlockType.QUOTE, BlockType.CODE_BLOCK
-)
 
 private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)
 

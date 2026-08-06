@@ -41,7 +41,7 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 ---
 
 ## 🎨 Características de Diseño / Design & UI
-* **Material Design 3 Expresivo:** Una interfaz limpia, moderna y altamente responsiva que sigue las directrices oficiales de diseño de Material 3 con bordes perfilados (*outlined*), contrastes óptimos y espaciado generoso.
+* **Material Design 3 Expresivo:** Una interfaz limpia, moderna y altamente responsiva que sigue las directrices oficiales de diseño de Material Desing 3 Expresive.
 * **Modo Oscuro / Claro Automático:** Soporte completo para temas claros y oscuros respetando la configuración del sistema, adaptando los colores de las notas para una lectura sumamente cómoda.
 * **Vista en Rejilla y Lista:** Alternancia fluida entre visualización en cuadrícula o lista compacta (preferencia guardada automáticamente).
 

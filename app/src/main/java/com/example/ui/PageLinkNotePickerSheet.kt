@@ -113,21 +113,6 @@ fun PageLinkNotePickerSheet(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    if (decryptedNote.isDecryptionSuccessful && decryptedNote.content.isNotBlank()) {
-                                        Text(
-                                            text = decryptedNote.content.take(80).replace("\n", " "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    } else if (!decryptedNote.isDecryptionSuccessful) {
-                                        Text(
-                                            text = stringResource(R.string.encrypted_note_locked),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.error
-                                        )
-                                    }
                                 }
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowForward,

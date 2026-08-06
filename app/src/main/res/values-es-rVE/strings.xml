@@ -206,6 +206,7 @@
     <string name="url_dialog_title">Acciones de Enlace</string>
     <string name="url_dialog_open">Abrir</string>
     <string name="url_dialog_copy">Copiar</string>
+    <string name="url_dialog_edit">Editar</string>
     <string name="url_dialog_delete">Eliminar</string>
     <string name="search_up">Subir</string>
     <string name="search_down">Bajar</string>

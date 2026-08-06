@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +67,8 @@ import com.example.util.exportToMarkdown
 import com.example.util.exportToPdf
 import com.example.util.exportSingleNoteToJson
 import com.example.util.MediaBlock
+import com.example.util.JsonColorizer
+import com.example.util.MathRenderer
 import com.example.util.RichTextParser
 import com.example.util.findEnclosingMarkdownLinkRange
 import com.example.util.findEnclosingUrlTagRange
@@ -191,6 +194,12 @@ fun NoteEditorScreen(
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
     val pendingTagInsert = remember { mutableStateOf<String?>(null) }
     val pendingInsert = remember { mutableStateOf<String?>(null) }
+    val pendingSelection = remember { mutableStateOf<IntRange?>(null) }
+
+    fun setContentValue(v: TextFieldValue) {
+        contentValue = v
+        pendingSelection.value = v.selection.start..v.selection.end
+    }
     var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
     var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
     var pendingFocusBlockIndex by remember { mutableIntStateOf(-1) }
@@ -215,6 +224,7 @@ fun NoteEditorScreen(
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
     val pendingAiInsert by aiViewModel.pendingInsert.collectAsStateWithLifecycle()
     var clickedUrlAbsoluteOffset by remember { mutableStateOf(-1) }
+    var urlEditRange by remember { mutableStateOf<IntRange?>(null) }
     
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -302,7 +312,7 @@ fun NoteEditorScreen(
             if (ranges.isNotEmpty()) {
                 val currentRange = ranges[currentMatchIndex]
                 if (contentValue.selection != currentRange) {
-                    contentValue = contentValue.copy(selection = currentRange)
+                    setContentValue(contentValue.copy(selection = currentRange))
                 }
             }
         } else {
@@ -339,6 +349,19 @@ fun NoteEditorScreen(
     val insertAtCursor: (String) -> Unit = { tag ->
         pendingInsert.value = tag
     }
+
+    val handleUrlClick: (String, Int) -> Unit = { url, _ ->
+        if (url.startsWith("note://")) {
+            url.substringAfter("note://").toIntOrNull()?.let { onNavigateToNote(it) }
+        } else if (url.startsWith("http://") || url.startsWith("https://")) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     
     val allTags by viewModel.availableTags.collectAsState()
     val allNotes by viewModel.notesList.collectAsState()
@@ -355,6 +378,10 @@ fun NoteEditorScreen(
 
     var showNoteLinkPicker by remember { mutableStateOf(false) }
     var pageLinkTargetBlockIndex by remember { mutableIntStateOf(-1) }
+    var inlineLinkMode by remember { mutableStateOf(false) }
+
+    var showEquationDialog by remember { mutableStateOf(false) }
+    var equationInput by remember { mutableStateOf("") }
 
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
@@ -368,7 +395,7 @@ fun NoteEditorScreen(
         val currentText = contentValue.text
         val newText = currentText.substring(0, selStart) + result + currentText.substring(selEnd)
         val newCursor = selStart + result.length
-        contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+        setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
         syncActiveBlock(); saveBlocksToHistory()
         val saveJson = DataBlock.serialize(blocks)
         val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
@@ -684,8 +711,20 @@ fun NoteEditorScreen(
             }
             BlockAction.LINK_PAGE -> {
                 clearSlashPlaceholder()
+                inlineLinkMode = false
                 pageLinkTargetBlockIndex = -1
                 showNoteLinkPicker = true
+            }
+            BlockAction.LINK_INLINE -> {
+                clearSlashPlaceholder()
+                inlineLinkMode = true
+                pageLinkTargetBlockIndex = -1
+                showNoteLinkPicker = true
+            }
+            BlockAction.EQUATION_DIALOG -> {
+                clearSlashPlaceholder()
+                equationInput = ""
+                showEquationDialog = true
             }
         }
     }
@@ -785,10 +824,10 @@ fun NoteEditorScreen(
             }
 
             var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
-            var showFontColorDialog by remember { mutableStateOf(false) }
-            var showBgColorDialog by remember { mutableStateOf(false) }
+            var showTextBgColorSheet by remember { mutableStateOf(false) }
             var showMoreFormattingSheet by remember { mutableStateOf(false) }
             val isKeyboardVisible = WindowInsets.isImeVisible
+            val keyboardController = LocalSoftwareKeyboardController.current
             data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
             val toolbarState = remember(toolbarParseResult, contentValue.selection) {
                 val parsed = toolbarParseResult
@@ -814,6 +853,9 @@ fun NoteEditorScreen(
                         if (range.item.fontStyle == FontStyle.Italic) activeStyles.add("i")
                         if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) activeStyles.add("u")
                         if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) activeStyles.add("s")
+                        if (range.item.fontFamily == FontFamily.Monospace && range.item.background == Color(0x1F808080)) {
+                            activeStyles.add("code")
+                        }
                         if (range.item.color != Color.Unspecified) {
                             activeFontColor = range.item.color
                         }
@@ -837,6 +879,7 @@ fun NoteEditorScreen(
                     "i" -> { s: SpanStyle -> s.fontStyle == FontStyle.Italic }
                     "u" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.Underline) == true }
                     "s" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.LineThrough) == true }
+                    "code" -> { s: SpanStyle -> s.fontFamily == FontFamily.Monospace && s.background == Color(0x1F808080) }
                     "h1" -> { s: SpanStyle -> s.fontSize == 24.sp }
                     "h2" -> { s: SpanStyle -> s.fontSize == 20.sp }
                     "h3" -> { s: SpanStyle -> s.fontSize == 17.sp }
@@ -865,11 +908,11 @@ fun NoteEditorScreen(
                     val cleaned = selected.replace(openTag, "").replace(closeTag, "")
                     if (allStyled) {
                         val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length))
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
                         syncActiveBlock(); saveBlocksToHistory()
                     } else {
                         val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length))
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length)))
                         syncActiveBlock(); saveBlocksToHistory()
                     }
                 } else {
@@ -877,9 +920,9 @@ fun NoteEditorScreen(
                     val afterCursor = text.substring(selStart)
                     if (beforeCursor.endsWith(openTag) && afterCursor.startsWith(closeTag)) {
                         val newText = beforeCursor.dropLast(openTag.length) + afterCursor.drop(closeTag.length)
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart - openTag.length))
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart - openTag.length)))
                         syncActiveBlock(); saveBlocksToHistory()
-                    } else if (tag in activeTextStyles && tag in setOf("b", "i", "u", "s")) {
+                    } else if (tag in activeTextStyles && tag in setOf("b", "i", "u", "s", "code")) {
                         val lastOpen = beforeCursor.lastIndexOf(openTag)
                         val firstClose = afterCursor.indexOf(closeTag)
                         if (lastOpen >= 0 && firstClose >= 0) {
@@ -890,16 +933,16 @@ fun NoteEditorScreen(
                             val textAfterClose = text.substring(innerEnd + closeTag.length)
                             val newText = textBeforeOpen + textBetween + textAfterClose
                             val newCursor = lastOpen + textBetween.length
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor.coerceIn(0, newText.length)))
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor.coerceIn(0, newText.length))))
                             syncActiveBlock(); saveBlocksToHistory()
                         } else {
                             val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
                             syncActiveBlock(); saveBlocksToHistory()
                         }
                     } else {
                         val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
                         syncActiveBlock(); saveBlocksToHistory()
                     }
                 }
@@ -909,18 +952,54 @@ fun NoteEditorScreen(
                 val selStart = contentValue.selection.start
                 val selEnd = contentValue.selection.end
                 val text = contentValue.text
-                val openTag = "<$tag=$value>"
-                val closeTag = "</$tag>"
-                if (selStart != selEnd) {
-                    val selected = text.substring(selStart, selEnd)
-                    val cleaned = selected.replace(Regex("<$tag[^>]*>"), "").replace(closeTag, "")
-                    val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
-                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length))
+                if (value == "default") {
+                    val tagRegex = Regex("</?$tag[^>]*>")
+                    if (selStart != selEnd) {
+                        val selected = text.substring(selStart, selEnd)
+                        val cleaned = selected.replace(tagRegex, "")
+                        val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
+                    } else {
+                        val newText = text.replace(tagRegex, "")
+                        val newCursor = selStart.coerceIn(0, newText.length)
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
+                    }
                     syncActiveBlock(); saveBlocksToHistory()
                 } else {
-                    val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length))
-                    syncActiveBlock(); saveBlocksToHistory()
+                    val openTag = "<$tag=$value>"
+                    val closeTag = "</$tag>"
+                    val chosenColor = JsonColorizer.parseColor(value)
+                    val activeColor = if (tag == "color") activeFontColor else activeBgColor
+                    val alreadyApplied = chosenColor != null && activeColor != null && chosenColor == activeColor
+                    if (selStart != selEnd) {
+                        val selected = text.substring(selStart, selEnd)
+                        val cleaned = selected.replace(Regex("<$tag[^>]*>"), "").replace(closeTag, "")
+                        if (alreadyApplied) {
+                            val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
+                        } else {
+                            val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length)))
+                        }
+                        syncActiveBlock(); saveBlocksToHistory()
+                    } else if (alreadyApplied) {
+                        val beforeCursor = text.substring(0, selStart)
+                        val afterCursor = text.substring(selStart)
+                        val openStart = beforeCursor.lastIndexOf("<$tag=")
+                        val closeStart = afterCursor.indexOf(closeTag)
+                        if (openStart >= 0 && closeStart >= 0) {
+                            val closeEnd = selStart + closeStart + closeTag.length
+                            var newText = text.removeRange(selStart + closeStart, closeEnd)
+                            val openEnd = newText.indexOf('>', openStart) + 1
+                            newText = newText.removeRange(openStart, openEnd)
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(openStart.coerceIn(0, newText.length))))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        }
+                    } else {
+                        val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
+                        syncActiveBlock(); saveBlocksToHistory()
+                    }
                 }
             }
 
@@ -940,7 +1019,7 @@ fun NoteEditorScreen(
                     }.joinToString("\n")
                     val newText = text.substring(0, selStart) + "<$listType>\n$formattedLines\n</$listType>" + text.substring(selEnd)
                     val newCursor = selStart + newText.length - text.length + (selEnd - selStart)
-                    contentValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                    setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
                     syncActiveBlock(); saveBlocksToHistory()
                 } else {
                     val emptyTag = if (listType == "cl") {
@@ -965,7 +1044,7 @@ fun NoteEditorScreen(
                         cleaned = cleaned.replaceFirst("<indent>", "").replaceFirst("</indent>", "")
                     }
                     val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                    contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length))
+                    setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length)))
                     syncActiveBlock(); saveBlocksToHistory()
                 } else {
                     val beforeCursor = text.substring(0, selStart)
@@ -981,7 +1060,7 @@ fun NoteEditorScreen(
                             afterCursor
                         }
                         val newText = newBefore + newAfter
-                        contentValue = TextFieldValue(text = newText, selection = TextRange(newBefore.length))
+                        setContentValue(TextFieldValue(text = newText, selection = TextRange(newBefore.length)))
                         syncActiveBlock(); saveBlocksToHistory()
                     }
                 }
@@ -1140,7 +1219,7 @@ fun NoteEditorScreen(
                                     onClick = {
                                         if (matchRanges.isNotEmpty()) {
                                             currentMatchIndex = (currentMatchIndex - 1 + matchRanges.size) % matchRanges.size
-                                            contentValue = contentValue.copy(selection = matchRanges[currentMatchIndex])
+                                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
                                             try {
                                                 editorFocusRequester.requestFocus()
                                             } catch (e: Exception) {
@@ -1163,7 +1242,7 @@ fun NoteEditorScreen(
                                     onClick = {
                                         if (matchRanges.isNotEmpty()) {
                                             currentMatchIndex = (currentMatchIndex + 1) % matchRanges.size
-                                            contentValue = contentValue.copy(selection = matchRanges[currentMatchIndex])
+                                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
                                             try {
                                                 editorFocusRequester.requestFocus()
                                             } catch (e: Exception) {
@@ -1314,8 +1393,10 @@ fun NoteEditorScreen(
                             pageLinkTargetBlockIndex = idx
                             showNoteLinkPicker = true
                         },
+                        onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
+                        pendingSelection = pendingSelection,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
                         onParseResult = { toolbarParseResult = it },
                         pendingFocusBlockIndex = pendingFocusBlockIndex,
@@ -1428,10 +1509,26 @@ fun NoteEditorScreen(
                                 onClick = {
                                     if (urlInputAddress.isNotBlank()) {
                                         val display = urlInputText.ifEmpty { urlInputAddress }
-                                        insertAtCursor("<url=$urlInputAddress>$display</url>")
+                                        val linkTag = "<url=$urlInputAddress>$display</url>"
+                                        val editRange = urlEditRange
+                                        val selStart = contentValue.selection.start
+                                        val selEnd = contentValue.selection.end
+                                        if (editRange != null) {
+                                            val newText = contentValue.text.replaceRange(editRange.first, editRange.last + 1, linkTag)
+                                            setContentValue(TextFieldValue(text = newText, selection = TextRange(editRange.first + linkTag.length)))
+                                            syncActiveBlock(); saveBlocksToHistory()
+                                        } else if (selStart != selEnd) {
+                                            val newText = contentValue.text.replaceRange(selStart, selEnd, linkTag)
+                                            val newCursor = selStart + linkTag.length
+                                            setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
+                                            syncActiveBlock(); saveBlocksToHistory()
+                                        } else {
+                                            insertAtCursor(linkTag)
+                                        }
                                     }
                                     urlInputAddress = ""
                                     urlInputText = ""
+                                    urlEditRange = null
                                     showInsertUrlDialog = false
                                 }
                             ) {
@@ -1443,6 +1540,7 @@ fun NoteEditorScreen(
                                 onClick = {
                                     urlInputAddress = ""
                                     urlInputText = ""
+                                    urlEditRange = null
                                     showInsertUrlDialog = false
                                 }
                             ) {
@@ -1599,6 +1697,35 @@ fun NoteEditorScreen(
                                 OutlinedButton(
                                     onClick = {
                                         val searchText = contentValue.text
+                                        val rangeToEdit = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset)
+                                        if (rangeToEdit != null) {
+                                            val tagContent = searchText.substring(rangeToEdit.first, rangeToEdit.last + 1)
+                                            val openEnd = tagContent.indexOf('>') + 1
+                                            val closeStart = tagContent.lastIndexOf("</url>")
+                                            val display = if (closeStart > openEnd) tagContent.substring(openEnd, closeStart) else ""
+                                            urlInputAddress = clickedUrlAddress
+                                            urlInputText = display
+                                            urlEditRange = rangeToEdit
+                                            showUrlDialog = false
+                                            showInsertUrlDialog = true
+                                        } else {
+                                            showUrlDialog = false
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(stringResource(id = R.string.url_dialog_edit))
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = {
+                                        val searchText = contentValue.text
                                         val rangeToDelete = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(searchText, clickedUrlAbsoluteOffset)
                                         if (rangeToDelete != null) {
                                             val newContent = contentValue.text.removeRange(rangeToDelete)
@@ -1638,30 +1765,19 @@ fun NoteEditorScreen(
 
             }
 
-            if (showFontColorDialog) {
-                ColorSelectionDialog(
-                    title = stringResource(id = R.string.dialog_font_color_title),
-                    onDismiss = { showFontColorDialog = false },
-                    onColorSelected = { color ->
-                        applyTagWithVal("color", color)
-                    }
-                )
-            }
-            if (showBgColorDialog) {
-                ColorSelectionDialog(
-                    title = stringResource(id = R.string.dialog_bg_color_title),
-                    onDismiss = { showBgColorDialog = false },
-                    onColorSelected = { color ->
-                        applyTagWithVal("bg", color)
-                    }
+            if (showTextBgColorSheet) {
+                TextBgColorSheet(
+                    onDismiss = { showTextBgColorSheet = false },
+                    onTextColorSelected = { color -> applyTagWithVal("color", color) },
+                    onBgColorSelected = { color -> applyTagWithVal("bg", color) }
                 )
             }
 
             if (isKeyboardVisible) {
-                FloatingEditorToolbar(
+                Box(Modifier.fillMaxSize()) {
+                    EditorToolbarContainer(
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     activeTextStyles = activeTextStyles,
-                    activeFontColor = activeFontColor,
-                    activeBgColor = activeBgColor,
                     isSpeaking = isSpeaking,
                     aiEnabled = aiEnabled,
                     showAiPanel = showAiPanel,
@@ -1692,8 +1808,6 @@ fun NoteEditorScreen(
                         }
                     },
                     onToggleTag = { applyTag(it) },
-                    onOpenFontColor = { showFontColorDialog = true },
-                    onOpenBgColor = { showBgColorDialog = true },
                     onClearFormatting = {
                         val selStart = contentValue.selection.start
                         val selEnd = contentValue.selection.end
@@ -1710,7 +1824,7 @@ fun NoteEditorScreen(
                             val after = text.substring(selEnd)
                             val cleanedSelected = selected.replace(inlineRegex, "")
                             val newText = before + cleanedSelected + after
-                            contentValue = TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length))
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length)))
                             syncActiveBlock(); saveBlocksToHistory()
                         }
                     },
@@ -1762,8 +1876,53 @@ fun NoteEditorScreen(
                             onNavigateToAiChat(noteId)
                         }
                     },
-                    onToggleAiPanel = { showAiPanel = !showAiPanel }
+                    onToggleAiPanel = { showAiPanel = !showAiPanel },
+                    onToggleKeyboard = {
+                        if (isKeyboardVisible) {
+                            keyboardController?.hide()
+                        } else {
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    onOpenbgFontColor = { showTextBgColorSheet = true },
+                    onOpenInlineLink = {
+                        val cursor = contentValue.selection.start
+                        val trCursor = toolbarParseResult.originalToTransformed(cursor).coerceIn(0, toolbarParseResult.text.length)
+                        val urlAtCursor = toolbarParseResult.text.getStringAnnotations("URL", trCursor, trCursor).firstOrNull()?.item
+                        if (urlAtCursor != null) {
+                            clickedUrlAddress = urlAtCursor
+                            clickedUrlAbsoluteOffset = cursor
+                            urlEditRange = null
+                            showUrlDialog = true
+                        } else {
+                            inlineLinkMode = true
+                        }
+                    },
+                    onOpenEquation = { showEquationDialog = true },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    matchCount = matchRanges.size,
+                    currentMatchIndex = currentMatchIndex,
+                    onPreviousMatch = {
+                        if (matchRanges.isNotEmpty()) {
+                            currentMatchIndex = (currentMatchIndex - 1 + matchRanges.size) % matchRanges.size
+                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    onNextMatch = {
+                        if (matchRanges.isNotEmpty()) {
+                            currentMatchIndex = (currentMatchIndex + 1) % matchRanges.size
+                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    caseSensitive = searchCaseSensitive,
+                    onCaseSensitiveChange = { searchCaseSensitive = it },
+                    fullWord = searchFullWord,
+                    onFullWordChange = { searchFullWord = it }
                 )
+                }
             }
 
         if (showMoreFormattingSheet) {
@@ -2674,18 +2833,102 @@ fun NoteEditorScreen(
             PageLinkNotePickerSheet(
                 notes = allNotes,
                 currentNoteId = noteId,
-                onDismiss = { showNoteLinkPicker = false },
-                onNoteSelected = { linkedId ->
-                    val target = pageLinkTargetBlockIndex
-                    if (target in blocks.indices) {
-                        val newBlocks = blocks.toMutableList()
-                        newBlocks[target] = newBlocks[target].copy(meta = mapOf("noteId" to linkedId.toString()))
-                        blocks = newBlocks
-                        saveBlocksToHistory()
-                    } else {
-                        handleSlashSelect(DataBlock(type = BlockType.PAGE_LINK, content = "", meta = mapOf("noteId" to linkedId.toString())))
-                    }
+                onDismiss = {
                     showNoteLinkPicker = false
+                    inlineLinkMode = false
+                },
+                onNoteSelected = { linkedId ->
+                    if (inlineLinkMode) {
+                        val selStart = contentValue.selection.start
+                        val selEnd = contentValue.selection.end
+                        if (selStart != selEnd) {
+                            val selected = contentValue.text.substring(selStart, selEnd)
+                            val linkTag = "<url=note://$linkedId>${selected.ifBlank { linkedId.toString() }}</url>"
+                            val newText = contentValue.text.replaceRange(selStart, selEnd, linkTag)
+                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + linkTag.length)))
+                            syncActiveBlock(); saveBlocksToHistory()
+                        } else {
+                            val title = allNotes.find { it.note.id == linkedId }?.title ?: linkedId.toString()
+                            pendingInsert.value = "<url=note://$linkedId>$title</url>"
+                        }
+                        showNoteLinkPicker = false
+                        inlineLinkMode = false
+                    } else {
+                        val target = pageLinkTargetBlockIndex
+                        if (target in blocks.indices) {
+                            val newBlocks = blocks.toMutableList()
+                            newBlocks[target] = newBlocks[target].copy(meta = mapOf("noteId" to linkedId.toString()))
+                            blocks = newBlocks
+                            saveBlocksToHistory()
+                        } else {
+                            handleSlashSelect(DataBlock(type = BlockType.PAGE_LINK, content = "", meta = mapOf("noteId" to linkedId.toString())))
+                        }
+                        showNoteLinkPicker = false
+                    }
+                }
+            )
+        }
+
+        if (showEquationDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showEquationDialog = false
+                    equationInput = ""
+                },
+                title = { Text(stringResource(id = R.string.dialog_insert_equation_title)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = equationInput,
+                            onValueChange = { equationInput = it },
+                            label = { Text(stringResource(id = R.string.label_equation_latex)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (equationInput.isNotBlank()) {
+                            Text(
+                                text = stringResource(id = R.string.rich_live_preview),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = MathRenderer.render(equationInput.trim()),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(8.dp),
+                                    maxLines = 4,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (equationInput.isNotBlank()) {
+                                pendingInsert.value = "<eq>${equationInput.trim()}</eq>"
+                            }
+                            equationInput = ""
+                            showEquationDialog = false
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.btn_insert))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            equationInput = ""
+                            showEquationDialog = false
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.btn_cancel))
+                    }
                 }
             )
         }

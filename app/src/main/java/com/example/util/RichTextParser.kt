@@ -307,14 +307,58 @@ class RichTextParser {
         val needsStyle = style != null || tagName in listOf("url")
 
         when {
+            tagName == "eq" -> {
+                val close = rawText.indexOf("</eq>", tagInfo.endIndex)
+                val closeEnd = if (close == -1) tagInfo.endIndex else close + "</eq>".length
+                val latex = if (close == -1) "" else rawText.substring(tagInfo.endIndex, close)
+                if (showTagsGray) {
+                    for (k in tagInfo.startIndex until closeEnd) {
+                        OffsetMapper.addChar(mapping, k, builder.length)
+                        builder.append(rawText[k])
+                    }
+                    builder.addStyle(
+                        SpanStyle(color = Color(0xFF9E9E9E)),
+                        builder.length - (closeEnd - tagInfo.startIndex),
+                        builder.length
+                    )
+                } else {
+                    val rendered = MathRenderer.render(latex)
+                    for (k in tagInfo.startIndex until closeEnd) {
+                        OffsetMapper.skipChar(mapping, k)
+                    }
+                    val renderedStart = builder.length
+                    for (i in rendered.text.indices) {
+                        OffsetMapper.addChar(mapping, tagInfo.startIndex, renderedStart + i)
+                    }
+                    builder.append(rendered)
+                    if (style != null) {
+                        builder.addStyle(style, renderedStart, builder.length)
+                    }
+                }
+                return closeEnd
+            }
             HtmlTagParser.tagNeedsStyle(tagName) && needsStyle -> {
                 if (showTagsGray) {
                     skipOrGrayTagChars(rawText, builder, mapping, tagInfo.startIndex, tagEnd, showTagsGray)
                 }
                 val annot = if (tagName == "url") tagValue else null
-                val resolvedStyle = style ?: SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+                val isNoteLink = tagName == "url" && annot != null && annot.startsWith(NOTE_LINK_PREFIX)
+                val baseLinkStyle = style ?: SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+                val resolvedStyle = if (isNoteLink) {
+                    baseLinkStyle.copy(background = NOTE_LINK_CHIP_BG, textDecoration = TextDecoration.None)
+                } else {
+                    baseLinkStyle
+                }
                 startStyle(activeStyles, tagName, resolvedStyle, builder, annot)
-                skipOrGrayTagChars(rawText, builder, mapping, tagInfo.startIndex, tagEnd, showTagsGray)
+                if (isNoteLink && !showTagsGray) {
+                    OffsetMapper.addChar(mapping, tagInfo.startIndex, builder.length)
+                    builder.append(NOTE_LINK_GLYPH)
+                    for (k in tagInfo.startIndex + 1 until tagEnd) {
+                        OffsetMapper.skipChar(mapping, k)
+                    }
+                } else {
+                    skipOrGrayTagChars(rawText, builder, mapping, tagInfo.startIndex, tagEnd, showTagsGray)
+                }
             }
             tagName == "indent" -> {
                 if (!showTagsGray) {
@@ -548,6 +592,10 @@ class RichTextParser {
 
     companion object {
         private val default = RichTextParser()
+
+        const val NOTE_LINK_PREFIX = "note://"
+        const val NOTE_LINK_GLYPH = "🔗"
+        private val NOTE_LINK_CHIP_BG = Color(0x1F808080)
 
         private val hrLineRegex = Regex("^[-*_ ]+$")
         private val nestedListRegex = Regex("^( {2,})([-*])(\\s+)")

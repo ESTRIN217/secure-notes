@@ -29,7 +29,7 @@
 
 ## Architecture
 
-Single-module Android app (`:app`). MVVM with Jetpack Compose (Material 3), Room, `StateFlow`.
+Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), Room, `StateFlow`.
 
 | Layer | Path | Key files |
 |---|---|---|
