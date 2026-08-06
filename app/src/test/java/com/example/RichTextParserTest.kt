@@ -295,4 +295,86 @@ class RichTextParserTest {
         assertEquals("E=mc2", MathRenderer.render("E=mc^2").text)
         assertEquals("%", MathRenderer.render("\\%").text)
     }
+
+    @Test
+    fun testProtectedRangesForInlineTags() {
+        val parse = RichTextParser.parseWithMapping("hola<b>mundo</b>fin", hideTags = true)
+        assertEquals(listOf(4..6, 12..15), parse.protectedRanges)
+    }
+
+    @Test
+    fun testSnapOffsetInsideOpeningTag() {
+        val parse = RichTextParser.parseWithMapping("hola<b>mundo</b>fin", hideTags = true)
+        assertEquals(4, parse.snapOffset(4))
+        assertEquals(4, parse.snapOffset(5))
+        assertEquals(7, parse.snapOffset(6))
+        assertEquals(3, parse.snapOffset(3))
+    }
+
+    @Test
+    fun testSnapOffsetInsideClosingTag() {
+        val parse = RichTextParser.parseWithMapping("hola<b>mundo</b>fin", hideTags = true)
+        assertEquals(12, parse.snapOffset(12))
+        assertEquals(12, parse.snapOffset(13))
+        assertEquals(16, parse.snapOffset(14))
+        assertEquals(16, parse.snapOffset(15))
+        assertEquals(16, parse.snapOffset(16))
+    }
+
+    @Test
+    fun testTransformedToOriginalNeverLandsInsideTag() {
+        val parse = RichTextParser.parseWithMapping("hola<b>mundo</b>fin", hideTags = true)
+        assertEquals(3, parse.transformedToOriginal(3))
+        assertEquals(7, parse.transformedToOriginal(4))
+        assertEquals(11, parse.transformedToOriginal(8))
+        assertEquals(16, parse.transformedToOriginal(9))
+    }
+
+    @Test
+    fun testSnapOffsetForBulletMarker() {
+        val parse = RichTextParser.parseWithMapping("- Item", hideTags = true)
+        assertEquals(listOf(0..1), parse.protectedRanges)
+        assertEquals(2, parse.snapOffset(0))
+        assertEquals(2, parse.snapOffset(1))
+        assertEquals(2, parse.transformedToOriginal(0))
+    }
+
+    @Test
+    fun testCursorCrossingInlineTags() {
+        val parse = RichTextParser.parseWithMapping("hola<b>mundo</b>fin", hideTags = true)
+        assertEquals(3, parse.previousVisibleOffset(7))
+        assertEquals(7, parse.previousVisibleOffset(8))
+        assertEquals(11, parse.previousVisibleOffset(16))
+        assertEquals(16, parse.previousVisibleOffset(17))
+        assertEquals(7, parse.nextVisibleOffset(3))
+        assertEquals(7, parse.nextVisibleOffset(4))
+        assertEquals(16, parse.nextVisibleOffset(11))
+        assertEquals(16, parse.nextVisibleOffset(12))
+        assertEquals(17, parse.nextVisibleOffset(16))
+    }
+
+    @Test
+    fun testCursorBoundariesAtTextEdges() {
+        val parse = RichTextParser.parseWithMapping("<b>hola</b>", hideTags = true)
+        assertEquals(0, parse.previousVisibleOffset(0))
+        assertEquals(0, parse.previousVisibleOffset(3))
+        assertEquals(3, parse.nextVisibleOffset(0))
+        assertEquals(11, parse.nextVisibleOffset(10))
+        assertEquals(11, parse.nextVisibleOffset(11))
+    }
+
+    @Test
+    fun testCursorStaysOffBulletMarker() {
+        val parse = RichTextParser.parseWithMapping("- Item", hideTags = true)
+        assertEquals(0, parse.previousVisibleOffset(2))
+        assertEquals(2, parse.nextVisibleOffset(0))
+        assertEquals(3, parse.nextVisibleOffset(2))
+    }
+
+    @Test
+    fun testCursorCrossingHeadingMarker() {
+        val parse = RichTextParser.parseWithMapping("# Title", hideTags = true)
+        assertEquals(0, parse.previousVisibleOffset(2))
+        assertEquals(2, parse.nextVisibleOffset(0))
+    }
 }

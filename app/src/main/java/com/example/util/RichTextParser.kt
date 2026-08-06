@@ -16,17 +16,48 @@ class RichTextParser {
     class ParseResult(
         val text: AnnotatedString,
         sourceToTransformed: IntArray,
-        transformedToSource: IntArray
+        transformedToSource: IntArray,
+        val protectedRanges: List<IntRange>
     ) {
         private val stt = sourceToTransformed
         private val tts = transformedToSource
+        val sourceLength: Int get() = stt.lastIndex
 
         fun originalToTransformed(originalIndex: Int): Int {
             return stt.getOrElse(originalIndex) { originalIndex.coerceIn(0, stt.lastIndex) }
         }
 
         fun transformedToOriginal(transformedIndex: Int): Int {
-            return tts.getOrElse(transformedIndex) { transformedIndex.coerceIn(0, tts.lastIndex) }
+            val mapped = tts.getOrElse(transformedIndex) { transformedIndex.coerceIn(0, tts.lastIndex) }
+            return snapOffset(mapped)
+        }
+
+        fun snapOffset(offset: Int): Int {
+            val range = protectedRanges.firstOrNull { offset in it } ?: return offset
+            if (hasVisibleGlyph(offset)) return range.last + 1
+            val startDist = offset - range.first
+            val endDist = range.last + 1 - offset
+            return if (endDist <= startDist) range.last + 1 else range.first
+        }
+
+        fun previousVisibleOffset(offset: Int): Int {
+            if (offset <= 0) return 0
+            val range = protectedRanges.firstOrNull { offset - 1 in it } ?: return offset - 1
+            return (range.first - 1).coerceAtLeast(0)
+        }
+
+        fun nextVisibleOffset(offset: Int): Int {
+            if (offset >= sourceLength) return sourceLength
+            val range = protectedRanges.firstOrNull { offset in it }
+                ?: protectedRanges.firstOrNull { offset + 1 in it }
+                ?: return offset + 1
+            return (range.last + 1).coerceAtMost(sourceLength)
+        }
+
+        private fun hasVisibleGlyph(offset: Int): Boolean {
+            if (offset !in 0..stt.lastIndex) return false
+            val visual = stt[offset]
+            return visual in 0..tts.lastIndex && tts[visual] == offset
         }
     }
 
@@ -38,7 +69,7 @@ class RichTextParser {
             builder.append(rawText)
             JsonColorizer.highlightJson(rawText, builder)
             val identityMapping = IntArray(N + 1) { it }
-            return ParseResult(builder.toAnnotatedString(), identityMapping, identityMapping)
+            return ParseResult(builder.toAnnotatedString(), identityMapping, identityMapping, emptyList())
         }
 
         val builder = AnnotatedString.Builder()
@@ -150,7 +181,12 @@ class RichTextParser {
             builder.addStyle(active.style, active.start, builder.length)
         }
 
-        return ParseResult(builder.toAnnotatedString(), finalMapping.sourceToTransformed, finalMapping.transformedToSource)
+        return ParseResult(
+            builder.toAnnotatedString(),
+            finalMapping.sourceToTransformed,
+            finalMapping.transformedToSource,
+            finalMapping.hiddenRanges
+        )
     }
 
     private fun parseLineStartMarkers(

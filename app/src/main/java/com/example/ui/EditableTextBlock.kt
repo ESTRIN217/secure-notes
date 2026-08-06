@@ -95,8 +95,9 @@ fun EditableTextBlock(
     LaunchedEffect(pendingSelection.value) {
         val range = pendingSelection.value ?: return@LaunchedEffect
         val text = textFieldValue.text
-        val start = range.first.coerceIn(0, text.length)
-        val end = range.last.coerceIn(start, text.length)
+        val parse = RichTextParser.parseWithMapping(text, hideTags = true)
+        val start = parse.snapOffset(range.first.coerceIn(0, text.length))
+        val end = parse.snapOffset(range.last.coerceIn(0, text.length)).coerceAtLeast(start)
         textFieldValue = textFieldValue.copy(selection = TextRange(start, end))
         onCursorChange(start)
         pendingSelection.value = null
@@ -220,9 +221,9 @@ fun EditableTextBlock(
                     }
                 }
 
-                textFieldValue = newValue
+                textFieldValue = newValue.copy(selection = snapSelection(newText, newValue.selection))
                 onChange(newText)
-                onCursorChange(newValue.selection.start)
+                onCursorChange(textFieldValue.selection.start)
             },
             visualTransformation = visualTransformation,
             modifier = blockModifier
@@ -251,10 +252,73 @@ fun EditableTextBlock(
                                     true
                                 } else false
                             }
+                            Key.DirectionLeft -> {
+                                val sel = textFieldValue.selection
+                                if (sel.collapsed) {
+                                    val p = sel.start
+                                    if (p == 0) {
+                                        onMoveToPreviousBlock()
+                                        true
+                                    } else {
+                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
+                                        val target = parse.previousVisibleOffset(p)
+                                        if (target != p - 1) {
+                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
+                                            onCursorChange(target)
+                                            true
+                                        } else false
+                                    }
+                                } else false
+                            }
+                            Key.DirectionRight -> {
+                                val sel = textFieldValue.selection
+                                if (sel.collapsed) {
+                                    val p = sel.start
+                                    val len = textFieldValue.text.length
+                                    if (p == len) {
+                                        onMoveToNextBlock()
+                                        true
+                                    } else {
+                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
+                                        val target = parse.nextVisibleOffset(p)
+                                        if (target != p + 1) {
+                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
+                                            onCursorChange(target)
+                                            true
+                                        } else false
+                                    }
+                                } else false
+                            }
                             Key.Backspace -> {
                                 if (textFieldValue.text.isEmpty()) {
                                     if (blockType in exitOnEmptyTypes) onConvertToText() else onDeleteBlock()
                                     true
+                                } else {
+                                    val sel = textFieldValue.selection
+                                    if (sel.collapsed && sel.start > 0) {
+                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
+                                        val target = parse.previousVisibleOffset(sel.start)
+                                        if (target != sel.start - 1) {
+                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
+                                            onCursorChange(target)
+                                            true
+                                        } else false
+                                    } else false
+                                }
+                            }
+                            Key.Delete -> {
+                                val sel = textFieldValue.selection
+                                if (sel.collapsed) {
+                                    val p = sel.start
+                                    if (p < textFieldValue.text.length) {
+                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
+                                        val target = parse.nextVisibleOffset(p)
+                                        if (target != p + 1) {
+                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
+                                            onCursorChange(target)
+                                            true
+                                        } else false
+                                    } else false
                                 } else false
                             }
                             else -> false
@@ -264,6 +328,16 @@ fun EditableTextBlock(
             textStyle = textStyle
         )
     }
+}
+
+internal fun snapSelection(text: String, selection: TextRange): TextRange {
+    val parse = RichTextParser.parseWithMapping(text, hideTags = true)
+    if (selection.collapsed) {
+        return TextRange(parse.snapOffset(selection.start))
+    }
+    val start = parse.snapOffset(selection.start)
+    val end = parse.snapOffset(selection.end).coerceAtLeast(start)
+    return TextRange(start, end)
 }
 
 private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)

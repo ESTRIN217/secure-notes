@@ -7,18 +7,20 @@ class OffsetMapper {
     fun createMapping(sourceLength: Int): MappingArrays {
         val sourceToTransformed = IntArray(sourceLength + 1) { -1 }
         val transformedToSource = IntArray(sourceLength + 1)
-        return MappingArrays(sourceToTransformed, transformedToSource, 0)
+        return MappingArrays(sourceToTransformed, transformedToSource, 0, mutableListOf())
     }
 
     data class MappingArrays(
         val sourceToTransformed: IntArray,
         val transformedToSource: IntArray,
-        var transformedCount: Int
+        var transformedCount: Int,
+        val hiddenIndices: MutableList<Int>
     )
 
     data class FinalMapping(
         val sourceToTransformed: IntArray,
-        val transformedToSource: IntArray
+        val transformedToSource: IntArray,
+        val hiddenRanges: List<IntRange>
     )
 
     fun addChar(mapping: MappingArrays, sourceIndex: Int, builderLength: Int) {
@@ -29,10 +31,11 @@ class OffsetMapper {
     }
 
     fun skipChar(mapping: MappingArrays, sourceIndex: Int) {
+        mapping.hiddenIndices.add(sourceIndex)
     }
 
     fun finalize(mapping: MappingArrays, builderLength: Int, sourceLength: Int): FinalMapping {
-        val (stt, tts, count) = mapping
+        val (stt, tts, count, hiddenIndices) = mapping
         stt[sourceLength] = builderLength
 
         val totalTransformed = count + 1
@@ -57,7 +60,24 @@ class OffsetMapper {
             }
         }
 
-        return FinalMapping(stt, filledTts)
+        return FinalMapping(stt, filledTts, buildHiddenRanges(hiddenIndices))
+    }
+
+    private fun buildHiddenRanges(hiddenIndices: List<Int>): List<IntRange> {
+        val ranges = mutableListOf<IntRange>()
+        var rangeStart = -1
+        var prev = -2
+        for (i in hiddenIndices) {
+            if (i == prev + 1) {
+                prev = i
+            } else {
+                if (rangeStart != -1) ranges.add(rangeStart..prev)
+                rangeStart = i
+                prev = i
+            }
+        }
+        if (rangeStart != -1) ranges.add(rangeStart..prev)
+        return ranges
     }
 
     companion object {

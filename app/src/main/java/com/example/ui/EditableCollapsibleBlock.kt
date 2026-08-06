@@ -199,9 +199,9 @@ fun EditableCollapsibleBlock(
                 BasicTextField(
                     value = contentField,
                     onValueChange = { newValue ->
-                        contentField = newValue
+                        contentField = newValue.copy(selection = snapSelection(newValue.text, newValue.selection))
                         onChange(summaryField.text, newValue.text)
-                        onCursorChange(newValue.selection.start)
+                        onCursorChange(contentField.selection.start)
                     },
                     visualTransformation = contentVisualTransformation,
                     modifier = Modifier
@@ -211,6 +211,57 @@ fun EditableCollapsibleBlock(
                             isContentFocused = focusState.isFocused
                             onFocusChange(isSummaryFocused || isContentFocused)
                             if (focusState.isFocused) onCursorChange(contentField.selection.start)
+                        }
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyUp) {
+                                val sel = contentField.selection
+                                if (!sel.collapsed) return@onPreviewKeyEvent false
+                                val p = sel.start
+                                val len = contentField.text.length
+                                when (event.key) {
+                                    Key.DirectionLeft -> {
+                                        if (p > 0) {
+                                            val target = RichTextParser.parseWithMapping(contentField.text, hideTags = true).previousVisibleOffset(p)
+                                            if (target != p - 1) {
+                                                contentField = contentField.copy(selection = TextRange(target))
+                                                onCursorChange(target)
+                                                true
+                                            } else false
+                                        } else false
+                                    }
+                                    Key.DirectionRight -> {
+                                        if (p < len) {
+                                            val target = RichTextParser.parseWithMapping(contentField.text, hideTags = true).nextVisibleOffset(p)
+                                            if (target != p + 1) {
+                                                contentField = contentField.copy(selection = TextRange(target))
+                                                onCursorChange(target)
+                                                true
+                                            } else false
+                                        } else false
+                                    }
+                                    Key.Backspace -> {
+                                        if (p > 0) {
+                                            val target = RichTextParser.parseWithMapping(contentField.text, hideTags = true).previousVisibleOffset(p)
+                                            if (target != p - 1) {
+                                                contentField = contentField.copy(selection = TextRange(target))
+                                                onCursorChange(target)
+                                                true
+                                            } else false
+                                        } else false
+                                    }
+                                    Key.Delete -> {
+                                        if (p < len) {
+                                            val target = RichTextParser.parseWithMapping(contentField.text, hideTags = true).nextVisibleOffset(p)
+                                            if (target != p + 1) {
+                                                contentField = contentField.copy(selection = TextRange(target))
+                                                onCursorChange(target)
+                                                true
+                                            } else false
+                                        } else false
+                                    }
+                                    else -> false
+                                }
+                            } else false
                         },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurface
