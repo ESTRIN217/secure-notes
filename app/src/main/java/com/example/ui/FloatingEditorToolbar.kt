@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -47,6 +48,8 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,13 +69,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+import com.example.R
+import java.util.Locale
 
 // Enum para controlar la vista activa de la barra flotante (Clean State)
 enum class EditorToolbarMode {
@@ -114,7 +122,11 @@ fun EditorToolbarContainer(
     caseSensitive: Boolean,
     onCaseSensitiveChange: (Boolean) -> Unit,
     fullWord: Boolean,
-    onFullWordChange: (Boolean) -> Unit
+    onFullWordChange: (Boolean) -> Unit,
+    decreaseIndent: () -> Unit,
+    pasteFromClipboard: () -> Unit,
+    insertCurrentDate: () -> Unit,
+    applyTagWithVal: (String, String) -> Unit
 ) {
     var currentMode by remember { mutableStateOf(EditorToolbarMode.MAIN) }
 
@@ -146,7 +158,11 @@ fun EditorToolbarContainer(
                 onOpenAttachments = onOpenAttachments,
                 onOpenAi = onOpenAi,
                 onToggleAiPanel = onToggleAiPanel,
-                onToggleKeyboard = onToggleKeyboard
+                onToggleKeyboard = onToggleKeyboard,
+                onToggleTag = onToggleTag,
+                decreaseIndent = decreaseIndent,
+                pasteFromClipboard = pasteFromClipboard,
+                insertCurrentDate = insertCurrentDate
             )
 
             EditorToolbarMode.TEXT_FORMAT -> TextoToolbar(
@@ -155,7 +171,8 @@ fun EditorToolbarContainer(
                 onBack = { currentMode = EditorToolbarMode.MAIN },
                 onOpenbgFontColor = onOpenbgFontColor,
                 onOpenInlineLink = onOpenInlineLink,
-                onOpenEquation = onOpenEquation
+                onOpenEquation = onOpenEquation,
+                applyTagWithVal = applyTagWithVal
             )
 
             EditorToolbarMode.SEARCH -> InlineSearchBar(
@@ -194,7 +211,11 @@ private fun FloatingEditorToolbar(
     onOpenAttachments: () -> Unit,
     onOpenAi: () -> Unit,
     onToggleAiPanel: () -> Unit,
-    onToggleKeyboard: () -> Unit
+    onToggleKeyboard: () -> Unit,
+    onToggleTag: (String) -> Unit,
+    decreaseIndent: () -> Unit,
+    pasteFromClipboard: () -> Unit,
+    insertCurrentDate: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -254,13 +275,27 @@ private fun FloatingEditorToolbar(
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
                 contentDescription = "Aumentar sangría",
-                onClick = {}
+                onClick = { onToggleTag("indent")}
             )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
                 contentDescription = "Disminuir sangría",
-                onClick = {}
+                onClick = { decreaseIndent()}
+            )
+            ToolbarIconButton(
+                icon = Icons.Default.ArrowDropUp,
+                contentDescription = "Subir bloque",
+                onClick = { 
+                    //funcion debe poner el cursor arriba tecla arrow
+                }
+            )
+            ToolbarIconButton(
+                icon = Icons.Default.ArrowDropDown,
+                contentDescription = "Bajar bloque",
+                onClick = {
+                    // funcion debe poner el cursor abajo tecla down
+                }
             )
 
             ToolbarDivider()
@@ -313,13 +348,13 @@ private fun FloatingEditorToolbar(
             ToolbarIconButton(
                 icon = Icons.Default.ContentPaste,
                 contentDescription = "Pegar con formato",
-                onClick = {}
+                onClick = { pasteFromClipboard() }
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.Today,
                 contentDescription = "Insertar fecha",
-                onClick = {}
+                onClick = { insertCurrentDate() }
             )
         }
 
@@ -341,7 +376,8 @@ private fun TextoToolbar(
     onBack: () -> Unit,
     onOpenbgFontColor: () -> Unit,
     onOpenInlineLink: () -> Unit,
-    onOpenEquation: () -> Unit
+    onOpenEquation: () -> Unit,
+    applyTagWithVal: (String, String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -422,29 +458,48 @@ private fun TextoToolbar(
 
         ToolbarDivider()
 
-        // Dropdown Encabezados (Shell Visual)
-        Box {
-            OutlinedButton(
-                onClick = {},
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Text("rich_heading", fontSize = 12.sp)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-            }
-        }
-
         // Dropdown Tipografía
+        var showFontDropdown by remember { mutableStateOf(false) }
+        val applyFont: (String) -> Unit = { font ->
+            applyTagWithVal("font", font)
+        }
+        
         Box {
             OutlinedButton(
-                onClick = {},
+                onClick = { showFontDropdown = true},
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 modifier = Modifier.height(36.dp)
             ) {
-                Text("rich_font_family", fontSize = 12.sp)
+                Text(stringResource(id = R.string.rich_font_family), fontSize = 12.sp)
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
             }
+            DropdownMenu(
+                expanded = showFontDropdown,
+                onDismissRequest = { showFontDropdown = false}
+            ) {
+                listOf("default", "serif", "monospace", "sans-serif", "cursive").forEach { font ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = font.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() },
+                                fontFamily = when (font) {
+                                    "serif" -> FontFamily.Serif
+                                    "monospace" -> FontFamily.Monospace
+                                    "sans-serif" -> FontFamily.SansSerif
+                                    "cursive" -> FontFamily.Cursive
+                                    else -> FontFamily.Default
+                                }
+                            )
+                        },
+                        onClick = {
+                            applyFont(font)
+                            showFontDropdown = false
+                        }
+                    )
+                }
+            }
         }
+        var showSizeDropdown by remember { mutableStateOf(false) }
 
         // Dropdown Tamaño
         Box {
@@ -453,8 +508,29 @@ private fun TextoToolbar(
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 modifier = Modifier.height(36.dp)
             ) {
-                Text("rich_font_size", fontSize = 12.sp)
+                Text(stringResource(id = R.string.rich_font_size), fontSize = 12.sp)
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+            DropdownMenu(
+                expanded = showSizeDropdown,
+                onDismissRequest = { showSizeDropdown = false}
+            ) {
+                listOf("default", "12", "14", "16", "18", "20", "24", "28").forEach { size ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                if (size == "default")
+                                stringResource(R.string.text_default)
+                                else
+                                "${size}sp"
+                            )
+                        },
+                        onClick = {
+                            applyTagWithVal("size", size)
+                            showSizeDropdown = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -635,7 +711,8 @@ fun TextoPreview() {
             onBack = {},
             onOpenbgFontColor = {},
             onOpenInlineLink = {},
-            onOpenEquation = {}
+            onOpenEquation = {},
+            applyTagWithVal = { _, _ -> }
         )
     }
 }
@@ -675,7 +752,11 @@ fun FloatingToolbarContainerPreview() {
             caseSensitive = false,
             onCaseSensitiveChange = {},
             fullWord = false,
-            onFullWordChange = {}
+            onFullWordChange = {},
+            decreaseIndent = {},
+            pasteFromClipboard = {},
+            insertCurrentDate = {},
+            applyTagWithVal = { _, _ -> }
         )
     }
 }

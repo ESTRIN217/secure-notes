@@ -1126,7 +1126,6 @@ fun NoteEditorScreen(
 
                 if (selectedNoteTags.isNotEmpty()) {
                     // Horizontal Pill tag tagging selectors
-                    Text(stringResource(id = R.string.label_tags) + ":", fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1166,207 +1165,7 @@ fun NoteEditorScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Inline Search Bar
-                if (isSearchActive) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    placeholder = { Text(stringResource(id = R.string.rich_search), fontSize = 14.sp) },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color.Transparent,
-                                        unfocusedBorderColor = Color.Transparent
-                                    )
-                                )
-                                
-                                if (matchRanges.isNotEmpty()) {
-                                    Text(
-                                        text = stringResource(id = R.string.search_match_counter, currentMatchIndex + 1, matchRanges.size),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                
-                                // 1. Up Button
-                                IconButton(
-                                    onClick = {
-                                        if (matchRanges.isNotEmpty()) {
-                                            currentMatchIndex = (currentMatchIndex - 1 + matchRanges.size) % matchRanges.size
-                                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
-                                            try {
-                                                editorFocusRequester.requestFocus()
-                                            } catch (e: Exception) {
-                                                Log.e("NoteEditor", "focus request up failed", e)
-                                            }
-                                        }
-                                    },
-                                    enabled = matchRanges.isNotEmpty(),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowUpward,
-                                        contentDescription = stringResource(id = R.string.search_up),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-
-                                // 2. Down Button
-                                IconButton(
-                                    onClick = {
-                                        if (matchRanges.isNotEmpty()) {
-                                            currentMatchIndex = (currentMatchIndex + 1) % matchRanges.size
-                                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
-                                            try {
-                                                editorFocusRequester.requestFocus()
-                                            } catch (e: Exception) {
-                                                Log.e("NoteEditor", "focus request down failed", e)
-                                            }
-                                        }
-                                    },
-                                    enabled = matchRanges.isNotEmpty(),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDownward,
-                                        contentDescription = stringResource(id = R.string.search_down),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                
-                                // 3. More Button
-                                IconButton(
-                                    onClick = { showSearchMoreOptions = !showSearchMoreOptions },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (showSearchMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = stringResource(id = R.string.search_more),
-                                        modifier = Modifier.size(18.dp),
-                                        tint = if (showSearchMoreOptions) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                
-                                IconButton(
-                                    onClick = {
-                                        searchQuery = ""
-                                        matchRanges = emptyList()
-                                        isSearchActive = false
-                                        showSearchMoreOptions = false
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = stringResource(R.string.close),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            
-                            // Dynamic count status display
-                            if (searchQuery.isNotEmpty()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    val statusText = if (matchRanges.isEmpty()) {
-                                        stringResource(id = R.string.search_results_empty)
-                                    } else {
-                                        val isSingleLetter = searchQuery.trim().length == 1
-                                        if (isSingleLetter) {
-                                            if (matchRanges.size == 1) {
-                                                stringResource(id = R.string.search_letter_found_one)
-                                            } else {
-                                                stringResource(id = R.string.search_letter_found_many, matchRanges.size)
-                                            }
-                                        } else {
-                                            if (matchRanges.size == 1) {
-                                                stringResource(id = R.string.search_word_found_one)
-                                            } else {
-                                                stringResource(id = R.string.search_word_found_many, matchRanges.size)
-                                            }
-                                        }
-                                    }
-                                    Text(
-                                        text = statusText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (matchRanges.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                            
-                            // More options row: Two checks (Case sensitive, Full word)
-                            if (showSearchMoreOptions) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { searchCaseSensitive = !searchCaseSensitive }
-                                    ) {
-                                        Checkbox(
-                                            checked = searchCaseSensitive,
-                                            onCheckedChange = { searchCaseSensitive = it }
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.search_case_sensitive),
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                    
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { searchFullWord = !searchFullWord }
-                                    ) {
-                                        Checkbox(
-                                            checked = searchFullWord,
-                                            onCheckedChange = { searchFullWord = it }
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = stringResource(id = R.string.search_full_word),
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -1808,6 +1607,10 @@ fun NoteEditorScreen(
                         }
                     },
                     onToggleTag = { applyTag(it) },
+                    decreaseIndent = decreaseIndent,
+                    pasteFromClipboard = pasteFromClipboard,
+                    insertCurrentDate = insertCurrentDate,
+                    applyTagWithVal = applyTagWithVal,
                     onClearFormatting = {
                         val selStart = contentValue.selection.start
                         val selEnd = contentValue.selection.end
@@ -1896,6 +1699,8 @@ fun NoteEditorScreen(
                             showUrlDialog = true
                         } else {
                             inlineLinkMode = true
+                            pageLinkTargetBlockIndex = -1
+                            showNoteLinkPicker = true
                         }
                     },
                     onOpenEquation = { showEquationDialog = true },
@@ -2215,49 +2020,6 @@ fun NoteEditorScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Tags manager section
-                    Text(
-                        text = stringResource(id = R.string.label_tags),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
-                    )
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        allTags.forEach { tag ->
-                            val isTagged = selectedNoteTags.contains(tag.name)
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        color = if (isTagged) Color(android.graphics.Color.parseColor(tag.colorHex)).copy(alpha = 0.2f) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .border(
-                                        width = if (isTagged) 2.dp else 1.dp,
-                                        color = if (isTagged) Color(android.graphics.Color.parseColor(tag.colorHex)) else MaterialTheme.colorScheme.outlineVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable {
-                                        selectedNoteTags = if (isTagged) {
-                                            selectedNoteTags - tag.name
-                                        } else {
-                                            selectedNoteTags + tag.name
-                                        }
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(tag.name, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            }
                         }
                     }
                 }
