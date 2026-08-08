@@ -73,6 +73,7 @@ fun BlockEditor(
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
     onActiveCursorChange: (Int) -> Unit = {},
+    onActiveSelectionChange: (IntRange) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingFocusBlockIndex: Int = -1,
     onFocusHandled: () -> Unit = {},
@@ -162,6 +163,7 @@ fun BlockEditor(
                                 onActiveBlockChange(newBlocks.size - 1)
                             }
                         },
+                        
                         onSplit = { before, after ->
                             val newBlocks = blocks.toMutableList()
                             if (before.isEmpty() && after.isEmpty() && block.type in exitOnEmptyTypes) {
@@ -177,6 +179,7 @@ fun BlockEditor(
                             }
                         },
                         onCursorChange = onActiveCursorChange,
+                        onSelectionChange = onActiveSelectionChange,
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         pendingSelection = pendingSelection,
@@ -346,6 +349,7 @@ private fun BlockRow(
     onDelete: () -> Unit,
     onSplit: (String, String) -> Unit,
     onCursorChange: (Int) -> Unit,
+    onSelectionChange: (IntRange) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
@@ -367,11 +371,12 @@ private fun BlockRow(
     modifier: Modifier = Modifier
 ) {
     val (topMargin, bottomMargin) = block.type.blockVerticalMargins()
+    val indentLevel = (block.meta["indentLevel"]?.toIntOrNull() ?: 0).coerceAtLeast(0)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = topMargin, bottom = bottomMargin),
+            .padding(start = (indentLevel * 24).dp, top = topMargin, bottom = bottomMargin),
         verticalAlignment = Alignment.Top
     ) {
 
@@ -386,6 +391,7 @@ private fun BlockRow(
                         onChange = { onChange(block.copy(content = it)) },
                         onFocusChange = { if (it) onActivate() },
                         onCursorChange = onCursorChange,
+                        onSelectionChange = onSelectionChange,
                         onSplit = onSplit,
                         onMoveToPreviousBlock = onMoveToPreviousBlock,
                         onMoveToNextBlock = onMoveToNextBlock,

@@ -1,6 +1,7 @@
 package com.example.data.model
 
 import com.example.util.NoteContentBlockConverter
+import com.example.util.RichTextConverter
 import com.example.util.preprocessMarkdownBlocks
 import org.json.JSONArray
 import org.json.JSONObject
@@ -113,7 +114,8 @@ enum class BlockType {
 data class DataBlock(
     val type: BlockType,
     val content: String = "",
-    val meta: Map<String, String> = emptyMap()
+    val meta: Map<String, String> = emptyMap(),
+    val richTextJson: String? = null
 ) {
     fun toJson(): JSONObject {
         val obj = JSONObject()
@@ -122,7 +124,22 @@ data class DataBlock(
         val metaObj = JSONObject()
         meta.forEach { (k, v) -> metaObj.put(k, v) }
         obj.put("meta", metaObj)
+        richTextJson?.let { obj.put("richTextJson", it) }
         return obj
+    }
+
+    fun segments(): List<TextSegment>? = TextSegment.deserialize(richTextJson)
+
+    fun withSegments(segments: List<TextSegment>): DataBlock =
+        copy(richTextJson = TextSegment.serialize(segments))
+
+    fun ensureSegments(): List<TextSegment> {
+        segments()?.let { return it }
+        return if (RichTextConverter.containsMarkup(content)) {
+            RichTextConverter.markupToSegments(content)
+        } else {
+            listOf(TextSegment(text = content))
+        }
     }
 
     fun toLegacyString(): String {
@@ -174,7 +191,8 @@ data class DataBlock(
                     metaObj.keys().forEach { k -> put(k, metaObj.optString(k, "")) }
                 }
             } else emptyMap()
-            return DataBlock(type = type, content = content, meta = meta)
+            val richText = obj.optString("richTextJson").takeIf { it.isNotEmpty() }
+            return DataBlock(type = type, content = content, meta = meta, richTextJson = richText)
         }
 
         fun serialize(blocks: List<DataBlock>): String {

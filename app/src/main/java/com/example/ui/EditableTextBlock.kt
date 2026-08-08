@@ -33,16 +33,17 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.model.BlockType
+import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -53,6 +54,7 @@ fun EditableTextBlock(
     onChange: (String) -> Unit,
     onFocusChange: (Boolean) -> Unit = {},
     onCursorChange: (Int) -> Unit = {},
+    onSelectionChange: (IntRange) -> Unit = {},
     onSplit: ((before: String, after: String) -> Unit)? = null,
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
@@ -67,17 +69,23 @@ fun EditableTextBlock(
     initialSelection: Int? = null,
     pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) }
 ) {
-    var textFieldValue by remember {
+    var annotated by remember {
+        mutableStateOf(
+            RichTextConverter.segmentsToAnnotatedString(RichTextConverter.markupToSegments(rawText))
+        )
+    }
+    var fieldValue by remember {
         mutableStateOf(
             TextFieldValue(
-                text = rawText,
-                selection = TextRange((initialSelection ?: rawText.length).coerceIn(0, rawText.length))
+                text = annotated.text,
+                selection = TextRange((initialSelection ?: annotated.text.length).coerceIn(0, annotated.text.length))
             )
         )
     }
     var isFocused by remember { mutableStateOf(false) }
-    var internalParseResult by remember { mutableStateOf<RichTextParser.ParseResult?>(null) }
     val focusRequester = remember { FocusRequester() }
+
+    val parseResult = remember(annotated) { RichTextConverter.parseResultFor(RichTextConverter.annotatedStringToSegments(annotated)) }
 
     LaunchedEffect(requestFocus) {
         if (requestFocus) {
@@ -87,51 +95,60 @@ fun EditableTextBlock(
     }
 
     LaunchedEffect(rawText) {
-        if (rawText != textFieldValue.text) {
-            textFieldValue = TextFieldValue(text = rawText, selection = TextRange(rawText.length))
+        val incoming = RichTextConverter.markupToSegments(rawText)
+        val current = RichTextConverter.annotatedStringToSegments(annotated)
+        if (RichTextConverter.segmentsJson(incoming) != RichTextConverter.segmentsJson(current)) {
+            val newAnnotated = RichTextConverter.segmentsToAnnotatedString(incoming)
+            annotated = newAnnotated
+            fieldValue = TextFieldValue(
+                text = newAnnotated.text,
+                selection = TextRange((initialSelection ?: newAnnotated.text.length).coerceIn(0, newAnnotated.text.length))
+            )
+            onCursorChange(fieldValue.selection.start)
         }
+    }
+
+    LaunchedEffect(parseResult) {
+        onParseResult?.invoke(parseResult)
     }
 
     LaunchedEffect(pendingSelection.value) {
         val range = pendingSelection.value ?: return@LaunchedEffect
-        val text = textFieldValue.text
-        val parse = RichTextParser.parseWithMapping(text, hideTags = true)
-        val start = parse.snapOffset(range.first.coerceIn(0, text.length))
-        val end = parse.snapOffset(range.last.coerceIn(0, text.length)).coerceAtLeast(start)
-        textFieldValue = textFieldValue.copy(selection = TextRange(start, end))
+        val text = fieldValue.text
+        val start = range.first.coerceIn(0, text.length)
+        val end = range.last.coerceIn(0, text.length).coerceAtLeast(start)
+        fieldValue = fieldValue.copy(selection = TextRange(start, end))
         onCursorChange(start)
+        onSelectionChange(start..end)
         pendingSelection.value = null
     }
 
     LaunchedEffect(pendingInsert.value) {
         val insert = pendingInsert.value ?: return@LaunchedEffect
         if (!isFocused) return@LaunchedEffect
-        val text = textFieldValue.text
-        val cursor = textFieldValue.selection.start.coerceIn(0, text.length)
-        val newText = text.substring(0, cursor) + insert + text.substring(cursor)
-        val newCursor = cursor + insert.length
-        textFieldValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
-        onChange(newText)
+        val selStart = fieldValue.selection.start.coerceIn(0, fieldValue.text.length)
+        val selEnd = fieldValue.selection.end.coerceIn(0, fieldValue.text.length)
+        val before = annotated.subSequence(0, selStart)
+        val after = annotated.subSequence(selEnd, annotated.text.length)
+        val insertAnnotated = RichTextConverter.segmentsToAnnotatedString(RichTextConverter.markupToSegments(insert))
+        val newAnnotated = before + insertAnnotated + after
+        annotated = newAnnotated
+        val newCursor = selStart + insertAnnotated.text.length
+        fieldValue = TextFieldValue(text = newAnnotated.text, selection = TextRange(newCursor))
+        onChange(RichTextConverter.segmentsToMarkup(RichTextConverter.annotatedStringToSegments(newAnnotated)))
         onCursorChange(newCursor)
         pendingInsert.value = null
     }
 
-    LaunchedEffect(internalParseResult) {
-        internalParseResult?.let { onParseResult?.invoke(it) }
+    val identityMapping = remember {
+        object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = offset
+            override fun transformedToOriginal(offset: Int): Int = offset
+        }
     }
 
-    val visualTransformation = remember {
-        VisualTransformation { text ->
-            val parseResult = RichTextParser.parseWithMapping(text.text, hideTags = true)
-            internalParseResult = parseResult
-            val offsetMapping = object : OffsetMapping {
-                override fun originalToTransformed(offset: Int): Int =
-                    parseResult.originalToTransformed(offset)
-                override fun transformedToOriginal(offset: Int): Int =
-                    parseResult.transformedToOriginal(offset)
-            }
-            TransformedText(parseResult.text, offsetMapping)
-        }
+    val visualTransformation = VisualTransformation { text ->
+        TransformedText(if (text.text == annotated.text) annotated else text, identityMapping)
     }
 
     val prefix = when (blockType) {
@@ -203,27 +220,40 @@ fun EditableTextBlock(
         }
 
         BasicTextField(
-            value = textFieldValue,
+            value = fieldValue,
             onValueChange = { newValue ->
-                val oldText = textFieldValue.text
+                val oldText = fieldValue.text
                 val newText = newValue.text
+
+                if (oldText == newText) {
+                    fieldValue = newValue.copy(selection = newValue.selection)
+                    onSelectionChange(fieldValue.selection.start..fieldValue.selection.end)
+                    onCursorChange(fieldValue.selection.start)
+                    return@BasicTextField
+                }
 
                 if (onSplit != null && newText.length > oldText.length) {
                     val diffStart = oldText.commonPrefixWith(newText).length
                     if (diffStart < newText.length && newText[diffStart] == '\n') {
-                        val before = newText.substring(0, diffStart)
-                        val after = newText.substring(diffStart + 1)
-                        textFieldValue = TextFieldValue(text = before, selection = TextRange(before.length))
-                        onCursorChange(before.length)
+                        val beforeSegs = RichTextConverter.annotatedStringToSegments(annotated.subSequence(0, diffStart))
+                        val afterSegs = RichTextConverter.annotatedStringToSegments(annotated.subSequence(diffStart, annotated.text.length))
+                        fieldValue = TextFieldValue(text = oldText, selection = TextRange(diffStart))
+                        onCursorChange(diffStart)
                         onFocusChange(true)
-                        onSplit(before, after)
+                        onSplit(
+                            RichTextConverter.segmentsToMarkup(beforeSegs),
+                            RichTextConverter.segmentsToMarkup(afterSegs)
+                        )
                         return@BasicTextField
                     }
                 }
 
-                textFieldValue = newValue.copy(selection = snapSelection(newText, newValue.selection))
-                onChange(newText)
-                onCursorChange(textFieldValue.selection.start)
+                val newAnnotated = applyPlainEdit(annotated, newText)
+                annotated = newAnnotated
+                fieldValue = newValue.copy(selection = newValue.selection)
+                onChange(RichTextConverter.segmentsToMarkup(RichTextConverter.annotatedStringToSegments(newAnnotated)))
+                onCursorChange(fieldValue.selection.start)
+                onSelectionChange(fieldValue.selection.start..fieldValue.selection.end)
             },
             visualTransformation = visualTransformation,
             modifier = blockModifier
@@ -233,92 +263,30 @@ fun EditableTextBlock(
                     isFocused = focusState.isFocused
                     onFocusChange(focusState.isFocused)
                     if (focusState.isFocused) {
-                        onCursorChange(textFieldValue.selection.start)
+                        onCursorChange(fieldValue.selection.start)
+                        onSelectionChange(fieldValue.selection.start..fieldValue.selection.end)
                     }
                 }
                 .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyUp) {
                         when (event.key) {
                             Key.DirectionUp -> {
-                                if (textFieldValue.selection.start == 0 && textFieldValue.selection.end == 0) {
+                                if (fieldValue.selection.start == 0 && fieldValue.selection.end == 0) {
                                     onMoveToPreviousBlock()
                                     true
                                 } else false
                             }
                             Key.DirectionDown -> {
-                                val len = textFieldValue.text.length
-                                if (textFieldValue.selection.start == len && textFieldValue.selection.end == len) {
+                                val len = fieldValue.text.length
+                                if (fieldValue.selection.start == len && fieldValue.selection.end == len) {
                                     onMoveToNextBlock()
                                     true
                                 } else false
                             }
-                            Key.DirectionLeft -> {
-                                val sel = textFieldValue.selection
-                                if (sel.collapsed) {
-                                    val p = sel.start
-                                    if (p == 0) {
-                                        onMoveToPreviousBlock()
-                                        true
-                                    } else {
-                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
-                                        val target = parse.previousVisibleOffset(p)
-                                        if (target != p - 1) {
-                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
-                                            onCursorChange(target)
-                                            true
-                                        } else false
-                                    }
-                                } else false
-                            }
-                            Key.DirectionRight -> {
-                                val sel = textFieldValue.selection
-                                if (sel.collapsed) {
-                                    val p = sel.start
-                                    val len = textFieldValue.text.length
-                                    if (p == len) {
-                                        onMoveToNextBlock()
-                                        true
-                                    } else {
-                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
-                                        val target = parse.nextVisibleOffset(p)
-                                        if (target != p + 1) {
-                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
-                                            onCursorChange(target)
-                                            true
-                                        } else false
-                                    }
-                                } else false
-                            }
                             Key.Backspace -> {
-                                if (textFieldValue.text.isEmpty()) {
+                                if (fieldValue.text.isEmpty()) {
                                     if (blockType in exitOnEmptyTypes) onConvertToText() else onDeleteBlock()
                                     true
-                                } else {
-                                    val sel = textFieldValue.selection
-                                    if (sel.collapsed && sel.start > 0) {
-                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
-                                        val target = parse.previousVisibleOffset(sel.start)
-                                        if (target != sel.start - 1) {
-                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
-                                            onCursorChange(target)
-                                            true
-                                        } else false
-                                    } else false
-                                }
-                            }
-                            Key.Delete -> {
-                                val sel = textFieldValue.selection
-                                if (sel.collapsed) {
-                                    val p = sel.start
-                                    if (p < textFieldValue.text.length) {
-                                        val parse = RichTextParser.parseWithMapping(textFieldValue.text, hideTags = true)
-                                        val target = parse.nextVisibleOffset(p)
-                                        if (target != p + 1) {
-                                            textFieldValue = textFieldValue.copy(selection = TextRange(target))
-                                            onCursorChange(target)
-                                            true
-                                        } else false
-                                    } else false
                                 } else false
                             }
                             else -> false
@@ -330,14 +298,42 @@ fun EditableTextBlock(
     }
 }
 
-internal fun snapSelection(text: String, selection: TextRange): TextRange {
-    val parse = RichTextParser.parseWithMapping(text, hideTags = true)
-    if (selection.collapsed) {
-        return TextRange(parse.snapOffset(selection.start))
+private fun applyPlainEdit(old: AnnotatedString, newText: String): AnnotatedString {
+    val oldText = old.text
+    if (oldText == newText) return old
+    val prefix = commonPrefixLen(oldText, newText)
+    var oldEnd = oldText.length
+    var newEnd = newText.length
+    while (oldEnd > prefix && newEnd > prefix && oldText[oldEnd - 1] == newText[newEnd - 1]) {
+        oldEnd--
+        newEnd--
     }
-    val start = parse.snapOffset(selection.start)
-    val end = parse.snapOffset(selection.end).coerceAtLeast(start)
-    return TextRange(start, end)
+    val inserted = newText.substring(prefix, newEnd)
+    if (inserted.isEmpty()) {
+        return old.subSequence(0, prefix) + old.subSequence(oldEnd, old.text.length)
+    }
+    val inheritIdx = if (prefix > 0) prefix - 1 else 0
+    val inherited = inheritedStyleAt(old, inheritIdx)
+    return old.subSequence(0, prefix) +
+        AnnotatedString(inserted, spanStyle = inherited) +
+        old.subSequence(oldEnd, old.text.length)
 }
+
+private fun inheritedStyleAt(annotated: AnnotatedString, index: Int): SpanStyle {
+    if (annotated.text.isEmpty()) return SpanStyle()
+    val idx = index.coerceIn(0, annotated.text.length - 1)
+    val covering = annotated.spanStyles.filter { it.start <= idx && it.end > idx }
+    if (covering.isEmpty()) return SpanStyle()
+    return covering.fold(SpanStyle()) { acc, range -> acc.merge(range.item) }
+}
+
+private fun commonPrefixLen(a: String, b: String): Int {
+    val max = minOf(a.length, b.length)
+    var i = 0
+    while (i < max && a[i] == b[i]) i++
+    return i
+}
+
+internal fun snapSelection(text: String, selection: TextRange): TextRange = selection
 
 private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)

@@ -70,8 +70,6 @@ import com.example.util.MediaBlock
 import com.example.util.JsonColorizer
 import com.example.util.MathRenderer
 import com.example.util.RichTextParser
-import com.example.util.findEnclosingMarkdownLinkRange
-import com.example.util.findEnclosingUrlTagRange
 import com.example.util.highlightMatches
 import com.example.util.parseToContentBlocks
 import com.example.util.removeAttachmentFromContent
@@ -92,15 +90,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import java.io.File
@@ -196,13 +190,16 @@ fun NoteEditorScreen(
     val pendingInsert = remember { mutableStateOf<String?>(null) }
     val pendingSelection = remember { mutableStateOf<IntRange?>(null) }
 
-    fun setContentValue(v: TextFieldValue) {
-        contentValue = v
-        pendingSelection.value = v.selection.start..v.selection.end
-    }
     var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
     var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
+    var activeSelection by remember { mutableStateOf(IntRange(0, 0)) }
     var pendingFocusBlockIndex by remember { mutableIntStateOf(-1) }
+
+    fun setContentValue(v: TextFieldValue) {
+        contentValue = v
+        activeSelection = v.selection.start..v.selection.end
+        pendingSelection.value = v.selection.start..v.selection.end
+    }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
     var showInsertVideoDialog by remember { mutableStateOf(false) }
@@ -331,18 +328,54 @@ fun NoteEditorScreen(
         }
     }
 
-    fun syncActiveBlock() {
+    fun activeSegments(): List<com.example.data.model.TextSegment> =
+        blocks.getOrNull(toolbarActiveBlockIndex)?.ensureSegments() ?: emptyList()
+
+    val commitSegments: (List<com.example.data.model.TextSegment>) -> Unit = { newSegs ->
         if (toolbarActiveBlockIndex in blocks.indices) {
-            val updated = blocks[toolbarActiveBlockIndex].copy(content = contentValue.text)
+            val updated = blocks[toolbarActiveBlockIndex].copy(
+                content = com.example.util.RichTextConverter.segmentsToMarkup(newSegs),
+                richTextJson = com.example.data.model.TextSegment.serialize(newSegs)
+            )
             blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
+            saveBlocksToHistory()
         }
+    }
+
+    fun commitSegmentsWithSelection(newSegs: List<com.example.data.model.TextSegment>, cursor: Int) {
+        commitSegments(newSegs)
+        val plain = com.example.util.RichTextConverter.segmentsToPlainText(newSegs)
+        val clamped = cursor.coerceIn(0, plain.length)
+        contentValue = TextFieldValue(text = plain, selection = TextRange(clamped))
+        activeSelection = clamped..clamped
+        pendingSelection.value = clamped..clamped
+    }
+
+    fun syncActiveBlock() {
+        if (toolbarActiveBlockIndex !in blocks.indices) return
+        val block = blocks[toolbarActiveBlockIndex]
+        val segs = block.ensureSegments()
+        val segPlain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+        val text = contentValue.text
+        if (segPlain == text) return
+        val prefix = segPlain.commonPrefixWith(text).length
+        var oldEnd = segPlain.length
+        var newEnd = text.length
+        while (oldEnd > prefix && newEnd > prefix && segPlain[oldEnd - 1] == text[newEnd - 1]) {
+            oldEnd--
+            newEnd--
+        }
+        val newSegs = com.example.util.RichTextConverter.replaceTextRange(segs, prefix, oldEnd, text.substring(prefix, newEnd))
+        commitSegments(newSegs)
     }
 
     fun switchActiveBlock(newIndex: Int) {
         syncActiveBlock()
         toolbarActiveBlockIndex = newIndex
         if (newIndex in blocks.indices) {
-            contentValue = TextFieldValue(text = blocks[newIndex].content, selection = TextRange(blocks[newIndex].content.length))
+            val plain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[newIndex].ensureSegments())
+            contentValue = TextFieldValue(text = plain, selection = TextRange(plain.length))
+            activeSelection = plain.length..plain.length
         }
     }
 
@@ -414,20 +447,29 @@ fun NoteEditorScreen(
         aiViewModel.clearInPlaceResult()
     }
 
-    // Level 3: Streaming insertion — animate pendingInsert char by char
+    // Level 3: Streaming insertion — animate segment insertion char by char
     LaunchedEffect(pendingAiInsert, contentLoaded) {
         val text = pendingAiInsert ?: return@LaunchedEffect
         if (!contentLoaded || text.isEmpty()) return@LaunchedEffect
-        val insertFrom = contentValue.selection.start
-        val insertEnd = contentValue.selection.end
-        val baseText = contentValue.text
+        val segs = activeSegments()
+        if (segs.isEmpty()) return@LaunchedEffect
+        val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+        val insertFrom = contentValue.selection.start.coerceIn(0, plain.length)
+        val insertEnd = contentValue.selection.end.coerceIn(0, plain.length).coerceAtLeast(insertFrom)
+        var currentSegs = segs
         for (i in text.indices) {
             val chunk = text.substring(0, i + 1)
-            val newText = baseText.substring(0, insertFrom) + chunk + baseText.substring(insertEnd)
-            contentValue = TextFieldValue(text = newText, selection = TextRange(insertFrom + chunk.length))
+            currentSegs = com.example.util.RichTextConverter.replaceTextRange(currentSegs, insertFrom, insertFrom + i, chunk)
+            if (toolbarActiveBlockIndex in blocks.indices) {
+                val updated = blocks[toolbarActiveBlockIndex].copy(
+                    content = com.example.util.RichTextConverter.segmentsToMarkup(currentSegs),
+                    richTextJson = com.example.data.model.TextSegment.serialize(currentSegs)
+                )
+                blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
+            }
             kotlinx.coroutines.delay(15)
         }
-        syncActiveBlock(); saveBlocksToHistory()
+        commitSegmentsWithSelection(currentSegs, insertFrom + text.length)
         val saveJson = DataBlock.serialize(blocks)
         val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
         viewModel.saveNote(
@@ -559,7 +601,8 @@ fun NoteEditorScreen(
                 attachments = parsedAttachments
 
                 if (blocks.isNotEmpty()) {
-                    contentValue = TextFieldValue(text = blocks[0].content, selection = TextRange(blocks[0].content.length))
+                    val blockPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
+                    contentValue = TextFieldValue(text = blockPlain, selection = TextRange(blockPlain.length))
                     toolbarActiveBlockIndex = 0
                 }
 
@@ -630,7 +673,9 @@ fun NoteEditorScreen(
             pendingFocusBlockIndex = idx
         }
         blocks = newBlocks
-        contentValue = TextFieldValue(text = block.content, selection = TextRange(block.content.length))
+        val blockPlain = com.example.util.RichTextConverter.segmentsToPlainText(block.ensureSegments())
+        contentValue = TextFieldValue(text = blockPlain, selection = TextRange(blockPlain.length))
+        activeSelection = blockPlain.length..blockPlain.length
         toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
         saveBlocksToHistory()
     }
@@ -823,47 +868,49 @@ fun NoteEditorScreen(
                 )
             }
 
-            var toolbarParseResult by remember { mutableStateOf(RichTextParser.parseWithMapping(contentValue.text, hideTags = true)) }
+            var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
             var showTextBgColorSheet by remember { mutableStateOf(false) }
             var showMoreFormattingSheet by remember { mutableStateOf(false) }
             val isKeyboardVisible = WindowInsets.isImeVisible
             val keyboardController = LocalSoftwareKeyboardController.current
             data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
-            val toolbarState = remember(toolbarParseResult, contentValue.selection) {
-                val parsed = toolbarParseResult
-                val cursorIndex = contentValue.selection.start
-                val transformedIndex = parsed.originalToTransformed(cursorIndex)
-                val targetIndex = if (transformedIndex < parsed.text.length) transformedIndex else (transformedIndex - 1).coerceAtLeast(0)
+            val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex) {
+                val segs = activeSegments()
+                val cursor = activeSelection.first
                 val activeStyles = mutableSetOf<String>()
-                val headingSizes = setOf(24.sp, 20.sp, 17.sp, 15.sp, 13.sp, 11.sp)
                 var activeFontColor: Color? = null
                 var activeBgColor: Color? = null
-                for (range in parsed.text.spanStyles) {
-                    if (range.start <= targetIndex && targetIndex < range.end) {
-                        if (range.item.fontSize in headingSizes) {
-                            val h = when (range.item.fontSize) {
-                                24.sp -> "h1"; 20.sp -> "h2"; 17.sp -> "h3"
-                                15.sp -> "h4"; 13.sp -> "h5"; else -> "h6"
-                            }
-                            activeStyles.add(h)
-                        }
-                        if (range.item.fontWeight == FontWeight.Bold) {
-                            if (activeStyles.none { it.startsWith("h") }) activeStyles.add("b")
-                        }
-                        if (range.item.fontStyle == FontStyle.Italic) activeStyles.add("i")
-                        if (range.item.textDecoration?.contains(TextDecoration.Underline) == true) activeStyles.add("u")
-                        if (range.item.textDecoration?.contains(TextDecoration.LineThrough) == true) activeStyles.add("s")
-                        if (range.item.fontFamily == FontFamily.Monospace && range.item.background == Color(0x1F808080)) {
-                            activeStyles.add("code")
-                        }
-                        if (range.item.color != Color.Unspecified) {
-                            activeFontColor = range.item.color
-                        }
-                        if (range.item.background != Color.Unspecified && range.item.background != Color.Transparent) {
-                            activeBgColor = range.item.background
-                        }
-                        if (activeStyles.size >= 5 && activeFontColor != null && activeBgColor != null) break
+                when (blocks.getOrNull(toolbarActiveBlockIndex)?.type) {
+                    BlockType.HEADING1 -> activeStyles.add("h1")
+                    BlockType.HEADING2 -> activeStyles.add("h2")
+                    BlockType.HEADING3 -> activeStyles.add("h3")
+                    BlockType.HEADING4 -> activeStyles.add("h4")
+                    else -> {}
+                }
+                var pos = 0
+                var target: com.example.data.model.TextSegment? = null
+                for (seg in segs) {
+                    val segEnd = pos + seg.text.length
+                    if (pos <= cursor && cursor <= segEnd) {
+                        target = seg
+                        break
                     }
+                    pos = segEnd
+                }
+                val seg = target
+                if (seg != null) {
+                    if (seg.bold) activeStyles.add("b")
+                    if (seg.italic) activeStyles.add("i")
+                    if (seg.underline) activeStyles.add("u")
+                    if (seg.strikethrough) activeStyles.add("s")
+                    if (seg.code) activeStyles.add("code")
+                    when (seg.baseline) {
+                        com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
+                        com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
+                        else -> {}
+                    }
+                    if (seg.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(seg.colorHex)
+                    if (seg.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(seg.bgColorHex)
                 }
                 ToolbarState(activeStyles, activeFontColor, activeBgColor)
             }
@@ -871,199 +918,176 @@ fun NoteEditorScreen(
             val activeFontColor = toolbarState.activeFontColor
             val activeBgColor = toolbarState.activeBgColor
 
-            fun isRangeAllStyled(tag: String, trStart: Int, trEnd: Int): Boolean {
-                if (trStart >= trEnd) return false
-                val parsed = toolbarParseResult
-                val stylePredicate: (SpanStyle) -> Boolean = when (tag) {
-                    "b" -> { s: SpanStyle -> s.fontWeight == FontWeight.Bold }
-                    "i" -> { s: SpanStyle -> s.fontStyle == FontStyle.Italic }
-                    "u" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.Underline) == true }
-                    "s" -> { s: SpanStyle -> s.textDecoration?.contains(TextDecoration.LineThrough) == true }
-                    "code" -> { s: SpanStyle -> s.fontFamily == FontFamily.Monospace && s.background == Color(0x1F808080) }
-                    "h1" -> { s: SpanStyle -> s.fontSize == 24.sp }
-                    "h2" -> { s: SpanStyle -> s.fontSize == 20.sp }
-                    "h3" -> { s: SpanStyle -> s.fontSize == 17.sp }
-                    else -> { _: SpanStyle -> false }
-                }
-                var pos = trStart
-                while (pos < trEnd) {
-                    val span = parsed.text.spanStyles.firstOrNull { it.start <= pos && pos < it.end }
-                    if (span == null || !stylePredicate(span.item)) return false
-                    pos = span.end
-                }
-                return true
+            fun styleApplies(tag: String, seg: com.example.data.model.TextSegment): Boolean = when (tag) {
+                "b" -> seg.bold
+                "i" -> seg.italic
+                "u" -> seg.underline
+                "s" -> seg.strikethrough
+                "code" -> seg.code
+                "sub" -> seg.baseline == com.example.data.model.TextBaseline.SUBSCRIPT
+                "sup" -> seg.baseline == com.example.data.model.TextBaseline.SUPERSCRIPT
+                "mark" -> seg.bgColorHex == "FFEB3B"
+                "small" -> seg.fontSizeSp != null && seg.fontSizeSp!! < 14f
+                "kbd", "var", "samp" -> seg.code
+                "quote" -> seg.italic
+                else -> false
             }
 
-            val applyTag: (String) -> Unit = { tag ->
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                val openTag = "<$tag>"
-                val closeTag = "</$tag>"
-                if (selStart != selEnd) {
-                    val selected = text.substring(selStart, selEnd)
-                    val trStart = toolbarParseResult.originalToTransformed(selStart)
-                    val trEnd = toolbarParseResult.originalToTransformed(selEnd)
-                    val allStyled = isRangeAllStyled(tag, trStart, trEnd)
-                    val cleaned = selected.replace(openTag, "").replace(closeTag, "")
-                    if (allStyled) {
-                        val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    } else {
-                        val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    }
-                } else {
-                    val beforeCursor = text.substring(0, selStart)
-                    val afterCursor = text.substring(selStart)
-                    if (beforeCursor.endsWith(openTag) && afterCursor.startsWith(closeTag)) {
-                        val newText = beforeCursor.dropLast(openTag.length) + afterCursor.drop(closeTag.length)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart - openTag.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    } else if (tag in activeTextStyles && tag in setOf("b", "i", "u", "s", "code")) {
-                        val lastOpen = beforeCursor.lastIndexOf(openTag)
-                        val firstClose = afterCursor.indexOf(closeTag)
-                        if (lastOpen >= 0 && firstClose >= 0) {
-                            val textBeforeOpen = text.substring(0, lastOpen)
-                            val innerStart = lastOpen + openTag.length
-                            val innerEnd = selStart + firstClose
-                            val textBetween = text.substring(innerStart, innerEnd)
-                            val textAfterClose = text.substring(innerEnd + closeTag.length)
-                            val newText = textBeforeOpen + textBetween + textAfterClose
-                            val newCursor = lastOpen + textBetween.length
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor.coerceIn(0, newText.length))))
-                            syncActiveBlock(); saveBlocksToHistory()
-                        } else {
-                            val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
-                            syncActiveBlock(); saveBlocksToHistory()
-                        }
-                    } else {
-                        val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    }
-                }
+            fun applyTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+                "b" -> seg.copy(bold = true)
+                "i" -> seg.copy(italic = true)
+                "u" -> seg.copy(underline = true)
+                "s" -> seg.copy(strikethrough = true)
+                "code" -> seg.copy(code = true)
+                "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUBSCRIPT)
+                "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUPERSCRIPT)
+                "mark" -> seg.copy(bgColorHex = "FFEB3B")
+                "small" -> seg.copy(fontSizeSp = 12f)
+                "kbd", "var", "samp" -> seg.copy(code = true)
+                "normal" -> seg.copy(bold = false, italic = false, underline = false, strikethrough = false, code = false, colorHex = null, bgColorHex = null, fontSizeSp = null, baseline = com.example.data.model.TextBaseline.NORMAL)
+                "quote" -> seg.copy(italic = true)
+                else -> seg
             }
 
-            val applyTagWithVal: (String, String) -> Unit = { tag, value ->
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                if (value == "default") {
-                    val tagRegex = Regex("</?$tag[^>]*>")
-                    if (selStart != selEnd) {
-                        val selected = text.substring(selStart, selEnd)
-                        val cleaned = selected.replace(tagRegex, "")
-                        val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
-                    } else {
-                        val newText = text.replace(tagRegex, "")
-                        val newCursor = selStart.coerceIn(0, newText.length)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
-                    }
-                    syncActiveBlock(); saveBlocksToHistory()
-                } else {
-                    val openTag = "<$tag=$value>"
-                    val closeTag = "</$tag>"
-                    val chosenColor = JsonColorizer.parseColor(value)
-                    val activeColor = if (tag == "color") activeFontColor else activeBgColor
-                    val alreadyApplied = chosenColor != null && activeColor != null && chosenColor == activeColor
-                    if (selStart != selEnd) {
-                        val selected = text.substring(selStart, selEnd)
-                        val cleaned = selected.replace(Regex("<$tag[^>]*>"), "").replace(closeTag, "")
-                        if (alreadyApplied) {
-                            val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart, selStart + cleaned.length)))
-                        } else {
-                            val newText = text.substring(0, selStart) + openTag + cleaned + closeTag + text.substring(selEnd)
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length, selStart + openTag.length + cleaned.length)))
-                        }
-                        syncActiveBlock(); saveBlocksToHistory()
-                    } else if (alreadyApplied) {
-                        val beforeCursor = text.substring(0, selStart)
-                        val afterCursor = text.substring(selStart)
-                        val openStart = beforeCursor.lastIndexOf("<$tag=")
-                        val closeStart = afterCursor.indexOf(closeTag)
-                        if (openStart >= 0 && closeStart >= 0) {
-                            val closeEnd = selStart + closeStart + closeTag.length
-                            var newText = text.removeRange(selStart + closeStart, closeEnd)
-                            val openEnd = newText.indexOf('>', openStart) + 1
-                            newText = newText.removeRange(openStart, openEnd)
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(openStart.coerceIn(0, newText.length))))
-                            syncActiveBlock(); saveBlocksToHistory()
-                        }
-                    } else {
-                        val newText = text.substring(0, selStart) + openTag + closeTag + text.substring(selEnd)
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + openTag.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    }
-                }
+            fun removeTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+                "b" -> seg.copy(bold = false)
+                "i" -> seg.copy(italic = false)
+                "u" -> seg.copy(underline = false)
+                "s" -> seg.copy(strikethrough = false)
+                "code" -> seg.copy(code = false)
+                "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
+                "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
+                "mark" -> seg.copy(bgColorHex = null)
+                "small" -> seg.copy(fontSizeSp = null)
+                "kbd", "var", "samp" -> seg.copy(code = false)
+                "quote" -> seg.copy(italic = false)
+                else -> seg
             }
 
-            val applyListTag: (String) -> Unit = { listType ->
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                if (selStart != selEnd) {
-                    val selectedText = text.substring(selStart, selEnd)
-                    val lines = selectedText.split("\n")
-                    val formattedLines = lines.map { line ->
-                        if (listType == "cl") {
-                            "<item checked=\"false\">$line</item>"
-                        } else {
-                            "<li>$line</li>"
-                        }
-                    }.joinToString("\n")
-                    val newText = text.substring(0, selStart) + "<$listType>\n$formattedLines\n</$listType>" + text.substring(selEnd)
-                    val newCursor = selStart + newText.length - text.length + (selEnd - selStart)
-                    setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
-                    syncActiveBlock(); saveBlocksToHistory()
+            fun adjustIndent(delta: Int) {
+                if (toolbarActiveBlockIndex !in blocks.indices) return
+                val block = blocks[toolbarActiveBlockIndex]
+                val current = block.meta["indentLevel"]?.toIntOrNull() ?: 0
+                val newLevel = (current + delta).coerceAtLeast(0)
+                if (newLevel == current) return
+                val updated = if (newLevel == 0) {
+                    block.copy(meta = block.meta - "indentLevel")
                 } else {
-                    val emptyTag = if (listType == "cl") {
-                        "<cl>\n  <item checked=\"false\"></item>\n</cl>"
-                    } else {
-                        "<$listType>\n  <li></li>\n</$listType>"
-                    }
-                    pendingInsert.value = emptyTag
+                    block.copy(meta = block.meta + ("indentLevel" to newLevel.toString()))
                 }
+                blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
+                saveBlocksToHistory()
+            }
+
+            fun convertBlockToHeading(tag: String) {
+                if (toolbarActiveBlockIndex !in blocks.indices) return
+                val type = when (tag) {
+                    "h1" -> BlockType.HEADING1
+                    "h2" -> BlockType.HEADING2
+                    "h3" -> BlockType.HEADING3
+                    "h4" -> BlockType.HEADING4
+                    else -> return
+                }
+                val block = blocks[toolbarActiveBlockIndex]
+                if (block.type == type) return
+                blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, block.copy(type = type)) }
+                saveBlocksToHistory()
+            }
+
+            fun applyTag(tag: String) {
+                if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
+                    convertBlockToHeading(tag)
+                    return
+                }
+                if (tag == "indent") {
+                    adjustIndent(+1)
+                    return
+                }
+                val styleTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote")
+                if (tag !in styleTags) return
+                val segs = activeSegments()
+                if (segs.isEmpty()) return
+                val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                val selStart = activeSelection.first.coerceIn(0, plain.length)
+                val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+                val newSegs = if (tag == "normal") {
+                    if (selStart == selEnd) {
+                        if (selStart >= plain.length) return
+                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg -> removeTransformForTag("normal", seg) }
+                    } else {
+                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg -> removeTransformForTag("normal", seg) }
+                    }
+                } else if (selStart == selEnd) {
+                    if (selStart >= plain.length) return
+                    val charSeg = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull()
+                    val isActive = charSeg != null && styleApplies(tag, charSeg)
+                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
+                        if (isActive) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
+                    }
+                } else {
+                    val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
+                    val allStyled = inRange.isNotEmpty() && inRange.all { styleApplies(tag, it) }
+                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg ->
+                        if (allStyled) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
+                    }
+                }
+                commitSegmentsWithSelection(newSegs, selStart)
+            }
+
+            fun applyTagWithVal(tag: String, value: String) {
+                val segs = activeSegments()
+                if (segs.isEmpty()) return
+                val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                val selStart = activeSelection.first.coerceIn(0, plain.length)
+                val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+
+                fun setValueOn(seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+                    "color" -> seg.copy(colorHex = com.example.util.RichTextConverter.normalizeColorValue(value))
+                    "bg" -> seg.copy(bgColorHex = com.example.util.RichTextConverter.normalizeColorValue(value))
+                    "font" -> seg.copy(fontFamily = value)
+                    "size" -> seg.copy(fontSizeSp = value.toFloatOrNull())
+                    "url" -> seg.copy(linkUrl = value)
+                    else -> seg
+                }
+
+                fun clearValueOn(seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+                    "color" -> seg.copy(colorHex = null)
+                    "bg" -> seg.copy(bgColorHex = null)
+                    "font" -> seg.copy(fontFamily = null)
+                    "size" -> seg.copy(fontSizeSp = null)
+                    "url" -> seg.copy(linkUrl = null)
+                    else -> seg
+                }
+
+                fun currentValueOn(seg: com.example.data.model.TextSegment): String? = when (tag) {
+                    "color" -> seg.colorHex
+                    "bg" -> seg.bgColorHex
+                    "font" -> seg.fontFamily
+                    "size" -> seg.fontSizeSp?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() }
+                    "url" -> seg.linkUrl
+                    else -> null
+                }
+
+                val isDefault = value == "default" || value.isEmpty()
+                val newSegs = if (selStart == selEnd) {
+                    if (selStart >= plain.length) return
+                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg -> if (isDefault) clearValueOn(seg) else setValueOn(seg) }
+                } else {
+                    val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
+                    val alreadyApplied = !isDefault && inRange.isNotEmpty() && inRange.all { currentValueOn(it) == value }
+                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg ->
+                        when {
+                            isDefault -> clearValueOn(seg)
+                            alreadyApplied -> clearValueOn(seg)
+                            else -> setValueOn(seg)
+                        }
+                    }
+                }
+                commitSegmentsWithSelection(newSegs, selStart)
             }
 
             val decreaseIndent: () -> Unit = {
-                val selStart = contentValue.selection.start
-                val selEnd = contentValue.selection.end
-                val text = contentValue.text
-                if (selStart != selEnd) {
-                    val selectedText = text.substring(selStart, selEnd)
-                    var cleaned = selectedText
-                    if (cleaned.startsWith("<indent>") && cleaned.endsWith("</indent>")) {
-                        cleaned = cleaned.substring(8, cleaned.length - 9)
-                    } else {
-                        cleaned = cleaned.replaceFirst("<indent>", "").replaceFirst("</indent>", "")
-                    }
-                    val newText = text.substring(0, selStart) + cleaned + text.substring(selEnd)
-                    setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + cleaned.length)))
-                    syncActiveBlock(); saveBlocksToHistory()
-                } else {
-                    val beforeCursor = text.substring(0, selStart)
-                    val afterCursor = text.substring(selStart)
-                    val lastIndentIdx = beforeCursor.lastIndexOf("<indent>")
-                    val lastCloseIndentIdx = beforeCursor.lastIndexOf("</indent>")
-                    if (lastIndentIdx != -1 && lastIndentIdx > lastCloseIndentIdx) {
-                        val newBefore = beforeCursor.removeRange(lastIndentIdx, lastIndentIdx + 8)
-                        val firstCloseIdx = afterCursor.indexOf("</indent>")
-                        val newAfter = if (firstCloseIdx != -1) {
-                            afterCursor.removeRange(firstCloseIdx, firstCloseIdx + 9)
-                        } else {
-                            afterCursor
-                        }
-                        val newText = newBefore + newAfter
-                        setContentValue(TextFieldValue(text = newText, selection = TextRange(newBefore.length)))
-                        syncActiveBlock(); saveBlocksToHistory()
-                    }
-                }
+                adjustIndent(-1)
             }
 
             val clipboard = LocalClipboard.current
@@ -1077,7 +1101,8 @@ fun NoteEditorScreen(
                         title = importedTitle
                         blocks = DataBlock.migrateLegacyContent(importedContent)
                         if (blocks.isNotEmpty()) {
-                            contentValue = TextFieldValue(text = blocks[0].content, selection = TextRange(blocks[0].content.length))
+                            val importedPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
+                            contentValue = TextFieldValue(text = importedPlain, selection = TextRange(importedPlain.length))
                             toolbarActiveBlockIndex = 0
                         }
                         saveBlocksToHistory()
@@ -1172,12 +1197,13 @@ fun NoteEditorScreen(
                     BlockEditor(
                         blocks = blocks,
                         onBlocksChange = { newBlocks ->
-                            syncActiveBlock()
                             val newIdx = toolbarActiveBlockIndex.coerceIn(0, (newBlocks.size - 1).coerceAtLeast(0))
                             blocks = newBlocks
                             toolbarActiveBlockIndex = newIdx
-                            val blockText = blocks.getOrNull(newIdx)?.content ?: ""
+                            val segs = blocks.getOrNull(newIdx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+                            val blockText = com.example.util.RichTextConverter.segmentsToPlainText(segs)
                             contentValue = TextFieldValue(text = blockText, selection = TextRange(blockText.length))
+                            activeSelection = blockText.length..blockText.length
                             saveBlocksToHistory()
                         },
                         activeBlockIndex = toolbarActiveBlockIndex,
@@ -1197,6 +1223,7 @@ fun NoteEditorScreen(
                         pendingInsert = pendingInsert,
                         pendingSelection = pendingSelection,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
+                        onActiveSelectionChange = { activeSelection = it },
                         onParseResult = { toolbarParseResult = it },
                         pendingFocusBlockIndex = pendingFocusBlockIndex,
                         onFocusHandled = { pendingFocusBlockIndex = -1 },
@@ -1308,21 +1335,17 @@ fun NoteEditorScreen(
                                 onClick = {
                                     if (urlInputAddress.isNotBlank()) {
                                         val display = urlInputText.ifEmpty { urlInputAddress }
-                                        val linkTag = "<url=$urlInputAddress>$display</url>"
                                         val editRange = urlEditRange
-                                        val selStart = contentValue.selection.start
-                                        val selEnd = contentValue.selection.end
-                                        if (editRange != null) {
-                                            val newText = contentValue.text.replaceRange(editRange.first, editRange.last + 1, linkTag)
-                                            setContentValue(TextFieldValue(text = newText, selection = TextRange(editRange.first + linkTag.length)))
-                                            syncActiveBlock(); saveBlocksToHistory()
-                                        } else if (selStart != selEnd) {
-                                            val newText = contentValue.text.replaceRange(selStart, selEnd, linkTag)
-                                            val newCursor = selStart + linkTag.length
-                                            setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
-                                            syncActiveBlock(); saveBlocksToHistory()
+                                        val segs = activeSegments()
+                                        if (segs.isEmpty()) {
+                                            pendingInsert.value = "<url=$urlInputAddress>$display</url>"
                                         } else {
-                                            insertAtCursor(linkTag)
+                                            val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                                            val selStart = editRange?.first ?: activeSelection.first.coerceIn(0, plain.length)
+                                            val selEnd = editRange?.let { it.last + 1 } ?: activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+                                            val insert = listOf(com.example.data.model.TextSegment(text = display, linkUrl = urlInputAddress))
+                                            val newSegs = com.example.util.RichTextConverter.insertSegments(segs, selStart, selEnd, insert)
+                                            commitSegmentsWithSelection(newSegs, selStart + display.length)
                                         }
                                     }
                                     urlInputAddress = ""
@@ -1495,16 +1518,24 @@ fun NoteEditorScreen(
                                 
                                 OutlinedButton(
                                     onClick = {
-                                        val searchText = contentValue.text
-                                        val rangeToEdit = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset)
-                                        if (rangeToEdit != null) {
-                                            val tagContent = searchText.substring(rangeToEdit.first, rangeToEdit.last + 1)
-                                            val openEnd = tagContent.indexOf('>') + 1
-                                            val closeStart = tagContent.lastIndexOf("</url>")
-                                            val display = if (closeStart > openEnd) tagContent.substring(openEnd, closeStart) else ""
-                                            urlInputAddress = clickedUrlAddress
-                                            urlInputText = display
-                                            urlEditRange = rangeToEdit
+                                        val segs = activeSegments()
+                                        val offset = clickedUrlAbsoluteOffset.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
+                                        var pos = 0
+                                        var urlSeg: com.example.data.model.TextSegment? = null
+                                        var urlStart = 0
+                                        for (seg in segs) {
+                                            val segEnd = pos + seg.text.length
+                                            if (pos <= offset && offset < segEnd && seg.linkUrl != null) {
+                                                urlSeg = seg
+                                                urlStart = pos
+                                                break
+                                            }
+                                            pos = segEnd
+                                        }
+                                        if (urlSeg != null) {
+                                            urlInputAddress = urlSeg.linkUrl ?: ""
+                                            urlInputText = urlSeg.text
+                                            urlEditRange = urlStart..(urlStart + urlSeg.text.length - 1)
                                             showUrlDialog = false
                                             showInsertUrlDialog = true
                                         } else {
@@ -1524,12 +1555,23 @@ fun NoteEditorScreen(
                                 
                                 OutlinedButton(
                                     onClick = {
-                                        val searchText = contentValue.text
-                                        val rangeToDelete = findEnclosingUrlTagRange(searchText, clickedUrlAbsoluteOffset) ?: findEnclosingMarkdownLinkRange(searchText, clickedUrlAbsoluteOffset)
-                                        if (rangeToDelete != null) {
-                                            val newContent = contentValue.text.removeRange(rangeToDelete)
-                                            contentValue = TextFieldValue(text = newContent, selection = TextRange(newContent.length))
-                                            syncActiveBlock(); saveBlocksToHistory()
+                                        val segs = activeSegments()
+                                        val offset = clickedUrlAbsoluteOffset.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
+                                        var pos = 0
+                                        var urlSeg: com.example.data.model.TextSegment? = null
+                                        var urlStart = 0
+                                        for (seg in segs) {
+                                            val segEnd = pos + seg.text.length
+                                            if (pos <= offset && offset < segEnd && seg.linkUrl != null) {
+                                                urlSeg = seg
+                                                urlStart = pos
+                                                break
+                                            }
+                                            pos = segEnd
+                                        }
+                                        if (urlSeg != null) {
+                                            val newSegs = com.example.util.RichTextConverter.replaceTextRange(segs, urlStart, urlStart + urlSeg.text.length, "")
+                                            commitSegmentsWithSelection(newSegs, urlStart)
                                         }
                                         showUrlDialog = false
                                     },
@@ -1590,8 +1632,10 @@ fun NoteEditorScreen(
                             blocks = prevBlocks
                             val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
                             toolbarActiveBlockIndex = idx
-                            val text = blocks.getOrNull(idx)?.content ?: ""
+                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
                             contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                            activeSelection = text.length..text.length
                         }
                     },
                     onRedo = {
@@ -1602,33 +1646,34 @@ fun NoteEditorScreen(
                             blocks = nextBlocks
                             val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
                             toolbarActiveBlockIndex = idx
-                            val text = blocks.getOrNull(idx)?.content ?: ""
+                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
                             contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                            activeSelection = text.length..text.length
                         }
                     },
                     onToggleTag = { applyTag(it) },
                     decreaseIndent = decreaseIndent,
                     pasteFromClipboard = pasteFromClipboard,
                     insertCurrentDate = insertCurrentDate,
-                    applyTagWithVal = applyTagWithVal,
+                    applyTagWithVal = { tag, value -> applyTagWithVal(tag, value) },
                     onClearFormatting = {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        val text = contentValue.text
-                        val inlineTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote", "h1", "h2", "h3", "h4", "h5", "h6")
-                        val inlineRegex = Regex("</?(${inlineTags.joinToString("|")})(=[^>]*)?>|</?(color|bg|font|size|highlight)=[^>]*>|</(color|bg|font|size|highlight)>")
-                        if (selStart == selEnd) {
-                            val cleaned = text.replace(inlineRegex, "")
-                            contentValue = TextFieldValue(text = cleaned, selection = TextRange(cleaned.length))
-                            syncActiveBlock(); saveBlocksToHistory()
-                        } else {
-                            val before = text.substring(0, selStart)
-                            val selected = text.substring(selStart, selEnd)
-                            val after = text.substring(selEnd)
-                            val cleanedSelected = selected.replace(inlineRegex, "")
-                            val newText = before + cleanedSelected + after
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + cleanedSelected.length)))
-                            syncActiveBlock(); saveBlocksToHistory()
+                        val segs = activeSegments()
+                        if (segs.isNotEmpty()) {
+                            val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                            val selStart = activeSelection.first.coerceIn(0, plain.length)
+                            val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+                            val start = if (selStart == selEnd) 0 else selStart
+                            val end = if (selStart == selEnd) plain.length else selEnd
+                            val newSegs = com.example.util.RichTextConverter.applySpanStyle(segs, start, end) {
+                                it.copy(
+                                    bold = false, italic = false, underline = false, strikethrough = false,
+                                    code = false, colorHex = null, bgColorHex = null,
+                                    fontFamily = null, fontSizeSp = null,
+                                    baseline = com.example.data.model.TextBaseline.NORMAL
+                                )
+                            }
+                            commitSegmentsWithSelection(newSegs, selStart)
                         }
                     },
                     onOpenMoreFormatting = { showMoreFormattingSheet = true },
@@ -1670,9 +1715,9 @@ fun NoteEditorScreen(
                     },
                     onOpenAttachments = { showVoiceFileSheet = true },
                     onOpenAi = {
-                        aiSelectionStart = contentValue.selection.start
-                        aiSelectionEnd = contentValue.selection.end
-                        if (contentValue.selection.start != contentValue.selection.end) {
+                        aiSelectionStart = activeSelection.first
+                        aiSelectionEnd = activeSelection.last
+                        if (activeSelection.first != activeSelection.last) {
                             showAiContextSheet = true
                         } else {
                             aiViewModel.prepareChatForNote(content, "", title)
@@ -1689,9 +1734,8 @@ fun NoteEditorScreen(
                     },
                     onOpenbgFontColor = { showTextBgColorSheet = true },
                     onOpenInlineLink = {
-                        val cursor = contentValue.selection.start
-                        val trCursor = toolbarParseResult.originalToTransformed(cursor).coerceIn(0, toolbarParseResult.text.length)
-                        val urlAtCursor = toolbarParseResult.text.getStringAnnotations("URL", trCursor, trCursor).firstOrNull()?.item
+                        val cursor = toolbarActiveCursorOffset.coerceIn(0, toolbarParseResult.text.length)
+                        val urlAtCursor = toolbarParseResult.text.getStringAnnotations("URL", cursor, cursor).firstOrNull()?.item
                         if (urlAtCursor != null) {
                             clickedUrlAddress = urlAtCursor
                             clickedUrlAbsoluteOffset = cursor
@@ -1856,8 +1900,8 @@ fun NoteEditorScreen(
                         Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = {
-                                aiSelectionStart = contentValue.selection.start
-                                aiSelectionEnd = contentValue.selection.end
+                                aiSelectionStart = activeSelection.first
+                                aiSelectionEnd = activeSelection.last
                                 val target = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
                                     .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
                                 aiViewModel.executeInPlace(AiAction.GENERATE, "$target\n\n$aiPromptInput")
@@ -2601,14 +2645,14 @@ fun NoteEditorScreen(
                 },
                 onNoteSelected = { linkedId ->
                     if (inlineLinkMode) {
-                        val selStart = contentValue.selection.start
-                        val selEnd = contentValue.selection.end
-                        if (selStart != selEnd) {
-                            val selected = contentValue.text.substring(selStart, selEnd)
-                            val linkTag = "<url=note://$linkedId>${selected.ifBlank { linkedId.toString() }}</url>"
-                            val newText = contentValue.text.replaceRange(selStart, selEnd, linkTag)
-                            setContentValue(TextFieldValue(text = newText, selection = TextRange(selStart + linkTag.length)))
-                            syncActiveBlock(); saveBlocksToHistory()
+                        val segs = activeSegments()
+                        val selStart = activeSelection.first.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
+                        val selEnd = activeSelection.last.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length).coerceAtLeast(selStart)
+                        if (selStart != selEnd && segs.isNotEmpty()) {
+                            val selected = com.example.util.RichTextConverter.segmentsToPlainText(segs).substring(selStart, selEnd)
+                            val insert = listOf(com.example.data.model.TextSegment(text = selected.ifBlank { linkedId.toString() }, linkUrl = "note://$linkedId"))
+                            val newSegs = com.example.util.RichTextConverter.insertSegments(segs, selStart, selEnd, insert)
+                            commitSegmentsWithSelection(newSegs, selStart + insert.sumOf { it.text.length })
                         } else {
                             val title = allNotes.find { it.note.id == linkedId }?.title ?: linkedId.toString()
                             pendingInsert.value = "<url=note://$linkedId>$title</url>"

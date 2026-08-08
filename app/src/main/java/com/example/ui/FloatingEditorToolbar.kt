@@ -271,6 +271,12 @@ private fun FloatingEditorToolbar(
                 contentDescription = "Limpiar formato",
                 onClick = onClearFormatting
             )
+            //ToolbarIconButton(
+            //    icon = Icons.Default.,
+            //    contentDescription = "convertir bloque",
+            //    onClick = onClearFormatting
+            //)
+            // eleminar bloque
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
@@ -287,14 +293,14 @@ private fun FloatingEditorToolbar(
                 icon = Icons.Default.ArrowDropUp,
                 contentDescription = "Subir bloque",
                 onClick = { 
-                    //funcion debe poner el cursor arriba tecla arrow
+                    //funcion debe poner el bloque arriba tecla arrow onMoveUp bloque
                 }
             )
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDropDown,
                 contentDescription = "Bajar bloque",
                 onClick = {
-                    // funcion debe poner el cursor abajo tecla down
+                    // funcion debe poner el bloque abajo tecla down onMoveDown bloque
                 }
             )
 
@@ -428,7 +434,11 @@ private fun TextoToolbar(
             Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 13.sp)
         }
 
-        ToolbarIconButton(icon = Icons.Default.Link, contentDescription = "Enlace", onClick = onOpenInlineLink)
+        ToolbarIconButton(
+            icon = Icons.Default.Link, 
+            contentDescription = "Enlace", 
+            onClick = onOpenInlineLink
+        )
         FormattingToggleButton(
             checked = "code" in activeTextStyles,
             onCheckedChange = { onToggleTag("code") }
@@ -439,7 +449,11 @@ private fun TextoToolbar(
                 modifier = Modifier.size(18.dp)
             )
         }
-        ToolbarIconButton(icon = Icons.Default.Functions, contentDescription = "Ecuaciones", onClick = onOpenEquation)
+        ToolbarIconButton(
+            icon = Icons.Default.Functions, 
+            contentDescription = "Ecuaciones", 
+            onClick = onOpenEquation
+        )
         FilledTonalIconToggleButton(
             checked = "sub" in activeTextStyles,
             onCheckedChange = { onToggleTag("sub") },
