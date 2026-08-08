@@ -269,6 +269,7 @@
     <string name="block_section_blocks">Bloques</string>
     <string name="block_section_link">Enlace</string>
     <string name="block_section_media">Contenido Multimedia</string>
+    <string name="block_convert_title">Convertir en</string>
     <string name="block_text">Texto</string>
     <string name="block_text_desc">Bloque de texto plano</string>
     <string name="block_heading_1">Encabezado 1</string>

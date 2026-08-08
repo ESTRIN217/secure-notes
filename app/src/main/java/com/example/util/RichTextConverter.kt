@@ -576,10 +576,19 @@ object RichTextConverter {
             if (seg.underline) wrap("u")
             if (seg.strikethrough) wrap("s")
             if (seg.code) wrap("code")
-            sb.append(open).append(seg.text).append(close)
+            sb.append(open).append(markupEscape(seg.text)).append(close)
         }
         return sb.toString()
     }
+
+    private fun markupEscape(text: String): String = buildString {
+        for (c in text) {
+            if (c in markupEscapeSet) append('\\')
+            append(c)
+        }
+    }
+
+    private val markupEscapeSet = setOf('\\', '`', '*', '_', '~', '[', ']', '(', ')', '<', '>')
 
     // ── Color / escaping helpers ───────────────────────────────────────────
 

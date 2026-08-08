@@ -43,19 +43,20 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.data.model.BlockType
+import com.example.data.model.TextSegment
 import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EditableTextBlock(
-    rawText: String,
+    segments: List<TextSegment>,
     blockType: BlockType = BlockType.TEXT,
-    onChange: (String) -> Unit,
+    onChange: (List<TextSegment>) -> Unit,
     onFocusChange: (Boolean) -> Unit = {},
     onCursorChange: (Int) -> Unit = {},
     onSelectionChange: (IntRange) -> Unit = {},
-    onSplit: ((before: String, after: String) -> Unit)? = null,
+    onSplit: ((before: List<TextSegment>, after: List<TextSegment>) -> Unit)? = null,
     onMoveToPreviousBlock: () -> Unit = {},
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {},
@@ -67,12 +68,11 @@ fun EditableTextBlock(
     onFocusRequested: () -> Unit = {},
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     initialSelection: Int? = null,
-    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) }
+    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    pendingTypingStyle: TextSegment? = null
 ) {
     var annotated by remember {
-        mutableStateOf(
-            RichTextConverter.segmentsToAnnotatedString(RichTextConverter.markupToSegments(rawText))
-        )
+        mutableStateOf(RichTextConverter.segmentsToAnnotatedString(segments))
     }
     var fieldValue by remember {
         mutableStateOf(
@@ -94,8 +94,9 @@ fun EditableTextBlock(
         }
     }
 
-    LaunchedEffect(rawText) {
-        val incoming = RichTextConverter.markupToSegments(rawText)
+    val segmentsKey = RichTextConverter.segmentsJson(segments)
+    LaunchedEffect(segmentsKey) {
+        val incoming = segments
         val current = RichTextConverter.annotatedStringToSegments(annotated)
         if (RichTextConverter.segmentsJson(incoming) != RichTextConverter.segmentsJson(current)) {
             val newAnnotated = RichTextConverter.segmentsToAnnotatedString(incoming)
@@ -135,7 +136,7 @@ fun EditableTextBlock(
         annotated = newAnnotated
         val newCursor = selStart + insertAnnotated.text.length
         fieldValue = TextFieldValue(text = newAnnotated.text, selection = TextRange(newCursor))
-        onChange(RichTextConverter.segmentsToMarkup(RichTextConverter.annotatedStringToSegments(newAnnotated)))
+        onChange(RichTextConverter.annotatedStringToSegments(newAnnotated))
         onCursorChange(newCursor)
         pendingInsert.value = null
     }
@@ -241,17 +242,17 @@ fun EditableTextBlock(
                         onCursorChange(diffStart)
                         onFocusChange(true)
                         onSplit(
-                            RichTextConverter.segmentsToMarkup(beforeSegs),
-                            RichTextConverter.segmentsToMarkup(afterSegs)
+                            beforeSegs,
+                            afterSegs
                         )
                         return@BasicTextField
                     }
                 }
 
-                val newAnnotated = applyPlainEdit(annotated, newText)
+                val newAnnotated = applyPlainEdit(annotated, newText, pendingTypingStyle)
                 annotated = newAnnotated
                 fieldValue = newValue.copy(selection = newValue.selection)
-                onChange(RichTextConverter.segmentsToMarkup(RichTextConverter.annotatedStringToSegments(newAnnotated)))
+                onChange(RichTextConverter.annotatedStringToSegments(newAnnotated))
                 onCursorChange(fieldValue.selection.start)
                 onSelectionChange(fieldValue.selection.start..fieldValue.selection.end)
             },
@@ -298,7 +299,7 @@ fun EditableTextBlock(
     }
 }
 
-private fun applyPlainEdit(old: AnnotatedString, newText: String): AnnotatedString {
+private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingStyle: TextSegment? = null): AnnotatedString {
     val oldText = old.text
     if (oldText == newText) return old
     val prefix = commonPrefixLen(oldText, newText)
@@ -314,8 +315,11 @@ private fun applyPlainEdit(old: AnnotatedString, newText: String): AnnotatedStri
     }
     val inheritIdx = if (prefix > 0) prefix - 1 else 0
     val inherited = inheritedStyleAt(old, inheritIdx)
+    val atEnd = prefix == old.text.length
+    val base = pendingTypingStyle?.let { inherited.merge(it.toSpanStyle()) }
+        ?: if (atEnd) SpanStyle() else inherited
     return old.subSequence(0, prefix) +
-        AnnotatedString(inserted, spanStyle = inherited) +
+        AnnotatedString(inserted, spanStyle = base) +
         old.subSequence(oldEnd, old.text.length)
 }
 

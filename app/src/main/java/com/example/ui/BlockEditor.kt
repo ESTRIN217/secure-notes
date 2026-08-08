@@ -53,6 +53,8 @@ import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.TableData
+import com.example.data.model.TextSegment
+import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
 @Composable
@@ -77,6 +79,7 @@ fun BlockEditor(
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingFocusBlockIndex: Int = -1,
     onFocusHandled: () -> Unit = {},
+    pendingTypingStyle: TextSegment? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -171,9 +174,22 @@ fun BlockEditor(
                                 onBlocksChange(newBlocks)
                                 onActiveBlockChange(index)
                             } else {
-                                newBlocks[index] = block.copy(content = before)
+                                val isCode = block.type == BlockType.CODE_BLOCK
+                                val beforeContent = if (isCode) RichTextConverter.segmentsToPlainText(before) else RichTextConverter.segmentsToMarkup(before)
+                                val afterContent = if (isCode) RichTextConverter.segmentsToPlainText(after) else RichTextConverter.segmentsToMarkup(after)
+                                newBlocks[index] = block.copy(
+                                    content = beforeContent,
+                                    richTextJson = TextSegment.serialize(before)
+                                )
                                 val splitType = if (block.type.name.startsWith("HEADING")) BlockType.TEXT else block.type
-                                newBlocks.add(index + 1, DataBlock(type = splitType, content = after))
+                                newBlocks.add(
+                                    index + 1,
+                                    DataBlock(
+                                        type = splitType,
+                                        content = afterContent,
+                                        richTextJson = TextSegment.serialize(after)
+                                    )
+                                )
                                 onBlocksChange(newBlocks)
                                 onActiveBlockChange(index + 1)
                             }
@@ -183,6 +199,7 @@ fun BlockEditor(
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         pendingSelection = pendingSelection,
+                        pendingTypingStyle = pendingTypingStyle,
                         onTapToEdit = { originalOffset ->
                             tapFocusIndex = index
                             tapFocusOffset = originalOffset
@@ -347,13 +364,14 @@ private fun BlockRow(
     onEditPageLink: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
-    onSplit: (String, String) -> Unit,
+    onSplit: (List<TextSegment>, List<TextSegment>) -> Unit,
     onCursorChange: (Int) -> Unit,
     onSelectionChange: (IntRange) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    pendingTypingStyle: TextSegment? = null,
     onTapToEdit: (Int) -> Unit = { _ -> },
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     activeBlockIndex: Int = -1,
@@ -385,10 +403,23 @@ private fun BlockRow(
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
             BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT -> {
                 if (index == activeBlockIndex) {
+                    val editorSegments = if (block.type == BlockType.CODE_BLOCK) {
+                        listOf(TextSegment(text = block.content))
+                    } else {
+                        block.ensureSegments()
+                    }
                     EditableTextBlock(
-                        rawText = block.content,
+                        segments = editorSegments,
                         blockType = block.type,
-                        onChange = { onChange(block.copy(content = it)) },
+                        onChange = { newSegs ->
+                            val isCode = block.type == BlockType.CODE_BLOCK
+                            onChange(
+                                block.copy(
+                                    content = if (isCode) RichTextConverter.segmentsToPlainText(newSegs) else RichTextConverter.segmentsToMarkup(newSegs),
+                                    richTextJson = TextSegment.serialize(newSegs)
+                                )
+                            )
+                        },
                         onFocusChange = { if (it) onActivate() },
                         onCursorChange = onCursorChange,
                         onSelectionChange = onSelectionChange,
@@ -404,7 +435,8 @@ private fun BlockRow(
                         onFocusRequested = onFocusRequested,
                         pendingInsert = pendingInsert,
                         initialSelection = initialSelection,
-                        pendingSelection = pendingSelection
+                        pendingSelection = pendingSelection,
+                        pendingTypingStyle = pendingTypingStyle
                     )
                 } else {
                     ReadOnlyTextBlock(
@@ -447,7 +479,9 @@ private fun BlockRow(
                     },
                     onFocusChange = { if (it) onActivate() },
                     onCursorChange = onCursorChange,
-                    onSplit = onSplit,
+                    onSplit = { before, after ->
+                        onSplit(RichTextConverter.markupToSegments(before), RichTextConverter.markupToSegments(after))
+                    },
                     onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     requestFocus = requestFocus,
                     onFocusRequested = onFocusRequested

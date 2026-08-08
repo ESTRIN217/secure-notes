@@ -36,6 +36,11 @@ data class TextSegment(
     val plainText: String
         get() = if (equationLatex != null) MathRenderer.render(equationLatex).text else text
 
+    val hasTypingStyle: Boolean
+        get() = bold || italic || underline || strikethrough || code ||
+            colorHex != null || bgColorHex != null || fontFamily != null ||
+            fontSizeSp != null || baseline != TextBaseline.NORMAL
+
     fun toSpanStyle(): SpanStyle {
         var style = SpanStyle()
         if (bold) style = style.copy(fontWeight = FontWeight.Bold)

@@ -63,9 +63,12 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 ---
 
 ## 📝 Editor de Notas Avanzado
+* **Editor WYSIWYG por Bloques:** Editor fluido estilo Notion con bloques (texto, títulos H1–H4, listas, tablas, citas…) y formato enriquecido en línea (negrita, color, subíndice, superíndice, ecuaciones, enlaces…).
 * **Formato Limpio:** Editor de texto fluido y minimalista con soporte para títulos y cuerpo de notas amplios.
 * **Asociación de Etiquetas:** Permite asignar múltiples etiquetas personalizadas para categorizar las notas.
 * **Personalización de Fondo (Colores):** Cambia el color de fondo de tus notas individuales utilizando una paleta pastel optimizada para legibilidad (Azul, Verde, Amarillo, Rosa, Púrpura, Naranja) o el color por defecto del sistema.
+
+> 📖 **Documentación completa del editor** (bloques, formato y referencia técnica): [docs/EDITOR.md](docs/EDITOR.md)
 
 ---
 

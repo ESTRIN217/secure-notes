@@ -193,6 +193,7 @@ fun NoteEditorScreen(
     var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
     var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
     var activeSelection by remember { mutableStateOf(IntRange(0, 0)) }
+    var pendingTypingStyle by remember { mutableStateOf<com.example.data.model.TextSegment?>(null) }
     var pendingFocusBlockIndex by remember { mutableIntStateOf(-1) }
 
     fun setContentValue(v: TextFieldValue) {
@@ -376,6 +377,59 @@ fun NoteEditorScreen(
             val plain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[newIndex].ensureSegments())
             contentValue = TextFieldValue(text = plain, selection = TextRange(plain.length))
             activeSelection = plain.length..plain.length
+        }
+    }
+
+    fun applyBlocksChange(newBlocks: List<DataBlock>) {
+        val newIdx = toolbarActiveBlockIndex.coerceIn(0, (newBlocks.size - 1).coerceAtLeast(0))
+        blocks = newBlocks
+        toolbarActiveBlockIndex = newIdx
+        val segs = blocks.getOrNull(newIdx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+        val blockText = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+        contentValue = TextFieldValue(text = blockText, selection = TextRange(blockText.length))
+        activeSelection = blockText.length..blockText.length
+        saveBlocksToHistory()
+    }
+
+    fun moveActiveBlockUp() {
+        val idx = toolbarActiveBlockIndex
+        if (idx in 1 until blocks.size) {
+            val newBlocks = blocks.toMutableList()
+            val item = newBlocks.removeAt(idx)
+            newBlocks.add(idx - 1, item)
+            toolbarActiveBlockIndex = idx - 1
+            applyBlocksChange(newBlocks)
+        }
+    }
+
+    fun moveActiveBlockDown() {
+        val idx = toolbarActiveBlockIndex
+        if (idx in 0 until blocks.size - 1) {
+            val newBlocks = blocks.toMutableList()
+            val item = newBlocks.removeAt(idx)
+            newBlocks.add(idx + 1, item)
+            toolbarActiveBlockIndex = idx + 1
+            applyBlocksChange(newBlocks)
+        }
+    }
+
+    fun deleteActiveBlock() {
+        val idx = toolbarActiveBlockIndex
+        if (idx in blocks.indices && blocks.size > 1) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks.removeAt(idx)
+            applyBlocksChange(newBlocks)
+        }
+    }
+
+    fun convertActiveBlock(type: BlockType, meta: Map<String, String> = emptyMap()) {
+        val idx = toolbarActiveBlockIndex
+        if (idx in blocks.indices) {
+            val block = blocks[idx]
+            val newBlocks = blocks.toMutableList().apply {
+                set(idx, block.copy(type = type, meta = meta))
+            }
+            applyBlocksChange(newBlocks)
         }
     }
 
@@ -871,10 +925,12 @@ fun NoteEditorScreen(
             var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
             var showTextBgColorSheet by remember { mutableStateOf(false) }
             var showMoreFormattingSheet by remember { mutableStateOf(false) }
+            var convertBlockMode by remember { mutableStateOf(false) }
+            var showFontSizeSheet by remember { mutableStateOf(false) }
             val isKeyboardVisible = WindowInsets.isImeVisible
             val keyboardController = LocalSoftwareKeyboardController.current
             data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
-            val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex) {
+            val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex, pendingTypingStyle) {
                 val segs = activeSegments()
                 val cursor = activeSelection.first
                 val activeStyles = mutableSetOf<String>()
@@ -889,13 +945,16 @@ fun NoteEditorScreen(
                 }
                 var pos = 0
                 var target: com.example.data.model.TextSegment? = null
-                for (seg in segs) {
-                    val segEnd = pos + seg.text.length
-                    if (pos <= cursor && cursor <= segEnd) {
-                        target = seg
-                        break
+                val totalLen = segs.sumOf { it.text.length }
+                if (cursor < totalLen || pendingTypingStyle != null) {
+                    for (seg in segs) {
+                        val segEnd = pos + seg.text.length
+                        if (pos <= cursor && cursor <= segEnd) {
+                            target = seg
+                            break
+                        }
+                        pos = segEnd
                     }
-                    pos = segEnd
                 }
                 val seg = target
                 if (seg != null) {
@@ -911,6 +970,22 @@ fun NoteEditorScreen(
                     }
                     if (seg.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(seg.colorHex)
                     if (seg.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(seg.bgColorHex)
+                }
+                if (activeSelection.first == activeSelection.last) {
+                    pendingTypingStyle?.let { p ->
+                        if (p.bold) activeStyles.add("b")
+                        if (p.italic) activeStyles.add("i")
+                        if (p.underline) activeStyles.add("u")
+                        if (p.strikethrough) activeStyles.add("s")
+                        if (p.code) activeStyles.add("code")
+                        when (p.baseline) {
+                            com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
+                            com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
+                            else -> {}
+                        }
+                        if (p.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(p.colorHex)
+                        if (p.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(p.bgColorHex)
+                    }
                 }
                 ToolbarState(activeStyles, activeFontColor, activeBgColor)
             }
@@ -1010,19 +1085,29 @@ fun NoteEditorScreen(
                 val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
                 val selStart = activeSelection.first.coerceIn(0, plain.length)
                 val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
-                val newSegs = if (tag == "normal") {
-                    if (selStart == selEnd) {
+                if (tag == "normal") {
+                    pendingTypingStyle = null
+                    val newSegs = if (selStart == selEnd) {
                         if (selStart >= plain.length) return
                         com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg -> removeTransformForTag("normal", seg) }
                     } else {
                         com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg -> removeTransformForTag("normal", seg) }
                     }
-                } else if (selStart == selEnd) {
-                    if (selStart >= plain.length) return
-                    val charSeg = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull()
-                    val isActive = charSeg != null && styleApplies(tag, charSeg)
-                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
-                        if (isActive) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
+                    commitSegmentsWithSelection(newSegs, selStart)
+                    return
+                }
+                val newSegs = if (selStart == selEnd) {
+                    val charSeg = if (selStart < plain.length) com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull() else null
+                    val base = pendingTypingStyle ?: com.example.data.model.TextSegment()
+                    val isActive = (charSeg != null && styleApplies(tag, charSeg)) || styleApplies(tag, base)
+                    val nextPending = if (isActive) removeTransformForTag(tag, base) else applyTransformForTag(tag, base)
+                    pendingTypingStyle = nextPending.takeIf { it.hasTypingStyle }
+                    if (charSeg != null) {
+                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
+                            if (isActive) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
+                        }
+                    } else {
+                        null
                     }
                 } else {
                     val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
@@ -1031,7 +1116,7 @@ fun NoteEditorScreen(
                         if (allStyled) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
                     }
                 }
-                commitSegmentsWithSelection(newSegs, selStart)
+                if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
             }
 
             fun applyTagWithVal(tag: String, value: String) {
@@ -1070,8 +1155,26 @@ fun NoteEditorScreen(
 
                 val isDefault = value == "default" || value.isEmpty()
                 val newSegs = if (selStart == selEnd) {
-                    if (selStart >= plain.length) return
-                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg -> if (isDefault) clearValueOn(seg) else setValueOn(seg) }
+                    val charSeg = if (selStart < plain.length) com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull() else null
+                    val base = pendingTypingStyle ?: com.example.data.model.TextSegment()
+                    val alreadyApplied = !isDefault && currentValueOn(base) == value
+                    val nextPending = when {
+                        isDefault -> clearValueOn(base)
+                        alreadyApplied -> clearValueOn(base)
+                        else -> setValueOn(base)
+                    }
+                    pendingTypingStyle = nextPending.takeIf { it.hasTypingStyle }
+                    if (charSeg != null) {
+                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
+                            when {
+                                isDefault -> clearValueOn(seg)
+                                alreadyApplied -> clearValueOn(seg)
+                                else -> setValueOn(seg)
+                            }
+                        }
+                    } else {
+                        null
+                    }
                 } else {
                     val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
                     val alreadyApplied = !isDefault && inRange.isNotEmpty() && inRange.all { currentValueOn(it) == value }
@@ -1083,7 +1186,7 @@ fun NoteEditorScreen(
                         }
                     }
                 }
-                commitSegmentsWithSelection(newSegs, selStart)
+                if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
             }
 
             val decreaseIndent: () -> Unit = {
@@ -1222,6 +1325,7 @@ fun NoteEditorScreen(
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
                         pendingSelection = pendingSelection,
+                        pendingTypingStyle = pendingTypingStyle,
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
                         onActiveSelectionChange = { activeSelection = it },
                         onParseResult = { toolbarParseResult = it },
@@ -1614,6 +1718,14 @@ fun NoteEditorScreen(
                 )
             }
 
+            if (showFontSizeSheet) {
+                FontSizeSheet(
+                    onDismiss = { showFontSizeSheet = false },
+                    onFontSelected = { font -> applyTagWithVal("font", font) },
+                    onSizeSelected = { size -> applyTagWithVal("size", size) }
+                )
+            }
+
             if (isKeyboardVisible) {
                 Box(Modifier.fillMaxSize()) {
                     EditorToolbarContainer(
@@ -1658,6 +1770,7 @@ fun NoteEditorScreen(
                     insertCurrentDate = insertCurrentDate,
                     applyTagWithVal = { tag, value -> applyTagWithVal(tag, value) },
                     onClearFormatting = {
+                        pendingTypingStyle = null
                         val segs = activeSegments()
                         if (segs.isNotEmpty()) {
                             val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
@@ -1769,14 +1882,36 @@ fun NoteEditorScreen(
                     caseSensitive = searchCaseSensitive,
                     onCaseSensitiveChange = { searchCaseSensitive = it },
                     fullWord = searchFullWord,
-                    onFullWordChange = { searchFullWord = it }
+                    onFullWordChange = { searchFullWord = it },
+                    onOpenFontSizeSheet = { showFontSizeSheet = true },
+                    onConvertBlock = {
+                        convertBlockMode = true
+                        showMoreFormattingSheet = true
+                    },
+                    onDeleteBlock = { deleteActiveBlock() },
+                    onMoveBlockUp = { moveActiveBlockUp() },
+                    onMoveBlockDown = { moveActiveBlockDown() }
                 )
                 }
             }
 
         if (showMoreFormattingSheet) {
+            fun handleBlockSelect(cmd: BlockCommand) {
+                if (convertBlockMode) {
+                    convertBlockMode = false
+                    cmd.blockType?.let { type ->
+                        convertActiveBlock(type, cmd.meta)
+                        return
+                    }
+                }
+                handleBlockCommand(cmd)
+            }
+
             ModalBottomSheet(
-                onDismissRequest = { showMoreFormattingSheet = false },
+                onDismissRequest = {
+                    convertBlockMode = false
+                    showMoreFormattingSheet = false
+                },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
@@ -1787,10 +1922,17 @@ fun NoteEditorScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(stringResource(R.string.block_section_basic), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = stringResource(if (convertBlockMode) R.string.block_convert_title else R.string.block_section_basic),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     BlockCommandSection(
                         commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BASIC },
-                        onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                        onClick = { cmd ->
+                            handleBlockSelect(cmd)
+                            showMoreFormattingSheet = false
+                        }
                     )
 
                     if (BLOCK_COMMANDS.any { it.section == BlockSection.BLOCKS }) {
@@ -1799,7 +1941,10 @@ fun NoteEditorScreen(
                         Text(stringResource(R.string.block_section_blocks), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                         BlockCommandSection(
                             commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BLOCKS },
-                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                            onClick = { cmd ->
+                                handleBlockSelect(cmd)
+                                showMoreFormattingSheet = false
+                            }
                         )
                     }
 
@@ -1809,7 +1954,10 @@ fun NoteEditorScreen(
                         Text(stringResource(R.string.block_section_link), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                         BlockCommandSection(
                             commands = BLOCK_COMMANDS.filter { it.section == BlockSection.LINK },
-                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                            onClick = { cmd ->
+                                handleBlockSelect(cmd)
+                                showMoreFormattingSheet = false
+                            }
                         )
                     }
 
@@ -1819,7 +1967,10 @@ fun NoteEditorScreen(
                         Text(stringResource(R.string.block_section_media), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                         BlockCommandSection(
                             commands = BLOCK_COMMANDS.filter { it.section == BlockSection.MEDIA },
-                            onClick = { cmd -> handleBlockCommand(cmd); showMoreFormattingSheet = false }
+                            onClick = { cmd ->
+                                handleBlockSelect(cmd)
+                                showMoreFormattingSheet = false
+                            }
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))

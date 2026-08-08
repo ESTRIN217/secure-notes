@@ -2,7 +2,6 @@ package com.example.ui
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,7 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
@@ -32,6 +31,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FormatClear
@@ -44,12 +44,11 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,18 +68,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-import com.example.R
-import java.util.Locale
 
 // Enum para controlar la vista activa de la barra flotante (Clean State)
 enum class EditorToolbarMode {
@@ -126,7 +120,12 @@ fun EditorToolbarContainer(
     decreaseIndent: () -> Unit,
     pasteFromClipboard: () -> Unit,
     insertCurrentDate: () -> Unit,
-    applyTagWithVal: (String, String) -> Unit
+    applyTagWithVal: (String, String) -> Unit,
+    onOpenFontSizeSheet: () -> Unit,
+    onConvertBlock: () -> Unit,
+    onDeleteBlock: () -> Unit,
+    onMoveBlockUp: () -> Unit,
+    onMoveBlockDown: () -> Unit
 ) {
     var currentMode by remember { mutableStateOf(EditorToolbarMode.MAIN) }
 
@@ -162,7 +161,11 @@ fun EditorToolbarContainer(
                 onToggleTag = onToggleTag,
                 decreaseIndent = decreaseIndent,
                 pasteFromClipboard = pasteFromClipboard,
-                insertCurrentDate = insertCurrentDate
+                insertCurrentDate = insertCurrentDate,
+                onConvertBlock = onConvertBlock,
+                onDeleteBlock = onDeleteBlock,
+                onMoveBlockUp = onMoveBlockUp,
+                onMoveBlockDown = onMoveBlockDown
             )
 
             EditorToolbarMode.TEXT_FORMAT -> TextoToolbar(
@@ -172,7 +175,8 @@ fun EditorToolbarContainer(
                 onOpenbgFontColor = onOpenbgFontColor,
                 onOpenInlineLink = onOpenInlineLink,
                 onOpenEquation = onOpenEquation,
-                applyTagWithVal = applyTagWithVal
+                applyTagWithVal = applyTagWithVal,
+                onOpenFontSizeSheet = onOpenFontSizeSheet
             )
 
             EditorToolbarMode.SEARCH -> InlineSearchBar(
@@ -215,7 +219,11 @@ private fun FloatingEditorToolbar(
     onToggleTag: (String) -> Unit,
     decreaseIndent: () -> Unit,
     pasteFromClipboard: () -> Unit,
-    insertCurrentDate: () -> Unit
+    insertCurrentDate: () -> Unit,
+    onConvertBlock: () -> Unit,
+    onDeleteBlock: () -> Unit,
+    onMoveBlockUp: () -> Unit,
+    onMoveBlockDown: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -271,12 +279,16 @@ private fun FloatingEditorToolbar(
                 contentDescription = "Limpiar formato",
                 onClick = onClearFormatting
             )
-            //ToolbarIconButton(
-            //    icon = Icons.Default.,
-            //    contentDescription = "convertir bloque",
-            //    onClick = onClearFormatting
-            //)
-            // eleminar bloque
+            ToolbarIconButton(
+                icon = Icons.Default.SwapHoriz,
+                contentDescription = "convertir bloque",
+                onClick = onConvertBlock
+            )
+            ToolbarIconButton(
+                icon = Icons.Default.Delete,
+                contentDescription = "eliminar bloque",
+                onClick = onDeleteBlock
+            )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
@@ -292,16 +304,12 @@ private fun FloatingEditorToolbar(
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDropUp,
                 contentDescription = "Subir bloque",
-                onClick = { 
-                    //funcion debe poner el bloque arriba tecla arrow onMoveUp bloque
-                }
+                onClick = onMoveBlockUp
             )
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDropDown,
                 contentDescription = "Bajar bloque",
-                onClick = {
-                    // funcion debe poner el bloque abajo tecla down onMoveDown bloque
-                }
+                onClick = onMoveBlockDown
             )
 
             ToolbarDivider()
@@ -383,7 +391,8 @@ private fun TextoToolbar(
     onOpenbgFontColor: () -> Unit,
     onOpenInlineLink: () -> Unit,
     onOpenEquation: () -> Unit,
-    applyTagWithVal: (String, String) -> Unit
+    applyTagWithVal: (String, String) -> Unit,
+    onOpenFontSizeSheet: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -394,7 +403,7 @@ private fun TextoToolbar(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ToolbarIconButton(
-            icon = Icons.Default.ArrowBack,
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Volver",
             tint = MaterialTheme.colorScheme.primary,
             onClick = onBack
@@ -472,80 +481,13 @@ private fun TextoToolbar(
 
         ToolbarDivider()
 
-        // Dropdown Tipografía
-        var showFontDropdown by remember { mutableStateOf(false) }
-        val applyFont: (String) -> Unit = { font ->
-            applyTagWithVal("font", font)
-        }
-        
-        Box {
-            OutlinedButton(
-                onClick = { showFontDropdown = true},
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Text(stringResource(id = R.string.rich_font_family), fontSize = 12.sp)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-            }
-            DropdownMenu(
-                expanded = showFontDropdown,
-                onDismissRequest = { showFontDropdown = false}
-            ) {
-                listOf("default", "serif", "monospace", "sans-serif", "cursive").forEach { font ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = font.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() },
-                                fontFamily = when (font) {
-                                    "serif" -> FontFamily.Serif
-                                    "monospace" -> FontFamily.Monospace
-                                    "sans-serif" -> FontFamily.SansSerif
-                                    "cursive" -> FontFamily.Cursive
-                                    else -> FontFamily.Default
-                                }
-                            )
-                        },
-                        onClick = {
-                            applyFont(font)
-                            showFontDropdown = false
-                        }
-                    )
-                }
-            }
-        }
-        var showSizeDropdown by remember { mutableStateOf(false) }
-
-        // Dropdown Tamaño
-        Box {
-            OutlinedButton(
-                onClick = {},
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Text(stringResource(id = R.string.rich_font_size), fontSize = 12.sp)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-            }
-            DropdownMenu(
-                expanded = showSizeDropdown,
-                onDismissRequest = { showSizeDropdown = false}
-            ) {
-                listOf("default", "12", "14", "16", "18", "20", "24", "28").forEach { size ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                if (size == "default")
-                                stringResource(R.string.text_default)
-                                else
-                                "${size}sp"
-                            )
-                        },
-                        onClick = {
-                            applyTagWithVal("size", size)
-                            showSizeDropdown = false
-                        }
-                    )
-                }
-            }
+        OutlinedButton(
+            onClick = onOpenFontSizeSheet,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Text("Aa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -726,7 +668,8 @@ fun TextoPreview() {
             onOpenbgFontColor = {},
             onOpenInlineLink = {},
             onOpenEquation = {},
-            applyTagWithVal = { _, _ -> }
+            applyTagWithVal = { _, _ -> },
+            onOpenFontSizeSheet = {}
         )
     }
 }
@@ -770,7 +713,12 @@ fun FloatingToolbarContainerPreview() {
             decreaseIndent = {},
             pasteFromClipboard = {},
             insertCurrentDate = {},
-            applyTagWithVal = { _, _ -> }
+            applyTagWithVal = { _, _ -> },
+            onOpenFontSizeSheet = {},
+            onConvertBlock = {},
+            onDeleteBlock = {},
+            onMoveBlockUp = {},
+            onMoveBlockDown = {}
         )
     }
 }

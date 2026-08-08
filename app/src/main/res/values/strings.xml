@@ -283,6 +283,7 @@
     <string name="block_section_blocks">Blocks</string>
     <string name="block_section_link">Link</string>
     <string name="block_section_media">Media</string>
+    <string name="block_convert_title">Turn into</string>
     <string name="block_text">Text</string>
     <string name="block_text_desc">Plain text block</string>
     <string name="block_heading_1">Heading 1</string>
