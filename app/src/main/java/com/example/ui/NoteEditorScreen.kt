@@ -84,7 +84,6 @@ import android.media.MediaRecorder
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -1002,7 +1001,7 @@ fun NoteEditorScreen(
                 "sub" -> seg.baseline == com.example.data.model.TextBaseline.SUBSCRIPT
                 "sup" -> seg.baseline == com.example.data.model.TextBaseline.SUPERSCRIPT
                 "mark" -> seg.bgColorHex == "FFEB3B"
-                "small" -> seg.fontSizeSp != null && seg.fontSizeSp!! < 14f
+                "small" -> seg.fontSizeSp != null && seg.fontSizeSp < 14f
                 "kbd", "var", "samp" -> seg.code
                 "quote" -> seg.italic
                 else -> false
@@ -1907,75 +1906,17 @@ fun NoteEditorScreen(
                 handleBlockCommand(cmd)
             }
 
-            ModalBottomSheet(
-                onDismissRequest = {
+            MoreFormattingSheet(
+                convertBlockMode = convertBlockMode,
+                onDismiss = {
                     convertBlockMode = false
                     showMoreFormattingSheet = false
                 },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(if (convertBlockMode) R.string.block_convert_title else R.string.block_section_basic),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    BlockCommandSection(
-                        commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BASIC },
-                        onClick = { cmd ->
-                            handleBlockSelect(cmd)
-                            showMoreFormattingSheet = false
-                        }
-                    )
-
-                    if (BLOCK_COMMANDS.any { it.section == BlockSection.BLOCKS }) {
-                        HorizontalDivider()
-
-                        Text(stringResource(R.string.block_section_blocks), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                        BlockCommandSection(
-                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.BLOCKS },
-                            onClick = { cmd ->
-                                handleBlockSelect(cmd)
-                                showMoreFormattingSheet = false
-                            }
-                        )
-                    }
-
-                    if (BLOCK_COMMANDS.any { it.section == BlockSection.LINK }) {
-                        HorizontalDivider()
-
-                        Text(stringResource(R.string.block_section_link), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                        BlockCommandSection(
-                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.LINK },
-                            onClick = { cmd ->
-                                handleBlockSelect(cmd)
-                                showMoreFormattingSheet = false
-                            }
-                        )
-                    }
-
-                    if (BLOCK_COMMANDS.any { it.section == BlockSection.MEDIA }) {
-                        HorizontalDivider()
-
-                        Text(stringResource(R.string.block_section_media), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                        BlockCommandSection(
-                            commands = BLOCK_COMMANDS.filter { it.section == BlockSection.MEDIA },
-                            onClick = { cmd ->
-                                handleBlockSelect(cmd)
-                                showMoreFormattingSheet = false
-                            }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
+                onCommandSelected = { cmd ->
+                    handleBlockSelect(cmd)
+                    showMoreFormattingSheet = false
                 }
-            }
+            )
         }
         }
 
@@ -2221,32 +2162,28 @@ fun NoteEditorScreen(
             }
         }
 
-        if (showMoreSheet) {
-            MoreOptionsDialog(
-                noteId = noteId,
-                originalNote = originalNote,
-                title = title,
-                content = content,
-                isEncrypted = isEncrypted,
-                isPinned = isPinned,
-                isFavorite = isFavorite,
-                isArchived = isArchived,
-                isPasswordSet = isPasswordSet,
-                onEncryptionChange = { isEncrypted = it },
-                onPinChange = { isPinned = it },
-                onFavoriteChange = { isFavorite = it },
-                onArchiveChange = { isArchived = it },
-                onDelete = {
-                    originalNote?.let { note ->
-                        viewModel.moveToTrash(note)
-                        Toast.makeText(context, context.getString(R.string.toast_moved_trash), Toast.LENGTH_SHORT).show()
-                        showMoreSheet = false
-                        onBack()
-                    }
-                },
-                onDismiss = { showMoreSheet = false }
-            )
-        }
+        EditorMoreOptions(
+            show = showMoreSheet,
+            viewModel = viewModel,
+            noteId = noteId,
+            originalNote = originalNote,
+            title = title,
+            content = content,
+            isEncrypted = isEncrypted,
+            isPinned = isPinned,
+            isFavorite = isFavorite,
+            isArchived = isArchived,
+            isPasswordSet = isPasswordSet,
+            onEncryptionChange = { isEncrypted = it },
+            onPinChange = { isPinned = it },
+            onFavoriteChange = { isFavorite = it },
+            onArchiveChange = { isArchived = it },
+            onDeleted = {
+                showMoreSheet = false
+                onBack()
+            },
+            onDismiss = { showMoreSheet = false }
+        )
 
         // Voice and File Attachment Bottom Sheet
         if (showVoiceFileSheet) {
@@ -2892,63 +2829,3 @@ fun NoteEditorScreen(
 
     }
 }
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun BlockCommandSection(
-    commands: List<BlockCommand>,
-    onClick: (BlockCommand) -> Unit
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        commands.forEach { cmd ->
-            BlockGridItem(
-                label = stringResource(cmd.labelRes),
-                icon = cmd.icon
-            ) { onClick(cmd) }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun BlockGridItem(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    OutlinedCard(
-        onClick = onClick,
-        modifier = Modifier.width(80.dp).height(88.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-

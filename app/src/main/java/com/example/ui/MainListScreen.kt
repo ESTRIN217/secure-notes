@@ -1295,7 +1295,7 @@ fun MainListScreen(
     if (showSortBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSortBottomSheet = false },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
@@ -1410,7 +1410,10 @@ fun MainListScreen(
                 mediaRecorder = null
                 isRecording = false
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+            ),
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp

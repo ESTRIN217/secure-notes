@@ -297,7 +297,6 @@ object RichTextConverter {
                 color = color ?: colorToHex(style.color)
             }
             if (!code &&
-                style.background != null &&
                 style.background != Color.Unspecified &&
                 style.background != Color.Transparent &&
                 style.background != Color(0x1F808080)

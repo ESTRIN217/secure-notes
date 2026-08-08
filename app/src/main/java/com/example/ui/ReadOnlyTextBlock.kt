@@ -1,6 +1,7 @@
 package com.example.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,17 +10,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +47,27 @@ fun ReadOnlyTextBlock(
 ) {
     val parseResult = remember(rawText) { RichTextParser.parseWithMapping(rawText, hideTags = true) }
     val annotated = parseResult.text
+
+    val currentUrlClick by rememberUpdatedState(onUrlClicked)
+    val currentActivate by rememberUpdatedState(onActivate)
+    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    val annotatedWithLinks = remember(annotated) {
+        val builder = AnnotatedString.Builder(annotated)
+        for (range in annotated.getStringAnnotations("URL", 0, annotated.length)) {
+            builder.addLink(
+                LinkAnnotation.Url(
+                    url = range.item,
+                    linkInteractionListener = LinkInteractionListener {
+                        currentUrlClick(range.item, range.start)
+                    }
+                ),
+                start = range.start,
+                end = range.end
+            )
+        }
+        builder.toAnnotatedString()
+    }
 
     val prefix = when (blockType) {
         BlockType.BULLET_LIST -> "• "
@@ -104,19 +135,20 @@ fun ReadOnlyTextBlock(
             Modifier.weight(1f)
         }
 
-        ClickableText(
-            text = annotated,
+        BasicText(
+            text = annotatedWithLinks,
             style = textStyle,
-            onClick = { offset ->
-                val url = annotated.getStringAnnotations("URL", offset, offset).firstOrNull()?.item
-                if (url != null) {
-                    onUrlClicked(url, offset)
-                } else {
-                    val original = parseResult.transformedToOriginal(offset).coerceIn(0, rawText.length)
-                    onActivate(original)
+            onTextLayout = { layoutResult = it },
+            modifier = contentModifier
+                .heightIn(min = 24.dp)
+                .pointerInput(parseResult) {
+                    detectTapGestures { position ->
+                        val layout = layoutResult ?: return@detectTapGestures
+                        val offset = layout.getOffsetForPosition(position)
+                        val original = parseResult.transformedToOriginal(offset).coerceIn(0, rawText.length)
+                        currentActivate(original)
+                    }
                 }
-            },
-            modifier = contentModifier.heightIn(min = 24.dp)
         )
     }
 }

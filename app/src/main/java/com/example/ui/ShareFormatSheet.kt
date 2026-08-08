@@ -1,6 +1,5 @@
 package com.example.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,7 +10,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -20,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.DecryptedNote
+import com.example.ui.settings.SettingsCardGroup
+import com.example.ui.settings.SettingsListTile
 import com.example.util.exportMultipleToHtml
 import com.example.util.exportMultipleToJson
 import com.example.util.exportMultipleToMarkdown
@@ -36,7 +36,10 @@ fun ShareFormatSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+        ),
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { BottomSheetDefaults.DragHandle() },
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
@@ -56,136 +59,71 @@ fun ShareFormatSheet(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            OutlinedCard(
-                onClick = {
-                    exportMultipleToTxt(context, selectedNotes)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_format_txt_btn"),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Description, contentDescription = stringResource(id = R.string.cd_txt_icon), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.share_format_txt),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
+            @Suppress("DEPRECATION")
+            val articleIcon = Icons.Default.Article
 
-            OutlinedCard(
-                onClick = {
-                    exportMultipleToMarkdown(context, selectedNotes)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_format_md_btn"),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Code, contentDescription = stringResource(id = R.string.cd_markdown_icon), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.share_format_md),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-
-            OutlinedCard(
-                onClick = {
-                    exportMultipleToPdf(context, selectedNotes)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_format_pdf_btn"),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    @Suppress("DEPRECATION")
-                    val articleIcon = Icons.Default.Article
-                    Icon(articleIcon, contentDescription = stringResource(id = R.string.cd_pdf_icon), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.share_format_pdf),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-
-            OutlinedCard(
-                onClick = {
-                    exportMultipleToHtml(context, selectedNotes)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_format_html_btn"),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Web, contentDescription = stringResource(id = R.string.cd_html_icon), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.share_format_html),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-
-            OutlinedCard(
-                onClick = {
-                    exportMultipleToJson(context, selectedNotes)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_format_json_btn"),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Settings, contentDescription = stringResource(id = R.string.cd_json_icon), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.share_format_json),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+            SettingsCardGroup {
+                SettingsListTile(
+                    leadingIcon = Icons.Default.Description,
+                    title = stringResource(id = R.string.share_format_txt),
+                    modifier = Modifier.testTag("share_format_txt_btn"),
+                    onClick = {
+                        exportMultipleToTxt(context, selectedNotes)
+                        onDismiss()
+                    }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                SettingsListTile(
+                    leadingIcon = Icons.Default.Code,
+                    title = stringResource(id = R.string.share_format_md),
+                    modifier = Modifier.testTag("share_format_md_btn"),
+                    onClick = {
+                        exportMultipleToMarkdown(context, selectedNotes)
+                        onDismiss()
+                    }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                SettingsListTile(
+                    leadingIcon = articleIcon,
+                    title = stringResource(id = R.string.share_format_pdf),
+                    modifier = Modifier.testTag("share_format_pdf_btn"),
+                    onClick = {
+                        exportMultipleToPdf(context, selectedNotes)
+                        onDismiss()
+                    }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                SettingsListTile(
+                    leadingIcon = Icons.Default.Web,
+                    title = stringResource(id = R.string.share_format_html),
+                    modifier = Modifier.testTag("share_format_html_btn"),
+                    onClick = {
+                        exportMultipleToHtml(context, selectedNotes)
+                        onDismiss()
+                    }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                SettingsListTile(
+                    leadingIcon = Icons.Default.Settings,
+                    title = stringResource(id = R.string.share_format_json),
+                    modifier = Modifier.testTag("share_format_json_btn"),
+                    onClick = {
+                        exportMultipleToJson(context, selectedNotes)
+                        onDismiss()
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

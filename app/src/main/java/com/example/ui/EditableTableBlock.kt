@@ -105,7 +105,7 @@ private fun parseHex(hex: String?): Color? {
     }
 }
 
-private fun String.hex(): String = trim().removePrefix("#").toString()
+private fun String.hex(): String = trim().removePrefix("#")
 
 
 private fun keyMoveDirection(key: Key): Pair<Int, Int>? = when (key) {

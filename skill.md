@@ -6,7 +6,7 @@ This document details the architecture, design guidelines, and code patterns uti
 
 ---
 
-## 1. Material Design 3 Expressive Outlined Styling
+## 1. Material Design 3 Expressive
 
 Following modern Material Design 3 guidelines:
 - **Expressive Components**: High-contrast, rounded outlines (`RoundedCornerShape` / `CircleShape`), custom card layouts (`OutlinedCard` with thin outlines and crisp borders).

@@ -1420,7 +1420,10 @@ fun NoteAttachmentSheet(
     onNoteSelected: (DecryptedNote) -> Unit
 ) {
     val notes by viewModel.availableNotes.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
