@@ -34,19 +34,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.BlockType
-import com.example.util.RichTextParser
+import com.example.data.model.TextSegment
+import com.example.util.RichTextConverter
 
 @Composable
 fun ReadOnlyTextBlock(
-    rawText: String,
+    segments: List<TextSegment>,
     blockType: BlockType = BlockType.TEXT,
     numberIndex: Int? = null,
     onActivate: (originalOffset: Int) -> Unit,
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    val parseResult = remember(rawText) { RichTextParser.parseWithMapping(rawText, hideTags = true) }
-    val annotated = parseResult.text
+    val annotated = remember(segments) { RichTextConverter.segmentsToAnnotatedString(segments) }
 
     val currentUrlClick by rememberUpdatedState(onUrlClicked)
     val currentActivate by rememberUpdatedState(onActivate)
@@ -54,7 +54,7 @@ fun ReadOnlyTextBlock(
 
     val annotatedWithLinks = remember(annotated) {
         val builder = AnnotatedString.Builder(annotated)
-        for (range in annotated.getStringAnnotations("URL", 0, annotated.length)) {
+        for (range in annotated.getStringAnnotations(RichTextConverter.URL_ANNOTATION, 0, annotated.length)) {
             builder.addLink(
                 LinkAnnotation.Url(
                     url = range.item,
@@ -141,12 +141,11 @@ fun ReadOnlyTextBlock(
             onTextLayout = { layoutResult = it },
             modifier = contentModifier
                 .heightIn(min = 24.dp)
-                .pointerInput(parseResult) {
+                .pointerInput(annotated) {
                     detectTapGestures { position ->
                         val layout = layoutResult ?: return@detectTapGestures
                         val offset = layout.getOffsetForPosition(position)
-                        val original = parseResult.transformedToOriginal(offset).coerceIn(0, rawText.length)
-                        currentActivate(original)
+                        currentActivate(offset.coerceIn(0, annotated.length))
                     }
                 }
         )

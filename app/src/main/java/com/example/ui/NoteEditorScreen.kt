@@ -253,7 +253,9 @@ fun NoteEditorScreen(
         style: RewriteStyle = RewriteStyle.FORMAL,
         language: String = "en"
     ) {
-        val allContent = blocks.joinToString("\n") { it.content }
+        val allContent = blocks.joinToString("\n") {
+            com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments())
+        }
         val text = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
             .takeIf { aiSelectionStart != aiSelectionEnd } ?: allContent
         aiViewModel.executeInPlace(action, text, style, language)
@@ -334,7 +336,7 @@ fun NoteEditorScreen(
     val commitSegments: (List<com.example.data.model.TextSegment>) -> Unit = { newSegs ->
         if (toolbarActiveBlockIndex in blocks.indices) {
             val updated = blocks[toolbarActiveBlockIndex].copy(
-                content = com.example.util.RichTextConverter.segmentsToMarkup(newSegs),
+                content = "",
                 richTextJson = com.example.data.model.TextSegment.serialize(newSegs)
             )
             blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
@@ -451,6 +453,35 @@ fun NoteEditorScreen(
     
     val allTags by viewModel.availableTags.collectAsState()
     val allNotes by viewModel.notesList.collectAsState()
+
+    fun moveBlockToAnotherNote(index: Int, targetNoteId: Int) {
+        if (index !in blocks.indices) return
+        val target = allNotes.find { it.note.id == targetNoteId } ?: return
+        val moved = blocks[index]
+        val (textPart, targetAttachments) = parseNoteContentAndAttachments(target.content)
+        val targetBlocks = (com.example.util.RichTextConverter.contentToBlocks(textPart)
+            ?: DataBlock.migrateLegacyContent(textPart))
+            .let { DataBlock.migrateToSegments(it).first }
+            .toMutableList()
+        targetBlocks.add(moved)
+        viewModel.saveNote(
+            id = target.note.id,
+            title = target.title,
+            content = createRawContent(DataBlock.serialize(targetBlocks), targetAttachments),
+            isEncrypted = target.note.isEncrypted,
+            tagsList = target.note.parseTags(),
+            backgroundColor = target.note.backgroundColor,
+            backgroundImagePath = target.note.backgroundImagePath,
+            isPinned = target.note.isPinned,
+            isFavorite = target.note.isFavorite,
+            isArchived = target.note.isArchived
+        )
+        val newBlocks = blocks.toMutableList()
+        newBlocks.removeAt(index)
+        applyBlocksChange(newBlocks)
+        Toast.makeText(context, context.getString(R.string.toast_block_moved, target.title), Toast.LENGTH_SHORT).show()
+    }
+
     var selectedNoteTags by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedBgColorId by remember { mutableStateOf<Int?>(null) }
     var selectedBgImagePath by remember { mutableStateOf<String?>(null) }
@@ -465,6 +496,9 @@ fun NoteEditorScreen(
     var showNoteLinkPicker by remember { mutableStateOf(false) }
     var pageLinkTargetBlockIndex by remember { mutableIntStateOf(-1) }
     var inlineLinkMode by remember { mutableStateOf(false) }
+
+    var moveBlockIndex by remember { mutableIntStateOf(-1) }
+    var showMoveBlockPicker by remember { mutableStateOf(false) }
 
     var showEquationDialog by remember { mutableStateOf(false) }
     var equationInput by remember { mutableStateOf("") }
@@ -515,7 +549,7 @@ fun NoteEditorScreen(
             currentSegs = com.example.util.RichTextConverter.replaceTextRange(currentSegs, insertFrom, insertFrom + i, chunk)
             if (toolbarActiveBlockIndex in blocks.indices) {
                 val updated = blocks[toolbarActiveBlockIndex].copy(
-                    content = com.example.util.RichTextConverter.segmentsToMarkup(currentSegs),
+                    content = "",
                     richTextJson = com.example.data.model.TextSegment.serialize(currentSegs)
                 )
                 blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
@@ -645,13 +679,38 @@ fun NoteEditorScreen(
                 originalNote = match.note
                 title = match.title
 
-                val rawContent = match.content
-                val parsedBlocks = DataBlock.deserialize(rawContent)
-                    ?: DataBlock.migrateLegacyContent(rawContent)
-                blocks = parsedBlocks
-
-                val (_, parsedAttachments) = parseNoteContentAndAttachments(rawContent)
+                val (rawText, parsedAttachments) = parseNoteContentAndAttachments(match.content)
                 attachments = parsedAttachments
+
+                val parsedBlocks = DataBlock.deserialize(rawText)
+                    ?: DataBlock.migrateLegacyContent(rawText)
+
+                // Migración one-shot: bloques de texto legacy → richTextJson como única fuente.
+                val (migratedBlocks, needsMigration) = DataBlock.migrateToSegments(parsedBlocks)
+                blocks = migratedBlocks
+
+                if (needsMigration) {
+                    val migratedJson = DataBlock.serialize(migratedBlocks)
+                    val migratedContent = createRawContent(migratedJson, parsedAttachments)
+                    viewModel.saveNoteAndGetId(
+                        id = match.note.id,
+                        title = match.title,
+                        content = migratedContent,
+                        isEncrypted = match.note.isEncrypted,
+                        tagsList = match.note.parseTags(),
+                        backgroundColor = match.note.backgroundColor,
+                        backgroundImagePath = match.note.backgroundImagePath,
+                        isPinned = match.note.isPinned,
+                        isFavorite = match.note.isFavorite,
+                        isArchived = match.note.isArchived,
+                        categoryId = match.note.categoryId,
+                        isDeleted = match.note.isDeleted,
+                        deletedAt = match.note.deletedAt,
+                        lastModified = match.note.lastModified,
+                        salt = match.note.salt,
+                        iv = match.note.iv
+                    )
+                }
 
                 if (blocks.isNotEmpty()) {
                     val blockPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
@@ -716,7 +775,10 @@ fun NoteEditorScreen(
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
         val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock?.content?.startsWith("/") == true
+        val replaceInPlace = currentBlock
+            ?.ensureSegments()
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it) }
+            ?.startsWith("/") == true
         val newBlocks = blocks.toMutableList()
         val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
         if (replaceInPlace) {
@@ -1201,7 +1263,8 @@ fun NoteEditorScreen(
                         val defaultTitle = context.getString(R.string.title_imported_note)
                         val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
                         title = importedTitle
-                        blocks = DataBlock.migrateLegacyContent(importedContent)
+                        val (importedBlocks, _) = DataBlock.migrateToSegments(DataBlock.migrateLegacyContent(importedContent))
+                        blocks = importedBlocks
                         if (blocks.isNotEmpty()) {
                             val importedPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
                             contentValue = TextFieldValue(text = importedPlain, selection = TextRange(importedPlain.length))
@@ -1316,6 +1379,10 @@ fun NoteEditorScreen(
                         onNavigateToDrawing = onNavigateToDrawing,
                         onNavigateToNote = onNavigateToNote,
                         noteTitleById = { id -> allNotes.find { it.note.id == id }?.title ?: "" },
+                        onMoveBlockTo = { index ->
+                            moveBlockIndex = index
+                            showMoveBlockPicker = true
+                        },
                         onEditPageLink = { idx ->
                             pageLinkTargetBlockIndex = idx
                             showNoteLinkPicker = true
@@ -2758,6 +2825,25 @@ fun NoteEditorScreen(
                             handleSlashSelect(DataBlock(type = BlockType.PAGE_LINK, content = "", meta = mapOf("noteId" to linkedId.toString())))
                         }
                         showNoteLinkPicker = false
+                    }
+                }
+            )
+        }
+
+        if (showMoveBlockPicker) {
+            PageLinkNotePickerSheet(
+                notes = allNotes,
+                currentNoteId = noteId,
+                onDismiss = {
+                    showMoveBlockPicker = false
+                    moveBlockIndex = -1
+                },
+                onNoteSelected = { targetId ->
+                    val idx = moveBlockIndex
+                    showMoveBlockPicker = false
+                    moveBlockIndex = -1
+                    if (idx >= 0) {
+                        moveBlockToAnotherNote(idx, targetId)
                     }
                 }
             )

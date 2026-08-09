@@ -8,6 +8,7 @@ import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.cleanedTags
 import com.example.util.Exporter
+import com.example.util.RichTextConverter
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -23,7 +24,7 @@ class JsonExporter : Exporter {
                 val obj = JSONObject()
                 obj.put("id", dec.note.id)
                 obj.put("title", dec.title)
-                obj.put("summary", dec.content)
+                obj.put("summary", RichTextConverter.contentToPlainText(dec.content))
                 obj.put("lastModified", dec.note.lastModified)
                 obj.put("isEncrypted", dec.note.isEncrypted)
                 obj.put("backgroundColor", dec.note.backgroundColor)

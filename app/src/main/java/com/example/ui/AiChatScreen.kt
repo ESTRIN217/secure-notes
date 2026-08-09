@@ -1485,7 +1485,8 @@ fun NoteAttachmentSheet(
                                     )
                                     if (decryptedNote.isDecryptionSuccessful && decryptedNote.content.isNotBlank()) {
                                         Text(
-                                            text = decryptedNote.content.take(80).replace("\n", " "),
+                                            text = com.example.util.RichTextConverter.contentToPlainText(decryptedNote.content)
+                                                .take(80).replace("\n", " "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,

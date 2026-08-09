@@ -11,7 +11,8 @@ data class TableData(
     val rows: List<List<String>> = emptyList(),
     val columnWeights: List<Float> = emptyList(),
     val bgColorHex: String? = null,
-    val showHeader: Boolean = true
+    val showHeader: Boolean = true,
+    val showHeaderColumn: Boolean = false
 ) {
     fun normalizedWeights(): List<Float> {
         if (columnWeights.size == columnCount && columnWeights.all { it > 0f }) return columnWeights
@@ -32,6 +33,7 @@ data class TableData(
         }
         if (bgColorHex != null) put("bgColorHex", bgColorHex)
         put("showHeader", showHeader)
+        put("showHeaderColumn", showHeaderColumn)
     }.toString()
 
     fun toHtml(): String {
@@ -71,7 +73,8 @@ data class TableData(
                 } ?: emptyList()
                 val bg = obj.optString("bgColorHex").takeIf { it.isNotBlank() }
                 val showHeader = obj.optBoolean("showHeader", true)
-                TableData(headers, rows, weights, bg, showHeader)
+                val showHeaderColumn = obj.optBoolean("showHeaderColumn", false)
+                TableData(headers, rows, weights, bg, showHeader, showHeaderColumn)
             } catch (e: Exception) {
                 null
             }
@@ -130,6 +133,9 @@ data class DataBlock(
 
     fun segments(): List<TextSegment>? = TextSegment.deserialize(richTextJson)
 
+    /** Tipos cuyo `content` almacenaba markup legacy y migran a richTextJson. */
+    val contentIsText: Boolean get() = type in segmentsBlockTypes
+
     fun withSegments(segments: List<TextSegment>): DataBlock =
         copy(richTextJson = TextSegment.serialize(segments))
 
@@ -142,42 +148,13 @@ data class DataBlock(
         }
     }
 
-    fun toLegacyString(): String {
-        return when (type) {
-            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
-            BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
-            BlockType.QUOTE, BlockType.CODE_BLOCK -> content
-            BlockType.CALLOUT -> "<mark>$content</mark>"
-            BlockType.PAGE -> {
-                val noteId = meta["noteId"] ?: ""
-                if (noteId.isNotBlank()) "<url=note://$noteId>${content.ifBlank { "Página" }}</url>"
-                else content
-            }
-            BlockType.PAGE_LINK -> {
-                val noteId = meta["noteId"] ?: ""
-                if (noteId.isNotBlank()) "<url=note://$noteId>🔗 ${content.ifBlank { "Página enlazada" }}</url>"
-                else content
-            }
-            BlockType.CHECKLIST_ITEM -> "<item checked=\"${meta["checked"] ?: "false"}\">$content</item>"
-            BlockType.IMAGE -> {
-                val link = meta["linkUrl"]
-                if (link != null) "![${content}]($content)($link)" else "<img src=\"$content\"/>"
-            }
-            BlockType.VIDEO -> "<video src=\"$content\"/>"
-            BlockType.AUDIO -> "<audio src=\"$content\"/>"
-            BlockType.DRAWING -> ""
-            BlockType.VOICE -> ""
-            BlockType.FILE -> ""
-            BlockType.TABLE -> {
-                val data = TableData.fromJson(meta["table"])
-                if (data != null) data.toHtml() else "<table>$content</table>"
-            }
-            BlockType.HORIZONTAL_RULE -> "<hr/>"
-            BlockType.COLLAPSIBLE -> "<details><summary>${meta["summary"] ?: ""}</summary>$content</details>"
-        }
-    }
-
     companion object {
+        val segmentsBlockTypes = setOf(
+            BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
+            BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM,
+            BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT, BlockType.COLLAPSIBLE
+        )
+
         fun fromJson(obj: JSONObject): DataBlock {
             val type = try {
                 BlockType.valueOf(obj.getString("type"))
@@ -208,6 +185,26 @@ data class DataBlock(
             } catch (e: Exception) {
                 null
             }
+        }
+
+        /** Migra bloques de texto legacy (markup en `content`, sin richTextJson) a segments.
+         *  Devuelve (bloques, huboCambios). `content` se vacía; media/PAGE/TABLE conservan rutas. */
+        fun migrateToSegments(blocks: List<DataBlock>): Pair<List<DataBlock>, Boolean> {
+            val needsMigration = blocks.any {
+                it.contentIsText && it.richTextJson.isNullOrBlank() && it.content.isNotBlank()
+            }
+            if (!needsMigration) return blocks to false
+            val migrated = blocks.map { block ->
+                if (block.contentIsText && block.richTextJson.isNullOrBlank() && block.content.isNotBlank()) {
+                    block.copy(
+                        content = "",
+                        richTextJson = TextSegment.serialize(block.ensureSegments())
+                    )
+                } else {
+                    block
+                }
+            }
+            return migrated to true
         }
 
         fun migrateLegacyContent(rawContent: String): List<DataBlock> {

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -83,18 +84,41 @@ private fun MediaCard(
 }
 
 @Composable
-private fun DeleteOverlay(onDelete: () -> Unit) {
+private fun MediaActionsOverlay(
+    onDelete: () -> Unit,
+    onMore: (() -> Unit)? = null
+) {
     Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(
-            onClick = onDelete,
-            modifier = Modifier.size(28.dp).align(Alignment.TopEnd)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(id = R.string.cd_remove),
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(18.dp)
-            )
+            if (onMore != null) {
+                IconButton(
+                    onClick = onMore,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(id = R.string.cd_block_more),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.cd_remove),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
@@ -218,7 +242,10 @@ private fun NoteContentBlock.ImageBlock.renderImageBlock(
                 }
             }
         )
-        DeleteOverlay { context.onDeleteBlock(block) }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
     }
 }
 
@@ -244,7 +271,10 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
                     modifier = Modifier.size(48.dp)
                 )
             }
-            DeleteOverlay { context.onDeleteBlock(block) }
+            MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
         }
     }
 }
@@ -257,7 +287,10 @@ private fun NoteContentBlock.AudioBlock.renderAudioBlock(
     val block = this
     MediaCard(modifier = modifier.wrapContentHeight()) {
         AudioPlayerWidget(path = src, modifier = Modifier.fillMaxWidth().padding(12.dp))
-        DeleteOverlay { context.onDeleteBlock(block) }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
     }
 }
 
@@ -279,7 +312,10 @@ private fun NoteContentBlock.DrawingBlock.renderDrawingBlock(
                 .clickable { context.onNavigateToDrawing(context.noteId, jsonPath) },
             contentScale = ContentScale.Fit
         )
-        DeleteOverlay { context.onDeleteBlock(block) }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
     }
 }
 
@@ -291,7 +327,10 @@ private fun NoteContentBlock.VoiceBlock.renderVoiceBlock(
     val block = this
     MediaCard(modifier = modifier.wrapContentHeight()) {
         AudioPlayerWidget(path = path, modifier = Modifier.fillMaxWidth().padding(12.dp))
-        DeleteOverlay { context.onDeleteBlock(block) }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
     }
 }
 
@@ -315,7 +354,10 @@ private fun NoteContentBlock.FileBlock.renderFileBlock(
             Spacer(modifier = Modifier.width(12.dp))
             Text(text = name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         }
-        DeleteOverlay { context.onDeleteBlock(block) }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
     }
 }
 

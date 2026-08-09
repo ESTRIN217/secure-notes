@@ -8,7 +8,7 @@ import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.cleanedTags
 import com.example.util.Exporter
-import com.example.util.RichTextParser
+import com.example.util.RichTextConverter
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -40,7 +40,7 @@ class HtmlExporter : Exporter {
                     sb.append(" | Tags: ").append(tags.joinToString(", "))
                 }
                 sb.append("</div>")
-                sb.append("<div class=\"content\">").append(RichTextParser.convertToHtml(dec.content)).append("</div>")
+                sb.append("<div class=\"content\">").append(RichTextConverter.contentToHtml(dec.content)).append("</div>")
                 sb.append("</div>")
             }
             sb.append("</body></html>")

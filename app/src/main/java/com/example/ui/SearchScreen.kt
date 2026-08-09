@@ -88,7 +88,8 @@ fun SearchScreen(
 
             val matchesQuery = searchQuery.isBlank() ||
                 decryptedNote.title.contains(searchQuery, ignoreCase = true) ||
-                decryptedNote.content.contains(searchQuery, ignoreCase = true)
+                com.example.util.RichTextConverter.contentToPlainText(decryptedNote.content)
+                    .contains(searchQuery, ignoreCase = true)
 
             val matchesFavorite = !filterFavorite || note.isFavorite
 

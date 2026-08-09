@@ -656,7 +656,7 @@ class RichTextParser {
         fun cleanForAI(raw: String): String {
             val delimiter = "\n\n---Attachments---\n"
             val text = if (raw.contains(delimiter)) raw.substringBefore(delimiter) else raw
-            return stripTags(text)
+            return RichTextConverter.contentToPlainText(text)
         }
         fun convertToHtml(raw: String) = HtmlConverter.convertToHtml(raw)
         fun convertHtmlToSecureNotes(html: String) = HtmlConverter.convertHtmlToSecureNotes(html)

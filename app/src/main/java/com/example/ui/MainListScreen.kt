@@ -1741,33 +1741,34 @@ fun NoteCardItem(
 
             val (displayText, visualAttachments) = remember(decryptedNote.content) {
                 val content = decryptedNote.content
-                val blocks = com.example.data.model.DataBlock.deserialize(content)
+                val blocks = com.example.util.RichTextConverter.contentToBlocks(content)
                 if (blocks != null) {
                     val textParts = mutableListOf<String>()
                     val attachments = mutableListOf<Triple<String, String, String>>()
                     var numberedCounter = 0
                     for (block in blocks) {
+                        val blockText = com.example.util.RichTextConverter.segmentsToPlainText(block.ensureSegments())
                         when (block.type) {
                             com.example.data.model.BlockType.TEXT,
                             com.example.data.model.BlockType.CODE_BLOCK -> {
                                 numberedCounter = 0
-                                textParts.add(block.content)
+                                textParts.add(blockText)
                             }
                             com.example.data.model.BlockType.BULLET_LIST -> {
                                 numberedCounter = 0
-                                textParts.add("• ${block.content}")
+                                textParts.add("• $blockText")
                             }
                             com.example.data.model.BlockType.NUMBERED_LIST -> {
                                 numberedCounter++
-                                textParts.add("$numberedCounter. ${block.content}")
+                                textParts.add("$numberedCounter. $blockText")
                             }
                             com.example.data.model.BlockType.QUOTE -> {
                                 numberedCounter = 0
-                                textParts.add("▎ ${block.content}")
+                                textParts.add("▎ $blockText")
                             }
                             com.example.data.model.BlockType.CALLOUT -> {
                                 numberedCounter = 0
-                                textParts.add("💡 ${block.content}")
+                                textParts.add("💡 $blockText")
                             }
                             com.example.data.model.BlockType.PAGE -> {
                                 numberedCounter = 0
@@ -1775,7 +1776,7 @@ fun NoteCardItem(
                                 val linkedId = block.meta["noteId"]?.toIntOrNull()
                                 val pageText = linkedId?.let { pageTitleById(it) }
                                     .orEmpty()
-                                    .ifBlank { block.content }
+                                    .ifBlank { blockText }
                                     .ifBlank { pageBlockLabel }
                                 textParts.add("$icon $pageText")
                             }
@@ -1784,20 +1785,20 @@ fun NoteCardItem(
                                 val linkedId = block.meta["noteId"]?.toIntOrNull()
                                 val pageLinkText = linkedId?.let { pageTitleById(it) }
                                     .orEmpty()
-                                    .ifBlank { block.content }
+                                    .ifBlank { blockText }
                                     .ifBlank { pageBlockLabel }
                                 textParts.add("🔗 $pageLinkText")
                             }
                             com.example.data.model.BlockType.CHECKLIST_ITEM -> {
                                 numberedCounter = 0
                                 val prefix = if (block.meta["checked"] == "true") "☑ " else "☐ "
-                                textParts.add("$prefix${block.content}")
+                                textParts.add("$prefix$blockText")
                             }
                             com.example.data.model.BlockType.HEADING1,
                             com.example.data.model.BlockType.HEADING2,
                             com.example.data.model.BlockType.HEADING3 -> {
                                 numberedCounter = 0
-                                textParts.add(block.content)
+                                textParts.add(blockText)
                             }
                             com.example.data.model.BlockType.IMAGE -> attachments.add(Triple("image", block.content, ""))
                             com.example.data.model.BlockType.VIDEO -> {

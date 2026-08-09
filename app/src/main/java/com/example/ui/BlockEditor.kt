@@ -18,7 +18,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.HorizontalDivider
@@ -69,6 +73,7 @@ fun BlockEditor(
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
+    onMoveBlockTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
@@ -113,6 +118,20 @@ fun BlockEditor(
                     onActiveBlockChange(tentativeIndex)
                 }
 
+                fun insertBelow(index: Int) {
+                    val newBlocks = blocks.toMutableList()
+                    newBlocks.add(index + 1, DataBlock(type = BlockType.TEXT))
+                    onBlocksChange(newBlocks)
+                    onActiveBlockChange(index + 1)
+                }
+
+                fun duplicateBlock(index: Int) {
+                    val newBlocks = blocks.toMutableList()
+                    newBlocks.add(index + 1, blocks[index].copy())
+                    onBlocksChange(newBlocks)
+                    onActiveBlockChange(index + 1)
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -152,6 +171,9 @@ fun BlockEditor(
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
                         noteTitleById = noteTitleById,
+                        onInsertBelow = ::insertBelow,
+                        onDuplicate = ::duplicateBlock,
+                        onMoveTo = onMoveBlockTo,
                         onEditPageLink = onEditPageLink,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
@@ -174,11 +196,8 @@ fun BlockEditor(
                                 onBlocksChange(newBlocks)
                                 onActiveBlockChange(index)
                             } else {
-                                val isCode = block.type == BlockType.CODE_BLOCK
-                                val beforeContent = if (isCode) RichTextConverter.segmentsToPlainText(before) else RichTextConverter.segmentsToMarkup(before)
-                                val afterContent = if (isCode) RichTextConverter.segmentsToPlainText(after) else RichTextConverter.segmentsToMarkup(after)
                                 newBlocks[index] = block.copy(
-                                    content = beforeContent,
+                                    content = "",
                                     richTextJson = TextSegment.serialize(before)
                                 )
                                 val splitType = if (block.type.name.startsWith("HEADING")) BlockType.TEXT else block.type
@@ -186,7 +205,7 @@ fun BlockEditor(
                                     index + 1,
                                     DataBlock(
                                         type = splitType,
-                                        content = afterContent,
+                                        content = "",
                                         richTextJson = TextSegment.serialize(after)
                                     )
                                 )
@@ -361,6 +380,9 @@ private fun BlockRow(
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
+    onInsertBelow: (Int) -> Unit = {},
+    onDuplicate: (Int) -> Unit = {},
+    onMoveTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
@@ -404,7 +426,7 @@ private fun BlockRow(
             BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT -> {
                 if (index == activeBlockIndex) {
                     val editorSegments = if (block.type == BlockType.CODE_BLOCK) {
-                        listOf(TextSegment(text = block.content))
+                        block.segments() ?: listOf(TextSegment(text = block.content))
                     } else {
                         block.ensureSegments()
                     }
@@ -412,10 +434,9 @@ private fun BlockRow(
                         segments = editorSegments,
                         blockType = block.type,
                         onChange = { newSegs ->
-                            val isCode = block.type == BlockType.CODE_BLOCK
                             onChange(
                                 block.copy(
-                                    content = if (isCode) RichTextConverter.segmentsToPlainText(newSegs) else RichTextConverter.segmentsToMarkup(newSegs),
+                                    content = "",
                                     richTextJson = TextSegment.serialize(newSegs)
                                 )
                             )
@@ -440,7 +461,11 @@ private fun BlockRow(
                     )
                 } else {
                     ReadOnlyTextBlock(
-                        rawText = block.content,
+                        segments = if (block.type == BlockType.CODE_BLOCK) {
+                            block.segments() ?: listOf(TextSegment(text = block.content))
+                        } else {
+                            block.ensureSegments()
+                        },
                         blockType = block.type,
                         numberIndex = numberIndex,
                         onActivate = onTapToEdit,
@@ -460,6 +485,9 @@ private fun BlockRow(
                     },
                     onFocusChange = { if (it) onActivate() },
                     onDeleteBlock = onDeleteBlock,
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
                     onDragTableStart = onDragHandleStart,
                     onDragTableBy = onDragHandleBy,
                     onDragTableEnd = onDragHandleEnd,
@@ -469,18 +497,26 @@ private fun BlockRow(
             }
             BlockType.CHECKLIST_ITEM -> {
                 val checked = block.meta["checked"] == "true"
+                val itemSegments = block.ensureSegments()
                 EditableChecklistBlock(
-                    itemText = block.content,
+                    itemText = RichTextConverter.segmentsToPlainText(itemSegments),
                     isChecked = checked,
                     globalIndex = index,
-                    onChange = { onChange(block.copy(content = it)) },
+                    onChange = { newText ->
+                        onChange(
+                            block.copy(
+                                content = "",
+                                richTextJson = TextSegment.serialize(listOf(TextSegment(text = newText)))
+                            )
+                        )
+                    },
                     onToggle = {
                         onChange(block.copy(meta = mapOf("checked" to (!checked).toString())))
                     },
                     onFocusChange = { if (it) onActivate() },
                     onCursorChange = onCursorChange,
                     onSplit = { before, after ->
-                        onSplit(RichTextConverter.markupToSegments(before), RichTextConverter.markupToSegments(after))
+                        onSplit(listOf(TextSegment(text = before)), listOf(TextSegment(text = after)))
                     },
                     onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     requestFocus = requestFocus,
@@ -488,11 +524,18 @@ private fun BlockRow(
                 )
             }
             BlockType.COLLAPSIBLE -> {
+                val collapsibleContent = RichTextConverter.segmentsToMarkup(block.ensureSegments())
                 EditableCollapsibleBlock(
                     summary = block.meta["summary"] ?: "",
-                    content = block.content,
+                    content = collapsibleContent,
                     onChange = { newSummary, newContent ->
-                        onChange(block.copy(content = newContent, meta = block.meta + ("summary" to newSummary)))
+                        onChange(
+                            block.copy(
+                                content = "",
+                                richTextJson = TextSegment.serialize(RichTextConverter.markupToSegments(newContent)),
+                                meta = block.meta + ("summary" to newSummary)
+                            )
+                        )
                     },
                     onSplitSummary = onSplitCollapsibleSummary,
                     onFocusChange = { if (it) onActivate() },
@@ -615,13 +658,56 @@ private fun BlockRow(
             }
             else -> {
                 val renderingBlock = block.toRenderingBlock()
+                var showBlockOptions by remember { mutableStateOf(false) }
                 NoteContentBlockCard(
                     block = renderingBlock,
                     noteId = 0,
                     onDeleteBlock = { onDelete() },
                     onUrlClicked = onUrlClicked,
+                    onOpenBlockMore = { showBlockOptions = true },
                     modifier = Modifier.weight(1f)
                 )
+                if (showBlockOptions) {
+                    BlockOptionsSheet(
+                        title = block.type.displayName,
+                        onDismiss = { showBlockOptions = false },
+                        actions = listOf(
+                            BlockSheetAction(
+                                label = stringResource(R.string.block_insert_below),
+                                icon = Icons.Default.ArrowDownward,
+                                onClick = {
+                                    showBlockOptions = false
+                                    onInsertBelow(index)
+                                }
+                            ),
+                            BlockSheetAction(
+                                label = stringResource(R.string.block_duplicate),
+                                icon = Icons.Default.ContentCopy,
+                                onClick = {
+                                    showBlockOptions = false
+                                    onDuplicate(index)
+                                }
+                            ),
+                            BlockSheetAction(
+                                label = stringResource(R.string.block_move_to),
+                                icon = Icons.AutoMirrored.Filled.DriveFileMove,
+                                onClick = {
+                                    showBlockOptions = false
+                                    onMoveTo(index)
+                                }
+                            ),
+                            BlockSheetAction(
+                                label = stringResource(R.string.btn_delete),
+                                icon = Icons.Default.Delete,
+                                danger = true,
+                                onClick = {
+                                    showBlockOptions = false
+                                    onDelete()
+                                }
+                            )
+                        )
+                    )
+                }
             }
         }
     }
@@ -697,9 +783,15 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
             cellAlignment = emptyList()
         )
         BlockType.HORIZONTAL_RULE -> NoteContentBlock.HorizontalRuleBlock
-        BlockType.COLLAPSIBLE -> NoteContentBlock.CollapsibleBlock(summary = meta["summary"] ?: "", content = content)
+        BlockType.COLLAPSIBLE -> NoteContentBlock.CollapsibleBlock(
+            summary = meta["summary"] ?: "",
+            content = com.example.util.RichTextConverter.segmentsToMarkup(ensureSegments())
+        )
         else -> {
-            val parseResult = com.example.util.RichTextParser.parseWithMapping(content, hideTags = true)
+            val parseResult = com.example.util.RichTextParser.parseWithMapping(
+                com.example.util.RichTextConverter.segmentsToMarkup(ensureSegments()),
+                hideTags = true
+            )
             NoteContentBlock.TextBlock(parseResult = parseResult, rawStart = 0)
         }
     }

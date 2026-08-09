@@ -16,7 +16,7 @@ import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.cleanedTags
 import com.example.util.Exporter
-import com.example.util.RichTextParser
+import com.example.util.RichTextConverter
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -81,7 +81,7 @@ class PdfExporter : Exporter {
                 color = Color.BLACK; textSize = 13f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL); isAntiAlias = true
             }
             val maxWidth = (595 - (margin * 2)).toInt()
-            val plainContent = RichTextParser.stripTags(dec.content)
+            val plainContent = RichTextConverter.contentToPlainText(dec.content)
             val staticLayout = StaticLayout.Builder.obtain(plainContent, 0, plainContent.length, contentPaint, maxWidth)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(2f, 1.1f).build()
             canvas.save(); canvas.translate(margin, 210f); staticLayout.draw(canvas); canvas.restore()
@@ -140,7 +140,7 @@ class PdfExporter : Exporter {
                 val contentPaint = TextPaint().apply {
                     color = Color.BLACK; textSize = 11f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL); isAntiAlias = true
                 }
-                val plainContent = RichTextParser.stripTags(dec.content)
+                val plainContent = RichTextConverter.contentToPlainText(dec.content)
                 val contentLayout = StaticLayout.Builder.obtain(plainContent, 0, plainContent.length, contentPaint, drawableWidth)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(2f, 1.1f).build()
                 val totalLines = contentLayout.lineCount

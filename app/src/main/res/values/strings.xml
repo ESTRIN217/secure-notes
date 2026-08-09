@@ -342,6 +342,22 @@
     <string name="page_block_upload">Upload</string>
     <string name="page_block_upload_image">Upload an image</string>
     <string name="page_block_paste_link">Paste a link</string>
+    <string name="block_insert_below">Insert below</string>
+    <string name="block_duplicate">Duplicate</string>
+    <string name="block_move_to">Move to</string>
+    <string name="block_header_row">Header row</string>
+    <string name="block_header_column">Header column</string>
+    <string name="block_fit_to_width">Fit to width</string>
+    <string name="block_fit_to_content">Fit to content</string>
+    <string name="block_insert_row_above">Insert row above</string>
+    <string name="block_insert_row_below">Insert row below</string>
+    <string name="block_delete_row">Delete row</string>
+    <string name="block_insert_column_before">Insert column before</string>
+    <string name="block_insert_column_after">Insert column after</string>
+    <string name="block_delete_column">Delete column</string>
+    <string name="block_table_color">Table color</string>
+    <string name="toast_block_moved">Block moved to %1$s</string>
+    <string name="cd_block_more">More block options</string>
     <string name="page_block_link_hint">Image URL (https://…)</string>
     <string name="page_block_next">Next</string>
 

@@ -21,15 +21,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ViewColumn
+import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +62,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -65,6 +71,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.R
 import com.example.data.model.TableData
 import kotlin.math.roundToInt
 
@@ -126,6 +133,7 @@ class TableBlockState(initialData: TableData) {
     var weights by mutableStateOf(initialData.normalizedWeights().toMutableList())
     var bgColorHex by mutableStateOf(initialData.bgColorHex?.hex())
     var showHeader by mutableStateOf(initialData.showHeader)
+    var showHeaderColumn by mutableStateOf(initialData.showHeaderColumn)
     private var focusedCell by mutableStateOf<FocusedCell?>(null)
     var selectedRow by mutableStateOf<Int?>(null)
     var showRowMenu by mutableStateOf(false)
@@ -150,13 +158,15 @@ class TableBlockState(initialData: TableData) {
             current.rows == data.rows &&
             current.columnWeights == data.columnWeights &&
             current.bgColorHex == data.bgColorHex &&
-            current.showHeader == data.showHeader
+            current.showHeader == data.showHeader &&
+            current.showHeaderColumn == data.showHeaderColumn
         ) return
         headers = data.headers.toMutableList()
         rows = data.rows.map { it.toMutableList() }.toMutableList()
         weights = data.normalizedWeights().toMutableList()
         bgColorHex = data.bgColorHex?.hex()
         showHeader = data.showHeader
+        showHeaderColumn = data.showHeaderColumn
     }
 
     // --- Derivados (solo lectura) ---
@@ -180,7 +190,8 @@ class TableBlockState(initialData: TableData) {
         rows = rows.map { it.toList() },
         columnWeights = weights.toList(),
         bgColorHex = bgColorHex,
-        showHeader = showHeader
+        showHeader = showHeader,
+        showHeaderColumn = showHeaderColumn
     )
 
     private fun notifyChange() {
@@ -354,6 +365,11 @@ class TableBlockState(initialData: TableData) {
         notifyChange()
     }
 
+    fun toggleHeaderColumn() {
+        showHeaderColumn = !showHeaderColumn
+        notifyChange()
+    }
+
     fun setBgColor(hex: String?) {
         bgColorHex = hex?.hex()
         notifyChange()
@@ -394,6 +410,9 @@ fun EditableTableBlock(
     onChange: (TableData) -> Unit,
     onFocusChange: (Boolean) -> Unit = {},
     onDeleteBlock: () -> Unit = {},
+    onInsertBelow: () -> Unit = {},
+    onDuplicate: () -> Unit = {},
+    onMoveTo: () -> Unit = {},
     onDragTableStart: () -> Unit = {},
     onDragTableBy: (Float) -> Unit = {},
     onDragTableEnd: () -> Unit = {},
@@ -401,6 +420,7 @@ fun EditableTableBlock(
     modifier: Modifier = Modifier
 ) {
     val state = rememberTableBlockState(tableData, onChange)
+    var showMoreMenu by remember { mutableStateOf(false) }
     val tableBg = parseHex(state.bgColorHex) ?: Color.Transparent
     val outline = MaterialTheme.colorScheme.outlineVariant
     val primary = MaterialTheme.colorScheme.primary
@@ -482,6 +502,7 @@ fun EditableTableBlock(
                             rowIndex = rowIndex,
                             columnCount = state.columnCount,
                             primary = primary,
+                            showHeaderColumn = state.showHeaderColumn,
                             focusedRow = state.focusedRow,
                             focusedCol = state.focusedCol,
                             selectedRow = state.selectedRow,
@@ -522,26 +543,37 @@ fun EditableTableBlock(
             if (state.hasFocus) {
                 FloatingToolbar(
                     modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
-                    canDeleteColumn = state.columnCount > 1,
-                    canDeleteRow = state.rows.size > 1,
-                    hasRow = state.activeRow != null,
-                    hasColumn = state.activeCol != null,
-                    showHeader = state.showHeader,
-                    onToggleHeader = { state.toggleHeader() },
-                    onFitToScreen = { state.fitToScreen() },
-                    onFitToContent = { state.fitToContent() },
-                    onDeleteRow = { state.activeRow?.let { state.deleteRow(it) } },
-                    onDeleteColumn = { state.activeCol?.let { state.deleteColumn(it) } },
-                    onInsertRowAbove = { state.activeRow?.let { state.insertRowAbove(it) } },
-                    onInsertRowBelow = { state.activeRow?.let { state.insertRowBelow(it) } },
-                    onInsertColumnBefore = { state.activeCol?.let { state.insertColumnLeft(it) } },
-                    onInsertColumnAfter = { state.activeCol?.let { state.insertColumnRight(it) } },
-                    onDeleteTable = onDeleteBlock,
-                    onSelectBg = { state.setBgColor(it) },
+                    onOpenMoreMenu = { showMoreMenu = true },
                     onDragTableStart = onDragTableStart,
                     onDragTableBy = onDragTableBy,
                     onDragTableEnd = onDragTableEnd,
                     onDragTableCancel = onDragTableCancel
+                )
+            }
+
+            if (showMoreMenu) {
+                TableBlockOptionsSheet(
+                    state = state,
+                    canDeleteColumn = state.columnCount > 1,
+                    canDeleteRow = state.rows.size > 1,
+                    onInsertBelow = {
+                        showMoreMenu = false
+                        onInsertBelow()
+                    },
+                    onDuplicate = {
+                        showMoreMenu = false
+                        onDuplicate()
+                    },
+                    onMoveTo = {
+                        showMoreMenu = false
+                        onMoveTo()
+                    },
+                    onDeleteTable = {
+                        showMoreMenu = false
+                        onDeleteBlock()
+                    },
+                    onSelectBg = { state.setBgColor(it) },
+                    onDismiss = { showMoreMenu = false }
                 )
             }
         }
@@ -721,6 +753,7 @@ private fun TableRow(
     rowIndex: Int,
     columnCount: Int,
     primary: Color,
+    showHeaderColumn: Boolean,
     focusedRow: Int?,
     focusedCol: Int?,
     selectedRow: Int?,
@@ -787,6 +820,7 @@ private fun TableRow(
                 cell = cell,
                 isFocused = cellFocused,
                 inActiveCol = inActiveCol,
+                isHeaderCol = showHeaderColumn && col == 0,
                 primary = primary,
                 onValueChange = { onCellValueChange(col, it) },
                 onFocusChange = { onCellSelect(col, it) },
@@ -861,6 +895,7 @@ private fun TableCell(
     cell: String,
     isFocused: Boolean,
     inActiveCol: Boolean,
+    isHeaderCol: Boolean,
     primary: Color,
     onValueChange: (String) -> Unit,
     onFocusChange: (Boolean) -> Unit,
@@ -883,7 +918,11 @@ private fun TableCell(
             color = if (isHighlighted) TableBorderActive else TableBorderIdle
         )
         .background(
-            if (isHighlighted) TableHighlightBg else Color.Transparent
+            when {
+                isHeaderCol -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                isHighlighted -> TableHighlightBg
+                else -> Color.Transparent
+            }
         )
     if (link) {
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))
@@ -904,7 +943,11 @@ private fun TableCell(
                 },
             textStyle = MaterialTheme.typography.bodyMedium.copy(
                 color = if (link) primary else MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (link) FontWeight.Medium else FontWeight.Normal
+                fontWeight = when {
+                    isHeaderCol -> FontWeight.Bold
+                    link -> FontWeight.Medium
+                    else -> FontWeight.Normal
+                }
             ),
             singleLine = true
         )
@@ -1009,28 +1052,12 @@ fun NotionSelectionHandle(
 @Composable
 private fun FloatingToolbar(
     modifier: Modifier = Modifier,
-    canDeleteColumn: Boolean,
-    canDeleteRow: Boolean,
-    hasRow: Boolean,
-    hasColumn: Boolean,
-    showHeader: Boolean,
-    onToggleHeader: () -> Unit,
-    onFitToScreen: () -> Unit,
-    onFitToContent: () -> Unit,
-    onDeleteRow: () -> Unit,
-    onDeleteColumn: () -> Unit,
-    onInsertRowAbove: () -> Unit,
-    onInsertRowBelow: () -> Unit,
-    onInsertColumnBefore: () -> Unit,
-    onInsertColumnAfter: () -> Unit,
-    onDeleteTable: () -> Unit,
-    onSelectBg: (String?) -> Unit,
+    onOpenMoreMenu: () -> Unit,
     onDragTableStart: () -> Unit,
     onDragTableBy: (Float) -> Unit,
     onDragTableEnd: () -> Unit,
     onDragTableCancel: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
@@ -1061,44 +1088,127 @@ private fun FloatingToolbar(
                     onClick = {}
                 )
             }
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More", tint = MaterialTheme.colorScheme.primary)
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(text = { Text("Insert row above") }, onClick = { expanded = false; onInsertRowAbove() }, enabled = hasRow)
-                    DropdownMenuItem(text = { Text("Insert row below") }, onClick = { expanded = false; onInsertRowBelow() }, enabled = hasRow)
-                    DropdownMenuItem(text = { Text("Delete row") }, onClick = { expanded = false; onDeleteRow() }, enabled = hasRow && canDeleteRow)
-                    DropdownMenuItem(text = { Text("Insert column before") }, onClick = { expanded = false; onInsertColumnBefore() }, enabled = hasColumn)
-                    DropdownMenuItem(text = { Text("Insert column after") }, onClick = { expanded = false; onInsertColumnAfter() }, enabled = hasColumn)
-                    DropdownMenuItem(text = { Text("Delete column") }, onClick = { expanded = false; onDeleteColumn() }, enabled = hasColumn && canDeleteColumn)
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
-                        text = { Text("Fit to screen") },
-                        onClick = { expanded = false; onFitToScreen() }
-                    )
-                    DropdownMenuItem(
-                        leadingIcon = { Icon(Icons.Default.FitScreen, null) },
-                        text = { Text("Fit to content") },
-                        onClick = { expanded = false; onFitToContent() }
-                    )
-                    DropdownMenuItem(
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
-                        text = { Text(if (showHeader) "Header row: on" else "Header row: off") },
-                        onClick = { expanded = false; onToggleHeader() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Table color") },
-                        onClick = { },
-                        enabled = false
-                    )
-                    BackgroundColorRow(onSelect = onSelectBg)
-                    HorizontalDivider()
-                    DropdownMenuItem(text = { Text("Delete table") }, onClick = { expanded = false; onDeleteTable() })
-                }
+            IconButton(onClick = onOpenMoreMenu) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = MaterialTheme.colorScheme.primary)
             }
         }
+    }
+}
+
+@Composable
+private fun TableBlockOptionsSheet(
+    state: TableBlockState,
+    canDeleteColumn: Boolean,
+    canDeleteRow: Boolean,
+    onInsertBelow: () -> Unit,
+    onDuplicate: () -> Unit,
+    onMoveTo: () -> Unit,
+    onDeleteTable: () -> Unit,
+    onSelectBg: (String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val hasRow = state.activeRow != null
+    val hasColumn = state.activeCol != null
+    val rowActions = listOf(
+        BlockSheetAction(
+            label = context.getString(R.string.block_insert_row_above),
+            icon = Icons.Default.Add,
+            enabled = hasRow,
+            onClick = { state.activeRow?.let { state.insertRowAbove(it) } }
+        ),
+        BlockSheetAction(
+            label = context.getString(R.string.block_insert_row_below),
+            icon = Icons.Default.Add,
+            enabled = hasRow,
+            onClick = { state.activeRow?.let { state.insertRowBelow(it) } }
+        ),
+        BlockSheetAction(
+            label = context.getString(R.string.block_delete_row),
+            icon = Icons.Default.Delete,
+            enabled = hasRow && canDeleteRow,
+            onClick = { state.activeRow?.let { state.deleteRow(it) } }
+        )
+    )
+    val columnActions = listOf(
+        BlockSheetAction(
+            label = context.getString(R.string.block_insert_column_before),
+            icon = Icons.Default.Add,
+            enabled = hasColumn,
+            onClick = { state.activeCol?.let { state.insertColumnLeft(it) } }
+        ),
+        BlockSheetAction(
+            label = context.getString(R.string.block_insert_column_after),
+            icon = Icons.Default.Add,
+            enabled = hasColumn,
+            onClick = { state.activeCol?.let { state.insertColumnRight(it) } }
+        ),
+        BlockSheetAction(
+            label = context.getString(R.string.block_delete_column),
+            icon = Icons.Default.Delete,
+            enabled = hasColumn && canDeleteColumn,
+            onClick = { state.activeCol?.let { state.deleteColumn(it) } }
+        )
+    )
+
+    BlockOptionsSheet(
+        title = context.getString(R.string.block_table),
+        onDismiss = onDismiss,
+        actions = listOf(
+            BlockSheetAction(
+                label = context.getString(R.string.block_fit_to_width),
+                icon = Icons.Default.FitScreen,
+                onClick = { state.fitToScreen() }
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.block_fit_to_content),
+                icon = Icons.Default.AspectRatio,
+                onClick = { state.fitToContent() }
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.block_header_row),
+                icon = Icons.Default.ViewDay,
+                toggle = state.showHeader,
+                onClick = { state.toggleHeader() }
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.block_header_column),
+                icon = Icons.Default.ViewColumn,
+                toggle = state.showHeaderColumn,
+                onClick = { state.toggleHeaderColumn() }
+            )
+        ) + rowActions + columnActions + listOf(
+            BlockSheetAction(
+                label = context.getString(R.string.block_insert_below),
+                icon = Icons.Default.ArrowDownward,
+                onClick = onInsertBelow
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.block_duplicate),
+                icon = Icons.Default.ContentCopy,
+                onClick = onDuplicate
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.block_move_to),
+                icon = Icons.AutoMirrored.Filled.DriveFileMove,
+                onClick = onMoveTo
+            ),
+            BlockSheetAction(
+                label = context.getString(R.string.btn_delete),
+                icon = Icons.Default.Delete,
+                danger = true,
+                onClick = onDeleteTable
+            )
+        )
+    ) {
+        BlockOptionsSheetDivider()
+        Text(
+            text = context.getString(R.string.block_table_color),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp)
+        )
+        BackgroundColorRow(onSelect = onSelectBg)
     }
 }
 

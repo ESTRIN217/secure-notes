@@ -116,9 +116,9 @@ class AiViewModel(
                 val allNotes = kotlinx.coroutines.runBlocking {
                     withContext(Dispatchers.IO) { noteDao.getAllNotes() }
                 }
-                val matching = allNotes.filter { !it.isDeleted && (it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true)) }
+                val matching = allNotes.filter { !it.isDeleted && (it.title.contains(query, ignoreCase = true) || com.example.util.RichTextConverter.contentToPlainText(it.content).contains(query, ignoreCase = true)) }
                 matching.take(maxResults).joinToString("\n") { note ->
-                    val content = if (note.isEncrypted) "[Encrypted]" else note.content.take(200)
+                    val content = if (note.isEncrypted) "[Encrypted]" else com.example.util.RichTextConverter.contentToPlainText(note.content).take(200)
                     "[${note.id}] ${note.title}: $content"
                 }.ifEmpty { "No notes found for: $query" }
             }
@@ -135,10 +135,12 @@ class AiViewModel(
                     val password = _masterPassword.value ?: ""
                     if (password.isEmpty()) return@register "Note #$noteId is encrypted. Unlock to read."
                     val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv).getOrDefault("")
-                    val decContent = cipherService.decrypt(note.content, password, note.salt, note.iv).getOrDefault("")
+                    val decContent = com.example.util.RichTextConverter.contentToPlainText(
+                        cipherService.decrypt(note.content, password, note.salt, note.iv).getOrDefault("")
+                    )
                     "Title: $decTitle\n\n$decContent"
                 } else {
-                    "Title: ${note.title}\n\n${note.content}"
+                    "Title: ${note.title}\n\n${com.example.util.RichTextConverter.contentToPlainText(note.content)}"
                 }
             }
         )

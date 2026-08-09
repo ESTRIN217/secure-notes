@@ -9,6 +9,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
+import com.example.data.model.BlockType
+import com.example.data.model.DataBlock
+import com.example.data.model.TableData
 import com.example.data.model.TextBaseline
 import com.example.data.model.TextSegment
 
@@ -476,6 +479,150 @@ object RichTextConverter {
 
     fun segmentsToPlainText(segments: List<TextSegment>): String =
         segments.joinToString("") { it.plainText }
+
+    fun blocksToPlainText(blocks: List<DataBlock>): String {
+        val sb = StringBuilder()
+        var numberedCounter = 0
+        for (block in blocks) {
+            val text = segmentsToPlainText(block.ensureSegments())
+            when (block.type) {
+                BlockType.TEXT, BlockType.CODE_BLOCK, BlockType.HEADING1, BlockType.HEADING2,
+                BlockType.HEADING3, BlockType.HEADING4, BlockType.CALLOUT -> {
+                    numberedCounter = 0
+                    sb.append(text)
+                }
+                BlockType.BULLET_LIST -> {
+                    numberedCounter = 0
+                    sb.append("• ").append(text)
+                }
+                BlockType.NUMBERED_LIST -> {
+                    numberedCounter++
+                    sb.append("$numberedCounter. ").append(text)
+                }
+                BlockType.CHECKLIST_ITEM -> {
+                    numberedCounter = 0
+                    sb.append(if (block.meta["checked"] == "true") "☑ " else "☐ ").append(text)
+                }
+                BlockType.QUOTE -> {
+                    numberedCounter = 0
+                    sb.append("▎ ").append(text)
+                }
+                BlockType.HORIZONTAL_RULE -> {
+                    numberedCounter = 0
+                    sb.append("───")
+                }
+                else -> numberedCounter = 0
+            }
+            if (block.type != BlockType.HORIZONTAL_RULE) sb.append('\n')
+        }
+        return sb.toString().trimEnd('\n')
+    }
+
+    fun blocksToMarkdown(blocks: List<DataBlock>): String {
+        val sb = StringBuilder()
+        for (block in blocks) {
+            val segments = block.ensureSegments()
+            when (block.type) {
+                BlockType.TEXT, BlockType.CALLOUT -> sb.append(segmentsToMarkdown(segments))
+                BlockType.HEADING1 -> sb.append("# ").append(segmentsToMarkdown(segments))
+                BlockType.HEADING2 -> sb.append("## ").append(segmentsToMarkdown(segments))
+                BlockType.HEADING3 -> sb.append("### ").append(segmentsToMarkdown(segments))
+                BlockType.HEADING4 -> sb.append("#### ").append(segmentsToMarkdown(segments))
+                BlockType.BULLET_LIST -> sb.append("- ").append(segmentsToMarkdown(segments))
+                BlockType.NUMBERED_LIST -> sb.append("1. ").append(segmentsToMarkdown(segments))
+                BlockType.CHECKLIST_ITEM -> {
+                    val mark = if (block.meta["checked"] == "true") "x" else " "
+                    sb.append("- [").append(mark).append("] ").append(segmentsToMarkdown(segments))
+                }
+                BlockType.QUOTE -> sb.append("> ").append(segmentsToMarkdown(segments))
+                BlockType.CODE_BLOCK -> sb.append("```\n").append(segmentsToPlainText(segments)).append("\n```")
+                BlockType.HORIZONTAL_RULE -> sb.append("\n---\n")
+                BlockType.TABLE -> {
+                    TableData.fromJson(block.meta["table"])?.let { data ->
+                        sb.append(segmentsTableToMarkdown(data))
+                    }
+                }
+                else -> {}
+            }
+            sb.append('\n')
+        }
+        return sb.toString().trim('\n')
+    }
+
+    fun blocksToHtml(blocks: List<DataBlock>): String {
+        val sb = StringBuilder()
+        for (block in blocks) {
+            val segments = block.ensureSegments()
+            when (block.type) {
+                BlockType.TEXT -> sb.append("<p>").append(segmentsToHtml(segments)).append("</p>")
+                BlockType.HEADING1 -> sb.append("<h1>").append(segmentsToHtml(segments)).append("</h1>")
+                BlockType.HEADING2 -> sb.append("<h2>").append(segmentsToHtml(segments)).append("</h2>")
+                BlockType.HEADING3 -> sb.append("<h3>").append(segmentsToHtml(segments)).append("</h3>")
+                BlockType.HEADING4 -> sb.append("<h4>").append(segmentsToHtml(segments)).append("</h4>")
+                BlockType.BULLET_LIST -> sb.append("<ul><li>").append(segmentsToHtml(segments)).append("</li></ul>")
+                BlockType.NUMBERED_LIST -> sb.append("<ol><li>").append(segmentsToHtml(segments)).append("</li></ol>")
+                BlockType.CHECKLIST_ITEM -> {
+                    val mark = if (block.meta["checked"] == "true") "checked" else ""
+                    sb.append("<ul class=\"checklist\"><li data-checked=\"").append(mark).append("\">")
+                        .append(segmentsToHtml(segments)).append("</li></ul>")
+                }
+                BlockType.QUOTE -> sb.append("<blockquote>").append(segmentsToHtml(segments)).append("</blockquote>")
+                BlockType.CALLOUT -> sb.append("<p class=\"callout\">💡 ").append(segmentsToHtml(segments)).append("</p>")
+                BlockType.CODE_BLOCK -> sb.append("<pre><code>").append(htmlEscape(segmentsToPlainText(segments))).append("</code></pre>")
+                BlockType.HORIZONTAL_RULE -> sb.append("<hr>")
+                BlockType.TABLE -> {
+                    TableData.fromJson(block.meta["table"])?.let { data ->
+                        sb.append(data.toHtml())
+                    }
+                }
+                BlockType.COLLAPSIBLE -> {
+                    sb.append("<details><summary>").append(htmlEscape(block.meta["summary"] ?: "")).append("</summary>")
+                        .append(blocksToHtml(listOf(block.copy(type = BlockType.TEXT)))).append("</details>")
+                }
+                else -> {}
+            }
+            sb.append('\n')
+        }
+        return sb.toString()
+    }
+
+    fun contentToPlainText(raw: String): String {
+        val blocks = contentToBlocks(raw)
+        if (blocks != null) return blocksToPlainText(blocks)
+        return segmentsToPlainText(markupToSegments(raw))
+    }
+
+    fun contentToMarkdown(raw: String): String {
+        val blocks = contentToBlocks(raw)
+        if (blocks != null) return blocksToMarkdown(blocks)
+        return segmentsToMarkdown(markupToSegments(raw))
+    }
+
+    fun contentToHtml(raw: String): String {
+        val blocks = contentToBlocks(raw)
+        if (blocks != null) return blocksToHtml(blocks)
+        return segmentsToHtml(markupToSegments(raw))
+    }
+
+    /** Deserializa bloques ignorando el sufijo `---Attachments---`. */
+    fun contentToBlocks(raw: String): List<DataBlock>? {
+        val textPart = com.example.data.model.parseNoteContentAndAttachments(raw).first
+        return DataBlock.deserialize(textPart)
+    }
+
+    private fun segmentsTableToMarkdown(data: TableData): String {
+        val sb = StringBuilder()
+        val headers = data.headers
+        val rows = data.rows
+        if (headers.isNotEmpty()) {
+            sb.append("| ").append(headers.joinToString(" | ")).append(" |\n")
+            sb.append("| ").append(List(headers.size) { "---" }.joinToString(" | ")).append(" |\n")
+        }
+        rows.forEach { row ->
+            sb.append("| ").append(row.joinToString(" | ")).append(" |\n")
+        }
+        return sb.toString()
+    }
 
     fun segmentsToMarkdown(segments: List<TextSegment>): String {
         val sb = StringBuilder()

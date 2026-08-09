@@ -8,7 +8,7 @@ import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.data.model.cleanedTags
 import com.example.util.Exporter
-import com.example.util.RichTextParser
+import com.example.util.RichTextConverter
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -31,7 +31,7 @@ class TxtExporter : Exporter {
                     sb.append(context.getString(R.string.export_label_tags, tags.joinToString(", "))).append("\n")
                 }
                 sb.append("\n")
-                sb.append(RichTextParser.stripTags(dec.content)).append("\n\n")
+                sb.append(RichTextConverter.contentToPlainText(dec.content)).append("\n\n")
                 if (index < notes.size - 1) {
                     sb.append("----------------------------\n\n")
                 }

@@ -11,7 +11,8 @@ data class BlockRenderContext(
     val onNavigateToDrawing: (Int, String?) -> Unit,
     val onUrlClicked: (url: String, rawOffset: Int) -> Unit,
     val onEditTable: ((NoteContentBlock.TableBlock) -> Unit)? = null,
-    val onChecklistToggle: ((globalIndex: Int, isChecked: Boolean) -> Unit)? = null
+    val onChecklistToggle: ((globalIndex: Int, isChecked: Boolean) -> Unit)? = null,
+    val onOpenBlockMore: ((NoteContentBlock) -> Unit)? = null
 )
 
 sealed interface NoteContentBlock {

@@ -16,6 +16,7 @@ fun NoteContentBlockCard(
     onNavigateToDrawing: ((Int, String?) -> Unit)? = null,
     onUrlClicked: ((url: String, rawOffset: Int) -> Unit)? = null,
     onChecklistToggle: ((globalIndex: Int, isChecked: Boolean) -> Unit)? = null,
+    onOpenBlockMore: ((NoteContentBlock) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = BlockRenderContext(
@@ -25,7 +26,8 @@ fun NoteContentBlockCard(
         onNavigateToMediaViewer = onNavigateToMediaViewer ?: { _, _ -> },
         onNavigateToDrawing = onNavigateToDrawing ?: { _, _ -> },
         onUrlClicked = onUrlClicked ?: { _, _ -> },
-        onChecklistToggle = onChecklistToggle ?: { _, _ -> }
+        onChecklistToggle = onChecklistToggle ?: { _, _ -> },
+        onOpenBlockMore = onOpenBlockMore
     )
     block.RenderContent(context, modifier)
 }
