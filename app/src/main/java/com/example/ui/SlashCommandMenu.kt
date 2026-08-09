@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BorderAll
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
@@ -48,7 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.BlockType
 
-enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE, LINK_PAGE, LINK_INLINE, EQUATION_DIALOG }
+enum class BlockAction { NONE, URL_DIALOG, TABLE_DIALOG, IMAGE_DIALOG, VIDEO_DIALOG, VOICE_FILE_DIALOG, INSERT_PAGE, LINK_PAGE, LINK_INLINE, EQUATION_DIALOG, DRAWING_DIALOG }
 
 enum class BlockSection { BASIC, BLOCKS, LINK, MEDIA }
 
@@ -87,7 +88,8 @@ val BLOCK_COMMANDS: List<BlockCommand> = listOf(
     BlockCommand(R.string.block_audio, R.string.block_audio_desc, Icons.Default.MusicNote, BlockSection.MEDIA, action = BlockAction.VOICE_FILE_DIALOG),
     BlockCommand(R.string.block_code, R.string.block_code_desc, Icons.Default.Code, BlockSection.MEDIA, BlockType.CODE_BLOCK),
     BlockCommand(R.string.block_file, R.string.block_file_desc, Icons.Default.AttachFile, BlockSection.MEDIA, action = BlockAction.VOICE_FILE_DIALOG),
-    BlockCommand(R.string.block_bookmark, R.string.block_bookmark_desc, Icons.Default.Bookmark, BlockSection.MEDIA, action = BlockAction.URL_DIALOG)
+    BlockCommand(R.string.block_bookmark, R.string.block_bookmark_desc, Icons.Default.Bookmark, BlockSection.MEDIA, action = BlockAction.URL_DIALOG),
+    BlockCommand(R.string.block_drawing, R.string.block_drawing_desc, Icons.Default.Brush, BlockSection.MEDIA, action = BlockAction.DRAWING_DIALOG)
 )
 
 @Composable

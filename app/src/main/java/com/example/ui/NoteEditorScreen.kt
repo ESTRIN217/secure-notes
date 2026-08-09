@@ -712,6 +712,46 @@ fun NoteEditorScreen(
                     )
                 }
 
+                // Self-heal: drawings saved by DrawingCanvas appear as attachments (block-JSON
+                // notes). Insert a DRAWING block for any drawing attachment not yet in blocks,
+                // at the block the user was editing when they opened the canvas.
+                val pendingDrawingIndex = viewModel.pendingDrawingInsertIndex
+                viewModel.pendingDrawingInsertIndex = null
+                val blockDrawingPaths = blocks
+                    .filter { it.type == BlockType.DRAWING }
+                    .mapNotNull { it.content }
+                    .toSet()
+                val newDrawings = attachments.filter { it.type == "drawing" && it.path !in blockDrawingPaths }
+                if (newDrawings.isNotEmpty()) {
+                    val insertAt = pendingDrawingIndex?.coerceIn(0, blocks.size) ?: blocks.size
+                    val list = blocks.toMutableList()
+                    var offset = insertAt
+                    newDrawings.forEach { drawing ->
+                        list.add(offset, DataBlock(type = BlockType.DRAWING, content = drawing.path, meta = mapOf("previewPath" to drawing.name)))
+                        offset++
+                    }
+                    blocks = list
+                    val selfHealedContent = createRawContent(DataBlock.serialize(list), attachments)
+                    viewModel.saveNoteAndGetId(
+                        id = match.note.id,
+                        title = match.title,
+                        content = selfHealedContent,
+                        isEncrypted = match.note.isEncrypted,
+                        tagsList = match.note.parseTags(),
+                        backgroundColor = match.note.backgroundColor,
+                        backgroundImagePath = match.note.backgroundImagePath,
+                        isPinned = match.note.isPinned,
+                        isFavorite = match.note.isFavorite,
+                        isArchived = match.note.isArchived,
+                        categoryId = match.note.categoryId,
+                        isDeleted = match.note.isDeleted,
+                        deletedAt = match.note.deletedAt,
+                        lastModified = match.note.lastModified,
+                        salt = match.note.salt,
+                        iv = match.note.iv
+                    )
+                }
+
                 if (blocks.isNotEmpty()) {
                     val blockPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
                     contentValue = TextFieldValue(text = blockPlain, selection = TextRange(blockPlain.length))
@@ -801,6 +841,26 @@ fun NoteEditorScreen(
         else createRawContent(jsonContent, attachments)
     }
 
+    fun openDrawingCanvas() {
+        hasNavigatingToDrawing = true
+        scope.launch {
+            val savedId = viewModel.saveNoteAndGetId(
+                id = noteId,
+                title = title.trim(),
+                content = contentForSave(),
+                isEncrypted = isEncrypted,
+                tagsList = selectedNoteTags,
+                backgroundColor = selectedBgColorId,
+                backgroundImagePath = selectedBgImagePath,
+                isPinned = isPinned,
+                isFavorite = isFavorite,
+                isArchived = isArchived
+            )
+            viewModel.pendingDrawingInsertIndex = toolbarActiveBlockIndex.coerceAtLeast(0)
+            onNavigateToDrawing(savedId, null)
+        }
+    }
+
     fun handleBlockCommand(cmd: BlockCommand) {
         showSlashMenu = false
         fun clearSlashPlaceholder() {
@@ -840,6 +900,10 @@ fun NoteEditorScreen(
             BlockAction.VOICE_FILE_DIALOG -> {
                 clearSlashPlaceholder()
                 showVoiceFileSheet = true
+            }
+            BlockAction.DRAWING_DIALOG -> {
+                clearSlashPlaceholder()
+                openDrawingCanvas()
             }
             BlockAction.INSERT_PAGE -> scope.launch {
                 syncActiveBlock()
@@ -1362,6 +1426,13 @@ fun NoteEditorScreen(
                     BlockEditor(
                         blocks = blocks,
                         onBlocksChange = { newBlocks ->
+                            val removedDrawingPaths = blocks
+                                .filter { it.type == BlockType.DRAWING && it.content != null }
+                                .mapNotNull { it.content }
+                                .filter { path -> newBlocks.none { it.type == BlockType.DRAWING && it.content == path } }
+                            if (removedDrawingPaths.isNotEmpty()) {
+                                attachments = attachments.filterNot { it.type == "drawing" && it.path in removedDrawingPaths }
+                            }
                             val newIdx = toolbarActiveBlockIndex.coerceIn(0, (newBlocks.size - 1).coerceAtLeast(0))
                             blocks = newBlocks
                             toolbarActiveBlockIndex = newIdx
@@ -1875,22 +1946,7 @@ fun NoteEditorScreen(
                         }
                     },
                     onOpenDrawing = {
-                        hasNavigatingToDrawing = true
-                        scope.launch {
-                            val savedId = viewModel.saveNoteAndGetId(
-                                id = noteId,
-                                title = title.trim(),
-                                content = contentForSave(),
-                                isEncrypted = isEncrypted,
-                                tagsList = selectedNoteTags,
-                                backgroundColor = selectedBgColorId,
-                                backgroundImagePath = selectedBgImagePath,
-                                isPinned = isPinned,
-                                isFavorite = isFavorite,
-                                isArchived = isArchived
-                            )
-                            onNavigateToDrawing(savedId, null)
-                        }
+                        openDrawingCanvas()
                     },
                     onOpenAttachments = { showVoiceFileSheet = true },
                     onOpenAi = {
@@ -1954,7 +2010,13 @@ fun NoteEditorScreen(
                         convertBlockMode = true
                         showMoreFormattingSheet = true
                     },
-                    onDeleteBlock = { deleteActiveBlock() },
+                    onDeleteBlock = {
+                        val deletedBlock = blocks.getOrNull(toolbarActiveBlockIndex)
+                        deleteActiveBlock()
+                        if (deletedBlock?.type == BlockType.DRAWING) {
+                            attachments = attachments.filterNot { it.type == "drawing" && it.path == deletedBlock.content }
+                        }
+                    },
                     onMoveBlockUp = { moveActiveBlockUp() },
                     onMoveBlockDown = { moveActiveBlockDown() }
                 )
@@ -1966,7 +2028,11 @@ fun NoteEditorScreen(
                 if (convertBlockMode) {
                     convertBlockMode = false
                     cmd.blockType?.let { type ->
+                        val oldBlock = blocks.getOrNull(toolbarActiveBlockIndex)
                         convertActiveBlock(type, cmd.meta)
+                        if (oldBlock?.type == BlockType.DRAWING && type != BlockType.DRAWING) {
+                            attachments = attachments.filterNot { it.type == "drawing" && it.path == oldBlock.content }
+                        }
                         return
                     }
                 }
@@ -2843,7 +2909,11 @@ fun NoteEditorScreen(
                     showMoveBlockPicker = false
                     moveBlockIndex = -1
                     if (idx >= 0) {
+                        val movedBlock = blocks.getOrNull(idx)
                         moveBlockToAnotherNote(idx, targetId)
+                        if (movedBlock?.type == BlockType.DRAWING) {
+                            attachments = attachments.filterNot { it.type == "drawing" && it.path == movedBlock.content }
+                        }
                     }
                 }
             )

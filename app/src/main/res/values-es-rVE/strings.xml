@@ -316,6 +316,8 @@
     <string name="block_file_desc">Adjuntar un archivo</string>
     <string name="block_bookmark">Marcador</string>
     <string name="block_bookmark_desc">Guardar un enlace</string>
+    <string name="block_drawing">Dibujo</string>
+    <string name="block_drawing_desc">Dibujar un boceto</string>
     <string name="page_block_icon">Icono de página</string>
     <string name="page_block_emoji">Emoji</string>
     <string name="page_block_icons">Iconos</string>

@@ -336,6 +336,8 @@
     <string name="block_file_desc">Attach a file</string>
     <string name="block_bookmark">Bookmark</string>
     <string name="block_bookmark_desc">Save a link</string>
+    <string name="block_drawing">Drawing</string>
+    <string name="block_drawing_desc">Draw a sketch</string>
     <string name="page_block_icon">Page icon</string>
     <string name="page_block_emoji">Emoji</string>
     <string name="page_block_icons">Icons</string>

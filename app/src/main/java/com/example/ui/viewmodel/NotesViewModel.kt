@@ -316,6 +316,10 @@ class NotesViewModel(
         _noteExternallyUpdated.tryEmit(noteId)
     }
 
+    // Set by NoteEditorScreen before navigating to DrawingCanvas (new drawing) so the
+    // drawing block is inserted back at the block the user was editing. Null = no pending.
+    var pendingDrawingInsertIndex: Int? = null
+
     fun setAutoUpdateCheck(enabled: Boolean) {
         setBooleanPref(autoUpdateCheck, AppConstants.AUTO_UPDATE_CHECK_KEY, enabled)
     }
