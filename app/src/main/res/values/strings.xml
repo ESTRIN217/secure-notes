@@ -326,6 +326,13 @@
     <string name="block_link_desc">Link to a page or URL</string>
     <string name="block_image">Image</string>
     <string name="block_image_desc">Embed image</string>
+    <string name="block_image_caption_hint">Add a caption…</string>
+    <string name="block_image_replace">Replace</string>
+    <string name="block_image_align">Alignment</string>
+    <string name="block_align_center">Center</string>
+    <string name="block_align_left">Left</string>
+    <string name="block_align_right">Right</string>
+    <string name="block_image_open">Open image</string>
     <string name="block_video">Video</string>
     <string name="block_video_desc">Embed video</string>
     <string name="block_audio">Audio</string>

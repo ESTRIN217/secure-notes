@@ -306,6 +306,13 @@
     <string name="block_link_desc">Enlace a una página o URL</string>
     <string name="block_image">Imagen</string>
     <string name="block_image_desc">Insertar imagen</string>
+    <string name="block_image_caption_hint">Añade un título…</string>
+    <string name="block_image_replace">Reemplazar</string>
+    <string name="block_image_align">Alineación</string>
+    <string name="block_align_center">Centro</string>
+    <string name="block_align_left">Izquierda</string>
+    <string name="block_align_right">Derecha</string>
+    <string name="block_image_open">Abrir imagen</string>
     <string name="block_video">Video</string>
     <string name="block_video_desc">Insertar video</string>
     <string name="block_audio">Audio</string>

@@ -33,7 +33,12 @@ sealed interface NoteContentBlock {
         val text: androidx.compose.ui.text.AnnotatedString get() = parseResult.text
     }
 
-    data class ImageBlock(val src: String, val linkUrl: String? = null) : NoteContentBlock
+    data class ImageBlock(
+        val src: String,
+        val linkUrl: String? = null,
+        val caption: String? = null,
+        val align: String? = null
+    ) : NoteContentBlock
     data class VideoBlock(val src: String) : NoteContentBlock
     data class AudioBlock(val src: String) : NoteContentBlock
     data class DrawingBlock(val jsonPath: String, val previewPath: String) : NoteContentBlock

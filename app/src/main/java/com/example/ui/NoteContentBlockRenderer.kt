@@ -194,58 +194,81 @@ private fun NoteContentBlock.ImageBlock.renderImageBlock(
     modifier: Modifier
 ) {
     val block = this
-    MediaCard(modifier = modifier.heightIn(max = 200.dp).wrapContentHeight()) {
-        SubcomposeAsyncImage(
-            model = src,
-            contentDescription = stringResource(R.string.attachment_image),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
-                .clickable {
-                    if (linkUrl != null) {
-                        context.onUrlClicked(linkUrl, 0)
-                    } else {
-                        context.onNavigateToMediaViewer("image", src)
-                    }
-                },
-            contentScale = ContentScale.FillWidth,
-            loading = {
-                Box(
+    val isFullWidth = align == null || align == "center"
+    val widthFraction = if (isFullWidth) 1f else 0.5f
+    val horizontalAlign = when (align) {
+        "left" -> Alignment.CenterStart
+        "right" -> Alignment.CenterEnd
+        else -> Alignment.Center
+    }
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = horizontalAlign
+    ) {
+        MediaCard(modifier = Modifier.fillMaxWidth(widthFraction).heightIn(max = 200.dp).wrapContentHeight()) {
+            Column {
+                SubcomposeAsyncImage(
+                    model = src,
+                    contentDescription = stringResource(R.string.attachment_image),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
-            },
-            error = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = stringResource(R.string.note_image_load_error),
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.note_image_load_error),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
+                        .clickable {
+                            if (linkUrl != null) {
+                                context.onUrlClicked(linkUrl, 0)
+                            } else {
+                                context.onNavigateToMediaViewer("image", src)
+                            }
+                        },
+                    contentScale = ContentScale.FillWidth,
+                    loading = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = stringResource(R.string.note_image_load_error),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.note_image_load_error),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
                     }
+                )
+                if (!caption.isNullOrBlank()) {
+                    Text(
+                        text = caption,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
                 }
             }
-        )
-        MediaActionsOverlay(
-            onDelete = { context.onDeleteBlock(block) },
-            onMore = context.onOpenBlockMore?.let { { it(block) } }
-        )
+            MediaActionsOverlay(
+                onDelete = { context.onDeleteBlock(block) },
+                onMore = context.onOpenBlockMore?.let { { it(block) } }
+            )
+        }
     }
 }
 

@@ -392,6 +392,42 @@ fun NoteEditorScreen(
         saveBlocksToHistory()
     }
 
+    var imageDialogMode by remember { mutableIntStateOf(-1) }
+
+    fun insertImageBlock(src: String, linkUrl: String? = null) {
+        showSlashMenu = false
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val meta = if (linkUrl != null) mapOf("linkUrl" to linkUrl) else emptyMap()
+        val imageBlock = DataBlock(type = BlockType.IMAGE, content = src, meta = meta)
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = imageBlock
+        } else {
+            newBlocks.add(idx, imageBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+    }
+
+    fun applyImageSelection(src: String) {
+        val replaceIdx = imageDialogMode
+        imageDialogMode = -1
+        if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks[replaceIdx] = blocks[replaceIdx].copy(content = src)
+            applyBlocksChange(newBlocks)
+        } else {
+            insertImageBlock(src)
+        }
+    }
+
     fun moveActiveBlockUp() {
         val idx = toolbarActiveBlockIndex
         if (idx in 1 until blocks.size) {
@@ -591,7 +627,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success) {
-            cameraImageUri?.let { uri -> insertAtCursor("<img src=\"$uri\" />") }
+            cameraImageUri?.let { uri -> applyImageSelection(uri.toString()) }
         }
     }
 
@@ -653,7 +689,7 @@ fun NoteEditorScreen(
     ) { uri: Uri? ->
         uri?.let {
             acquireUriPermission(it)
-            insertAtCursor("<img src=\"$it\" />")
+            applyImageSelection(it.toString())
         }
     }
 
@@ -891,6 +927,7 @@ fun NoteEditorScreen(
             }
             BlockAction.IMAGE_DIALOG -> {
                 clearSlashPlaceholder()
+                imageDialogMode = -1
                 showInsertImageDialog = true
             }
             BlockAction.VIDEO_DIALOG -> {
@@ -1458,6 +1495,10 @@ fun NoteEditorScreen(
                             pageLinkTargetBlockIndex = idx
                             showNoteLinkPicker = true
                         },
+                        onEditImage = { idx ->
+                            imageDialogMode = idx
+                            showInsertImageDialog = true
+                        },
                         onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
@@ -1487,6 +1528,7 @@ fun NoteEditorScreen(
                     show = showInsertImageDialog,
                     onDismiss = {
                         showInsertImageDialog = false
+                        imageDialogMode = -1
                         isImageLinkExpanded = false
                     },
                     titleResId = R.string.dialog_insert_image_title,
@@ -1508,9 +1550,10 @@ fun NoteEditorScreen(
                         isImageLinkExpanded = false
                     },
                     onInsertLink = { url ->
-                        if (url.isNotBlank()) insertAtCursor("<img src=\"$url\" />")
+                        if (url.isNotBlank()) applyImageSelection(url)
                         imageInputUrl = ""
                         showInsertImageDialog = false
+                        imageDialogMode = -1
                         isImageLinkExpanded = false
                     }
                 )
@@ -2454,6 +2497,7 @@ fun NoteEditorScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showVoiceFileSheet = false
+                                imageDialogMode = -1
                                 showInsertImageDialog = true
                             },
                         shape = RoundedCornerShape(12.dp)

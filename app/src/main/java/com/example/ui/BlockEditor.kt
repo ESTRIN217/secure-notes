@@ -75,6 +75,7 @@ fun BlockEditor(
     noteTitleById: (Int) -> String = { "" },
     onMoveBlockTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
+    onEditImage: (Int) -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
@@ -170,11 +171,13 @@ fun BlockEditor(
                         numberIndex = numberedCounter.takeIf { block.type == BlockType.NUMBERED_LIST },
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
+                        onNavigateToMediaViewer = onNavigateToMediaViewer,
                         noteTitleById = noteTitleById,
                         onInsertBelow = ::insertBelow,
                         onDuplicate = ::duplicateBlock,
                         onMoveTo = onMoveBlockTo,
                         onEditPageLink = onEditPageLink,
+                        onEditImage = onEditImage,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -379,11 +382,13 @@ private fun BlockRow(
     numberIndex: Int? = null,
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
+    onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> },
     noteTitleById: (Int) -> String = { "" },
     onInsertBelow: (Int) -> Unit = {},
     onDuplicate: (Int) -> Unit = {},
     onMoveTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
+    onEditImage: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onSplit: (List<TextSegment>, List<TextSegment>) -> Unit,
@@ -656,6 +661,25 @@ private fun BlockRow(
                     }
                 }
             }
+            BlockType.IMAGE -> {
+                EditableImageBlock(
+                    src = block.content,
+                    caption = block.meta["caption"] ?: "",
+                    alignment = block.meta["align"] ?: "center",
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onOpen = { onNavigateToMediaViewer("image", block.content) },
+                    onCaptionChange = { newCaption ->
+                        onChange(block.copy(meta = block.meta + ("caption" to newCaption)))
+                    },
+                    onReplace = { onEditImage(index) },
+                    onDelete = onDelete,
+                    onAlignmentChange = { newAlign ->
+                        onChange(block.copy(meta = block.meta + ("align" to newAlign)))
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             else -> {
                 val renderingBlock = block.toRenderingBlock()
                 var showBlockOptions by remember { mutableStateOf(false) }
@@ -768,8 +792,12 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
     return when (type) {
         BlockType.IMAGE -> {
             val link = meta["linkUrl"]
-            if (link != null) NoteContentBlock.ImageBlock(src = content, linkUrl = link)
+            val imageBlock = if (link != null) NoteContentBlock.ImageBlock(src = content, linkUrl = link)
             else NoteContentBlock.ImageBlock(src = content)
+            imageBlock.copy(
+                caption = meta["caption"]?.takeIf { it.isNotBlank() },
+                align = meta["align"]?.takeIf { it.isNotBlank() }
+            )
         }
         BlockType.VIDEO -> NoteContentBlock.VideoBlock(src = content)
         BlockType.AUDIO -> NoteContentBlock.AudioBlock(src = content)
