@@ -308,6 +308,8 @@
     <string name="block_image_desc">Insertar imagen</string>
     <string name="block_image_caption_hint">Añade un título…</string>
     <string name="block_image_replace">Reemplazar</string>
+    <string name="block_image_load_error">No se pudo cargar la imagen</string>
+    <string name="block_image_description">Descripción</string>
     <string name="block_image_align">Alineación</string>
     <string name="block_align_center">Centro</string>
     <string name="block_align_left">Izquierda</string>

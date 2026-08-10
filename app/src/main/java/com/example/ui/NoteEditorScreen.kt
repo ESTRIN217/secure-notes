@@ -66,6 +66,7 @@ import com.example.util.exportMultipleToTxt
 import com.example.util.exportToMarkdown
 import com.example.util.exportToPdf
 import com.example.util.exportSingleNoteToJson
+import com.example.util.ImageUrlResolver
 import com.example.util.MediaBlock
 import com.example.util.JsonColorizer
 import com.example.util.MathRenderer
@@ -419,12 +420,15 @@ fun NoteEditorScreen(
     fun applyImageSelection(src: String) {
         val replaceIdx = imageDialogMode
         imageDialogMode = -1
-        if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
-            val newBlocks = blocks.toMutableList()
-            newBlocks[replaceIdx] = blocks[replaceIdx].copy(content = src)
-            applyBlocksChange(newBlocks)
-        } else {
-            insertImageBlock(src)
+        scope.launch {
+            val resolved = ImageUrlResolver.resolveImageUrl(src)
+            if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
+                val newBlocks = blocks.toMutableList()
+                newBlocks[replaceIdx] = blocks[replaceIdx].copy(content = resolved)
+                applyBlocksChange(newBlocks)
+            } else {
+                insertImageBlock(resolved)
+            }
         }
     }
 
@@ -1490,6 +1494,10 @@ fun NoteEditorScreen(
                         onMoveBlockTo = { index ->
                             moveBlockIndex = index
                             showMoveBlockPicker = true
+                        },
+                        onConvertTo = { _ ->
+                            convertBlockMode = true
+                            showMoreFormattingSheet = true
                         },
                         onEditPageLink = { idx ->
                             pageLinkTargetBlockIndex = idx

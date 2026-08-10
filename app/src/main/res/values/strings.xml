@@ -328,6 +328,8 @@
     <string name="block_image_desc">Embed image</string>
     <string name="block_image_caption_hint">Add a caption…</string>
     <string name="block_image_replace">Replace</string>
+    <string name="block_image_load_error">Couldn\'t load this image</string>
+    <string name="block_image_description">Description</string>
     <string name="block_image_align">Alignment</string>
     <string name="block_align_center">Center</string>
     <string name="block_align_left">Left</string>

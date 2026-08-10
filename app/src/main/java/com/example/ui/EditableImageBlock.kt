@@ -16,12 +16,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatAlignCenter
 import androidx.compose.material.icons.filled.FormatAlignLeft
 import androidx.compose.material.icons.filled.FormatAlignRight
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.example.R
+import com.example.util.ImageUrlResolver
 
 private val IMAGE_CORNER = RoundedCornerShape(8.dp)
 private const val IMAGE_ALIGN_CENTER = "center"
@@ -69,9 +78,21 @@ fun EditableImageBlock(
     onReplace: () -> Unit,
     onDelete: () -> Unit,
     onAlignmentChange: (String) -> Unit,
+    onConvertTo: () -> Unit = {},
+    onInsertBelow: () -> Unit = {},
+    onDuplicate: () -> Unit = {},
+    onMoveTo: () -> Unit = {},
+    showCaption: Boolean = false,
+    onShowCaptionChange: (Boolean) -> Unit = {},
+    onSrcResolved: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showMoreMenu by remember { mutableStateOf(false) }
     var showAlignSheet by remember { mutableStateOf(false) }
+    var displaySrc by remember(src) { mutableStateOf(src) }
+    var resolveAttempted by remember(src) { mutableStateOf(false) }
+    var resolveFailed by remember(src) { mutableStateOf(false) }
+    val shouldAutoResolve = ImageUrlResolver.isWrapperUrl(src) && !resolveAttempted && !resolveFailed
 
     Column(modifier = modifier.fillMaxWidth()) {
         val widthFraction = if (alignment == IMAGE_ALIGN_CENTER) 1f else 0.5f
@@ -99,31 +120,127 @@ fun EditableImageBlock(
                     ImagePlaceholder(onClick = onReplace)
                 } else {
                     SubcomposeAsyncImage(
-                        model = src,
+                        model = displaySrc,
                         contentDescription = stringResource(R.string.block_image_open),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 480.dp),
-                        contentScale = ContentScale.FillWidth
+                        contentScale = ContentScale.FillWidth,
+                        loading = { ImageLoadingBox() },
+                        error = {
+                            LaunchedEffect(src) {
+                                if (shouldAutoResolve) {
+                                    resolveAttempted = true
+                                    val resolved = ImageUrlResolver.resolveImageUrl(src)
+                                    if (resolved != src) {
+                                        displaySrc = resolved
+                                        onSrcResolved(resolved)
+                                    } else {
+                                        resolveFailed = true
+                                    }
+                                }
+                            }
+                            if (resolveFailed || !ImageUrlResolver.isWrapperUrl(src)) {
+                                ImageErrorBox(onReplace = onReplace)
+                            } else {
+                                ImageLoadingBox()
+                            }
+                        }
                     )
                 }
-                if (isActive) {
-                    ImageActionsOverlay(
-                        onReplace = onReplace,
-                        onAlign = { showAlignSheet = true },
-                        onDelete = onDelete
-                    )
-                }
+
+                
+                ImageActionsOverlay(
+                    onMore = { showMoreMenu = true }
+                )
+                
             }
         }
 
-        EditableImageCaption(
-            caption = caption,
-            isActive = isActive,
-            onActivate = onActivate,
-            onCaptionChange = onCaptionChange,
-            onDelete = onDelete,
-            modifier = Modifier.fillMaxWidth()
+        if (showCaption) {
+            EditableImageCaption(
+                caption = caption,
+                isActive = isActive,
+                onActivate = onActivate,
+                onCaptionChange = onCaptionChange,
+                onDelete = onDelete,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    if (showMoreMenu) {
+        BlockOptionsSheet(
+            title = stringResource(R.string.block_image),
+            onDismiss = { showMoreMenu = false },
+            actions = listOf(
+                BlockSheetAction(
+                    label = stringResource(R.string.block_convert_title),
+                    icon = Icons.Default.SwapHoriz,
+                    onClick = {
+                        showMoreMenu = false
+                        onConvertTo()
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_insert_below),
+                    icon = Icons.Default.ArrowDownward,
+                    onClick = {
+                        showMoreMenu = false
+                        onInsertBelow()
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_image_replace),
+                    icon = Icons.Default.Edit,
+                    onClick = {
+                        showMoreMenu = false
+                        onReplace()
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_image_description),
+                    icon = Icons.Default.Description,
+                    toggle = showCaption,
+                    onClick = {
+                        showMoreMenu = false
+                        onShowCaptionChange(!showCaption)
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_image_align),
+                    icon = Icons.Default.FormatAlignCenter,
+                    onClick = {
+                        showMoreMenu = false
+                        showAlignSheet = true
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_duplicate),
+                    icon = Icons.Default.ContentCopy,
+                    onClick = {
+                        showMoreMenu = false
+                        onDuplicate()
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_move_to),
+                    icon = Icons.AutoMirrored.Filled.DriveFileMove,
+                    onClick = {
+                        showMoreMenu = false
+                        onMoveTo()
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.btn_delete),
+                    icon = Icons.Default.Delete,
+                    danger = true,
+                    onClick = {
+                        showMoreMenu = false
+                        onDelete()
+                    }
+                )
+            )
         )
     }
 
@@ -187,10 +304,51 @@ private fun ImagePlaceholder(onClick: () -> Unit) {
 }
 
 @Composable
+private fun ImageLoadingBox() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 160.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+    }
+}
+
+@Composable
+private fun ImageErrorBox(onReplace: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp)
+            .clickable { onReplace() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.BrokenImage,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = stringResource(R.string.block_image_load_error),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.block_image_replace),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
 private fun ImageActionsOverlay(
-    onReplace: () -> Unit,
-    onAlign: () -> Unit,
-    onDelete: () -> Unit
+    onMore: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -201,27 +359,11 @@ private fun ImageActionsOverlay(
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp)
         ) {
-            IconButton(onClick = onReplace, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onMore, modifier = Modifier.size(32.dp)) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(R.string.block_image_replace),
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.cd_block_more),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            IconButton(onClick = onAlign, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Default.FormatAlignCenter,
-                    contentDescription = stringResource(R.string.block_image_align),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.btn_delete),
-                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(18.dp)
                 )
             }

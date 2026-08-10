@@ -74,6 +74,7 @@ fun BlockEditor(
     onNavigateToNote: (Int) -> Unit = { _ -> },
     noteTitleById: (Int) -> String = { "" },
     onMoveBlockTo: (Int) -> Unit = {},
+    onConvertTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
@@ -176,6 +177,7 @@ fun BlockEditor(
                         onInsertBelow = ::insertBelow,
                         onDuplicate = ::duplicateBlock,
                         onMoveTo = onMoveBlockTo,
+                        onConvertTo = onConvertTo,
                         onEditPageLink = onEditPageLink,
                         onEditImage = onEditImage,
                         onChange = { newBlock ->
@@ -387,6 +389,7 @@ private fun BlockRow(
     onInsertBelow: (Int) -> Unit = {},
     onDuplicate: (Int) -> Unit = {},
     onMoveTo: (Int) -> Unit = {},
+    onConvertTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
@@ -662,6 +665,7 @@ private fun BlockRow(
                 }
             }
             BlockType.IMAGE -> {
+                val showCaption = block.meta["showCaption"] != "false"
                 EditableImageBlock(
                     src = block.content,
                     caption = block.meta["caption"] ?: "",
@@ -676,6 +680,17 @@ private fun BlockRow(
                     onDelete = onDelete,
                     onAlignmentChange = { newAlign ->
                         onChange(block.copy(meta = block.meta + ("align" to newAlign)))
+                    },
+                    onConvertTo = { onConvertTo(index) },
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    showCaption = showCaption,
+                    onShowCaptionChange = { newVal ->
+                        onChange(block.copy(meta = block.meta + ("showCaption" to newVal.toString())))
+                    },
+                    onSrcResolved = { resolved ->
+                        onChange(block.copy(content = resolved))
                     },
                     modifier = Modifier.weight(1f)
                 )
