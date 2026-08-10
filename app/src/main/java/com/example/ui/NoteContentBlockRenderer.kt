@@ -323,22 +323,57 @@ private fun NoteContentBlock.DrawingBlock.renderDrawingBlock(
     modifier: Modifier
 ) {
     val block = this
-    MediaCard(modifier = modifier.heightIn(max = 200.dp).wrapContentHeight()) {
-        AsyncImage(
-            model = previewPath,
-            contentDescription = stringResource(R.string.attachment_drawing),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
-                .background(Color.White)
-                .border(1.dp, Color.LightGray, RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
-                .clickable { context.onNavigateToDrawing(context.noteId, jsonPath) },
-            contentScale = ContentScale.Fit
-        )
-        MediaActionsOverlay(
-            onDelete = { context.onDeleteBlock(block) },
-            onMore = context.onOpenBlockMore?.let { { it(block) } }
-        )
+    val isFullWidth = align == null || align == "center"
+    val widthFraction = if (isFullWidth) 1f else 0.5f
+    val horizontalAlign = when (align) {
+        "left" -> Alignment.CenterStart
+        "right" -> Alignment.CenterEnd
+        else -> Alignment.Center
+    }
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = horizontalAlign
+    ) {
+        MediaCard(modifier = Modifier.fillMaxWidth(widthFraction).heightIn(max = 200.dp).wrapContentHeight()) {
+            Column {
+                if (strokes != null) {
+                    DrawingStrokesView(
+                        strokes = strokes,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
+                    )
+                } else {
+                    AsyncImage(
+                        model = previewPath,
+                        contentDescription = stringResource(R.string.attachment_drawing),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
+                            .background(Color.White)
+                            .border(1.dp, Color.LightGray, RoundedCornerShape(MEDIA_CARD_SHAPE_SIZE.dp))
+                            .clickable { context.onNavigateToDrawing(context.noteId, jsonPath) },
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                if (!caption.isNullOrBlank()) {
+                    Text(
+                        text = caption,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            MediaActionsOverlay(
+                onDelete = { context.onDeleteBlock(block) },
+                onMore = context.onOpenBlockMore?.let { { it(block) } }
+            )
+        }
     }
 }
 

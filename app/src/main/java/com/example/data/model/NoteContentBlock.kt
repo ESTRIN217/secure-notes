@@ -41,7 +41,13 @@ sealed interface NoteContentBlock {
     ) : NoteContentBlock
     data class VideoBlock(val src: String) : NoteContentBlock
     data class AudioBlock(val src: String) : NoteContentBlock
-    data class DrawingBlock(val jsonPath: String, val previewPath: String) : NoteContentBlock
+    data class DrawingBlock(
+        val jsonPath: String,
+        val previewPath: String,
+        val strokes: List<DrawingStroke>? = null,
+        val caption: String? = null,
+        val align: String? = null
+    ) : NoteContentBlock
     data class VoiceBlock(val path: String) : NoteContentBlock
     data class FileBlock(val name: String, val path: String) : NoteContentBlock
 

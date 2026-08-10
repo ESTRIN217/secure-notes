@@ -237,6 +237,8 @@
     <string name="toast_drawing_load_error">Failed to load drawing</string>
     <string name="toast_drawing_empty">Canvas is empty or not initialized</string>
     <string name="toast_drawing_save_error">Error saving drawing</string>
+    <string name="drawing_tap_to_draw">Tap to draw</string>
+    <string name="drawing_undo">Undo stroke</string>
 
     <!-- Attachments -->
     <string name="attachment_drawing">Drawing Attachment</string>
@@ -347,6 +349,10 @@
     <string name="block_bookmark_desc">Save a link</string>
     <string name="block_drawing">Drawing</string>
     <string name="block_drawing_desc">Draw a sketch</string>
+    <string name="block_drawing_replace">Replace</string>
+    <string name="block_drawing_description">Description</string>
+    <string name="block_drawing_align">Alignment</string>
+    <string name="block_drawing_caption_hint">Add a caption…</string>
     <string name="page_block_icon">Page icon</string>
     <string name="page_block_emoji">Emoji</string>
     <string name="page_block_icons">Icons</string>

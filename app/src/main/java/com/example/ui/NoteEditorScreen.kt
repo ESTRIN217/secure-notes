@@ -417,6 +417,31 @@ fun NoteEditorScreen(
         saveBlocksToHistory()
     }
 
+    fun insertDrawingBlock() {
+        showSlashMenu = false
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val drawingBlock = DataBlock(
+            type = BlockType.DRAWING,
+            content = "",
+            meta = mapOf("wysiwyg" to "true")
+        )
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = drawingBlock
+        } else {
+            newBlocks.add(idx, drawingBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+    }
+
     fun applyImageSelection(src: String) {
         val replaceIdx = imageDialogMode
         imageDialogMode = -1
@@ -881,26 +906,6 @@ fun NoteEditorScreen(
         else createRawContent(jsonContent, attachments)
     }
 
-    fun openDrawingCanvas() {
-        hasNavigatingToDrawing = true
-        scope.launch {
-            val savedId = viewModel.saveNoteAndGetId(
-                id = noteId,
-                title = title.trim(),
-                content = contentForSave(),
-                isEncrypted = isEncrypted,
-                tagsList = selectedNoteTags,
-                backgroundColor = selectedBgColorId,
-                backgroundImagePath = selectedBgImagePath,
-                isPinned = isPinned,
-                isFavorite = isFavorite,
-                isArchived = isArchived
-            )
-            viewModel.pendingDrawingInsertIndex = toolbarActiveBlockIndex.coerceAtLeast(0)
-            onNavigateToDrawing(savedId, null)
-        }
-    }
-
     fun handleBlockCommand(cmd: BlockCommand) {
         showSlashMenu = false
         fun clearSlashPlaceholder() {
@@ -944,7 +949,7 @@ fun NoteEditorScreen(
             }
             BlockAction.DRAWING_DIALOG -> {
                 clearSlashPlaceholder()
-                openDrawingCanvas()
+                insertDrawingBlock()
             }
             BlockAction.INSERT_PAGE -> scope.launch {
                 syncActiveBlock()
@@ -1468,9 +1473,9 @@ fun NoteEditorScreen(
                         blocks = blocks,
                         onBlocksChange = { newBlocks ->
                             val removedDrawingPaths = blocks
-                                .filter { it.type == BlockType.DRAWING && it.content != null }
+                                .filter { it.isLegacyDrawing }
                                 .mapNotNull { it.content }
-                                .filter { path -> newBlocks.none { it.type == BlockType.DRAWING && it.content == path } }
+                                .filter { path -> newBlocks.none { it.isLegacyDrawing && it.content == path } }
                             if (removedDrawingPaths.isNotEmpty()) {
                                 attachments = attachments.filterNot { it.type == "drawing" && it.path in removedDrawingPaths }
                             }
@@ -1997,7 +2002,7 @@ fun NoteEditorScreen(
                         }
                     },
                     onOpenDrawing = {
-                        openDrawingCanvas()
+                        insertDrawingBlock()
                     },
                     onOpenAttachments = { showVoiceFileSheet = true },
                     onOpenAi = {
@@ -2064,7 +2069,7 @@ fun NoteEditorScreen(
                     onDeleteBlock = {
                         val deletedBlock = blocks.getOrNull(toolbarActiveBlockIndex)
                         deleteActiveBlock()
-                        if (deletedBlock?.type == BlockType.DRAWING) {
+                        if (deletedBlock?.isLegacyDrawing == true) {
                             attachments = attachments.filterNot { it.type == "drawing" && it.path == deletedBlock.content }
                         }
                     },
@@ -2081,7 +2086,7 @@ fun NoteEditorScreen(
                     cmd.blockType?.let { type ->
                         val oldBlock = blocks.getOrNull(toolbarActiveBlockIndex)
                         convertActiveBlock(type, cmd.meta)
-                        if (oldBlock?.type == BlockType.DRAWING && type != BlockType.DRAWING) {
+                        if (oldBlock?.isLegacyDrawing == true && type != BlockType.DRAWING) {
                             attachments = attachments.filterNot { it.type == "drawing" && it.path == oldBlock.content }
                         }
                         return
@@ -2963,7 +2968,7 @@ fun NoteEditorScreen(
                     if (idx >= 0) {
                         val movedBlock = blocks.getOrNull(idx)
                         moveBlockToAnotherNote(idx, targetId)
-                        if (movedBlock?.type == BlockType.DRAWING) {
+                        if (movedBlock?.isLegacyDrawing == true) {
                             attachments = attachments.filterNot { it.type == "drawing" && it.path == movedBlock.content }
                         }
                     }

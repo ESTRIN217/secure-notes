@@ -55,6 +55,7 @@ import com.example.R
 import com.example.data.model.Attachment
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
+import com.example.data.model.DrawingStrokeCodec
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.TableData
 import com.example.data.model.TextSegment
@@ -374,6 +375,7 @@ private fun BlockType.dragViaLongPress(isActive: Boolean): Boolean = when (this)
     BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
     BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.CHECKLIST_ITEM, BlockType.COLLAPSIBLE,
     BlockType.QUOTE, BlockType.CODE_BLOCK -> !isActive
+    BlockType.DRAWING -> !isActive
     else -> true
 }
 
@@ -695,6 +697,19 @@ private fun BlockRow(
                     modifier = Modifier.weight(1f)
                 )
             }
+            BlockType.DRAWING -> {
+                EditableDrawingBlock(
+                    block = block,
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onChange = onChange,
+                    onDelete = onDelete,
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             else -> {
                 val renderingBlock = block.toRenderingBlock()
                 var showBlockOptions by remember { mutableStateOf(false) }
@@ -816,7 +831,17 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
         }
         BlockType.VIDEO -> NoteContentBlock.VideoBlock(src = content)
         BlockType.AUDIO -> NoteContentBlock.AudioBlock(src = content)
-        BlockType.DRAWING -> NoteContentBlock.DrawingBlock(jsonPath = content, previewPath = meta["previewPath"] ?: "")
+        BlockType.DRAWING -> {
+            if (isWysiwygDrawing) {
+                NoteContentBlock.DrawingBlock(
+                    jsonPath = "",
+                    previewPath = "",
+                    strokes = DrawingStrokeCodec.strokesFromJson(content)
+                )
+            } else {
+                NoteContentBlock.DrawingBlock(jsonPath = content, previewPath = meta["previewPath"] ?: "")
+            }
+        }
         BlockType.VOICE -> NoteContentBlock.VoiceBlock(path = content)
         BlockType.FILE -> NoteContentBlock.FileBlock(name = meta["name"] ?: content.substringAfterLast('/'), path = content)
         BlockType.TABLE -> NoteContentBlock.TableBlock(

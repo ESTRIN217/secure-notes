@@ -35,6 +35,11 @@
         },
         {
           "type": "library",
+          "name": "transformed:coil-network-core:jars:classes",
+          "scope": "compile"
+        },
+        {
+          "type": "library",
           "name": "transformed:sqlite:jars:classes",
           "scope": "compile"
         },
@@ -430,11 +435,6 @@
         },
         {
           "type": "library",
-          "name": "transformed:coil-network-core-release:jars:classes",
-          "scope": "compile"
-        },
-        {
-          "type": "library",
           "name": "transformed:work-runtime-2.11.2:jars:classes",
           "scope": "compile"
         },
@@ -531,6 +531,11 @@
         {
           "type": "library",
           "name": "transformed:play-services-measurement-api-23.2.0:jars:classes",
+          "scope": "compile"
+        },
+        {
+          "type": "library",
+          "name": "transformed:coil-network-okhttp:jars:classes",
           "scope": "compile"
         },
         {
@@ -736,11 +741,6 @@
         {
           "type": "library",
           "name": "transformed:print-1.0.0:jars:classes",
-          "scope": "compile"
-        },
-        {
-          "type": "library",
-          "name": "io.coil-kt.coil3:coil-network-okhttp-jvm:3.0.4",
           "scope": "compile"
         },
         {
@@ -1025,6 +1025,11 @@
         },
         {
           "type": "library",
+          "name": "transformed:coil-network-core:jars:classes",
+          "scope": "compile"
+        },
+        {
+          "type": "library",
           "name": "transformed:sqlite:jars:classes",
           "scope": "compile"
         },
@@ -1420,11 +1425,6 @@
         },
         {
           "type": "library",
-          "name": "transformed:coil-network-core-release:jars:classes",
-          "scope": "compile"
-        },
-        {
-          "type": "library",
           "name": "transformed:work-runtime-2.11.2:jars:classes",
           "scope": "compile"
         },
@@ -1521,6 +1521,11 @@
         {
           "type": "library",
           "name": "transformed:play-services-measurement-api-23.2.0:jars:classes",
+          "scope": "compile"
+        },
+        {
+          "type": "library",
+          "name": "transformed:coil-network-okhttp:jars:classes",
           "scope": "compile"
         },
         {
@@ -1730,11 +1735,6 @@
         },
         {
           "type": "library",
-          "name": "io.coil-kt.coil3:coil-network-okhttp-jvm:3.0.4",
-          "scope": "compile"
-        },
-        {
-          "type": "library",
           "name": "transformed:lifecycle-viewmodel-compose:jars:classes",
           "scope": "compile"
         },
@@ -1938,11 +1938,21 @@
       ]
     },
     {
+      "name": "transformed:coil-network-core:jars:classes",
+      "type": "COMPILE",
+      "roots": [
+        {
+          "path": "/home/.gradle/caches/9.7.0/transforms/02e77b5e2ebb4365c27383f616dfb0d2/transformed/coil-network-core/jars/classes.jar",
+          "type": "CLASSES"
+        }
+      ]
+    },
+    {
       "name": "transformed:sqlite:jars:classes",
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/3784bf0f4c834a6950e179b250bd7e22/transformed/sqlite/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/863c9fd85833cb093fef1ae8ead1a1ff/transformed/sqlite/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -1952,7 +1962,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/636b5ca8e3e39534f9afcef2f0a5a863/transformed/firebase-measurement-connector-19.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3d87df1a3f346c35f7b50384a18a3343/transformed/firebase-measurement-connector-19.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -1962,7 +1972,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/cec293fd3e98ff5a7205d40282da0edd/transformed/navigationevent/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/08b2a7d899cc2cde74d426295f360b8f/transformed/navigationevent/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -1982,7 +1992,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/732e2b9f9e188e99ba60da62860ddd8c/transformed/credentials-play-services-auth-1.6.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/d9a3658e2937da4960f8e990d01477c9/transformed/credentials-play-services-auth-1.6.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -1992,7 +2002,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/33fa860effeb6425f988b6c3099fd813/transformed/material3-window-size-class/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b46e9e6c18afe4e117cd7f4bf0d2c474/transformed/material3-window-size-class/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2002,7 +2012,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/728124ff42ea3d0c680cef1a44eda12b/transformed/navigation-common-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a12ca87f5e9688d1918f34c47ab233d4/transformed/navigation-common-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2012,7 +2022,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/285516bf0424ec7ba514e0fe3844af54/transformed/googleid-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/19d35c084349ba654f226fbd5cd7b640/transformed/googleid-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2022,7 +2032,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/3f4d72a9d572560289fdc24e0052e477/transformed/ui-geometry/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/fbc856caf4f1ab6e0f7acc80a57fb8bf/transformed/ui-geometry/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2032,7 +2042,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/5f5f4036ee0cede5634d8da7394a8bf3/transformed/compose-markdown-0.7.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/8e5fac8d18c5cdc99257064953045613/transformed/compose-markdown-0.7.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2052,7 +2062,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/f0ddd8b753d664009ac484b8d5d01abb/transformed/linkify-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/1e71aa09de9803fd9e5e06641a9a9a19/transformed/linkify-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2062,7 +2072,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/ed70650ddeb362b16274be1e8e1b3660/transformed/emoji2-views-helper-1.4.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/57e5e7ba787bc3a61ba0c310091484fa/transformed/emoji2-views-helper-1.4.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2072,7 +2082,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4c4c21cbfb4cdefa3becbc234e3587cb/transformed/lifecycle-viewmodel/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/082e3ab08b5c06cb290e8808bb270f1b/transformed/lifecycle-viewmodel/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2082,7 +2092,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/b976dcf31000dcc8e3a1d9051e4301c5/transformed/html-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/295521bfc32745ca34d4230b008afbea/transformed/html-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2092,7 +2102,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/2805e0ed65be7018ad1ab599361254de/transformed/lifecycle-livedata-core-ktx-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/9bcf30981d685dfdb6dc203e5ab4d10d/transformed/lifecycle-livedata-core-ktx-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2102,7 +2112,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/70ef9bdaeed845257f09f9d28579ea6c/transformed/coil-compose-core/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b6e97265252b803dc454adf6c7876963/transformed/coil-compose-core/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2112,7 +2122,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/8ca98a335a8ecd36aaeb6077497a9612/transformed/play-services-fido-21.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/cece35e7a2b92f3874459f773a42c296/transformed/play-services-fido-21.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2122,7 +2132,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e3a39e7f4cd48b4dfec4cec111ace011/transformed/annotation-experimental-1.4.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ff5e453b811f2656453d209b3993cdff/transformed/annotation-experimental-1.4.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2142,7 +2152,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/20b0f4138d1dc8300cdd43ae6a055fba/transformed/viewpager-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/308ddfd9315010cede8f9352f34ce133/transformed/viewpager-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2152,7 +2162,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/5c4f24d8adff54576df4380b4a38737b/transformed/coil-gif-3.0.4/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/bf0b65ad262b3d1834ed8c2943ecdede/transformed/coil-gif-3.0.4/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2172,7 +2182,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/06107f3a478f65c6cf2d97676074278d/transformed/ui-unit/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/cb7cc56545e77c372d0db24bc81608b0/transformed/ui-unit/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2182,7 +2192,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/f0c02696a6b1ddf7a9c37a790bfd430f/transformed/activity-1.13.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/41644719c192ccfc8719c574fdaeaef1/transformed/activity-1.13.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2192,7 +2202,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/3492f903fa35493a055c2a752c88bd87/transformed/appcompat-resources-1.7.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3bb917e53717c9cfcd6afea2722ea700/transformed/appcompat-resources-1.7.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2212,7 +2222,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/db9a0a9edffb5230698076153aacc93d/transformed/coil/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5cf48e3988c4e1ad20b27cf048ba1494/transformed/coil/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2222,7 +2232,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/ca4d3f6c01e741a4af77d54a00e6d105/transformed/localbroadcastmanager-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/9920b605c668d82ba882bb9008868fa6/transformed/localbroadcastmanager-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2232,7 +2242,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4f10f0ef4cdef0714e204362fb96e15d/transformed/ads-adservices-java-1.1.0-beta11/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/44124012a77ab65fde8fd314928d951a/transformed/ads-adservices-java-1.1.0-beta11/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2242,7 +2252,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/58fa139f135d2d8c02b4fcc55704b53b/transformed/activity-ktx-1.13.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/7a8fc288bf16aa27dbfb5053f3602a69/transformed/activity-ktx-1.13.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2252,7 +2262,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/84c1b10f0ed56cc1db54b8e2a4ded328/transformed/savedstate-compose/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ab1bd2d2b8251c57c8851647d58af020/transformed/savedstate-compose/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2262,7 +2272,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/6b3e89bd4fc9d7cc48412b38ad69b685/transformed/play-services-measurement-impl-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5b4c78753c11ab33ae6224b137ef265a/transformed/play-services-measurement-impl-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2282,7 +2292,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/514d8e9f4e972d82659f6131dc024ada/transformed/foundation/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/0ce5762844550e458bdfaf9a08ac4293/transformed/foundation/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2292,7 +2302,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/33ae20517fb4568b55370675f2a4c931/transformed/window-1.5.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/57ef30cc863d11487741a7b22b2d5c2b/transformed/window-1.5.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2302,7 +2312,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/1cb1d66ededcf33b2637b6651fb20a78/transformed/runtime/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ff36fe013c44a66bee9075030daec3b1/transformed/runtime/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2322,7 +2332,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/cabe37ad5a997b175f8e68280fd803d4/transformed/work-runtime-ktx-2.11.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5df837fc2c25909de65faaff1f63f9f3/transformed/work-runtime-ktx-2.11.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2332,7 +2342,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/88a91aa823ea57f61ff31173973be2f2/transformed/firebase-common-22.1.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/1825d3d8cd97e81a829da9e9093dcbda/transformed/firebase-common-22.1.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2342,7 +2352,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/77ddd9f68302dbd88c2997ffeee8106f/transformed/legacy-support-core-utils-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/595e68db074acbe0b2c121393ebc46a2/transformed/legacy-support-core-utils-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2352,7 +2362,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/f6163d7bbc14b59d6cf6bef2388de799/transformed/savedstate/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/abd747efe0655c627014499143fd7981/transformed/savedstate/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2362,7 +2372,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/44807bee762e8250be22b694c92af272/transformed/play-services-basement-18.9.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a9ab3d2cea682d1c7a11d2f09906d779/transformed/play-services-basement-18.9.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2372,7 +2382,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0d98e43844ff9aeb601f179a1873a36a/transformed/room-runtime/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3507a3d0d85dbb497b182b7aa72d5418/transformed/room-runtime/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2392,7 +2402,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/50df0740fcd659908858cb7976996dcd/transformed/versionedparcelable-1.1.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/babd9b6fa087a6009dfe25353bd3a6cb/transformed/versionedparcelable-1.1.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2402,7 +2412,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/2fcf03e5ee2c872eedd55dfe5a2060e0/transformed/play-services-identity-credentials-16.0.0-alpha08/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/d7b8393e3b25c21283f6eadd50a8dee3/transformed/play-services-identity-credentials-16.0.0-alpha08/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2412,7 +2422,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7c13ec20203a591c394b550d6e25a475/transformed/vectordrawable-animated-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ce68f3b4bd22175e7edb3702dabda9d9/transformed/vectordrawable-animated-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2422,7 +2432,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/67e94df08c8dc3acff61c68c8772e298/transformed/ui/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/c2bbf5068aef93d83455e64f6d3d2d3b/transformed/ui/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2432,7 +2442,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e6789070f3e7e8e6f2695193c4ae15c9/transformed/runtime-annotation/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/cb9694b27a4edf37942eccc66ce79d3c/transformed/runtime-annotation/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2442,7 +2452,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/797854a359e9e219977bc473b31200cd/transformed/ui-tooling-preview/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/980e34c626afcd95f949434b03c0d682/transformed/ui-tooling-preview/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2462,7 +2472,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e2e007bb41ab996fdd8107429990a6d9/transformed/material-icons-core-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/cb48f937a2bdfd9e7ae140fcc7470e23/transformed/material-icons-core-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2472,7 +2482,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/2f8cec3323d4b5ff11f99bdb0fcac1d0/transformed/fragment-1.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/acef47eda7b1de704321c9c0809f1d28/transformed/fragment-1.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2482,7 +2492,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/476f7b5f612cab742fc07895475e048f/transformed/activity-compose-1.13.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b327fa5454516c622df8d1a94bae32c2/transformed/activity-compose-1.13.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2502,7 +2512,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/84c154f0811cba04971f51fe6ade6dda/transformed/material-ripple/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3cc50963688472e76fb5a3cc808a8c61/transformed/material-ripple/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2512,7 +2522,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/cd735c517c36e1f7c47cf4e0dbda44ae/transformed/graphics-path-1.0.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/90bb01f5898fc947d834a34982a8445e/transformed/graphics-path-1.0.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2542,7 +2552,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/491a6467053084c6c68579ea7cc1f216/transformed/play-services-measurement-sdk-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/c025dea0d441bc0db2655cbca39403c1/transformed/play-services-measurement-sdk-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2552,7 +2562,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/87dab5be51a0a87f01363eebc4bbcbd1/transformed/loader-1.1.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ebf3eb5c3f456c58bdbdb91857927d61/transformed/loader-1.1.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2562,7 +2572,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/05104c726ef8bbb6fa204bec031e2fe1/transformed/lifecycle-runtime/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/73f89c3030b3b2f0d6c13d207e27b8b4/transformed/lifecycle-runtime/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2572,7 +2582,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/b3e7ba8b17916fb16fc5dc7dfd4a8271/transformed/material3/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/18fe0ed2b6c1ef6346bd42de3f3ae38b/transformed/material3/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2582,7 +2592,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e2d34d9925115400d75bac8a5e168327/transformed/play-services-fido-20.0.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/80d57499c020c74e1df8bd4922f66592/transformed/play-services-fido-20.0.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2592,7 +2602,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/09a3a08d8b5fd77fb359a940ff35a17e/transformed/core-1.19.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/1af5e25bddb211ac3be37e348101a032/transformed/core-1.19.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2602,7 +2612,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/5cea1c7301ab0b590e130b53abbaff0b/transformed/core-ktx-1.19.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/93882866bffcacce65bd81407608298e/transformed/core-ktx-1.19.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2612,7 +2622,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/db1b1065c5462bf94c09a1df341cfa96/transformed/runtime-saveable/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/aaa2ef25c1851cae9d1aeba5fb4a2e60/transformed/runtime-saveable/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2632,7 +2642,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/494df37f0963408df66b9b56a09a0066/transformed/play-services-measurement-base-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5fdde79facf39de388eab630dfb2b6b7/transformed/play-services-measurement-base-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2642,7 +2652,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e780ca0b2033c2d55935e4bec9ae04ab/transformed/sqlite-framework/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/e283c1dbbd5697e5ea1036858fb5b860/transformed/sqlite-framework/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2652,7 +2662,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0be0bd4a719c9fcd885ed5a6af48fb69/transformed/startup-runtime-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/0c55759659590bae23dc0bfb828a2d66/transformed/startup-runtime-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2662,7 +2672,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/b00685cfc34c16eb89ead4e6b6177b63/transformed/lifecycle-runtime-ktx/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/dc3905c05a9bc8bfb4e2b8b07a9a6050/transformed/lifecycle-runtime-ktx/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2672,7 +2682,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/361381fa9af77b0562053a0b99e20d3c/transformed/coil-compose/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a2042a7fa4b5332b9689aeb578ed9dc6/transformed/coil-compose/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2692,7 +2702,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/949f623db43206cd745d7782184cd603/transformed/annotation-experimental-1.5.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a0f0098bcdf870a513759745e4e333c4/transformed/annotation-experimental-1.5.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2702,7 +2712,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4ffb8d7e3be8057884c58ba55817c170/transformed/okhttp/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5ea8d34f8078ccb41863a2bb3d0e797f/transformed/okhttp/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2712,7 +2722,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7c95f992f80e9438a0b040747006eff5/transformed/savedstate-ktx-1.4.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4fedf325b2728fd6025e75847f0203ad/transformed/savedstate-ktx-1.4.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2722,17 +2732,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/be2cbd589587e1a87e486ca26730780f/transformed/navigationevent-compose/jars/classes.jar",
-          "type": "CLASSES"
-        }
-      ]
-    },
-    {
-      "name": "transformed:coil-network-core-release:jars:classes",
-      "type": "COMPILE",
-      "roots": [
-        {
-          "path": "/home/.gradle/caches/9.7.0/transforms/b871a0dd8cb07d67a0f528db872bead7/transformed/coil-network-core-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ba42141c806d4086e3dbf9b595725f95/transformed/navigationevent-compose/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2742,7 +2742,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/914cc6e14b83bd09b2dbcd6ce6025753/transformed/work-runtime-2.11.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b8c84594339d0034431b212fb7b399cd/transformed/work-runtime-2.11.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2752,7 +2752,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/fcbb1e5ddd3e61a998b424fe12ea83a4/transformed/lifecycle-viewmodel-savedstate/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/f0c8a7166d08201757b269b771b95ebb/transformed/lifecycle-viewmodel-savedstate/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2772,7 +2772,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/349f7c31fd1347bdb78929f0dcabb0b3/transformed/ads-adservices-1.1.0-beta11/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/824514faa9d4ca63c4976597a6122ba7/transformed/ads-adservices-1.1.0-beta11/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2792,7 +2792,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/9eccfe03815f65628792734fceb9f541/transformed/material3-ripple/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/1d71a27fbd09d282baa4c67eef8ff1e7/transformed/material3-ripple/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2832,7 +2832,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7f3add97aff3234a556f18cf4c944d62/transformed/material-icons-extended-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/f8b16a1bba362f686398d39932f965c6/transformed/material-icons-extended-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2842,7 +2842,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/93ade183380c7988c24a979535dcb629/transformed/firebase-installations-19.1.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/131128606bfbe0cae5963c0db963b789/transformed/firebase-installations-19.1.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2852,7 +2852,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/a7116f654743efd9d47b8f971307a3d1/transformed/ui-util/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/56549350c63b0dc991aa3f4b59d0120e/transformed/ui-util/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2862,7 +2862,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0692000586c24d27dc0346b3697bf4b8/transformed/profileinstaller-1.4.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/2b47ee6864e9dc9295ead1e819c2883d/transformed/profileinstaller-1.4.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2872,7 +2872,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/dde2490b4644fc3e478c7908f44847bf/transformed/play-services-ads-identifier-18.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/d9ac600a77068e1a4515d04035b24e99/transformed/play-services-ads-identifier-18.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2882,7 +2882,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/41ca953ab73eaabd0754678bc81620f0/transformed/customview-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/f892119ed8c4fbbce253f3f9b7f2566d/transformed/customview-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2902,7 +2902,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/77f50ca97f7687d3598fc4d857b34c60/transformed/ui-text/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/666557cee28d4bdd9165c46b9cd9dfc0/transformed/ui-text/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2912,7 +2912,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/c2adeac88cac3ffe0c4edeede9e06b5a/transformed/emoji2-1.4.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4762a1d804412bbc0dd6e2212fa9a709/transformed/emoji2-1.4.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2922,7 +2922,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/c2adeac88cac3ffe0c4edeede9e06b5a/transformed/emoji2-1.4.0/jars/libs/repackaged.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4762a1d804412bbc0dd6e2212fa9a709/transformed/emoji2-1.4.0/jars/libs/repackaged.jar",
           "type": "CLASSES"
         }
       ]
@@ -2932,7 +2932,17 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/d04f0612f08d6be3f87ec2c6c63ca16e/transformed/play-services-measurement-api-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/6d25a91d0e18a7d48ed02b9dc9c6c57a/transformed/play-services-measurement-api-23.2.0/jars/classes.jar",
+          "type": "CLASSES"
+        }
+      ]
+    },
+    {
+      "name": "transformed:coil-network-okhttp:jars:classes",
+      "type": "COMPILE",
+      "roots": [
+        {
+          "path": "/home/.gradle/caches/9.7.0/transforms/01764bde2043f2533936c73867b0736f/transformed/coil-network-okhttp/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2952,7 +2962,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/d01597a0c2a379df4640bcda943f0081/transformed/firebase-installations-interop-17.3.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3cc9d3cbfd806655566137d62e77326f/transformed/firebase-installations-interop-17.3.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2962,7 +2972,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/07499301ae17348f1d213fb98c15278c/transformed/credentials-1.6.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5b0cb5ff2194e102e7c9f114f7dd9485/transformed/credentials-1.6.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2982,7 +2992,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/5377eb5e16037f333a96f99bed79253d/transformed/ui-test-manifest-1.12.0-beta01/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/c4b53a80dc27924ba8282240d3f9a77b/transformed/ui-test-manifest-1.12.0-beta01/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -2992,7 +3002,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/6d33f15962a67e74065d52bcfed2353d/transformed/firebase-analytics-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4e9b6b9fd357255b8ccbe8555944d903/transformed/firebase-analytics-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3002,7 +3012,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/20ae612dceacc116d51dee82defa2882/transformed/cursoradapter-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/33509cca58d1433eb3481d61eeea7865/transformed/cursoradapter-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3022,7 +3032,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/60de6fa4a035f292163e7dc577558bf6/transformed/navigation-runtime-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/3a34a83ac844f125f06ceac3be06a644/transformed/navigation-runtime-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3032,7 +3042,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/a5ecc8233afc274425e2e786ae91ecbb/transformed/lifecycle-process-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/6a73ff3e05d8dc2e4d6095ac66618b6a/transformed/lifecycle-process-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3042,7 +3052,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/8971583843ddc0d134551de88b8666b1/transformed/play-services-base-18.5.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/092fb9c1b885ebd2960bff0c4b08707d/transformed/play-services-base-18.5.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3052,7 +3062,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/5253feb2f58237ec3c5c0d8696b9a034/transformed/core-viewtree-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/8485d5b7559d725ee3c9dd47e61fe65e/transformed/core-viewtree-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3072,7 +3082,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/1555f38fe932f845ae561facab8aaaeb/transformed/navigation-compose-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/66f912926c807b9637d116e596ec2980/transformed/navigation-compose-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3082,7 +3092,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/725664fdea9913831b8694b84681c537/transformed/ext-tables-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b534c39537291ce8a66d71aa426b085c/transformed/ext-tables-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3092,7 +3102,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/52fdb922adc39eb3e8d295ac39eb76f4/transformed/room-ktx-2.8.4/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/993e9dfa791cee72f14d926d36dd92a9/transformed/room-ktx-2.8.4/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3102,7 +3112,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/91334c0947f0db371d9a20df4d312f46/transformed/coil-core/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/ee0b89db9247fd1a620a1a2710111105/transformed/coil-core/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3112,7 +3122,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7a8c8c5df587077951260a4374bc5df4/transformed/play-services-auth-21.6.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/23bf68cad1ebba2f3321c6fe7059a45d/transformed/play-services-auth-21.6.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3122,7 +3132,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/95e040564cf214986d238eae2a208353/transformed/biometric-compose-1.4.0-alpha07/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/962c1d6c88aeb75147af96aac81dddfb/transformed/biometric-compose-1.4.0-alpha07/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3132,7 +3142,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4914cdfe9fe3b29b554362de3c74f6e5/transformed/ui-tooling/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/177f730e2e4422a8a930af682067dcbf/transformed/ui-tooling/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3142,7 +3152,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/ae1969e43f3ecabc2a536ad094fbc508/transformed/documentfile-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/159e535470bd469cb9749b8b12e3465e/transformed/documentfile-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3172,7 +3182,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7f775135a40b4fc992de93bdc1580625/transformed/animation-core/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/d0fea41b72451f89d0d5a445e8ba40f2/transformed/animation-core/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3182,7 +3192,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0c0ece83ed08ab5416aab546422af5fb/transformed/play-services-auth-blockstore-16.4.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/8c8d5249988fb7063ca72928f340aaed/transformed/play-services-auth-blockstore-16.4.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3192,7 +3202,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/73e138154a002737c09ada571f4a0866/transformed/startup-runtime-1.1.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/88b6665eef8eb8c479e150287daf55f3/transformed/startup-runtime-1.1.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3202,7 +3212,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/e92bc9b36964e03d90534433d6cf86c4/transformed/lifecycle-viewmodel-ktx-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/76209cc6f261c16349ac31538a42a57e/transformed/lifecycle-viewmodel-ktx-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3212,7 +3222,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/d67da3f8cb58b746994134ad100bd6f0/transformed/core-runtime-2.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/e0d253e1646306cdc955f1f65480e345/transformed/core-runtime-2.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3222,7 +3232,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/b46600ba10734f99e46334d034e6b920/transformed/ext-strikethrough-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/d39ad3b1a994a8dd7a0657664dad690c/transformed/ext-strikethrough-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3242,7 +3252,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7cc4aaccd3372bfff768e6d63be71390/transformed/foundation-layout/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/21591e52c26bf42dde6e1593487b2a36/transformed/foundation-layout/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3252,7 +3262,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0e342d1e68b31830849fea891b015d65/transformed/ext-tasklist-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/edcd4273d25a1829d252ab93ec486986/transformed/ext-tasklist-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3272,7 +3282,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/17a9752f385635b7b2f7b47ca77f8a38/transformed/play-services-tasks-18.4.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/58a2ebab852f293f5d74be154f7ba743/transformed/play-services-tasks-18.4.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3282,7 +3292,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/35f3a8217957126e0dbc12e35daf3fd3/transformed/lifecycle-livedata-core-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/c8e64ad3491cf0b3f625450387716beb/transformed/lifecycle-livedata-core-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3302,7 +3312,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/9df87d47defe7d2fdf7e1c56f4b7f42b/transformed/ui-graphics/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/50c24707837093dd4d90877ed1571b7a/transformed/ui-graphics/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3312,7 +3322,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/db57bdc69bb96ec66a95a58de5801515/transformed/appcompat-1.7.1/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/03598494df62ade4fb4a009be969ef9e/transformed/appcompat-1.7.1/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3332,7 +3342,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/19b1cc2f7319b700e0edcaddd25037c5/transformed/tracing-ktx-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/65becd7754c1c69d92871362bb2f51b0/transformed/tracing-ktx-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3342,17 +3352,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/d2e950bfe9588a7ae142f14a6bbd16ee/transformed/print-1.0.0/jars/classes.jar",
-          "type": "CLASSES"
-        }
-      ]
-    },
-    {
-      "name": "io.coil-kt.coil3:coil-network-okhttp-jvm:3.0.4",
-      "type": "COMPILE",
-      "roots": [
-        {
-          "path": "/home/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-network-okhttp-jvm/3.0.4/4530dcb26f8ea7bd96fe0c11633dd95e010d6eb0/coil-network-okhttp-jvm-3.0.4.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/551e8d8b543ecae9823580c2107a02bf/transformed/print-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3362,7 +3362,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4befe1a9ffe22165eb6d181a39f239b8/transformed/lifecycle-viewmodel-compose/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/00b7a196dc0e5b05e154ab1c489e1c66/transformed/lifecycle-viewmodel-compose/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3372,7 +3372,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/dffb97f49d131eb281f1d56a2bd188fb/transformed/Markwon-58aa5aba6a/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4745b781af920f0079197df95e612761/transformed/Markwon-58aa5aba6a/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3392,7 +3392,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/8dca2174263e12769628cdca63d2a77a/transformed/animation/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/16d3b12181baf074ef763669ef7d57f5/transformed/animation/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3402,7 +3402,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/c613d0b9960aca6cb46c52da7b9019b5/transformed/play-services-auth-base-18.0.10/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/02e6e187e13149e5c464066a623aeda2/transformed/play-services-auth-base-18.0.10/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3412,7 +3412,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/6472926b7565aff279950f5ab2500198/transformed/lifecycle-runtime-compose/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/f53e491a3a63ea2855dcbe5cfd8ee3e8/transformed/lifecycle-runtime-compose/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3432,7 +3432,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/a823d590a16c29823f41376d33ee20e6/transformed/exifinterface-1.4.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/324e39db786c37e8261ed6afe2e72247/transformed/exifinterface-1.4.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3442,7 +3442,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/c3654b70a6fe5d17b2cc2a46b23791e4/transformed/vectordrawable-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a7c33bdb1a6baa50051edac8620a6dbe/transformed/vectordrawable-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3462,7 +3462,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/a53a9eb1362e49dd0297ab5f04d8a624/transformed/interpolator-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/8a24a6292adcb10f44806eca29a85e25/transformed/interpolator-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3472,7 +3472,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/bd2567c2a3401585fdee4172f5ca2090/transformed/coil-base-2.2.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/bb081eec8f0ea012195bb60eab12df66/transformed/coil-base-2.2.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3492,7 +3492,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/2a5f7afe0d90afa12df742b53c896ef6/transformed/play-services-measurement-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b554b89d922ae06cea8454c4da4126d9/transformed/play-services-measurement-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3512,7 +3512,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/68b74c0dddd5bb9a5cacd0ad9d931f6d/transformed/accompanist-drawablepainter-0.37.3/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/006dd7c75f8aebcdf8fe668f2dacb63e/transformed/accompanist-drawablepainter-0.37.3/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3522,7 +3522,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/8f45b1883bbd3f9898954880b7b576a8/transformed/customview-poolingcontainer-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/7b6b74c735dd86f8cfb35a712075261e/transformed/customview-poolingcontainer-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3532,7 +3532,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/71d997bbe2aa8b6479fa77c5bb5ab759/transformed/play-services-stats-17.0.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/372240caffeba35cad1a3e7c325b5308/transformed/play-services-stats-17.0.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3542,7 +3542,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/da55d569524c8f5bae598488623dbc86/transformed/drawerlayout-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/12fd2374a87dcaced425b16402bfabf7/transformed/drawerlayout-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3552,7 +3552,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/8d03786e460b15444735a259876d5375/transformed/window-core/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a6b17e39f6e30763571b00c3b326226a/transformed/window-core/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3562,7 +3562,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/07184e289e1aa797faf37b6c4c2f9f7c/transformed/runtime-retain/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/0ef01860c386ef9f99177e07aed49337/transformed/runtime-retain/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3572,7 +3572,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/4229978a5dcd71a07a1cebc37d1fca0a/transformed/core-4.6.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/90ae50067e3688f2de6617d3f3fc72da/transformed/core-4.6.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3582,7 +3582,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0dc22a1aa004c1313ec30f181ea6af3d/transformed/biometric-1.4.0-alpha07/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/6f9c48065e1e921c390b18a0c068a837/transformed/biometric-1.4.0-alpha07/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3592,7 +3592,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/42d28a82f3b66c1d2992ef239772a637/transformed/ui-tooling-data/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/5094168d97031f1e33b64d2eff153794/transformed/ui-tooling-data/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3612,7 +3612,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/0e08523bce7de3e85712fd19e17111a6/transformed/play-services-auth-api-phone-18.0.2/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/1b396da03adb141ee35c351ced16a965/transformed/play-services-auth-api-phone-18.0.2/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3622,7 +3622,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/c536a787ad4113fa6b8b0d20215c1f5e/transformed/autofill-1.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/731e1d446d32ae629b592317807fd4ac/transformed/autofill-1.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3632,7 +3632,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/1de2a7d54e12af2840981b29cb377a20/transformed/tracing-1.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4b694a131c50d1143df12efeba54bf17/transformed/tracing-1.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3642,7 +3642,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/ad1b89103606ec1527e172b95352da2b/transformed/lifecycle-service-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/bf309d49aa6402d943ae93078bd8570a/transformed/lifecycle-service-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3652,7 +3652,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/fb6b01662e51d33247e8cc28abb74e72/transformed/security-crypto-1.1.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/4610e05594d76c94c89183c3507253b5/transformed/security-crypto-1.1.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3662,7 +3662,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/7e00dbc960d4841d319d37e77cd4738e/transformed/lifecycle-livedata-2.11.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/a16ff6e029bc13d609497accc0d28765/transformed/lifecycle-livedata-2.11.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3682,7 +3682,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/37d91a4fd25e948e6d5c2700cd969ffe/transformed/play-services-measurement-sdk-api-23.2.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/db4e7ecb2fc244a4e01f009a181bc284/transformed/play-services-measurement-sdk-api-23.2.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3712,7 +3712,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/fa13b7c398bbf94467a6e0f13d1d66f1/transformed/firebase-components-19.0.0/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/fd33cda063a1a0c863747409184a4dbc/transformed/firebase-components-19.0.0/jars/classes.jar",
           "type": "CLASSES"
         }
       ]
@@ -3722,7 +3722,7 @@
       "type": "COMPILE",
       "roots": [
         {
-          "path": "/home/.gradle/caches/9.7.0/transforms/f7c2c5f9e0d48a1dd0c450fc93b77151/transformed/graphics-shapes-release/jars/classes.jar",
+          "path": "/home/.gradle/caches/9.7.0/transforms/b1f46d38d2841664a4dc77eb582e68bc/transformed/graphics-shapes-release/jars/classes.jar",
           "type": "CLASSES"
         }
       ]

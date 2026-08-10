@@ -133,6 +133,14 @@ data class DataBlock(
 
     fun segments(): List<TextSegment>? = TextSegment.deserialize(richTextJson)
 
+    /** Dibujo autocontenido WYSIWYG: `content` = JSON de trazos normalizados. */
+    val isWysiwygDrawing: Boolean
+        get() = type == BlockType.DRAWING && meta["wysiwyg"] == "true"
+
+    /** Dibujo legado: `content` = ruta a archivo JSON + `meta["previewPath"]` = PNG. */
+    val isLegacyDrawing: Boolean
+        get() = type == BlockType.DRAWING && !isWysiwygDrawing
+
     /** Tipos cuyo `content` almacenaba markup legacy y migran a richTextJson. */
     val contentIsText: Boolean get() = type in segmentsBlockTypes
 

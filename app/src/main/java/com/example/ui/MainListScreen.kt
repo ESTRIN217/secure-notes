@@ -1807,8 +1807,10 @@ fun NoteCardItem(
                             }
                             com.example.data.model.BlockType.DRAWING -> {
                                 numberedCounter = 0
-                                val previewPath = block.meta["previewPath"] ?: ""
-                                attachments.add(Triple("drawing", block.content, previewPath))
+                                if (!block.isWysiwygDrawing) {
+                                    val previewPath = block.meta["previewPath"] ?: ""
+                                    attachments.add(Triple("drawing", block.content, previewPath))
+                                }
                             }
                             else -> numberedCounter = 0
                         }

@@ -42,22 +42,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.Attachment
+import com.example.data.model.DrawingStroke
+import com.example.data.model.DrawingStrokeCodec
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.createRawContent
 import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
-import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
-
-data class DrawingStroke(
-    val points: List<Offset>,
-    val color: Color,
-    val width: Float
-)
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,22 +73,7 @@ fun DrawingCanvasScreen(
             try {
                 val file = File(jsonPath)
                 if (file.exists()) {
-                    val jsonContent = file.readText()
-                    val jsonArray = JSONArray(jsonContent)
-                    val loadedStrokes = mutableListOf<DrawingStroke>()
-                    for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
-                        val color = Color(obj.getInt("color"))
-                        val width = obj.getDouble("width").toFloat()
-                        val pointsArray = obj.getJSONArray("points")
-                        val points = mutableListOf<Offset>()
-                        for (j in 0 until pointsArray.length()) {
-                            val ptObj = pointsArray.getJSONObject(j)
-                            points.add(Offset(ptObj.getDouble("x").toFloat(), ptObj.getDouble("y").toFloat()))
-                        }
-                        loadedStrokes.add(DrawingStroke(points, color, width))
-                    }
-                    strokes.addAll(loadedStrokes)
+                    strokes.addAll(DrawingStrokeCodec.strokesFromJson(file.readText()))
                 }
             } catch (e: Exception) {
                 Log.e("DrawingCanvasScreen", "load drawing failed", e)
@@ -218,23 +197,9 @@ fun DrawingCanvasScreen(
                                     }
 
                                     // Save JSON Path Data
-                                    val jsonArray = JSONArray()
-                                    strokes.forEach { stroke ->
-                                        val strokeObj = org.json.JSONObject()
-                                        strokeObj.put("color", stroke.color.toArgb())
-                                        strokeObj.put("width", stroke.width)
-                                        val pointsArray = JSONArray()
-                                        stroke.points.forEach { pt ->
-                                            val ptObj = org.json.JSONObject()
-                                            ptObj.put("x", pt.x.toDouble())
-                                            ptObj.put("y", pt.y.toDouble())
-                                            pointsArray.put(ptObj)
-                                        }
-                                        strokeObj.put("points", pointsArray)
-                                        jsonArray.put(strokeObj)
-                                    }
+                                    val strokesJson = DrawingStrokeCodec.strokesToJson(strokes.toList())
                                     FileOutputStream(jsonFile).use { out ->
-                                        out.write(jsonArray.toString().toByteArray())
+                                        out.write(strokesJson.toByteArray())
                                     }
 
                                     // Update Note attachments

@@ -18,7 +18,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
   namespace = "com.example"
-  ndkVersion = "29.0.14206865"
+  ndkVersion = "30.0.14904198"
+  buildToolsVersion = "36.1.0"
   compileSdk { version = release(37) { minorApiLevel = 1 } }
 
   defaultConfig {
