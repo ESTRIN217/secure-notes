@@ -30,11 +30,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatAlignCenter
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.FormatAlignRight
+import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -447,7 +447,7 @@ fun EditableDrawingBlock(
                 ),
                 BlockSheetAction(
                     label = stringResource(R.string.block_align_left),
-                    icon = Icons.Default.FormatAlignLeft,
+                    icon = Icons.AutoMirrored.Filled.FormatAlignLeft,
                     toggle = currentAlign == DRAWING_ALIGN_LEFT,
                     onClick = {
                         showAlignSheet = false
@@ -456,7 +456,7 @@ fun EditableDrawingBlock(
                 ),
                 BlockSheetAction(
                     label = stringResource(R.string.block_align_right),
-                    icon = Icons.Default.FormatAlignRight,
+                    icon = Icons.AutoMirrored.Filled.FormatAlignRight,
                     toggle = currentAlign == DRAWING_ALIGN_RIGHT,
                     onClick = {
                         showAlignSheet = false
@@ -505,7 +505,7 @@ private fun DrawingBlockToolbar(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Undo,
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = stringResource(R.string.drawing_undo),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)

@@ -39,8 +39,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
 import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.video.videoFrameMillis
 import com.example.R
 import com.example.data.model.BlockRenderContext
 import com.example.data.model.ColumnAlignment
@@ -278,26 +281,79 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
     modifier: Modifier
 ) {
     val block = this
-    MediaCard(modifier = modifier.height(200.dp)) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
-                    .clickable { context.onNavigateToMediaViewer("video", src) },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = stringResource(id = R.string.cd_play_video),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
+    val isFullWidth = align == null || align == "center"
+    val widthFraction = if (isFullWidth) 1f else 0.5f
+    val horizontalAlign = when (align) {
+        "left" -> Alignment.CenterStart
+        "right" -> Alignment.CenterEnd
+        else -> Alignment.Center
+    }
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = horizontalAlign
+    ) {
+        MediaCard(modifier = Modifier.fillMaxWidth(widthFraction)) {
+            Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
+                        .clickable { context.onNavigateToMediaViewer("video", src) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    val contextForThumb = LocalContext.current
+                    val youTubeThumb = if (com.example.util.VideoUrlHelper.isYouTubeUrl(src)) {
+                        com.example.util.VideoUrlHelper.youTubeThumbnail(src)
+                    } else {
+                        null
+                    }
+                    if (youTubeThumb != null) {
+                        SubcomposeAsyncImage(
+                            model = youTubeThumb,
+                            contentDescription = stringResource(id = R.string.cd_play_video),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            loading = {},
+                            error = {}
+                        )
+                    } else if (!com.example.util.VideoUrlHelper.isWebVideoUrl(src)) {
+                        SubcomposeAsyncImage(
+                            model = ImageRequest.Builder(contextForThumb)
+                                .data(src)
+                                .videoFrameMillis(0)
+                                .build(),
+                            contentDescription = stringResource(id = R.string.cd_play_video),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            loading = {},
+                            error = {}
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = stringResource(id = R.string.cd_play_video),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                            .padding(8.dp)
+                    )
+                }
+                MediaActionsOverlay(
+                    onDelete = { context.onDeleteBlock(block) },
+                    onMore = context.onOpenBlockMore?.let { { it(block) } }
                 )
             }
-            MediaActionsOverlay(
-            onDelete = { context.onDeleteBlock(block) },
-            onMore = context.onOpenBlockMore?.let { { it(block) } }
-        )
+            if (!caption.isNullOrBlank()) {
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
         }
     }
 }

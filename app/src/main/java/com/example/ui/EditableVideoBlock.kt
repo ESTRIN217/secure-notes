@@ -1,5 +1,8 @@
 package com.example.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,9 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,9 +29,10 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatAlignCenter
 import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,8 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -52,22 +54,25 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.video.videoFrameMillis
 import com.example.R
-import com.example.util.ImageUrlResolver
+import com.example.util.VideoUrlHelper
 
-private val IMAGE_CORNER = RoundedCornerShape(8.dp)
-private const val IMAGE_ALIGN_CENTER = "center"
-private const val IMAGE_ALIGN_LEFT = "left"
-private const val IMAGE_ALIGN_RIGHT = "right"
+private val VIDEO_CORNER = RoundedCornerShape(8.dp)
+private const val VIDEO_ALIGN_CENTER = "center"
+private const val VIDEO_ALIGN_LEFT = "left"
+private const val VIDEO_ALIGN_RIGHT = "right"
 
 @Composable
-fun EditableImageBlock(
+fun EditableVideoBlock(
     src: String,
     caption: String,
     alignment: String,
@@ -84,21 +89,31 @@ fun EditableImageBlock(
     onMoveTo: () -> Unit = {},
     showCaption: Boolean = false,
     onShowCaptionChange: (Boolean) -> Unit = {},
-    onSrcResolved: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
     var showAlignSheet by remember { mutableStateOf(false) }
-    var displaySrc by remember(src) { mutableStateOf(src) }
-    var resolveAttempted by remember(src) { mutableStateOf(false) }
-    var resolveFailed by remember(src) { mutableStateOf(false) }
-    val shouldAutoResolve = ImageUrlResolver.isWrapperUrl(src) && !resolveAttempted && !resolveFailed
+    val context = LocalContext.current
+    val isWebVideo = VideoUrlHelper.isWebVideoUrl(src)
+    val youTubeThumb = if (VideoUrlHelper.isYouTubeUrl(src)) VideoUrlHelper.youTubeThumbnail(src) else null
+
+    val handleOpen: () -> Unit = {
+        if (isWebVideo) {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(src)))
+            } catch (e: Exception) {
+                Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            onOpen()
+        }
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        val widthFraction = if (alignment == IMAGE_ALIGN_CENTER) 1f else 0.5f
+        val widthFraction = if (alignment == VIDEO_ALIGN_CENTER) 1f else 0.5f
         val horizontalAlign = when (alignment) {
-            IMAGE_ALIGN_LEFT -> Alignment.CenterStart
-            IMAGE_ALIGN_RIGHT -> Alignment.CenterEnd
+            VIDEO_ALIGN_LEFT -> Alignment.CenterStart
+            VIDEO_ALIGN_RIGHT -> Alignment.CenterEnd
             else -> Alignment.Center
         }
         Box(
@@ -108,57 +123,62 @@ fun EditableImageBlock(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(widthFraction)
-                    .clip(IMAGE_CORNER)
+                    .aspectRatio(16f / 9f)
+                    .clip(VIDEO_CORNER)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     .then(
-                        if (isActive) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, IMAGE_CORNER)
+                        if (isActive) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, VIDEO_CORNER)
                         else Modifier
                     )
-                    .clickable { onOpen() }
+                    .clickable { handleOpen() }
             ) {
                 if (src.isBlank()) {
-                    ImagePlaceholder(onClick = onReplace)
+                    VideoPlaceholder(onClick = onReplace)
+                } else if (youTubeThumb != null) {
+                    SubcomposeAsyncImage(
+                        model = youTubeThumb,
+                        contentDescription = stringResource(R.string.block_video_open),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = { VideoLoadingBox() },
+                        error = { VideoLoadingBox() }
+                    )
+                } else if (isWebVideo) {
+                    VideoWebPlaceholder()
                 } else {
                     SubcomposeAsyncImage(
-                        model = displaySrc,
-                        contentDescription = stringResource(R.string.block_image_open),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 480.dp),
-                        contentScale = ContentScale.FillWidth,
-                        loading = { ImageLoadingBox() },
-                        error = {
-                            LaunchedEffect(src) {
-                                if (shouldAutoResolve) {
-                                    resolveAttempted = true
-                                    val resolved = ImageUrlResolver.resolveImageUrl(src)
-                                    if (resolved != src) {
-                                        displaySrc = resolved
-                                        onSrcResolved(resolved)
-                                    } else {
-                                        resolveFailed = true
-                                    }
-                                }
-                            }
-                            if (resolveFailed || !ImageUrlResolver.isWrapperUrl(src)) {
-                                ImageErrorBox(onReplace = onReplace)
-                            } else {
-                                ImageLoadingBox()
-                            }
-                        }
+                        model = ImageRequest.Builder(context)
+                            .data(src)
+                            .videoFrameMillis(0)
+                            .build(),
+                        contentDescription = stringResource(R.string.block_video_open),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = { VideoLoadingBox() },
+                        error = { VideoErrorBox(onReplace = onReplace) }
                     )
                 }
 
-                
-                ImageActionsOverlay(
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = stringResource(id = R.string.cd_play_video),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
+                        .padding(8.dp)
+                )
+
+                VideoActionsOverlay(
                     onMore = { showMoreMenu = true }
                 )
-                
             }
         }
 
         if (showCaption) {
-            EditableImageCaption(
+            EditableVideoCaption(
                 caption = caption,
                 isActive = isActive,
                 onActivate = onActivate,
@@ -171,7 +191,7 @@ fun EditableImageBlock(
 
     if (showMoreMenu) {
         BlockOptionsSheet(
-            title = stringResource(R.string.block_image),
+            title = stringResource(R.string.block_video),
             onDismiss = { showMoreMenu = false },
             actions = listOf(
                 BlockSheetAction(
@@ -191,7 +211,7 @@ fun EditableImageBlock(
                     }
                 ),
                 BlockSheetAction(
-                    label = stringResource(R.string.block_image_replace),
+                    label = stringResource(R.string.block_video_replace),
                     icon = Icons.Default.Edit,
                     onClick = {
                         showMoreMenu = false
@@ -199,7 +219,7 @@ fun EditableImageBlock(
                     }
                 ),
                 BlockSheetAction(
-                    label = stringResource(R.string.block_image_description),
+                    label = stringResource(R.string.block_video_description),
                     icon = Icons.Default.Description,
                     toggle = showCaption,
                     onClick = {
@@ -208,7 +228,7 @@ fun EditableImageBlock(
                     }
                 ),
                 BlockSheetAction(
-                    label = stringResource(R.string.block_image_align),
+                    label = stringResource(R.string.block_video_align),
                     icon = Icons.Default.FormatAlignCenter,
                     onClick = {
                         showMoreMenu = false
@@ -246,31 +266,31 @@ fun EditableImageBlock(
 
     if (showAlignSheet) {
         val currentAlign = when (alignment) {
-            IMAGE_ALIGN_LEFT -> IMAGE_ALIGN_LEFT
-            IMAGE_ALIGN_RIGHT -> IMAGE_ALIGN_RIGHT
-            else -> IMAGE_ALIGN_CENTER
+            VIDEO_ALIGN_LEFT -> VIDEO_ALIGN_LEFT
+            VIDEO_ALIGN_RIGHT -> VIDEO_ALIGN_RIGHT
+            else -> VIDEO_ALIGN_CENTER
         }
         BlockOptionsSheet(
-            title = stringResource(R.string.block_image_align),
+            title = stringResource(R.string.block_video_align),
             onDismiss = { showAlignSheet = false },
             actions = listOf(
                 BlockSheetAction(
                     label = stringResource(R.string.block_align_center),
                     icon = Icons.Default.FormatAlignCenter,
-                    toggle = currentAlign == IMAGE_ALIGN_CENTER,
-                    onClick = { showAlignSheet = false; onAlignmentChange(IMAGE_ALIGN_CENTER) }
+                    toggle = currentAlign == VIDEO_ALIGN_CENTER,
+                    onClick = { showAlignSheet = false; onAlignmentChange(VIDEO_ALIGN_CENTER) }
                 ),
                 BlockSheetAction(
                     label = stringResource(R.string.block_align_left),
                     icon = Icons.AutoMirrored.Filled.FormatAlignLeft,
-                    toggle = currentAlign == IMAGE_ALIGN_LEFT,
-                    onClick = { showAlignSheet = false; onAlignmentChange(IMAGE_ALIGN_LEFT) }
+                    toggle = currentAlign == VIDEO_ALIGN_LEFT,
+                    onClick = { showAlignSheet = false; onAlignmentChange(VIDEO_ALIGN_LEFT) }
                 ),
                 BlockSheetAction(
                     label = stringResource(R.string.block_align_right),
                     icon = Icons.AutoMirrored.Filled.FormatAlignRight,
-                    toggle = currentAlign == IMAGE_ALIGN_RIGHT,
-                    onClick = { showAlignSheet = false; onAlignmentChange(IMAGE_ALIGN_RIGHT) }
+                    toggle = currentAlign == VIDEO_ALIGN_RIGHT,
+                    onClick = { showAlignSheet = false; onAlignmentChange(VIDEO_ALIGN_RIGHT) }
                 )
             )
         )
@@ -278,24 +298,23 @@ fun EditableImageBlock(
 }
 
 @Composable
-private fun ImagePlaceholder(onClick: () -> Unit) {
+private fun VideoPlaceholder(onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .fillMaxSize()
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.Image,
-                contentDescription = stringResource(R.string.block_image_replace),
+                imageVector = Icons.Default.Videocam,
+                contentDescription = stringResource(R.string.block_video_replace),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                text = stringResource(R.string.block_image_replace),
+                text = stringResource(R.string.block_video_replace),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -304,11 +323,24 @@ private fun ImagePlaceholder(onClick: () -> Unit) {
 }
 
 @Composable
-private fun ImageLoadingBox() {
+private fun VideoWebPlaceholder() {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 160.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Videocam,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+@Composable
+private fun VideoLoadingBox() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(modifier = Modifier.size(28.dp))
@@ -316,11 +348,10 @@ private fun ImageLoadingBox() {
 }
 
 @Composable
-private fun ImageErrorBox(onReplace: () -> Unit) {
+private fun VideoErrorBox(onReplace: () -> Unit) {
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .fillMaxSize()
             .clickable { onReplace() },
         contentAlignment = Alignment.Center
     ) {
@@ -333,12 +364,12 @@ private fun ImageErrorBox(onReplace: () -> Unit) {
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                text = stringResource(R.string.block_image_load_error),
+                text = stringResource(R.string.block_video_load_error),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.block_image_replace),
+                text = stringResource(R.string.block_video_replace),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -347,7 +378,7 @@ private fun ImageErrorBox(onReplace: () -> Unit) {
 }
 
 @Composable
-private fun ImageActionsOverlay(
+private fun VideoActionsOverlay(
     onMore: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -372,7 +403,7 @@ private fun ImageActionsOverlay(
 }
 
 @Composable
-private fun EditableImageCaption(
+private fun EditableVideoCaption(
     caption: String,
     isActive: Boolean,
     onActivate: () -> Unit,
@@ -430,7 +461,7 @@ private fun EditableImageCaption(
         )
         if (fieldValue.text.isEmpty()) {
             Text(
-                text = stringResource(R.string.block_image_caption_hint),
+                text = stringResource(R.string.block_video_caption_hint),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = hintColor,
                     textAlign = TextAlign.Center

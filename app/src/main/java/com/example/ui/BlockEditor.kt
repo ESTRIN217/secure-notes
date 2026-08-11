@@ -78,6 +78,7 @@ fun BlockEditor(
     onConvertTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
+    onEditVideo: (Int) -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
@@ -181,6 +182,7 @@ fun BlockEditor(
                         onConvertTo = onConvertTo,
                         onEditPageLink = onEditPageLink,
                         onEditImage = onEditImage,
+                        onEditVideo = onEditVideo,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -394,6 +396,7 @@ private fun BlockRow(
     onConvertTo: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
+    onEditVideo: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onSplit: (List<TextSegment>, List<TextSegment>) -> Unit,
@@ -697,6 +700,34 @@ private fun BlockRow(
                     modifier = Modifier.weight(1f)
                 )
             }
+            BlockType.VIDEO -> {
+                val showCaption = block.meta["showCaption"] != "false"
+                EditableVideoBlock(
+                    src = block.content,
+                    caption = block.meta["caption"] ?: "",
+                    alignment = block.meta["align"] ?: "center",
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onOpen = { onNavigateToMediaViewer("video", block.content) },
+                    onCaptionChange = { newCaption ->
+                        onChange(block.copy(meta = block.meta + ("caption" to newCaption)))
+                    },
+                    onReplace = { onEditVideo(index) },
+                    onDelete = onDelete,
+                    onAlignmentChange = { newAlign ->
+                        onChange(block.copy(meta = block.meta + ("align" to newAlign)))
+                    },
+                    onConvertTo = { onConvertTo(index) },
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    showCaption = showCaption,
+                    onShowCaptionChange = { newVal ->
+                        onChange(block.copy(meta = block.meta + ("showCaption" to newVal.toString())))
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             BlockType.DRAWING -> {
                 EditableDrawingBlock(
                     block = block,
@@ -829,7 +860,13 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
                 align = meta["align"]?.takeIf { it.isNotBlank() }
             )
         }
-        BlockType.VIDEO -> NoteContentBlock.VideoBlock(src = content)
+        BlockType.VIDEO -> {
+            val videoBlock = NoteContentBlock.VideoBlock(src = content)
+            videoBlock.copy(
+                caption = meta["caption"]?.takeIf { it.isNotBlank() },
+                align = meta["align"]?.takeIf { it.isNotBlank() }
+            )
+        }
         BlockType.AUDIO -> NoteContentBlock.AudioBlock(src = content)
         BlockType.DRAWING -> {
             if (isWysiwygDrawing) {

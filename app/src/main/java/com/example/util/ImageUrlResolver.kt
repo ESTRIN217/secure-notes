@@ -31,7 +31,7 @@ object ImageUrlResolver {
             val request = Request.Builder().url(url).build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext url
-                val body = response.body?.string() ?: return@withContext url
+                val body = response.body.string() ?: return@withContext url
                 WRAPPER_IMAGE_REGEX.find(body)?.value?.replace("&amp;", "&") ?: url
             }
         } catch (e: Exception) {

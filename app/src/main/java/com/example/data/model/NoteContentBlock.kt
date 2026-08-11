@@ -39,7 +39,11 @@ sealed interface NoteContentBlock {
         val caption: String? = null,
         val align: String? = null
     ) : NoteContentBlock
-    data class VideoBlock(val src: String) : NoteContentBlock
+    data class VideoBlock(
+        val src: String,
+        val caption: String? = null,
+        val align: String? = null
+    ) : NoteContentBlock
     data class AudioBlock(val src: String) : NoteContentBlock
     data class DrawingBlock(
         val jsonPath: String,

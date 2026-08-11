@@ -339,6 +339,14 @@
     <string name="block_image_open">Open image</string>
     <string name="block_video">Video</string>
     <string name="block_video_desc">Embed video</string>
+    <string name="block_video_caption_hint">Add a caption…</string>
+    <string name="block_video_replace">Replace</string>
+    <string name="block_video_load_error">Couldn\'t load this video</string>
+    <string name="block_video_description">Description</string>
+    <string name="block_video_align">Alignment</string>
+    <string name="block_video_open">Open video</string>
+    <string name="video_open_external">Open video externally</string>
+    <string name="video_open_youtube">Open in YouTube</string>
     <string name="block_audio">Audio</string>
     <string name="block_audio_desc">Embed audio or voice note</string>
     <string name="block_code">Code Block</string>

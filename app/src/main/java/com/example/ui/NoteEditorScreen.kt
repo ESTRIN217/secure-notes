@@ -395,6 +395,41 @@ fun NoteEditorScreen(
 
     var imageDialogMode by remember { mutableIntStateOf(-1) }
 
+    var videoDialogMode by remember { mutableIntStateOf(-1) }
+
+    fun insertVideoBlock(src: String) {
+        showSlashMenu = false
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val videoBlock = DataBlock(type = BlockType.VIDEO, content = src)
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = videoBlock
+        } else {
+            newBlocks.add(idx, videoBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+    }
+
+    fun applyVideoSelection(src: String) {
+        val replaceIdx = videoDialogMode
+        videoDialogMode = -1
+        if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks[replaceIdx] = blocks[replaceIdx].copy(content = src)
+            applyBlocksChange(newBlocks)
+        } else {
+            insertVideoBlock(src)
+        }
+    }
+
     fun insertImageBlock(src: String, linkUrl: String? = null) {
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
@@ -664,7 +699,7 @@ fun NoteEditorScreen(
         contract = ActivityResultContracts.CaptureVideo()
     ) { success: Boolean ->
         if (success) {
-            cameraVideoUri?.let { uri -> insertAtCursor("<video src=\"$uri\" />") }
+            cameraVideoUri?.let { uri -> applyVideoSelection(uri.toString()) }
         }
     }
 
@@ -727,7 +762,7 @@ fun NoteEditorScreen(
     ) { uri: Uri? ->
         uri?.let {
             acquireUriPermission(it)
-            insertAtCursor("<video src=\"$it\" />")
+            applyVideoSelection(it.toString())
         }
     }
 
@@ -910,10 +945,14 @@ fun NoteEditorScreen(
         showSlashMenu = false
         fun clearSlashPlaceholder() {
             val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-            val currentBlock = blocks.getOrNull(currentIdx)
-            if (currentBlock?.content?.startsWith("/") == true) {
+            val currentBlock = blocks.getOrNull(currentIdx) ?: return
+            val plain = com.example.util.RichTextConverter.segmentsToPlainText(currentBlock.ensureSegments())
+            if (plain.startsWith("/")) {
                 val newBlocks = blocks.toMutableList()
-                newBlocks[currentIdx] = currentBlock.copy(content = "")
+                newBlocks[currentIdx] = currentBlock.copy(
+                    content = "",
+                    richTextJson = com.example.data.model.TextSegment.serialize(emptyList())
+                )
                 blocks = newBlocks
                 contentValue = TextFieldValue(text = "")
             }
@@ -941,6 +980,7 @@ fun NoteEditorScreen(
             }
             BlockAction.VIDEO_DIALOG -> {
                 clearSlashPlaceholder()
+                videoDialogMode = -1
                 showInsertVideoDialog = true
             }
             BlockAction.VOICE_FILE_DIALOG -> {
@@ -1512,6 +1552,10 @@ fun NoteEditorScreen(
                             imageDialogMode = idx
                             showInsertImageDialog = true
                         },
+                        onEditVideo = { idx ->
+                            videoDialogMode = idx
+                            showInsertVideoDialog = true
+                        },
                         onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
                         pendingInsert = pendingInsert,
@@ -1597,7 +1641,7 @@ fun NoteEditorScreen(
                         isVideoLinkExpanded = false
                     },
                     onInsertLink = { url ->
-                        if (url.isNotBlank()) insertAtCursor("<video src=\"$url\" />")
+                        if (url.isNotBlank()) applyVideoSelection(url)
                         videoInputUrl = ""
                         showInsertVideoDialog = false
                         isVideoLinkExpanded = false
@@ -2549,6 +2593,7 @@ fun NoteEditorScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showVoiceFileSheet = false
+                                videoDialogMode = -1
                                 showInsertVideoDialog = true
                             },
                         shape = RoundedCornerShape(12.dp)

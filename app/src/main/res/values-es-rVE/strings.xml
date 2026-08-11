@@ -317,6 +317,14 @@
     <string name="block_image_open">Abrir imagen</string>
     <string name="block_video">Video</string>
     <string name="block_video_desc">Insertar video</string>
+    <string name="block_video_caption_hint">Añade un título…</string>
+    <string name="block_video_replace">Reemplazar</string>
+    <string name="block_video_load_error">No se pudo cargar el video</string>
+    <string name="block_video_description">Descripción</string>
+    <string name="block_video_align">Alineación</string>
+    <string name="block_video_open">Abrir video</string>
+    <string name="video_open_external">Abrir video externamente</string>
+    <string name="video_open_youtube">Abrir en YouTube</string>
     <string name="block_audio">Audio</string>
     <string name="block_audio_desc">Insertar audio o nota de voz</string>
     <string name="block_code">Código</string>

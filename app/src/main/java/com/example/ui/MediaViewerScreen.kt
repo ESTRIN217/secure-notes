@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +27,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
@@ -42,6 +44,7 @@ fun MediaViewerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val isWebVideo = com.example.util.VideoUrlHelper.isWebVideoUrl(src)
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -71,56 +74,58 @@ fun MediaViewerScreen(
                         )
                     }
                     Row {
-                        IconButton(onClick = {
-                            try {
-                                val uri = if (src.startsWith("content://")) {
-                                    Uri.parse(src)
-                                } else {
-                                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(src))
-                                }
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    this.type = if (type == "image") "image/*" else "video/*"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, null))
-                            } catch (e: Exception) {
-                                Toast.makeText(context, context.getString(R.string.toast_share_error), Toast.LENGTH_SHORT).show()
-                            }
-                        }) {
-                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.option_share), tint = Color.White)
-                        }
-                        IconButton(onClick = {
-                            try {
-                                val srcUri = if (src.startsWith("content://")) Uri.parse(src) else Uri.fromFile(File(src))
-                                val ext = if (src.startsWith("content://")) {
-                                    val mime = context.contentResolver.getType(srcUri)
-                                    if (mime?.startsWith("video") == true) "mp4" else "png"
-                                } else {
-                                    File(src).extension.ifEmpty { if (type == "image") "png" else "mp4" }
-                                }
-                                val fileName = "secure_notes_${System.currentTimeMillis()}.$ext"
-                                val mimeType = if (type == "image") "image/png" else "video/mp4"
-                                val collection = if (type == "image") MediaStore.Images.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                                val values = android.content.ContentValues().apply {
-                                    put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-                                    put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-                                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SecureNotes")
-                                }
-                                val uri = context.contentResolver.insert(collection, values)
-                                if (uri != null) {
-                                    context.contentResolver.openOutputStream(uri)?.use { out ->
-                                        context.contentResolver.openInputStream(srcUri)?.use { input ->
-                                            input.copyTo(out)
-                                        }
+                        if (!isWebVideo) {
+                            IconButton(onClick = {
+                                try {
+                                    val uri = if (src.startsWith("content://")) {
+                                        Uri.parse(src)
+                                    } else {
+                                        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(src))
                                     }
-                                    Toast.makeText(context, context.getString(R.string.toast_saved_to_gallery), Toast.LENGTH_SHORT).show()
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        this.type = if (type == "image") "image/*" else "video/*"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, null))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, context.getString(R.string.toast_share_error), Toast.LENGTH_SHORT).show()
                                 }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, context.getString(R.string.toast_save_error), Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.option_share), tint = Color.White)
                             }
-                        }) {
-                            Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.option_save), tint = Color.White)
+                            IconButton(onClick = {
+                                try {
+                                    val srcUri = if (src.startsWith("content://")) Uri.parse(src) else Uri.fromFile(File(src))
+                                    val ext = if (src.startsWith("content://")) {
+                                        val mime = context.contentResolver.getType(srcUri)
+                                        if (mime?.startsWith("video") == true) "mp4" else "png"
+                                    } else {
+                                        File(src).extension.ifEmpty { if (type == "image") "png" else "mp4" }
+                                    }
+                                    val fileName = "secure_notes_${System.currentTimeMillis()}.$ext"
+                                    val mimeType = if (type == "image") "image/png" else "video/mp4"
+                                    val collection = if (type == "image") MediaStore.Images.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                                    val values = android.content.ContentValues().apply {
+                                        put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                                        put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SecureNotes")
+                                    }
+                                    val uri = context.contentResolver.insert(collection, values)
+                                    if (uri != null) {
+                                        context.contentResolver.openOutputStream(uri)?.use { out ->
+                                            context.contentResolver.openInputStream(srcUri)?.use { input ->
+                                                input.copyTo(out)
+                                            }
+                                        }
+                                        Toast.makeText(context, context.getString(R.string.toast_saved_to_gallery), Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, context.getString(R.string.toast_save_error), Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.option_save), tint = Color.White)
+                            }
                         }
                     }
                 }
@@ -155,12 +160,75 @@ fun MediaViewerScreen(
                         },
                     contentScale = ContentScale.Fit
                 )
+            } else if (isWebVideo) {
+                val youTubeThumb = com.example.util.VideoUrlHelper.youTubeThumbnail(src)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(src)))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (youTubeThumb.isNotBlank()) {
+                            AsyncImage(
+                                model = youTubeThumb,
+                                contentDescription = stringResource(R.string.attachment_video),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = stringResource(R.string.cd_play_video),
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .padding(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(
+                            if (com.example.util.VideoUrlHelper.isYouTubeUrl(src)) R.string.video_open_youtube
+                            else R.string.video_open_external
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = src,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
             } else {
                 AndroidView(
                     factory = { ctx ->
                         try {
                             android.widget.VideoView(ctx).apply {
-                                setVideoPath(src)
+                                if (src.startsWith("content://")) {
+                                    setVideoURI(Uri.parse(src))
+                                } else {
+                                    setVideoPath(src)
+                                }
                                 val mc = android.widget.MediaController(ctx)
                                 setMediaController(mc)
                                 start()
