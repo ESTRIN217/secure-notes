@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Close
@@ -64,6 +65,7 @@ fun NoteContentBlock.RenderContent(
         is NoteContentBlock.DrawingBlock -> renderDrawingBlock(context, modifier)
         is NoteContentBlock.VoiceBlock -> renderVoiceBlock(context, modifier)
         is NoteContentBlock.FileBlock -> renderFileBlock(context, modifier)
+        is NoteContentBlock.BookmarkBlock -> renderBookmarkBlock(context, modifier)
         is NoteContentBlock.TableBlock -> renderTableBlock(context, modifier)
         is NoteContentBlock.HorizontalRuleBlock -> renderHorizontalRuleBlock(modifier)
         is NoteContentBlock.CollapsibleBlock -> renderCollapsibleBlock(context, modifier)
@@ -467,6 +469,92 @@ private fun NoteContentBlock.FileBlock.renderFileBlock(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(text = name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        }
+        MediaActionsOverlay(
+            onDelete = { context.onDeleteBlock(block) },
+            onMore = context.onOpenBlockMore?.let { { it(block) } }
+        )
+    }
+}
+
+@Composable
+private fun NoteContentBlock.BookmarkBlock.renderBookmarkBlock(
+    context: BlockRenderContext,
+    modifier: Modifier
+) {
+    val block = this
+    val host = try {
+        android.net.Uri.parse(url).host?.removePrefix("www.").orEmpty()
+    } catch (e: Exception) {
+        ""
+    }
+    MediaCard(modifier = modifier.wrapContentHeight()) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { context.onUrlClicked(url, 0) }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!favicon.isNullOrBlank()) {
+                        AsyncImage(
+                            model = favicon,
+                            contentDescription = stringResource(R.string.block_bookmark_open),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Bookmark,
+                            contentDescription = stringResource(R.string.block_bookmark_open),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title?.takeIf { it.isNotBlank() } ?: host.ifBlank { url },
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!description.isNullOrBlank()) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Text(
+                        text = host.ifBlank { url },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (!caption.isNullOrBlank()) {
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
         }
         MediaActionsOverlay(
             onDelete = { context.onDeleteBlock(block) },

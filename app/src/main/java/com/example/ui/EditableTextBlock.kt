@@ -22,6 +22,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -36,6 +37,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +66,7 @@ fun EditableTextBlock(
     onMoveToNextBlock: () -> Unit = {},
     onDeleteBlock: () -> Unit = {},
     onConvertToText: () -> Unit = {},
+    onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     modifier: Modifier = Modifier,
     numberIndex: Int? = null,
@@ -163,8 +167,25 @@ fun EditableTextBlock(
         }
     }
 
+    val currentUrlClick by rememberUpdatedState(onUrlClicked)
+
+    val annotatedWithLinks = remember(displayAnnotated) {
+        val builder = AnnotatedString.Builder(displayAnnotated)
+        for (range in displayAnnotated.getStringAnnotations(RichTextConverter.URL_ANNOTATION, 0, displayAnnotated.length)) {
+            builder.addLink(
+                LinkAnnotation.Url(
+                    url = range.item,
+                    linkInteractionListener = LinkInteractionListener { currentUrlClick(range.item, range.start) }
+                ),
+                start = range.start,
+                end = range.end
+            )
+        }
+        builder.toAnnotatedString()
+    }
+
     val visualTransformation = VisualTransformation { text ->
-        TransformedText(if (text.text == displayAnnotated.text) displayAnnotated else text, identityMapping)
+        TransformedText(if (text.text == annotatedWithLinks.text) annotatedWithLinks else text, identityMapping)
     }
 
     val prefix = if (!showPrefix) {

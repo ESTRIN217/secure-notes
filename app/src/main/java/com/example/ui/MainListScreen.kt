@@ -1816,6 +1816,10 @@ fun NoteCardItem(
                                     attachments.add(Triple("drawing", block.content, previewPath))
                                 }
                             }
+                            com.example.data.model.BlockType.BOOKMARK -> {
+                                numberedCounter = 0
+                                textParts.add(blockText)
+                            }
                             else -> numberedCounter = 0
                         }
                     }

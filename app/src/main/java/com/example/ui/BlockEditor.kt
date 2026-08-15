@@ -76,11 +76,15 @@ fun BlockEditor(
     noteTitleById: (Int) -> String = { "" },
     onMoveBlockTo: (Int) -> Unit = {},
     onConvertTo: (Int) -> Unit = {},
+    onConvertToMention: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
     onEditAudio: (Int) -> Unit = {},
     onEditFile: (Int) -> Unit = {},
+    onEditBookmark: (Int) -> Unit = {},
+    onRefreshBookmark: (Int) -> Unit = {},
+    bookmarkFetchingIndexes: Set<Int> = emptySet(),
     onOpenFile: (String, String) -> Unit = { _, _ -> },
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
@@ -183,11 +187,15 @@ fun BlockEditor(
                         onDuplicate = ::duplicateBlock,
                         onMoveTo = onMoveBlockTo,
                         onConvertTo = onConvertTo,
+                        onConvertToMention = onConvertToMention,
                         onEditPageLink = onEditPageLink,
                         onEditImage = onEditImage,
                         onEditVideo = onEditVideo,
                         onEditAudio = onEditAudio,
                         onEditFile = onEditFile,
+                        onEditBookmark = onEditBookmark,
+                        onRefreshBookmark = onRefreshBookmark,
+                        bookmarkFetchingIndexes = bookmarkFetchingIndexes,
                         onOpenFile = onOpenFile,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
@@ -400,11 +408,15 @@ private fun BlockRow(
     onDuplicate: (Int) -> Unit = {},
     onMoveTo: (Int) -> Unit = {},
     onConvertTo: (Int) -> Unit = {},
+    onConvertToMention: (Int) -> Unit = {},
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
     onEditAudio: (Int) -> Unit = {},
     onEditFile: (Int) -> Unit = {},
+    onEditBookmark: (Int) -> Unit = {},
+    onRefreshBookmark: (Int) -> Unit = {},
+    bookmarkFetchingIndexes: Set<Int> = emptySet(),
     onOpenFile: (String, String) -> Unit = { _, _ -> },
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
@@ -467,6 +479,7 @@ private fun BlockRow(
                         onMoveToNextBlock = onMoveToNextBlock,
                         onDeleteBlock = onDeleteBlock,
                         onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
+                        onUrlClicked = onUrlClicked,
                         onParseResult = onParseResult,
                         modifier = Modifier.weight(1f),
                         numberIndex = numberIndex,
@@ -811,6 +824,39 @@ private fun BlockRow(
                     modifier = Modifier.weight(1f)
                 )
             }
+            BlockType.BOOKMARK -> {
+                val showCaption = block.meta["showCaption"] == "true"
+                EditableBookmarkBlock(
+                    url = block.content,
+                    title = block.meta["title"] ?: "",
+                    description = block.meta["description"] ?: "",
+                    favicon = block.meta["favicon"] ?: "",
+                    caption = block.meta["caption"] ?: "",
+                    color = block.meta["color"],
+                    isFetching = index in bookmarkFetchingIndexes,
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onOpen = { onUrlClicked(block.content, 0) },
+                    onCaptionChange = { newCaption ->
+                        onChange(block.copy(meta = block.meta + ("caption" to newCaption)))
+                    },
+                    onReplace = { onEditBookmark(index) },
+                    onRefresh = { onRefreshBookmark(index) },
+                    onConvertToMention = { onConvertToMention(index) },
+                    onColorChange = { hex ->
+                        onChange(block.copy(meta = block.meta + ("color" to hex)))
+                    },
+                    onDelete = onDelete,
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    showCaption = showCaption,
+                    onShowCaptionChange = { newVal ->
+                        onChange(block.copy(meta = block.meta + ("showCaption" to newVal.toString())))
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             else -> {
                 val renderingBlock = block.toRenderingBlock()
                 var showBlockOptions by remember { mutableStateOf(false) }
@@ -890,6 +936,7 @@ private val BlockType.displayName: String
         BlockType.DRAWING -> "Drawing"
         BlockType.VOICE -> "Voice Note"
         BlockType.FILE -> "File"
+        BlockType.BOOKMARK -> "Bookmark"
         BlockType.TABLE -> "Table"
         BlockType.COLLAPSIBLE -> "Collapsible"
     }
@@ -951,6 +998,13 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
         }
         BlockType.VOICE -> NoteContentBlock.VoiceBlock(path = content)
         BlockType.FILE -> NoteContentBlock.FileBlock(name = meta["name"] ?: content.substringAfterLast('/'), path = content)
+        BlockType.BOOKMARK -> NoteContentBlock.BookmarkBlock(
+            url = content,
+            title = meta["title"]?.takeIf { it.isNotBlank() },
+            description = meta["description"]?.takeIf { it.isNotBlank() },
+            favicon = meta["favicon"]?.takeIf { it.isNotBlank() },
+            caption = meta["caption"]?.takeIf { it.isNotBlank() }
+        )
         BlockType.TABLE -> NoteContentBlock.TableBlock(
             headers = emptyList(),
             rows = listOf(listOf(content)),

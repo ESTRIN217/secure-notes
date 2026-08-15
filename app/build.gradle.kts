@@ -113,6 +113,7 @@ dependencies {
   implementation(libs.coil.compose)
   implementation(libs.coil.video)
   implementation(libs.coil.network.okhttp)
+  implementation(libs.coil.svg)
   implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)
   implementation(libs.firebase.analytics)

@@ -12,6 +12,7 @@
     <attribution android:tag="camera" android:label="@string/app_name" />
 
     <application
+        android:name=".SecureNotesApplication"
         android:allowBackup="true"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"

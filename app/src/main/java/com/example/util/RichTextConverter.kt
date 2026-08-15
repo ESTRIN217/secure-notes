@@ -511,6 +511,10 @@ object RichTextConverter {
                     numberedCounter = 0
                     sb.append("───")
                 }
+                BlockType.BOOKMARK -> {
+                    numberedCounter = 0
+                    sb.append(block.content)
+                }
                 else -> numberedCounter = 0
             }
             if (block.type != BlockType.HORIZONTAL_RULE) sb.append('\n')
@@ -541,6 +545,11 @@ object RichTextConverter {
                         .append(segmentsToPlainText(segments)).append("\n```")
                 }
                 BlockType.HORIZONTAL_RULE -> sb.append("\n---\n")
+                BlockType.BOOKMARK -> {
+                    val url = block.content
+                    val title = block.meta["title"]?.takeIf { it.isNotBlank() } ?: url
+                    sb.append("[").append(title).append("](").append(url).append(")")
+                }
                 BlockType.TABLE -> {
                     TableData.fromJson(block.meta["table"])?.let { data ->
                         sb.append(segmentsTableToMarkdown(data))
@@ -574,6 +583,11 @@ object RichTextConverter {
                 BlockType.CALLOUT -> sb.append("<p class=\"callout\">💡 ").append(segmentsToHtml(segments)).append("</p>")
                 BlockType.CODE_BLOCK -> sb.append("<pre><code>").append(htmlEscape(segmentsToPlainText(segments))).append("</code></pre>")
                 BlockType.HORIZONTAL_RULE -> sb.append("<hr>")
+                BlockType.BOOKMARK -> {
+                    val url = block.content
+                    val title = block.meta["title"]?.takeIf { it.isNotBlank() } ?: url
+                    sb.append("<p class=\"bookmark\"><a href=\"").append(htmlEscape(url)).append("\">").append(htmlEscape(title)).append("</a></p>")
+                }
                 BlockType.TABLE -> {
                     TableData.fromJson(block.meta["table"])?.let { data ->
                         sb.append(data.toHtml())

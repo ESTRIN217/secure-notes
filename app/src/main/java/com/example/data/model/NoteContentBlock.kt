@@ -54,6 +54,13 @@ sealed interface NoteContentBlock {
     ) : NoteContentBlock
     data class VoiceBlock(val path: String) : NoteContentBlock
     data class FileBlock(val name: String, val path: String) : NoteContentBlock
+    data class BookmarkBlock(
+        val url: String,
+        val title: String? = null,
+        val description: String? = null,
+        val favicon: String? = null,
+        val caption: String? = null
+    ) : NoteContentBlock
 
     data class TableBlock(
         val headers: List<String>,

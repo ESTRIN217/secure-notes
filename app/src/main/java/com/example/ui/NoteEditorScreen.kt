@@ -67,6 +67,7 @@ import com.example.util.exportToMarkdown
 import com.example.util.exportToPdf
 import com.example.util.exportSingleNoteToJson
 import com.example.util.ImageUrlResolver
+import com.example.util.BookmarkMetadataFetcher
 import com.example.util.MediaBlock
 import com.example.util.JsonColorizer
 import com.example.util.MathRenderer
@@ -412,6 +413,11 @@ fun NoteEditorScreen(
 
     var fileDialogMode by remember { mutableIntStateOf(-1) }
 
+    var showBookmarkUrlDialog by remember { mutableStateOf(false) }
+    var bookmarkUrlInput by remember { mutableStateOf("") }
+    var bookmarkDialogMode by remember { mutableIntStateOf(-1) }
+    val fetchingBookmarkIndices = remember { mutableStateOf(setOf<Int>()) }
+
     fun insertAudioBlock(src: String) {
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
@@ -478,6 +484,72 @@ fun NoteEditorScreen(
             applyBlocksChange(newBlocks)
         } else {
             insertFileBlock(path, name)
+        }
+    }
+
+    fun refreshBookmarkMeta(idx: Int, url: String) {
+        if (idx !in blocks.indices || url.isBlank()) return
+        fetchingBookmarkIndices.value = fetchingBookmarkIndices.value + idx
+        scope.launch {
+            val meta = BookmarkMetadataFetcher.fetch(url)
+            val current = blocks.getOrNull(idx)
+            if (current != null && current.type == BlockType.BOOKMARK && current.content == url) {
+                val newBlocks = blocks.toMutableList()
+                newBlocks[idx] = current.copy(meta = current.meta + mapOf(
+                    "title" to meta.title,
+                    "description" to meta.description,
+                    "favicon" to meta.favicon
+                ))
+                blocks = newBlocks
+                saveBlocksToHistory()
+            }
+            fetchingBookmarkIndices.value = fetchingBookmarkIndices.value - idx
+        }
+    }
+
+    fun insertBookmarkBlock(rawUrl: String) {
+        showSlashMenu = false
+        val url = normalizeBookmarkUrl(rawUrl)
+        if (url.isBlank()) return
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val bookmarkBlock = DataBlock(type = BlockType.BOOKMARK, content = url, meta = mapOf(
+            "title" to (BookmarkMetadataFetcher.hostOf(url) ?: url),
+            "favicon" to BookmarkMetadataFetcher.faviconFor(url)
+        ))
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = bookmarkBlock
+        } else {
+            newBlocks.add(idx, bookmarkBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+        refreshBookmarkMeta(idx, url)
+    }
+
+    fun applyBookmarkUrl(rawUrl: String) {
+        val url = normalizeBookmarkUrl(rawUrl)
+        if (url.isBlank()) return
+        val replaceIdx = bookmarkDialogMode
+        bookmarkDialogMode = -1
+        if (replaceIdx >= 0 && replaceIdx in blocks.indices && blocks[replaceIdx].type == BlockType.BOOKMARK) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks[replaceIdx] = blocks[replaceIdx].copy(
+                content = url,
+                meta = blocks[replaceIdx].meta - setOf("title", "description", "favicon")
+            )
+            blocks = newBlocks
+            saveBlocksToHistory()
+            refreshBookmarkMeta(replaceIdx, url)
+        } else {
+            insertBookmarkBlock(url)
         }
     }
 
@@ -1152,6 +1224,12 @@ fun NoteEditorScreen(
                 fileDialogMode = -1
                 filePickerLauncher.launch("*/*")
             }
+            BlockAction.BOOKMARK_DIALOG -> {
+                clearSlashPlaceholder()
+                bookmarkDialogMode = -1
+                bookmarkUrlInput = ""
+                showBookmarkUrlDialog = true
+            }
             BlockAction.DRAWING_DIALOG -> {
                 clearSlashPlaceholder()
                 insertDrawingBlock()
@@ -1715,6 +1793,23 @@ fun NoteEditorScreen(
                             pageLinkTargetBlockIndex = idx
                             showNoteLinkPicker = true
                         },
+                        onConvertToMention = { idx ->
+                            val block = blocks.getOrNull(idx)
+                            if (block != null && block.type == BlockType.BOOKMARK) {
+                                val url = block.content
+                                val title = block.meta["title"]?.takeIf { it.isNotBlank() } ?: url
+                                val newBlocks = blocks.toMutableList()
+                                newBlocks[idx] = DataBlock(
+                                    type = BlockType.TEXT,
+                                    content = "",
+                                    richTextJson = com.example.data.model.TextSegment.serialize(
+                                        listOf(com.example.data.model.TextSegment(text = title, linkUrl = url))
+                                    )
+                                )
+                                blocks = newBlocks
+                                saveBlocksToHistory()
+                            }
+                        },
                         onEditImage = { idx ->
                             imageDialogMode = idx
                             showInsertImageDialog = true
@@ -1731,6 +1826,16 @@ fun NoteEditorScreen(
                             fileDialogMode = idx
                             filePickerLauncher.launch("*/*")
                         },
+                        onEditBookmark = { idx ->
+                            bookmarkDialogMode = idx
+                            val existing = blocks.getOrNull(idx)
+                            bookmarkUrlInput = existing?.content ?: ""
+                            showBookmarkUrlDialog = true
+                        },
+                        onRefreshBookmark = { idx ->
+                            blocks.getOrNull(idx)?.let { refreshBookmarkMeta(idx, it.content) }
+                        },
+                        bookmarkFetchingIndexes = fetchingBookmarkIndices.value,
                         onOpenFile = { path, _ ->
                             openExternalFile(path)
                         },
@@ -1891,6 +1996,48 @@ fun NoteEditorScreen(
                     )
                 }
                 
+                // Insert Bookmark Dialog
+                if (showBookmarkUrlDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showBookmarkUrlDialog = false },
+                        title = { Text(stringResource(id = R.string.dialog_insert_bookmark_title)) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedTextField(
+                                    value = bookmarkUrlInput,
+                                    onValueChange = { bookmarkUrlInput = it },
+                                    label = { Text(stringResource(id = R.string.label_bookmark_url)) },
+                                    placeholder = { Text(stringResource(id = R.string.block_bookmark_url_hint)) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    val url = bookmarkUrlInput
+                                    showBookmarkUrlDialog = false
+                                    bookmarkUrlInput = ""
+                                    applyBookmarkUrl(url)
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.btn_insert))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    bookmarkUrlInput = ""
+                                    showBookmarkUrlDialog = false
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.btn_cancel))
+                            }
+                        }
+                    )
+                }
+
                 // Insert Table Dialog
                 if (showInsertTableDialog) {
                     AlertDialog(
@@ -3219,4 +3366,12 @@ fun NoteEditorScreen(
         }
 
     }
+}
+
+private fun normalizeBookmarkUrl(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isBlank()) return ""
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
+    if (Uri.parse(trimmed).host != null) return "https://$trimmed"
+    return trimmed
 }
