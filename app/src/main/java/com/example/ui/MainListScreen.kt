@@ -1805,6 +1805,10 @@ fun NoteCardItem(
                                 numberedCounter = 0
                                 attachments.add(Triple("video", block.content, ""))
                             }
+                            com.example.data.model.BlockType.AUDIO -> {
+                                numberedCounter = 0
+                                attachments.add(Triple("audio", block.content, ""))
+                            }
                             com.example.data.model.BlockType.DRAWING -> {
                                 numberedCounter = 0
                                 if (!block.isWysiwygDrawing) {
@@ -1900,6 +1904,21 @@ fun NoteCardItem(
                                             Icon(
                                                 imageVector = Icons.Default.PlayArrow,
                                                 contentDescription = stringResource(id = R.string.cd_play_video),
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(36.dp)
+                                            )
+                                        }
+                                    }
+                                    "audio" -> {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MusicNote,
+                                                contentDescription = stringResource(R.string.attachment_audio),
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(36.dp)
                                             )

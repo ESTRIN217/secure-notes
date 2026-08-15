@@ -79,6 +79,7 @@ fun BlockEditor(
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
+    onEditAudio: (Int) -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
@@ -183,6 +184,7 @@ fun BlockEditor(
                         onEditPageLink = onEditPageLink,
                         onEditImage = onEditImage,
                         onEditVideo = onEditVideo,
+                        onEditAudio = onEditAudio,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -397,6 +399,7 @@ private fun BlockRow(
     onEditPageLink: (Int) -> Unit = {},
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
+    onEditAudio: (Int) -> Unit = {},
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onSplit: (List<TextSegment>, List<TextSegment>) -> Unit,
@@ -436,13 +439,9 @@ private fun BlockRow(
         when (block.type) {
             BlockType.TEXT, BlockType.HEADING1, BlockType.HEADING2, BlockType.HEADING3, BlockType.HEADING4,
             BlockType.BULLET_LIST, BlockType.NUMBERED_LIST,
-            BlockType.QUOTE, BlockType.CODE_BLOCK, BlockType.CALLOUT -> {
+            BlockType.QUOTE, BlockType.CALLOUT -> {
                 if (index == activeBlockIndex) {
-                    val editorSegments = if (block.type == BlockType.CODE_BLOCK) {
-                        block.segments() ?: listOf(TextSegment(text = block.content))
-                    } else {
-                        block.ensureSegments()
-                    }
+                    val editorSegments = block.ensureSegments()
                     EditableTextBlock(
                         segments = editorSegments,
                         blockType = block.type,
@@ -474,11 +473,7 @@ private fun BlockRow(
                     )
                 } else {
                     ReadOnlyTextBlock(
-                        segments = if (block.type == BlockType.CODE_BLOCK) {
-                            block.segments() ?: listOf(TextSegment(text = block.content))
-                        } else {
-                            block.ensureSegments()
-                        },
+                        segments = block.ensureSegments(),
                         blockType = block.type,
                         numberIndex = numberIndex,
                         onActivate = onTapToEdit,
@@ -486,6 +481,34 @@ private fun BlockRow(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+            BlockType.CODE_BLOCK -> {
+                WysiwygCodeBlock(
+                    block = block,
+                    isActive = index == activeBlockIndex,
+                    onChange = onChange,
+                    onActivate = onActivate,
+                    onTapToEdit = onTapToEdit,
+                    onCursorChange = onCursorChange,
+                    onSelectionChange = onSelectionChange,
+                    onParseResult = onParseResult,
+                    onMoveToPreviousBlock = onMoveToPreviousBlock,
+                    onMoveToNextBlock = onMoveToNextBlock,
+                    onDeleteBlock = onDeleteBlock,
+                    onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
+                    onConvertTo = { onConvertTo(index) },
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    onDelete = onDelete,
+                    onUrlClicked = onUrlClicked,
+                    requestFocus = requestFocus,
+                    initialSelection = initialSelection,
+                    onFocusRequested = onFocusRequested,
+                    pendingInsert = pendingInsert,
+                    pendingSelection = pendingSelection,
+                    modifier = Modifier.weight(1f)
+                )
             }
             BlockType.TABLE -> {
                 val tableData = TableData.fromJson(block.meta["table"])
@@ -738,6 +761,16 @@ private fun BlockRow(
                     onInsertBelow = { onInsertBelow(index) },
                     onDuplicate = { onDuplicate(index) },
                     onMoveTo = { onMoveTo(index) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            BlockType.AUDIO -> {
+                EditableAudioBlock(
+                    src = block.content,
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onDelete = onDelete,
+                    onReplace = { onEditAudio(index) },
                     modifier = Modifier.weight(1f)
                 )
             }

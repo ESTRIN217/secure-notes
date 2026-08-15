@@ -257,6 +257,9 @@
     <string name="toast_file_select_error">Error al seleccionar archivo</string>
     <string name="toast_recording_error">Error al iniciar la grabación</string>
     <string name="toast_audio_play_error">Error al reproducir audio</string>
+    <string name="toast_audio_saved">Audio guardado</string>
+    <string name="toast_audio_save_error">No se pudo guardar el audio</string>
+    <string name="toast_audio_attached">Audio añadido</string>
     <string name="toast_audio_preview_error">Error al reproducir vista previa</string>
     <string name="toast_video_play_error">Error al reproducir video</string>
     <string name="toast_voice_note_attached">Nota de voz adjuntada</string>
@@ -327,8 +330,16 @@
     <string name="video_open_youtube">Abrir en YouTube</string>
     <string name="block_audio">Audio</string>
     <string name="block_audio_desc">Insertar audio o nota de voz</string>
+    <string name="block_audio_replace">Elegir audio</string>
+    <string name="block_audio_save">Guardar audio</string>
+    <string name="block_audio_speed">Velocidad de reproducción</string>
     <string name="block_code">Código</string>
     <string name="block_code_desc">Bloque de código monoespaciado</string>
+    <string name="block_code_language">Lenguaje</string>
+    <string name="block_code_copy">Copiar código</string>
+    <string name="block_code_copied">Código copiado</string>
+    <string name="block_code_adjust">Ajustar código</string>
+    <string name="block_options">Opciones del bloque</string>
     <string name="block_file">Archivo</string>
     <string name="block_file_desc">Adjuntar un archivo</string>
     <string name="block_bookmark">Marcador</string>
@@ -413,6 +424,7 @@
     <string name="shield_guard">Escudo de seguridad</string>
     <string name="cloud_icon">Icono de nube</string>
     <string name="attachment_video">Video</string>
+    <string name="attachment_audio">Audio</string>
     <string name="option_save">Guardar</string>
     <string name="toast_share_error">Error al compartir archivo</string>
     <string name="toast_saved_to_gallery">Guardado en la galería</string>

@@ -535,7 +535,11 @@ object RichTextConverter {
                     sb.append("- [").append(mark).append("] ").append(segmentsToMarkdown(segments))
                 }
                 BlockType.QUOTE -> sb.append("> ").append(segmentsToMarkdown(segments))
-                BlockType.CODE_BLOCK -> sb.append("```\n").append(segmentsToPlainText(segments)).append("\n```")
+                BlockType.CODE_BLOCK -> {
+                    val lang = block.meta["language"]?.takeIf { it.isNotBlank() }
+                    sb.append("```").append(lang ?: "").append('\n')
+                        .append(segmentsToPlainText(segments)).append("\n```")
+                }
                 BlockType.HORIZONTAL_RULE -> sb.append("\n---\n")
                 BlockType.TABLE -> {
                     TableData.fromJson(block.meta["table"])?.let { data ->

@@ -335,10 +335,20 @@ fun NoteEditorScreen(
         blocks.getOrNull(toolbarActiveBlockIndex)?.ensureSegments() ?: emptyList()
 
     val commitSegments: (List<com.example.data.model.TextSegment>) -> Unit = { newSegs ->
-        if (toolbarActiveBlockIndex in blocks.indices) {
-            val updated = blocks[toolbarActiveBlockIndex].copy(
+        if (toolbarActiveBlockIndex in blocks.indices && blocks[toolbarActiveBlockIndex].contentIsText) {
+            val block = blocks[toolbarActiveBlockIndex]
+            val storedSegs = if (block.type == BlockType.CODE_BLOCK) {
+                listOf(
+                    com.example.data.model.TextSegment(
+                        text = com.example.util.RichTextConverter.segmentsToPlainText(newSegs)
+                    )
+                )
+            } else {
+                newSegs
+            }
+            val updated = block.copy(
                 content = "",
-                richTextJson = com.example.data.model.TextSegment.serialize(newSegs)
+                richTextJson = com.example.data.model.TextSegment.serialize(storedSegs)
             )
             blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
             saveBlocksToHistory()
@@ -357,6 +367,7 @@ fun NoteEditorScreen(
     fun syncActiveBlock() {
         if (toolbarActiveBlockIndex !in blocks.indices) return
         val block = blocks[toolbarActiveBlockIndex]
+        if (!block.contentIsText) return
         val segs = block.ensureSegments()
         val segPlain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
         val text = contentValue.text
@@ -396,6 +407,41 @@ fun NoteEditorScreen(
     var imageDialogMode by remember { mutableIntStateOf(-1) }
 
     var videoDialogMode by remember { mutableIntStateOf(-1) }
+
+    var audioDialogMode by remember { mutableIntStateOf(-1) }
+
+    fun insertAudioBlock(src: String) {
+        showSlashMenu = false
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val audioBlock = DataBlock(type = BlockType.AUDIO, content = src)
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = audioBlock
+        } else {
+            newBlocks.add(idx, audioBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+    }
+
+    fun applyAudioSelection(src: String) {
+        val replaceIdx = audioDialogMode
+        audioDialogMode = -1
+        if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks[replaceIdx] = blocks[replaceIdx].copy(content = src)
+            applyBlocksChange(newBlocks)
+        } else {
+            insertAudioBlock(src)
+        }
+    }
 
     fun insertVideoBlock(src: String) {
         showSlashMenu = false
@@ -647,7 +693,7 @@ fun NoteEditorScreen(
         for (i in text.indices) {
             val chunk = text.substring(0, i + 1)
             currentSegs = com.example.util.RichTextConverter.replaceTextRange(currentSegs, insertFrom, insertFrom + i, chunk)
-            if (toolbarActiveBlockIndex in blocks.indices) {
+            if (toolbarActiveBlockIndex in blocks.indices && blocks[toolbarActiveBlockIndex].contentIsText) {
                 val updated = blocks[toolbarActiveBlockIndex].copy(
                     content = "",
                     richTextJson = com.example.data.model.TextSegment.serialize(currentSegs)
@@ -1281,6 +1327,7 @@ fun NoteEditorScreen(
             }
 
             fun applyTag(tag: String) {
+                if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
                 if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
                     convertBlockToHeading(tag)
                     return
@@ -1331,6 +1378,7 @@ fun NoteEditorScreen(
             }
 
             fun applyTagWithVal(tag: String, value: String) {
+                if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
                 val segs = activeSegments()
                 if (segs.isEmpty()) return
                 val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
@@ -1555,6 +1603,10 @@ fun NoteEditorScreen(
                         onEditVideo = { idx ->
                             videoDialogMode = idx
                             showInsertVideoDialog = true
+                        },
+                        onEditAudio = { idx ->
+                            audioDialogMode = idx
+                            showVoiceFileSheet = true
                         },
                         onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
@@ -2440,15 +2492,42 @@ fun NoteEditorScreen(
                                 name = cursor.getString(nameIndex)
                             }
                         }
-                        
+
                         val extension = if (name.contains(".")) name.substringAfterLast(".") else ""
-                        val localFile = File(context.filesDir, "file_${noteId}_${System.currentTimeMillis()}.${extension}")
+                        val mime = contentResolver.getType(selectedUri) ?: ""
+                        val isAudio = mime.startsWith("audio/") || extension.lowercase() in setOf(
+                            "mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "amr", "3gp", "3gpp", "mid", "midi"
+                        )
+                        val prefix = if (isAudio) "audio" else "file"
+                        val localFile = File(context.filesDir, "${prefix}_${noteId}_${System.currentTimeMillis()}.${extension}")
                         contentResolver.openInputStream(selectedUri)?.use { input ->
                             FileOutputStream(localFile).use { output ->
                                 input.copyTo(output)
                             }
                         }
-                        
+
+                        if (isAudio) {
+                            applyAudioSelection(localFile.absolutePath)
+                            scope.launch {
+                                viewModel.saveNote(
+                                    id = noteId,
+                                    title = title.trim(),
+                                    content = contentForSave(),
+                                    isEncrypted = isEncrypted,
+                                    tagsList = selectedNoteTags,
+                                    backgroundColor = selectedBgColorId,
+                                    backgroundImagePath = selectedBgImagePath,
+                                    isPinned = isPinned,
+                                    isFavorite = isFavorite,
+                                    isArchived = isArchived
+                                )
+                            }
+                            showVoiceFileSheet = false
+                            audioDialogMode = -1
+                            Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
+                            return@rememberLauncherForActivityResult
+                        }
+
                         // Attach file
                         attachments = attachments + Attachment(type = "file", path = localFile.absolutePath, name = name)
                         scope.launch {
@@ -2527,7 +2606,10 @@ fun NoteEditorScreen(
             }
 
             ModalBottomSheet(
-                onDismissRequest = { showVoiceFileSheet = false },
+                onDismissRequest = {
+                    showVoiceFileSheet = false
+                    audioDialogMode = -1
+                },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
@@ -2737,7 +2819,7 @@ fun NoteEditorScreen(
 
                                     Button(
                                         onClick = {
-                                            insertAtCursor("<audio src=\"${recordedFile!!.absolutePath}\" />")
+                                            applyAudioSelection(recordedFile!!.absolutePath)
 
                                             scope.launch {
                                                 viewModel.saveNote(

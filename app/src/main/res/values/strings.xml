@@ -273,6 +273,9 @@
     <string name="toast_file_select_error">Error selecting file</string>
     <string name="toast_recording_error">Failed to start recording</string>
     <string name="toast_audio_play_error">Error playing audio</string>
+    <string name="toast_audio_saved">Audio saved</string>
+    <string name="toast_audio_save_error">Couldn\'t save audio</string>
+    <string name="toast_audio_attached">Audio added</string>
     <string name="toast_video_play_error">Error playing video</string>
     <string name="toast_audio_preview_error">Error playing preview</string>
     <string name="toast_voice_note_attached">Voice note attached</string>
@@ -349,8 +352,16 @@
     <string name="video_open_youtube">Open in YouTube</string>
     <string name="block_audio">Audio</string>
     <string name="block_audio_desc">Embed audio or voice note</string>
+    <string name="block_audio_replace">Choose audio</string>
+    <string name="block_audio_save">Save audio</string>
+    <string name="block_audio_speed">Playback speed</string>
     <string name="block_code">Code Block</string>
     <string name="block_code_desc">Monospace code block</string>
+    <string name="block_code_language">Language</string>
+    <string name="block_code_copy">Copy code</string>
+    <string name="block_code_copied">Code copied</string>
+    <string name="block_code_adjust">Adjust code</string>
+    <string name="block_options">Block options</string>
     <string name="block_file">File</string>
     <string name="block_file_desc">Attach a file</string>
     <string name="block_bookmark">Bookmark</string>
@@ -465,6 +476,7 @@
 
     <!-- Media Viewer -->
     <string name="attachment_video">Video</string>
+    <string name="attachment_audio">Audio</string>
     <string name="option_save">Save</string>
     <string name="toast_share_error">Error sharing file</string>
     <string name="toast_saved_to_gallery">Saved to gallery</string>

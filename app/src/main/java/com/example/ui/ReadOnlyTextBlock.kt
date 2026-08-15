@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.icons.Icons
@@ -44,17 +46,29 @@ fun ReadOnlyTextBlock(
     numberIndex: Int? = null,
     onActivate: (originalOffset: Int) -> Unit,
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showPrefix: Boolean = true,
+    highlightLanguage: String? = null,
+    softWrap: Boolean = true
 ) {
     val annotated = remember(segments) { RichTextConverter.segmentsToAnnotatedString(segments) }
+
+    val displayAnnotated = remember(annotated, highlightLanguage) {
+        if (highlightLanguage != null) {
+            com.example.util.CodeHighlighter.highlight(annotated, highlightLanguage)
+        } else {
+            annotated
+        }
+    }
 
     val currentUrlClick by rememberUpdatedState(onUrlClicked)
     val currentActivate by rememberUpdatedState(onActivate)
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val scrollState = rememberScrollState()
 
-    val annotatedWithLinks = remember(annotated) {
-        val builder = AnnotatedString.Builder(annotated)
-        for (range in annotated.getStringAnnotations(RichTextConverter.URL_ANNOTATION, 0, annotated.length)) {
+    val annotatedWithLinks = remember(displayAnnotated) {
+        val builder = AnnotatedString.Builder(displayAnnotated)
+        for (range in displayAnnotated.getStringAnnotations(RichTextConverter.URL_ANNOTATION, 0, displayAnnotated.length)) {
             builder.addLink(
                 LinkAnnotation.Url(
                     url = range.item,
@@ -69,12 +83,16 @@ fun ReadOnlyTextBlock(
         builder.toAnnotatedString()
     }
 
-    val prefix = when (blockType) {
-        BlockType.BULLET_LIST -> "• "
-        BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
-        BlockType.QUOTE -> "▎ "
-        BlockType.CODE_BLOCK -> "  "
-        else -> ""
+    val prefix = if (!showPrefix) {
+        ""
+    } else {
+        when (blockType) {
+            BlockType.BULLET_LIST -> "• "
+            BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
+            BlockType.QUOTE -> "▎ "
+            BlockType.CODE_BLOCK -> "  "
+            else -> ""
+        }
     }
 
     val textStyle = when (blockType) {
@@ -138,8 +156,10 @@ fun ReadOnlyTextBlock(
         BasicText(
             text = annotatedWithLinks,
             style = textStyle,
+            softWrap = softWrap,
             onTextLayout = { layoutResult = it },
             modifier = contentModifier
+                .then(if (softWrap) Modifier else Modifier.horizontalScroll(scrollState))
                 .heightIn(min = 24.dp)
                 .pointerInput(annotated) {
                     detectTapGestures { position ->

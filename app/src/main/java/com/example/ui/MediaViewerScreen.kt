@@ -67,7 +67,11 @@ fun MediaViewerScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
                         }
                         Text(
-                            text = if (type == "image") stringResource(R.string.attachment_image) else stringResource(R.string.attachment_video),
+                            text = when (type) {
+                                "image" -> stringResource(R.string.attachment_image)
+                                "audio" -> stringResource(R.string.attachment_audio)
+                                else -> stringResource(R.string.attachment_video)
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -82,8 +86,13 @@ fun MediaViewerScreen(
                                     } else {
                                         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(src))
                                     }
+                                    val shareMime = when (type) {
+                                        "image" -> "image/*"
+                                        "audio" -> "audio/*"
+                                        else -> "video/*"
+                                    }
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        this.type = if (type == "image") "image/*" else "video/*"
+                                        this.type = shareMime
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
@@ -97,19 +106,38 @@ fun MediaViewerScreen(
                             IconButton(onClick = {
                                 try {
                                     val srcUri = if (src.startsWith("content://")) Uri.parse(src) else Uri.fromFile(File(src))
+                                    val isImage = type == "image"
+                                    val isAudio = type == "audio"
                                     val ext = if (src.startsWith("content://")) {
                                         val mime = context.contentResolver.getType(srcUri)
-                                        if (mime?.startsWith("video") == true) "mp4" else "png"
+                                        when {
+                                            mime?.startsWith("video") == true -> "mp4"
+                                            mime?.startsWith("audio") == true -> "m4a"
+                                            else -> "png"
+                                        }
                                     } else {
-                                        File(src).extension.ifEmpty { if (type == "image") "png" else "mp4" }
+                                        File(src).extension.ifEmpty { when { isImage -> "png"; isAudio -> "m4a"; else -> "mp4" } }
                                     }
                                     val fileName = "secure_notes_${System.currentTimeMillis()}.$ext"
-                                    val mimeType = if (type == "image") "image/png" else "video/mp4"
-                                    val collection = if (type == "image") MediaStore.Images.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                                    val mimeType = when {
+                                        isImage -> "image/png"
+                                        isAudio -> "audio/mp4"
+                                        else -> "video/mp4"
+                                    }
+                                    val collection = when {
+                                        isImage -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                                        isAudio -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                                        else -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                                    }
+                                    val relPath = if (isAudio) {
+                                        Environment.DIRECTORY_MUSIC + "/SecureNotes"
+                                    } else {
+                                        Environment.DIRECTORY_PICTURES + "/SecureNotes"
+                                    }
                                     val values = android.content.ContentValues().apply {
-                                        put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-                                        put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-                                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SecureNotes")
+                                        put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
+                                        put(MediaStore.Audio.Media.MIME_TYPE, mimeType)
+                                        put(MediaStore.Audio.Media.RELATIVE_PATH, relPath)
                                     }
                                     val uri = context.contentResolver.insert(collection, values)
                                     if (uri != null) {
@@ -160,6 +188,38 @@ fun MediaViewerScreen(
                         },
                     contentScale = ContentScale.Fit
                 )
+            } else if (type == "audio") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(88.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = stringResource(R.string.attachment_audio),
+                            tint = Color.White,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    AudioPlayerWidget(path = src, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = src,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else if (isWebVideo) {
                 val youTubeThumb = com.example.util.VideoUrlHelper.youTubeThumbnail(src)
                 Column(

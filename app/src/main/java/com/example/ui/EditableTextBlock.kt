@@ -1,12 +1,14 @@
 package com.example.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -69,7 +71,11 @@ fun EditableTextBlock(
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     initialSelection: Int? = null,
     pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
-    pendingTypingStyle: TextSegment? = null
+    pendingTypingStyle: TextSegment? = null,
+    showPrefix: Boolean = true,
+    forcePlain: Boolean = false,
+    highlightLanguage: String? = null,
+    softWrap: Boolean = true
 ) {
     var annotated by remember {
         mutableStateOf(RichTextConverter.segmentsToAnnotatedString(segments))
@@ -84,6 +90,7 @@ fun EditableTextBlock(
     }
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val scrollState = rememberScrollState()
 
     val parseResult = remember(annotated) { RichTextConverter.parseResultFor(RichTextConverter.annotatedStringToSegments(annotated)) }
 
@@ -148,16 +155,28 @@ fun EditableTextBlock(
         }
     }
 
-    val visualTransformation = VisualTransformation { text ->
-        TransformedText(if (text.text == annotated.text) annotated else text, identityMapping)
+    val displayAnnotated = remember(annotated, highlightLanguage) {
+        if (highlightLanguage != null) {
+            com.example.util.CodeHighlighter.highlight(annotated, highlightLanguage)
+        } else {
+            annotated
+        }
     }
 
-    val prefix = when (blockType) {
-        BlockType.BULLET_LIST -> "• "
-        BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
-        BlockType.QUOTE -> "▎ "
-        BlockType.CODE_BLOCK -> "  "
-        else -> ""
+    val visualTransformation = VisualTransformation { text ->
+        TransformedText(if (text.text == displayAnnotated.text) displayAnnotated else text, identityMapping)
+    }
+
+    val prefix = if (!showPrefix) {
+        ""
+    } else {
+        when (blockType) {
+            BlockType.BULLET_LIST -> "• "
+            BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
+            BlockType.QUOTE -> "▎ "
+            BlockType.CODE_BLOCK -> "  "
+            else -> ""
+        }
     }
 
     val textStyle = when (blockType) {
@@ -233,7 +252,7 @@ fun EditableTextBlock(
                     return@BasicTextField
                 }
 
-                if (onSplit != null && newText.length > oldText.length) {
+                if (onSplit != null && blockType != BlockType.CODE_BLOCK && newText.length > oldText.length) {
                     val diffStart = oldText.commonPrefixWith(newText).length
                     if (diffStart < newText.length && newText[diffStart] == '\n') {
                         val beforeSegs = RichTextConverter.annotatedStringToSegments(annotated.subSequence(0, diffStart))
@@ -249,7 +268,7 @@ fun EditableTextBlock(
                     }
                 }
 
-                val newAnnotated = applyPlainEdit(annotated, newText, pendingTypingStyle)
+                val newAnnotated = applyPlainEdit(annotated, newText, pendingTypingStyle, forcePlain)
                 annotated = newAnnotated
                 fieldValue = newValue.copy(selection = newValue.selection)
                 onChange(RichTextConverter.annotatedStringToSegments(newAnnotated))
@@ -259,6 +278,7 @@ fun EditableTextBlock(
             visualTransformation = visualTransformation,
             modifier = blockModifier
                 .fillMaxWidth()
+                .then(if (softWrap) Modifier else Modifier.horizontalScroll(scrollState))
                 .focusRequester(focusRequester)
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused
@@ -299,7 +319,7 @@ fun EditableTextBlock(
     }
 }
 
-private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingStyle: TextSegment? = null): AnnotatedString {
+private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingStyle: TextSegment? = null, forcePlain: Boolean = false): AnnotatedString {
     val oldText = old.text
     if (oldText == newText) return old
     val prefix = commonPrefixLen(oldText, newText)
@@ -316,8 +336,12 @@ private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingS
     val inheritIdx = if (prefix > 0) prefix - 1 else 0
     val inherited = inheritedStyleAt(old, inheritIdx)
     val atEnd = prefix == old.text.length
-    val base = pendingTypingStyle?.let { inherited.merge(it.toSpanStyle()) }
-        ?: if (atEnd) SpanStyle() else inherited
+    val base = if (forcePlain) {
+        SpanStyle()
+    } else {
+        pendingTypingStyle?.let { inherited.merge(it.toSpanStyle()) }
+            ?: if (atEnd) SpanStyle() else inherited
+    }
     return old.subSequence(0, prefix) +
         AnnotatedString(inserted, spanStyle = base) +
         old.subSequence(oldEnd, old.text.length)
