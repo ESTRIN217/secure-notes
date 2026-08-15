@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.AppConstants
 import com.example.R
 import com.example.data.storage.StorageAnalyzer
+import com.example.data.storage.AudioFileInfo
 import com.example.data.storage.StorageCategory
 import com.example.data.storage.StorageItem
 import com.example.data.storage.StorageOverview
@@ -38,6 +39,7 @@ fun StorageManagerScreen(
 ) {
     val overview by viewModel.overview.collectAsStateWithLifecycle()
     val orphanFiles by viewModel.orphanFiles.collectAsStateWithLifecycle()
+    val audioFiles by viewModel.audioFiles.collectAsStateWithLifecycle()
     val largeFiles by viewModel.largeFiles.collectAsStateWithLifecycle()
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val autoCleanupEnabled by viewModel.autoCleanupEnabled.collectAsStateWithLifecycle()
@@ -115,6 +117,19 @@ fun StorageManagerScreen(
                         OrphanFilesSection(
                             files = orphanFiles,
                             onDelete = { files -> viewModel.deleteFiles(files) }
+                        )
+                    }
+                }
+
+                if (audioFiles.isNotEmpty()) {
+                    item {
+                        SettingsSectionTitle(title = stringResource(R.string.storage_audio_files))
+                    }
+                    item {
+                        AudioFilesSection(
+                            files = audioFiles,
+                            onDelete = { files -> viewModel.deleteAudioFiles(files) },
+                            onDeleteOrphans = { viewModel.deleteOrphanAudioFiles() }
                         )
                     }
                 }
@@ -323,6 +338,131 @@ private fun OrphanFilesSection(
 }
 
 @Composable
+private fun AudioFilesSection(
+    files: List<AudioFileInfo>,
+    onDelete: (List<StorageItem>) -> Unit,
+    onDeleteOrphans: () -> Unit
+) {
+    val orphans = files.filter { !it.isAttached }
+    var showConfirm by remember { mutableStateOf(false) }
+
+    SettingsCardGroup {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(
+                text = stringResource(R.string.storage_audio_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+
+            files.take(50).forEach { audio ->
+                val statusLabel = when {
+                    !audio.isAttached -> null
+                    audio.noteTitle != null -> stringResource(R.string.storage_audio_attached_to, audio.noteTitle)
+                    else -> stringResource(R.string.storage_audio_attached)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (audio.item.category == StorageCategory.VOICE) Icons.Default.Mic
+                        else Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = audio.item.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = listOfNotNull(
+                                StorageAnalyzer.formatSize(audio.item.size),
+                                statusLabel
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (audio.isAttached) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (audio.isAttached) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = stringResource(R.string.storage_audio_attached),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        IconButton(
+                            onClick = { onDelete(listOf(audio.item)) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (orphans.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(
+                        onClick = { showConfirm = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.storage_audio_delete_orphans, orphans.size))
+                    }
+                }
+            }
+        }
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            title = { Text(stringResource(R.string.storage_audio_delete_title)) },
+            text = { Text(stringResource(R.string.storage_audio_delete_confirm, orphans.size)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirm = false
+                    onDeleteOrphans()
+                }) {
+                    Text(
+                        stringResource(R.string.storage_delete_selected, orphans.size),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+}
+
+@Composable
 private fun LargeFilesSection(
     files: List<StorageItem>,
     onDelete: (StorageItem) -> Unit
@@ -339,6 +479,7 @@ private fun LargeFilesSection(
                     Icon(
                         imageVector = when (file.category) {
                             StorageCategory.ATTACHMENT -> Icons.Default.Image
+                            StorageCategory.AUDIO -> Icons.Default.MusicNote
                             StorageCategory.DRAWING -> Icons.Default.Draw
                             StorageCategory.VOICE -> Icons.Default.Mic
                             StorageCategory.FILE -> Icons.Default.AttachFile
@@ -438,6 +579,11 @@ private fun StorageDetailsCard(overview: StorageOverview) {
             DetailRow(
                 label = stringResource(R.string.storage_attachments),
                 size = overview.attachmentsSize,
+                total = overview.totalUsed
+            )
+            DetailRow(
+                label = stringResource(R.string.storage_audio),
+                size = overview.audioSize,
                 total = overview.totalUsed
             )
             DetailRow(

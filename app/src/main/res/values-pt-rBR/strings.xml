@@ -255,6 +255,7 @@
     <string name="read_aloud">Ler nota em voz alta</string>
     <string name="stop_speaking">Parar de falar</string>
     <string name="nothing_to_read">Nada para ler em voz alta</string>
+    <string name="tts_engine_missing">Nenhum mecanismo de texto-para-fala encontrado. Instale o Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Gravador de nota de voz</string>
     <string name="tap_to_record">Toque para começar a gravar</string>
     <string name="recording_tap_to_stop">Gravando… Toque para parar</string>

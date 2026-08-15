@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
 import com.example.data.local.NoteDatabase
+import com.example.data.storage.AudioFileInfo
 import com.example.data.storage.StorageAnalyzer
 import com.example.data.storage.StorageItem
 import com.example.data.storage.StorageOverview
@@ -30,6 +31,9 @@ class StorageViewModel(
     private val _orphanFiles = MutableStateFlow<List<StorageItem>>(emptyList())
     val orphanFiles: StateFlow<List<StorageItem>> = _orphanFiles.asStateFlow()
 
+    private val _audioFiles = MutableStateFlow<List<AudioFileInfo>>(emptyList())
+    val audioFiles: StateFlow<List<AudioFileInfo>> = _audioFiles.asStateFlow()
+
     private val _largeFiles = MutableStateFlow<List<StorageItem>>(emptyList())
     val largeFiles: StateFlow<List<StorageItem>> = _largeFiles.asStateFlow()
 
@@ -52,10 +56,14 @@ class StorageViewModel(
             val (overview, items) = withContext(Dispatchers.IO) {
                 StorageAnalyzer.scan(getApplication(), database)
             }
+            val audioFiles = withContext(Dispatchers.IO) {
+                StorageAnalyzer.findAudioFiles(getApplication(), database)
+            }
             _overview.value = overview
             _allFiles.value = items
             _orphanFiles.value = items.filter { it.isOrphan }
             _largeFiles.value = items.filter { it.isLargeFile }.sortedByDescending { it.size }
+            _audioFiles.value = audioFiles
             _isScanning.value = false
         }
     }
@@ -80,6 +88,28 @@ class StorageViewModel(
             _lastCleanupMessage.value = "Deleted $deleted file(s)"
             scanStorage()
         }
+    }
+
+    /** Borra audios no adjuntos a ninguna nota. Los adjuntos quedan protegidos. */
+    fun deleteAudioFiles(files: List<StorageItem>) {
+        viewModelScope.launch {
+            val attachedPaths = _audioFiles.value
+                .filter { it.isAttached }
+                .map { it.item.path }
+                .toSet()
+            val deletable = files.filter { it.path !in attachedPaths }
+            if (deletable.isEmpty()) return@launch
+            val freed = deletable.sumOf { it.size }
+            val deleted = withContext(Dispatchers.IO) {
+                StorageAnalyzer.deleteFiles(deletable)
+            }
+            _lastCleanupMessage.value = "Deleted $deleted audio file(s) — ${StorageAnalyzer.formatSize(freed)}"
+            scanStorage()
+        }
+    }
+
+    fun deleteOrphanAudioFiles() {
+        deleteAudioFiles(_audioFiles.value.filter { !it.isAttached }.map { it.item })
     }
 
     fun clearCache() {

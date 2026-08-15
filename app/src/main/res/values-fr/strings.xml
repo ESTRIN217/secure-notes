@@ -243,6 +243,7 @@
     <string name="read_aloud">Lire la note à voix haute</string>
     <string name="stop_speaking">Arrêter la lecture</string>
     <string name="nothing_to_read">Rien à lire à voix haute</string>
+    <string name="tts_engine_missing">Aucun moteur de synthèse vocale trouvé. Installez Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Enregistreur de note vocale</string>
     <string name="tap_to_record">Appuyez pour commencer l\'enregistrement</string>
     <string name="recording_tap_to_stop">Enregistrement… Appuyez pour arrêter</string>

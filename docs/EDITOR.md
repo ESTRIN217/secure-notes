@@ -57,7 +57,7 @@ Todas las opciones se aplican a la **selección** actual. Si no hay selección, 
 | **H1 · H2 · H3 · H4** | Títulos jerárquicos (grande, mediano, pequeño, extra pequeño) |
 | **Lista con viñetas** | Elemento de lista desordenada (`•`) |
 | **Lista numerada** | Elemento de lista ordenada (`1.`) |
-| **Lista de tareas** | Elemento de checklist con casilla marcable |
+| **Lista de tareas** | Elemento de checklist con casilla marcable y **formato enriquecido** (negrita, color, enlaces…) en cada ítem |
 | **Lista desplegable** | Bloque colapsable con resumen y contenido expandible |
 | **Página** | Crea y abre una página nueva enlazada |
 | **Destacado** | Bloque *callout* resaltado para llamadas de atención |
@@ -65,6 +65,23 @@ Todas las opciones se aplican a la **selección** actual. Si no hay selección, 
 | **Tabla** | Tabla editable con filas, columnas y encabezado |
 | **Divisor** | Regla horizontal que separa secciones |
 | **Enlace a página** | Enlaza una nota existente del bloc dentro del documento |
+
+---
+
+### Bloques de código y multimedia
+
+| Bloque | Descripción |
+|---|---|
+| **Código** | Bloque de código con resaltado de sintaxis, ajuste de línea y lenguaje seleccionable |
+| **Imagen** | Inserta una imagen (galería o cámara) en línea, con leyenda, alineación y reemplazo |
+| **Vídeo** | Inserta un vídeo local o de YouTube/shorts con miniatura 16:9; se abre externamente |
+| **Audio** | Adjunta un archivo de audio con reproductor embebido (velocidad, salto, título editable) |
+| **Voz** | Graba y adjunta una nota de voz |
+| **Archivo** | Adjunta cualquier archivo con apertura externa (FileProvider), color y descripción |
+| **Marcador web** | Vista previa de enlace con título, descripción y favicon; refrescable y convertible en mención inline |
+| **Dibujo** | Lienzo de dibujo editable con trazos a color (se integra como bloque) |
+
+> Todos los bloques multimedia se insertan como **bloques reales** (menú `/` o barra `+`) y se pueden duplicar, mover, convertir y eliminar desde el menú de opciones del bloque.
 
 ---
 
@@ -96,7 +113,10 @@ enum class BlockType {
 - **`richTextJson`** guarda la lista de `TextSegment` (texto + estilos) y es la **fuente de verdad** del editor.
 - **`content`** contiene el markup HTML-like (misma información, formato de texto) y se usa para compatibilidad, exportación y contenido legacy.
 - **Tablas** se serializan como `TableData` (headers, rows, columnWeights, bgColorHex, showHeader) dentro de `meta["table"]`.
-- **Checklist / Collapsible** guardan estado en `meta` (`checked`, `summary`).
+- **Checklist / Collapsible** guardan estado en `meta` (`checked`, `summary`). Cada ítem de checklist usa `richTextJson` para su formato enriquecido.
+- **Media** (imagen, vídeo, audio, voz, archivo, dibujo) guardan `fileUri`, `fileName`, `caption`, `showCaption`, `align`, `color` y el flag `wysiwyg` en `meta`; los trazos del dibujo se serializan como JSON en `meta["strokes"]`.
+- **Marcador web** guarda `url` (en `content`), `title`, `description` y `favicon` en `meta`.
+- **Indentación** de bloques de texto/listas se guarda en `meta["indentLevel"]`.
 
 ### Sintaxis markup interna (HTML-like)
 
@@ -145,10 +165,12 @@ El cuerpo de cada bloque de texto usa tags tipo HTML que parsea `RichTextParser`
 
 | Capa | Archivos |
 |---|---|
-| **Editor visual** | `BlockEditor.kt` (orquesta bloques), `EditableTextBlock.kt` (bloque de texto WYSIWYG), `EditableTableBlock.kt`, `EditableChecklistBlock.kt`, `EditableCollapsibleBlock.kt` |
-| **Menú de bloques** | `SlashCommandMenu.kt` (`BLOCK_COMMANDS` con secciones Basic / Link / Media) |
-| **Barra flotante** | `FloatingEditorToolbar.kt` (modos MAIN / TEXT_FORMAT / SEARCH) |
-| **Conversión markup ⇄ segmentos** | `RichTextConverter.kt` (`markupToSegments`, `segmentsToMarkup`, `applySpanStyle`, `segmentsToAnnotatedString`) |
-| **Renderizado legacy / preview** | `RichTextParser.kt`, `HtmlTagParser.kt`, `NoteContentBlockRenderer.kt` |
-| **Ecuaciones** | `MathRenderer.kt` (LaTeX → texto renderizado) |
-| **Modelo** | `DataBlock.kt`, `TextSegment` (`com.example.data.model`) |
+| **Editor visual** | `BlockEditor.kt` (orquesta bloques y `BlockRow`), `EditableTextBlock.kt` (texto WYSIWYG, base de todos los bloques de texto) |
+| **Bloques específicos** | `EditableChecklistBlock.kt`, `EditableCollapsibleBlock.kt`, `EditableTableBlock.kt`, `WysiwygCodeBlock.kt`, `EditableImageBlock.kt`, `EditableVideoBlock.kt`, `EditableAudioBlock.kt`, `EditableFileBlock.kt`, `EditableBookmarkBlock.kt`, `EditableDrawingBlock.kt`, `ReadOnlyTextBlock.kt` |
+| **Menú de bloques** | `SlashCommandMenu.kt` (`BLOCK_COMMANDS` con secciones Basic / Link / Media + `BlockAction` para diálogos) |
+| **Barra flotante** | `FloatingEditorToolbar.kt` (modos MAIN / TEXT_FORMAT / SEARCH) + `MoreFormattingSheet.kt`, `FontSizeSheet.kt`, `TextBgColorSheet.kt`, `ColorSelectionDialog.kt` |
+| **Conversión markup ⇄ segmentos** | `RichTextConverter.kt` (`markupToSegments`, `segmentsToMarkup`, `applySpanStyle`, `segmentsToAnnotatedString`), `OffsetMapper.kt` |
+| **Renderizado legacy / preview** | `RichTextParser.kt`, `HtmlTagParser.kt`, `NoteContentBlockRenderer.kt`, `NoteContentBlockCard.kt` |
+| **Utilidades de bloque** | `VideoUrlHelper.kt` (YouTube/shorts), `BookmarkMetadataFetcher.kt` (Jsoup), `DrawingStrokeCodec.kt` / `DrawingStroke.kt`, `AudioPlayerWidget.kt`, `CodeHighlighter.kt`, `CodeLanguages.kt`, `MathRenderer.kt` (LaTeX) |
+| **Exportación** | `RichTextConverter` (markdown/html), `util/export/` (`MarkdownExporter`, `HtmlExporter`, `TxtExporter`, `JsonExporter`, `PdfExporter`) |
+| **Modelo** | `DataBlock.kt`, `RichText.kt` (`TextSegment`), `DrawingStroke.kt` (`com.example.data.model`) |

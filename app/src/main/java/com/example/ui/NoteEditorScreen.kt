@@ -28,6 +28,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -77,6 +80,7 @@ import com.example.util.parseToContentBlocks
 import com.example.util.removeAttachmentFromContent
 import com.example.util.removeMediaFromContent
 import com.example.util.toggleNthChecklistItem
+import com.example.util.MediaStorageHelper
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -141,40 +145,77 @@ fun NoteEditorScreen(
     
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
     var isSpeaking by remember { mutableStateOf(false) }
+    var ttsReady by remember { mutableStateOf(false) }
+    var ttsPaused by remember { mutableStateOf(false) }
+    var ttsParts by remember { mutableStateOf<List<String>>(emptyList()) }
+    var ttsPartIndex by remember { mutableIntStateOf(0) }
 
     DisposableEffect(Unit) {
+        var ttsEngineRef: TextToSpeech? = null
         val ttsEngine = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.let { engine ->
-                    val locale = Locale.getDefault()
-                    if (engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
-                        engine.language = locale
-                    } else {
-                        engine.language = Locale.US
-                    }
-                    engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                        override fun onStart(utteranceId: String?) {
-                            isSpeaking = true
-                        }
-                        override fun onDone(utteranceId: String?) {
-                            isSpeaking = false
-                        }
-                        @Deprecated("Deprecated in Java")
-                        override fun onError(utteranceId: String?) {
-                            isSpeaking = false
-                        }
-                        override fun onError(utteranceId: String?, errorCode: Int) {
-                            isSpeaking = false
-                        }
-                    })
+            val engine = ttsEngineRef
+            if (status == TextToSpeech.SUCCESS && engine != null) {
+                val locale = Locale.getDefault()
+                engine.language = if (engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
+                    locale
+                } else {
+                    Locale.US
                 }
+                engine.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {
+                        ttsPartIndex = ttsPartIndex.coerceAtLeast(utteranceId?.toIntOrNull() ?: 0)
+                    }
+                    override fun onDone(utteranceId: String?) {
+                        if (ttsPaused) return
+                        if (utteranceId?.toIntOrNull() == ttsParts.lastIndex) {
+                            isSpeaking = false
+                            ttsPaused = false
+                        }
+                    }
+                    @Deprecated("Deprecated in Java")
+                    override fun onError(utteranceId: String?) {
+                        if (ttsPaused) return
+                        isSpeaking = false
+                    }
+                    override fun onError(utteranceId: String?, errorCode: Int) {
+                        if (ttsPaused) return
+                        isSpeaking = false
+                    }
+                })
+                ttsReady = true
             }
         }
+        ttsEngineRef = ttsEngine
         tts = ttsEngine
         onDispose {
             ttsEngine.stop()
             ttsEngine.shutdown()
         }
+    }
+
+    fun ttsMissingFeedback() {
+        Toast.makeText(context, context.getString(R.string.tts_engine_missing), Toast.LENGTH_LONG).show()
+        try {
+            context.startActivity(Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE))
+        } catch (e: Exception) {
+            Log.e("NoteEditorScreen", "open tts engine store failed", e)
+        }
+    }
+
+    fun speakTts(parts: List<String>, startIndex: Int) {
+        val engine = tts
+        if (engine == null || !ttsReady) {
+            ttsMissingFeedback()
+            return
+        }
+        for (i in startIndex until parts.size) {
+            if (engine.speak(parts[i], TextToSpeech.QUEUE_ADD, null, i.toString()) == TextToSpeech.ERROR) {
+                isSpeaking = false
+                ttsPaused = false
+                return
+            }
+        }
+        isSpeaking = true
     }
     
     var title by remember { mutableStateOf("") }
@@ -863,7 +904,10 @@ fun NoteEditorScreen(
         try {
             val ext = if (type == "image") "jpg" else "mp4"
             val prefix = if (type == "image") "img" else "vid"
-            val tempFile = File(context.cacheDir, "${prefix}_${System.currentTimeMillis()}.$ext")
+            val tempFile = File(
+                MediaStorageHelper.mediaDir(context),
+                "${prefix}_${System.currentTimeMillis()}.$ext"
+            )
             val authority = "${context.packageName}.fileprovider"
             val uri = FileProvider.getUriForFile(context, authority, tempFile)
             if (type == "image") {
@@ -909,7 +953,10 @@ fun NoteEditorScreen(
     ) { uri: Uri? ->
         uri?.let {
             acquireUriPermission(it)
-            applyImageSelection(it.toString())
+            scope.launch {
+                val imported = MediaStorageHelper.importMedia(context, it, noteId, "img")
+                applyImageSelection(imported ?: it.toString())
+            }
         }
     }
 
@@ -918,7 +965,10 @@ fun NoteEditorScreen(
     ) { uri: Uri? ->
         uri?.let {
             acquireUriPermission(it)
-            applyVideoSelection(it.toString())
+            scope.launch {
+                val imported = MediaStorageHelper.importMedia(context, it, noteId, "vid")
+                applyVideoSelection(imported ?: it.toString())
+            }
         }
     }
 
@@ -1096,6 +1146,39 @@ fun NoteEditorScreen(
         if (attachments.isEmpty()) jsonContent
         else createRawContent(jsonContent, attachments)
     }
+
+    val hasContentToSave: () -> Boolean = {
+        title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()
+    }
+
+    fun saveCurrentNote() {
+        if (!hasContentToSave()) return
+        viewModel.saveNote(
+            id = noteId,
+            title = title.trim(),
+            content = contentForSave(),
+            isEncrypted = isEncrypted,
+            tagsList = selectedNoteTags,
+            backgroundColor = selectedBgColorId,
+            backgroundImagePath = selectedBgImagePath,
+            isPinned = isPinned,
+            isFavorite = isFavorite,
+            isArchived = isArchived
+        )
+    }
+
+    // Persist media/text on background (e.g. process death within the autosave debounce).
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, noteId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && noteId != 0) {
+                saveCurrentNote()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
 
     fun handlePickedFile(selectedUri: Uri) {
         try {
@@ -2354,19 +2437,37 @@ fun NoteEditorScreen(
                     onOpenMoreFormatting = { showMoreFormattingSheet = true },
                     onOpenPalette = { showPaletteSheet = true },
                     onTtsToggle = {
-                        if (isSpeaking) {
-                            tts?.stop()
-                            isSpeaking = false
-                        } else {
-                            val textToRead = "$title. $content"
-                            if (textToRead.isNotBlank()) {
-                                val params = android.os.Bundle().apply {
-                                    putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "NoteTTS")
+                        when {
+                            isSpeaking -> {
+                                tts?.stop()
+                                ttsPaused = true
+                                isSpeaking = false
+                            }
+                            ttsPaused -> {
+                                speakTts(ttsParts, ttsPartIndex.coerceIn(0, (ttsParts.size - 1).coerceAtLeast(0)))
+                            }
+                            else -> {
+                                val sel = activeSelection
+                                val parts = if (sel.first != sel.last) {
+                                    val plain = com.example.util.RichTextConverter.segmentsToPlainText(activeSegments())
+                                    listOf(
+                                        plain.substring(
+                                            sel.first.coerceIn(0, plain.length),
+                                            sel.last.coerceIn(sel.first, plain.length)
+                                        )
+                                    )
+                                } else {
+                                    com.example.util.buildTtsChunks(title, blocks)
                                 }
-                                tts?.speak(textToRead, TextToSpeech.QUEUE_FLUSH, params, "NoteTTS")
-                                isSpeaking = true
-                            } else {
-                                Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
+                                val clean = parts.map { it.trim() }.filter { it.isNotBlank() }
+                                if (clean.isEmpty()) {
+                                    Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
+                                } else {
+                                    ttsParts = clean
+                                    ttsPartIndex = 0
+                                    ttsPaused = false
+                                    speakTts(clean, 0)
+                                }
                             }
                         }
                     },

@@ -2,9 +2,20 @@ package com.example.util
 
 import com.example.data.model.Attachment
 import com.example.data.model.ColumnAlignment
+import com.example.data.model.DataBlock
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.createRawContent
+
+fun buildTtsChunks(title: String, blocks: List<DataBlock>): List<String> {
+    val chunks = mutableListOf<String>()
+    if (title.isNotBlank()) chunks.add(title.trim())
+    for (block in blocks) {
+        val text = RichTextConverter.segmentsToPlainText(block.ensureSegments()).trim()
+        if (text.isNotBlank()) chunks.add(text)
+    }
+    return chunks
+}
 
 fun highlightMatches(
     annotatedString: androidx.compose.ui.text.AnnotatedString,

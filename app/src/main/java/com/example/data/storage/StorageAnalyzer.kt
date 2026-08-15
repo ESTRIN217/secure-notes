@@ -5,6 +5,7 @@ import android.os.StatFs
 import android.util.Log
 import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
+import com.example.util.BackupAttachmentHelper
 import org.json.JSONArray
 import java.io.File
 
@@ -64,6 +65,8 @@ object StorageAnalyzer {
             paths.add(match.groupValues[1])
         }
 
+        paths.addAll(BackupAttachmentHelper.collectBlockMediaPaths(content))
+
         val delimiter = "\n\n---Attachments---\n"
         if (content.contains(delimiter)) {
             try {
@@ -110,6 +113,7 @@ object StorageAnalyzer {
                 val isOrphan = !isCache &&
                         category in listOf(
                             StorageCategory.ATTACHMENT,
+                            StorageCategory.AUDIO,
                             StorageCategory.FILE,
                             StorageCategory.VOICE,
                             StorageCategory.DRAWING,
@@ -137,6 +141,7 @@ object StorageAnalyzer {
             isCache && name == "secure_notes_backup.json" -> StorageCategory.CACHE
             isCache -> StorageCategory.CACHE
             name.startsWith("attachment_") -> StorageCategory.ATTACHMENT
+            name.startsWith("audio_") -> StorageCategory.AUDIO
             name.startsWith("drawing_") -> StorageCategory.DRAWING
             name.startsWith("voice_") -> StorageCategory.VOICE
             name.startsWith("file_") -> StorageCategory.FILE
@@ -150,6 +155,7 @@ object StorageAnalyzer {
 
     private fun computeOverview(items: List<StorageItem>, filesDirPath: String): StorageOverview {
         var attachmentsSize = 0L
+        var audioSize = 0L
         var cacheSize = 0L
         var exportsSize = 0L
         var tempSize = 0L
@@ -166,6 +172,7 @@ object StorageAnalyzer {
             val size = item.size
             when (item.category) {
                 StorageCategory.ATTACHMENT -> attachmentsSize += size
+                StorageCategory.AUDIO -> audioSize += size
                 StorageCategory.CACHE -> cacheSize += size
                 StorageCategory.EXPORT -> exportsSize += size
                 StorageCategory.TEMP -> tempSize += size
@@ -198,6 +205,7 @@ object StorageAnalyzer {
 
         return StorageOverview(
             attachmentsSize = attachmentsSize,
+            audioSize = audioSize,
             cacheSize = cacheSize,
             exportsSize = exportsSize,
             tempSize = tempSize,
@@ -218,6 +226,73 @@ object StorageAnalyzer {
     fun clearCache(context: Context): Long {
         val cacheDir = context.cacheDir
         return deleteDirectoryContents(cacheDir)
+    }
+
+    /** Audios (`voice_*`, `audio_*`) presentes en disco, con su estado de adjunto. */
+    suspend fun findAudioFiles(context: Context, database: NoteDatabase): List<AudioFileInfo> {
+        val notes = database.noteDao.getAllNotes()
+        val existingNoteIds = notes.mapTo(mutableSetOf()) { it.id }
+        val noteById = notes.associateBy { it.id }
+        val attachedPaths = mutableMapOf<String, Note>()
+
+        for (note in notes) {
+            if (note.isEncrypted) continue
+            for (path in extractPathsFromContent(note.content)) {
+                attachedPaths.putIfAbsent(path, note)
+            }
+        }
+
+        val audioFiles = mutableListOf<File>()
+        collectAudioFiles(context.filesDir, audioFiles)
+
+        return audioFiles.map { file ->
+            val path = file.absolutePath
+            val note = attachedPaths[path]
+            var isAttached = note != null
+            var noteId = note?.id
+            val noteTitle = note?.title?.takeIf { it.isNotBlank() }
+
+            if (!isAttached) {
+                // Notas cifradas no dejan leer su contenido: si el id del nombre
+                // coincide con una nota existente, se protege por defecto.
+                val idFromName = parseNoteIdFromName(file.name)
+                if (idFromName != null && idFromName in existingNoteIds) {
+                    val candidate = noteById[idFromName]
+                    if (candidate != null && candidate.isEncrypted) {
+                        isAttached = true
+                        noteId = candidate.id
+                    }
+                }
+            }
+
+            AudioFileInfo(
+                item = StorageItem(
+                    path = path,
+                    name = file.name,
+                    size = file.length(),
+                    lastModified = file.lastModified(),
+                    category = classifyFile(file, StorageCategory.OTHER, false)
+                ),
+                isAttached = isAttached,
+                noteId = noteId,
+                noteTitle = noteTitle
+            )
+        }
+    }
+
+    private fun collectAudioFiles(dir: File, out: MutableList<File>) {
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            if (file.isDirectory) {
+                collectAudioFiles(file, out)
+            } else if (file.name.startsWith("voice_") || file.name.startsWith("audio_")) {
+                out.add(file)
+            }
+        }
+    }
+
+    private fun parseNoteIdFromName(name: String): Int? {
+        return Regex("""^(?:voice|audio)_(\d+)_""").find(name)?.groupValues?.get(1)?.toIntOrNull()
     }
 
     fun deleteFiles(files: List<StorageItem>): Int {

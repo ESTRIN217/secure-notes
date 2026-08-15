@@ -41,6 +41,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -79,7 +80,9 @@ fun EditableTextBlock(
     showPrefix: Boolean = true,
     forcePlain: Boolean = false,
     highlightLanguage: String? = null,
-    softWrap: Boolean = true
+    softWrap: Boolean = true,
+    textStyle: TextStyle? = null,
+    onEmptyBackspace: (() -> Unit)? = null
 ) {
     var annotated by remember {
         mutableStateOf(RichTextConverter.segmentsToAnnotatedString(segments))
@@ -200,7 +203,7 @@ fun EditableTextBlock(
         }
     }
 
-    val textStyle = when (blockType) {
+    val textStyle = textStyle ?: when (blockType) {
         BlockType.HEADING1 -> MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         BlockType.HEADING2 -> MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         BlockType.HEADING3 -> MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
@@ -327,7 +330,11 @@ fun EditableTextBlock(
                             }
                             Key.Backspace -> {
                                 if (fieldValue.text.isEmpty()) {
-                                    if (blockType in exitOnEmptyTypes) onConvertToText() else onDeleteBlock()
+                                    when {
+                                        onEmptyBackspace != null -> onEmptyBackspace()
+                                        blockType in exitOnEmptyTypes -> onConvertToText()
+                                        else -> onDeleteBlock()
+                                    }
                                     true
                                 } else false
                             }

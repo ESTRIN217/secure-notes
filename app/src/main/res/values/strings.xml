@@ -260,6 +260,7 @@
     <string name="read_aloud">Read Note Aloud</string>
     <string name="stop_speaking">Stop Speaking</string>
     <string name="nothing_to_read">Nothing to read aloud</string>
+    <string name="tts_engine_missing">No text-to-speech engine found. Install Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Voice Note Recorder</string>
     <string name="tap_to_record">Tap to start recording</string>
     <string name="recording_tap_to_stop">Recording… Tap to stop</string>
@@ -872,6 +873,14 @@
     <string name="storage_orphans_short">Orphans</string>
     <string name="storage_orphan_files">Orphaned Files</string>
     <string name="storage_orphan_desc">Files no longer referenced by any note</string>
+    <string name="storage_audio_files">Audio Files</string>
+    <string name="storage_audio_desc">Audio attached to notes is protected. Only orphaned audio can be deleted.</string>
+    <string name="storage_audio_attached">Attached to a note</string>
+    <string name="storage_audio_attached_to">Attached to: %1$s</string>
+    <string name="storage_audio_delete_orphans">Delete %1$d orphan audio(s)</string>
+    <string name="storage_audio_delete_title">Delete orphan audio?</string>
+    <string name="storage_audio_delete_confirm">Delete %1$d orphan audio file(s)? They are no longer referenced by any note.</string>
+    <string name="storage_audio">Audio</string>
     <string name="storage_large_files">Large Files (%1$d MB+)</string>
     <string name="storage_clear_cache">Clear Cache</string>
     <string name="storage_auto_cleanup">Auto-cleanup</string>

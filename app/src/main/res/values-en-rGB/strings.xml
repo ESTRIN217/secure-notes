@@ -255,6 +255,7 @@
     <string name="read_aloud">Read Note Aloud</string>
     <string name="stop_speaking">Stop Speaking</string>
     <string name="nothing_to_read">Nothing to read aloud</string>
+    <string name="tts_engine_missing">No text-to-speech engine found. Install Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Voice Note Recorder</string>
     <string name="tap_to_record">Tap to start recording</string>
     <string name="recording_tap_to_stop">Recording… Tap to stop</string>

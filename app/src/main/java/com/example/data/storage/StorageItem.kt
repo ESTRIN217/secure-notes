@@ -15,6 +15,7 @@ data class StorageItem(
 
 enum class StorageCategory {
     ATTACHMENT,
+    AUDIO,
     CACHE,
     EXPORT,
     TEMP,
@@ -26,8 +27,16 @@ enum class StorageCategory {
     OTHER
 }
 
+data class AudioFileInfo(
+    val item: StorageItem,
+    val isAttached: Boolean,
+    val noteId: Int? = null,
+    val noteTitle: String? = null
+)
+
 data class StorageOverview(
     val attachmentsSize: Long = 0L,
+    val audioSize: Long = 0L,
     val cacheSize: Long = 0L,
     val exportsSize: Long = 0L,
     val tempSize: Long = 0L,
@@ -44,6 +53,6 @@ data class StorageOverview(
     val orphanCount: Int = 0
 ) {
     val totalUncategorized: Long
-        get() = attachmentsSize + cacheSize + exportsSize + tempSize +
+        get() = attachmentsSize + audioSize + cacheSize + exportsSize + tempSize +
                 databaseSize + drawingsSize + voiceSize + filesSize + aiModelSize + otherSize
 }

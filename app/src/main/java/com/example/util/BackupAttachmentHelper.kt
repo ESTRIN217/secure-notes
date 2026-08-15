@@ -3,6 +3,9 @@ package com.example.util
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.example.data.model.BlockType
+import com.example.data.model.DataBlock
+import com.example.data.model.parseNoteContentAndAttachments
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -42,6 +45,17 @@ object BackupAttachmentHelper {
             }
         }
 
+        // Scan WYSIWYG block JSON for media file paths. IMAGE/VIDEO/AUDIO/FILE/VOICE
+        // store their file path in `content`; legacy DRAWING blocks store a strokes JSON
+        // path. Embedded strokes of WYSIWYG drawings are self-contained and skipped.
+        for (p in collectBlockMediaPaths(content)) {
+            if (p.isNotEmpty() && !pathMap.containsKey(p)) {
+                copyToAttachmentDir(p, context, tempAttachmentsDir, warnings)?.let { relPath ->
+                    pathMap[p] = relPath
+                }
+            }
+        }
+
         // Scan for ---Attachments--- section paths
         // Also copy the "name" field (PNG preview for drawings, display file for others)
         val delimiter = "\n\n---Attachments---\n"
@@ -76,6 +90,30 @@ object BackupAttachmentHelper {
         }
 
         return pathMap
+    }
+
+    /**
+     * Extracts local media file paths referenced by WYSIWYG block JSON in [content].
+     * Non-local entries (http/https URLs) and self-contained WYSIWYG drawing strokes
+     * are skipped. Returns an empty list when [content] is not block JSON.
+     */
+    internal fun collectBlockMediaPaths(content: String): List<String> {
+        val textPart = parseNoteContentAndAttachments(content).first
+        val blocks = DataBlock.deserialize(textPart) ?: return emptyList()
+        val paths = mutableListOf<String>()
+        for (block in blocks) {
+            val candidate = when (block.type) {
+                BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.FILE, BlockType.VOICE ->
+                    block.content.takeIf { it.isNotEmpty() && !it.startsWith("http") }
+                BlockType.DRAWING -> block.content.takeIf { block.isLegacyDrawing && it.isNotEmpty() }
+                else -> null
+            }
+            candidate?.let { if (it !in paths) paths.add(it) }
+            block.meta["previewPath"]
+                ?.takeIf { it.isNotEmpty() && it != candidate && it !in paths }
+                ?.let { paths.add(it) }
+        }
+        return paths
     }
 
     private fun copyToAttachmentDir(

@@ -552,30 +552,28 @@ private fun BlockRow(
             }
             BlockType.CHECKLIST_ITEM -> {
                 val checked = block.meta["checked"] == "true"
-                val itemSegments = block.ensureSegments()
                 EditableChecklistBlock(
-                    itemText = RichTextConverter.segmentsToPlainText(itemSegments),
+                    segments = block.ensureSegments(),
                     isChecked = checked,
                     globalIndex = index,
-                    onChange = { newText ->
+                    onChange = { newSegs ->
                         onChange(
                             block.copy(
                                 content = "",
-                                richTextJson = TextSegment.serialize(listOf(TextSegment(text = newText)))
+                                richTextJson = TextSegment.serialize(newSegs)
                             )
                         )
                     },
                     onToggle = {
-                        onChange(block.copy(meta = mapOf("checked" to (!checked).toString())))
+                        onChange(block.copy(meta = block.meta + ("checked" to (!checked).toString())))
                     },
                     onFocusChange = { if (it) onActivate() },
                     onCursorChange = onCursorChange,
-                    onSplit = { before, after ->
-                        onSplit(listOf(TextSegment(text = before)), listOf(TextSegment(text = after)))
-                    },
+                    onSplit = onSplit,
                     onConvertToText = { onChange(block.copy(type = BlockType.TEXT)) },
                     requestFocus = requestFocus,
-                    onFocusRequested = onFocusRequested
+                    onFocusRequested = onFocusRequested,
+                    modifier = Modifier.weight(1f)
                 )
             }
             BlockType.COLLAPSIBLE -> {
