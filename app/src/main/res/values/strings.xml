@@ -270,6 +270,7 @@
     <string name="toast_no_app_video">No app to play video</string>
     <string name="toast_cannot_open_url">Cannot open URL</string>
     <string name="toast_file_attached">File attached successfully</string>
+    <string name="toast_file_open_error">Couldn\'t open this file</string>
     <string name="toast_file_select_error">Error selecting file</string>
     <string name="toast_recording_error">Failed to start recording</string>
     <string name="toast_audio_play_error">Error playing audio</string>
@@ -364,6 +365,14 @@
     <string name="block_options">Block options</string>
     <string name="block_file">File</string>
     <string name="block_file_desc">Attach a file</string>
+    <string name="block_file_replace">Replace file</string>
+    <string name="block_file_choose">Choose file</string>
+    <string name="block_file_caption_hint">Add a caption…</string>
+    <string name="block_file_description">Description</string>
+    <string name="block_file_rename">Rename</string>
+    <string name="block_file_rename_title">Rename file</string>
+    <string name="block_file_color">Color</string>
+    <string name="block_file_open">Open file</string>
     <string name="block_bookmark">Bookmark</string>
     <string name="block_bookmark_desc">Save a link</string>
     <string name="block_drawing">Drawing</string>

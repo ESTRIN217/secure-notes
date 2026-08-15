@@ -80,6 +80,8 @@ fun BlockEditor(
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
     onEditAudio: (Int) -> Unit = {},
+    onEditFile: (Int) -> Unit = {},
+    onOpenFile: (String, String) -> Unit = { _, _ -> },
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
@@ -185,6 +187,8 @@ fun BlockEditor(
                         onEditImage = onEditImage,
                         onEditVideo = onEditVideo,
                         onEditAudio = onEditAudio,
+                        onEditFile = onEditFile,
+                        onOpenFile = onOpenFile,
                         onChange = { newBlock ->
                             val newBlocks = blocks.toMutableList()
                             newBlocks[index] = newBlock
@@ -400,6 +404,8 @@ private fun BlockRow(
     onEditImage: (Int) -> Unit = {},
     onEditVideo: (Int) -> Unit = {},
     onEditAudio: (Int) -> Unit = {},
+    onEditFile: (Int) -> Unit = {},
+    onOpenFile: (String, String) -> Unit = { _, _ -> },
     onChange: (DataBlock) -> Unit,
     onDelete: () -> Unit,
     onSplit: (List<TextSegment>, List<TextSegment>) -> Unit,
@@ -771,6 +777,37 @@ private fun BlockRow(
                     onActivate = onActivate,
                     onDelete = onDelete,
                     onReplace = { onEditAudio(index) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            BlockType.FILE -> {
+                val showCaption = block.meta["showCaption"] == "true"
+                EditableFileBlock(
+                    name = block.meta["name"] ?: block.content.substringAfterLast('/'),
+                    path = block.content,
+                    caption = block.meta["caption"] ?: "",
+                    color = block.meta["color"],
+                    isActive = index == activeBlockIndex,
+                    onActivate = onActivate,
+                    onOpen = { onOpenFile(block.content, block.meta["name"] ?: block.content.substringAfterLast('/')) },
+                    onCaptionChange = { newCaption ->
+                        onChange(block.copy(meta = block.meta + ("caption" to newCaption)))
+                    },
+                    onReplace = { onEditFile(index) },
+                    onDelete = onDelete,
+                    onRename = { newName ->
+                        onChange(block.copy(meta = block.meta + ("name" to newName)))
+                    },
+                    onColorChange = { hex ->
+                        onChange(block.copy(meta = block.meta + ("color" to hex)))
+                    },
+                    onInsertBelow = { onInsertBelow(index) },
+                    onDuplicate = { onDuplicate(index) },
+                    onMoveTo = { onMoveTo(index) },
+                    showCaption = showCaption,
+                    onShowCaptionChange = { newVal ->
+                        onChange(block.copy(meta = block.meta + ("showCaption" to newVal.toString())))
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

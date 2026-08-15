@@ -12,8 +12,8 @@
 - Release signing: copy `key.properties.template` → `key.properties`. Debug builds also sign with release config.
 - `app/google-services.json` required for Firebase (Google services plugin).
 - **Native code**: `llama_jni.cpp` compiled from source via CMake (`app/CMakeLists.txt`). Prebuilt `.so` files
-  for `libllama.so`, `libggml.so`, `libggml-base.so`, `libggml-cpu.so` in `jniLibs/arm64-v8a/`. llama.cpp headers from `/home/DEVELOPER/llama.cpp/include/`
-  and `/home/DEVELOPER/llama.cpp/ggml/include/`. NDK 29.0.14206865. Build only supports `arm64-v8a`.
+  for `libllama.so`, `libggml.so`, `libggml-base.so`, `libggml-cpu.so` in `jniLibs/arm64-v8a/`. llama.cpp headers from `/storage/emulated/0/AndroidCSProjects/llama.cpp/include/`
+  and `/storage/emulated/0/AndroidCSProjects/llama.cpp/ggml/include/`. NDK 29.0.14206865. Build only supports `arm64-v8a`.
 - **KV cache cleared** via `llama_memory_clear` between inference calls to prevent cross-request contamination.
 
 ## Tests

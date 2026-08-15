@@ -38,6 +38,7 @@ moshiKotlinCodegen = "1.15.2"
 datastorePreferences = "1.2.1"
 robolectric = "4.16.1"
 roborazzi = "1.68.0"
+orgJson = "20240303"
 firebaseBom = "34.16.0"
 secretsGradlePlugin = "2.0.1"
 googleServices = "4.5.0"
@@ -101,6 +102,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
+org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }

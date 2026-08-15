@@ -410,6 +410,8 @@ fun NoteEditorScreen(
 
     var audioDialogMode by remember { mutableIntStateOf(-1) }
 
+    var fileDialogMode by remember { mutableIntStateOf(-1) }
+
     fun insertAudioBlock(src: String) {
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
@@ -440,6 +442,42 @@ fun NoteEditorScreen(
             applyBlocksChange(newBlocks)
         } else {
             insertAudioBlock(src)
+        }
+    }
+
+    fun insertFileBlock(path: String, name: String) {
+        showSlashMenu = false
+        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
+        val currentBlock = blocks.getOrNull(currentIdx)
+        val replaceInPlace = currentBlock
+            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
+        val fileBlock = DataBlock(type = BlockType.FILE, content = path, meta = mapOf("name" to name))
+        val newBlocks = blocks.toMutableList()
+        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
+        if (replaceInPlace) {
+            newBlocks[currentIdx] = fileBlock
+        } else {
+            newBlocks.add(idx, fileBlock)
+        }
+        blocks = newBlocks
+        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        contentValue = TextFieldValue(text = "", selection = TextRange(0))
+        activeSelection = 0..0
+        saveBlocksToHistory()
+    }
+
+    fun applyFileSelection(path: String, name: String) {
+        val replaceIdx = fileDialogMode
+        fileDialogMode = -1
+        if (replaceIdx >= 0 && replaceIdx in blocks.indices) {
+            val newBlocks = blocks.toMutableList()
+            newBlocks[replaceIdx] = blocks[replaceIdx].copy(
+                content = path,
+                meta = blocks[replaceIdx].meta + ("name" to name)
+            )
+            applyBlocksChange(newBlocks)
+        } else {
+            insertFileBlock(path, name)
         }
     }
 
@@ -987,6 +1025,82 @@ fun NoteEditorScreen(
         else createRawContent(jsonContent, attachments)
     }
 
+    fun handlePickedFile(selectedUri: Uri) {
+        try {
+            val contentResolver = context.contentResolver
+            var name = "selected_file"
+            contentResolver.query(selectedUri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst() && nameIndex >= 0) {
+                    name = cursor.getString(nameIndex)
+                }
+            }
+
+            val extension = if (name.contains(".")) name.substringAfterLast(".") else ""
+            val mime = contentResolver.getType(selectedUri) ?: ""
+            val isAudio = mime.startsWith("audio/") || extension.lowercase() in setOf(
+                "mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "amr", "3gp", "3gpp", "mid", "midi"
+            )
+            val prefix = if (isAudio) "audio" else "file"
+            val localFile = File(context.filesDir, "${prefix}_${noteId}_${System.currentTimeMillis()}.${extension}")
+            contentResolver.openInputStream(selectedUri)?.use { input ->
+                FileOutputStream(localFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            if (isAudio) {
+                applyAudioSelection(localFile.absolutePath)
+                Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
+            } else {
+                applyFileSelection(localFile.absolutePath, name)
+                Toast.makeText(context, context.getString(R.string.toast_file_attached), Toast.LENGTH_SHORT).show()
+            }
+            showVoiceFileSheet = false
+            scope.launch {
+                viewModel.saveNote(
+                    id = noteId,
+                    title = title.trim(),
+                    content = contentForSave(),
+                    isEncrypted = isEncrypted,
+                    tagsList = selectedNoteTags,
+                    backgroundColor = selectedBgColorId,
+                    backgroundImagePath = selectedBgImagePath,
+                    isPinned = isPinned,
+                    isFavorite = isFavorite,
+                    isArchived = isArchived
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, context.getString(R.string.toast_file_select_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { handlePickedFile(it) }
+    }
+
+    fun openExternalFile(path: String) {
+        try {
+            val mime = run {
+                val ext = path.substringAfterLast('.', "").lowercase()
+                android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+            }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(path))
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mime)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun handleBlockCommand(cmd: BlockCommand) {
         showSlashMenu = false
         fun clearSlashPlaceholder() {
@@ -1032,6 +1146,11 @@ fun NoteEditorScreen(
             BlockAction.VOICE_FILE_DIALOG -> {
                 clearSlashPlaceholder()
                 showVoiceFileSheet = true
+            }
+            BlockAction.FILE_DIALOG -> {
+                clearSlashPlaceholder()
+                fileDialogMode = -1
+                filePickerLauncher.launch("*/*")
             }
             BlockAction.DRAWING_DIALOG -> {
                 clearSlashPlaceholder()
@@ -1607,6 +1726,13 @@ fun NoteEditorScreen(
                         onEditAudio = { idx ->
                             audioDialogMode = idx
                             showVoiceFileSheet = true
+                        },
+                        onEditFile = { idx ->
+                            fileDialogMode = idx
+                            filePickerLauncher.launch("*/*")
+                        },
+                        onOpenFile = { path, _ ->
+                            openExternalFile(path)
                         },
                         onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
@@ -2478,81 +2604,6 @@ fun NoteEditorScreen(
             var isPlayingRecording by remember { mutableStateOf(false) }
             var draftPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
             
-            // File picker
-            val filePickerLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.GetContent()
-            ) { uri: Uri? ->
-                uri?.let { selectedUri ->
-                    try {
-                        val contentResolver = context.contentResolver
-                        var name = "selected_file"
-                        contentResolver.query(selectedUri, null, null, null, null)?.use { cursor ->
-                            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                            if (cursor.moveToFirst() && nameIndex >= 0) {
-                                name = cursor.getString(nameIndex)
-                            }
-                        }
-
-                        val extension = if (name.contains(".")) name.substringAfterLast(".") else ""
-                        val mime = contentResolver.getType(selectedUri) ?: ""
-                        val isAudio = mime.startsWith("audio/") || extension.lowercase() in setOf(
-                            "mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "amr", "3gp", "3gpp", "mid", "midi"
-                        )
-                        val prefix = if (isAudio) "audio" else "file"
-                        val localFile = File(context.filesDir, "${prefix}_${noteId}_${System.currentTimeMillis()}.${extension}")
-                        contentResolver.openInputStream(selectedUri)?.use { input ->
-                            FileOutputStream(localFile).use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-
-                        if (isAudio) {
-                            applyAudioSelection(localFile.absolutePath)
-                            scope.launch {
-                                viewModel.saveNote(
-                                    id = noteId,
-                                    title = title.trim(),
-                                    content = contentForSave(),
-                                    isEncrypted = isEncrypted,
-                                    tagsList = selectedNoteTags,
-                                    backgroundColor = selectedBgColorId,
-                                    backgroundImagePath = selectedBgImagePath,
-                                    isPinned = isPinned,
-                                    isFavorite = isFavorite,
-                                    isArchived = isArchived
-                                )
-                            }
-                            showVoiceFileSheet = false
-                            audioDialogMode = -1
-                            Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
-                            return@rememberLauncherForActivityResult
-                        }
-
-                        // Attach file
-                        attachments = attachments + Attachment(type = "file", path = localFile.absolutePath, name = name)
-                        scope.launch {
-                            viewModel.saveNote(
-                                id = noteId,
-                                title = title.trim(),
-                                content = contentForSave(),
-                                isEncrypted = isEncrypted,
-                                tagsList = selectedNoteTags,
-                                backgroundColor = selectedBgColorId,
-                                backgroundImagePath = selectedBgImagePath,
-                                isPinned = isPinned,
-                                isFavorite = isFavorite,
-                                isArchived = isArchived
-                            )
-                        }
-                        showVoiceFileSheet = false
-                        Toast.makeText(context, context.getString(R.string.toast_file_attached), Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(context, context.getString(R.string.toast_file_select_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-
             // Record Audio Permission launcher
             val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()

@@ -254,6 +254,7 @@
     <string name="toast_no_app_video">No hay aplicación para reproducir video</string>
     <string name="toast_cannot_open_url">No se puede abrir la URL</string>
     <string name="toast_file_attached">Archivo adjuntado exitosamente</string>
+    <string name="toast_file_open_error">No se pudo abrir este archivo</string>
     <string name="toast_file_select_error">Error al seleccionar archivo</string>
     <string name="toast_recording_error">Error al iniciar la grabación</string>
     <string name="toast_audio_play_error">Error al reproducir audio</string>
@@ -342,6 +343,14 @@
     <string name="block_options">Opciones del bloque</string>
     <string name="block_file">Archivo</string>
     <string name="block_file_desc">Adjuntar un archivo</string>
+    <string name="block_file_replace">Reemplazar archivo</string>
+    <string name="block_file_choose">Elegir archivo</string>
+    <string name="block_file_caption_hint">Añade una descripción…</string>
+    <string name="block_file_description">Descripción</string>
+    <string name="block_file_rename">Cambiar nombre</string>
+    <string name="block_file_rename_title">Cambiar nombre del archivo</string>
+    <string name="block_file_color">Color</string>
+    <string name="block_file_open">Abrir archivo</string>
     <string name="block_bookmark">Marcador</string>
     <string name="block_bookmark_desc">Guardar un enlace</string>
     <string name="block_drawing">Dibujo</string>
