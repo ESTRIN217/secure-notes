@@ -30,11 +30,12 @@ import com.example.ui.settings.SettingsCardGroup
 import com.example.ui.settings.SettingsListTile
 import com.example.ui.settings.SettingsSwitchTile
 import com.example.ui.viewmodel.NotesViewModel
-import com.example.util.exportMultipleToHtml
+import com.example.util.exportMultipleToHtmlAsync
 import com.example.util.exportMultipleToTxt
 import com.example.util.exportToMarkdown
 import com.example.util.exportToPdf
 import com.example.util.exportSingleNoteToJson
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -219,6 +220,9 @@ fun MoreOptionsDialog(
                     Triple("JSON", Icons.Default.Code, R.string.share_format_json)
                 )
 
+                var exportingHtml by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
+
                 SettingsCardGroup {
                     shareFormats.forEachIndexed { index, (formatKey, icon, labelResId) ->
                         if (index > 0) {
@@ -227,22 +231,54 @@ fun MoreOptionsDialog(
                                 color = MaterialTheme.colorScheme.outlineVariant
                             )
                         }
-                        SettingsListTile(
-                            leadingIcon = icon,
-                            title = stringResource(id = labelResId),
-                            modifier = Modifier.testTag("share_format_${formatKey.lowercase()}_btn"),
-                            onClick = {
-                                val notesToShare = listOf(decryptedNoteForShare)
-                                when (formatKey) {
-                                    "TXT" -> exportMultipleToTxt(context, notesToShare)
-                                    "MD" -> exportToMarkdown(context, decryptedNoteForShare.note, title, content)
-                                    "PDF" -> exportToPdf(context, decryptedNoteForShare.note, title, content)
-                                    "HTML" -> exportMultipleToHtml(context, notesToShare)
-                                    "JSON" -> exportSingleNoteToJson(context, decryptedNoteForShare.note, title, content)
-                                }
-                                onDismiss()
+                        if (formatKey == "HTML" && exportingHtml) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = stringResource(id = labelResId),
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                )
                             }
-                        )
+                        } else {
+                            SettingsListTile(
+                                leadingIcon = icon,
+                                title = stringResource(id = labelResId),
+                                modifier = Modifier.testTag("share_format_${formatKey.lowercase()}_btn"),
+                                onClick = {
+                                    val notesToShare = listOf(decryptedNoteForShare)
+                                    when (formatKey) {
+                                        "TXT" -> exportMultipleToTxt(context, notesToShare)
+                                        "MD" -> exportToMarkdown(context, decryptedNoteForShare.note, title, content)
+                                        "PDF" -> exportToPdf(context, decryptedNoteForShare.note, title, content)
+                                        "HTML" -> {
+                                            if (!exportingHtml) {
+                                                exportingHtml = true
+                                                scope.launch {
+                                                    try {
+                                                        exportMultipleToHtmlAsync(context, notesToShare)
+                                                    } finally {
+                                                        exportingHtml = false
+                                                    }
+                                                    onDismiss()
+                                                }
+                                            }
+                                            return@SettingsListTile
+                                        }
+                                        "JSON" -> exportSingleNoteToJson(context, decryptedNoteForShare.note, title, content)
+                                    }
+                                    onDismiss()
+                                }
+                            )
+                        }
                     }
                 }
 

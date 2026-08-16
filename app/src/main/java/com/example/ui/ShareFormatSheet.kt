@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -20,11 +21,12 @@ import com.example.R
 import com.example.data.model.DecryptedNote
 import com.example.ui.settings.SettingsCardGroup
 import com.example.ui.settings.SettingsListTile
-import com.example.util.exportMultipleToHtml
+import com.example.util.exportMultipleToHtmlAsync
 import com.example.util.exportMultipleToJson
 import com.example.util.exportMultipleToMarkdown
 import com.example.util.exportMultipleToPdf
 import com.example.util.exportMultipleToTxt
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,69 +64,98 @@ fun ShareFormatSheet(
             @Suppress("DEPRECATION")
             val articleIcon = Icons.Default.Article
 
-            SettingsCardGroup {
-                SettingsListTile(
-                    leadingIcon = Icons.Default.Description,
-                    title = stringResource(id = R.string.share_format_txt),
-                    modifier = Modifier.testTag("share_format_txt_btn"),
-                    onClick = {
-                        exportMultipleToTxt(context, selectedNotes)
-                        onDismiss()
+                var exportingHtml by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
+
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Description,
+                        title = stringResource(id = R.string.share_format_txt),
+                        modifier = Modifier.testTag("share_format_txt_btn"),
+                        onClick = {
+                            exportMultipleToTxt(context, selectedNotes)
+                            onDismiss()
+                        }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Code,
+                        title = stringResource(id = R.string.share_format_md),
+                        modifier = Modifier.testTag("share_format_md_btn"),
+                        onClick = {
+                            exportMultipleToMarkdown(context, selectedNotes)
+                            onDismiss()
+                        }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    SettingsListTile(
+                        leadingIcon = articleIcon,
+                        title = stringResource(id = R.string.share_format_pdf),
+                        modifier = Modifier.testTag("share_format_pdf_btn"),
+                        onClick = {
+                            exportMultipleToPdf(context, selectedNotes)
+                            onDismiss()
+                        }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    if (exportingHtml) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = stringResource(id = R.string.share_format_html),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    } else {
+                        SettingsListTile(
+                            leadingIcon = Icons.Default.Web,
+                            title = stringResource(id = R.string.share_format_html),
+                            modifier = Modifier.testTag("share_format_html_btn"),
+                            onClick = {
+                                exportingHtml = true
+                                scope.launch {
+                                    try {
+                                        exportMultipleToHtmlAsync(context, selectedNotes)
+                                    } finally {
+                                        exportingHtml = false
+                                    }
+                                    onDismiss()
+                                }
+                            }
+                        )
                     }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                SettingsListTile(
-                    leadingIcon = Icons.Default.Code,
-                    title = stringResource(id = R.string.share_format_md),
-                    modifier = Modifier.testTag("share_format_md_btn"),
-                    onClick = {
-                        exportMultipleToMarkdown(context, selectedNotes)
-                        onDismiss()
-                    }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                SettingsListTile(
-                    leadingIcon = articleIcon,
-                    title = stringResource(id = R.string.share_format_pdf),
-                    modifier = Modifier.testTag("share_format_pdf_btn"),
-                    onClick = {
-                        exportMultipleToPdf(context, selectedNotes)
-                        onDismiss()
-                    }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                SettingsListTile(
-                    leadingIcon = Icons.Default.Web,
-                    title = stringResource(id = R.string.share_format_html),
-                    modifier = Modifier.testTag("share_format_html_btn"),
-                    onClick = {
-                        exportMultipleToHtml(context, selectedNotes)
-                        onDismiss()
-                    }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                SettingsListTile(
-                    leadingIcon = Icons.Default.Settings,
-                    title = stringResource(id = R.string.share_format_json),
-                    modifier = Modifier.testTag("share_format_json_btn"),
-                    onClick = {
-                        exportMultipleToJson(context, selectedNotes)
-                        onDismiss()
-                    }
-                )
-            }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Settings,
+                        title = stringResource(id = R.string.share_format_json),
+                        modifier = Modifier.testTag("share_format_json_btn"),
+                        onClick = {
+                            exportMultipleToJson(context, selectedNotes)
+                            onDismiss()
+                        }
+                    )
+                }
 
             Spacer(modifier = Modifier.height(16.dp))
         }

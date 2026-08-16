@@ -21,6 +21,9 @@ fun exportMultipleToPdf(context: Context, notes: List<DecryptedNote>) =
 fun exportMultipleToHtml(context: Context, notes: List<DecryptedNote>) =
     HtmlExporter().export(context, notes)
 
+suspend fun exportMultipleToHtmlAsync(context: Context, notes: List<DecryptedNote>) =
+    HtmlExporter().exportAsync(context, notes)
+
 fun exportMultipleToJson(context: Context, notes: List<DecryptedNote>) =
     JsonExporter().export(context, notes)
 

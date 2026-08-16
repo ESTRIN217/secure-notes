@@ -37,6 +37,7 @@ data class TableData(
     }.toString()
 
     fun toHtml(): String {
+        fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
         val sb = StringBuilder("<table>")
         val weights = normalizedWeights()
         if (weights.size == columnCount) {
@@ -45,10 +46,10 @@ data class TableData(
             sb.append("</colgroup>")
         }
         if (showHeader && headers.isNotEmpty()) {
-            sb.append("<th>").append(headers.joinToString("</th><th>")).append("</th>")
+            sb.append("<th>").append(headers.joinToString("</th><th>") { esc(it) }).append("</th>")
         }
         rows.forEach { row ->
-            sb.append("<tr><td>").append(row.joinToString("</td><td>")).append("</td></tr>")
+            sb.append("<tr><td>").append(row.joinToString("</td><td>") { esc(it) }).append("</td></tr>")
         }
         sb.append("</table>")
         return sb.toString()
@@ -278,6 +279,14 @@ data class DataBlock(
                         Regex("<item\\s+checked=\"(true|false)\">([\\s\\S]*?)</item>").findAll(content).forEach { itemMatch ->
                             val checked = itemMatch.groupValues[1] == "true"
                             val text = itemMatch.groupValues[2].trim()
+                            blocks.add(DataBlock(type = BlockType.CHECKLIST_ITEM, content = text, meta = mapOf("checked" to checked.toString())))
+                        }
+                    }
+                    matchVal.startsWith("<item") -> {
+                        val checkedMatch = Regex("""<item\s+checked="(true|false)">""").find(matchVal)
+                        val checked = checkedMatch?.groupValues?.get(1) == "true"
+                        val text = matchVal.substringAfter(">").substringBeforeLast("</item>").trim()
+                        if (text.isNotEmpty()) {
                             blocks.add(DataBlock(type = BlockType.CHECKLIST_ITEM, content = text, meta = mapOf("checked" to checked.toString())))
                         }
                     }

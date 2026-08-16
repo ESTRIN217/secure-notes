@@ -515,11 +515,58 @@ object RichTextConverter {
                     numberedCounter = 0
                     sb.append(block.content)
                 }
+                BlockType.TABLE -> {
+                    numberedCounter = 0
+                    TableData.fromJson(block.meta["table"])?.let { data ->
+                        sb.append(segmentsTableToPlainText(data))
+                    }
+                }
+                BlockType.COLLAPSIBLE -> {
+                    numberedCounter = 0
+                    val summary = block.meta["summary"]?.takeIf { it.isNotBlank() }
+                    if (!summary.isNullOrBlank()) sb.append(summary)
+                    if (summary.isNullOrBlank().not() && text.isNotBlank()) sb.append('\n')
+                    if (text.isNotBlank()) sb.append(text)
+                }
+                BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.DRAWING,
+                BlockType.VOICE, BlockType.FILE, BlockType.PAGE -> {
+                    numberedCounter = 0
+                    sb.append(mediaBlockToPlainText(block))
+                }
                 else -> numberedCounter = 0
             }
-            if (block.type != BlockType.HORIZONTAL_RULE) sb.append('\n')
+            sb.append('\n')
         }
         return sb.toString().trimEnd('\n')
+    }
+
+    private fun segmentsTableToPlainText(data: TableData): String {
+        val sb = StringBuilder()
+        if (data.headers.isNotEmpty()) {
+            sb.append("| ").append(data.headers.joinToString(" | ")).append(" |\n")
+            sb.append("| ").append(List(data.headers.size) { "---" }.joinToString(" | ")).append(" |")
+        }
+        data.rows.forEach { row ->
+            sb.append('\n')
+            sb.append("| ").append(row.joinToString(" | ")).append(" |")
+        }
+        return sb.toString()
+    }
+
+    private fun mediaBlockToPlainText(block: DataBlock): String {
+        val label = when (block.type) {
+            BlockType.IMAGE -> "Image"
+            BlockType.VIDEO -> "Video"
+            BlockType.AUDIO -> "Audio"
+            BlockType.DRAWING -> "Drawing"
+            BlockType.VOICE -> "Voice"
+            BlockType.FILE -> "File"
+            BlockType.PAGE -> "Page"
+            else -> return ""
+        }
+        val name = block.meta["name"]?.takeIf { it.isNotBlank() }
+            ?: block.meta["caption"]?.takeIf { it.isNotBlank() }
+        return if (name != null) "[$label: $name]" else "[$label]"
     }
 
     fun blocksToMarkdown(blocks: List<DataBlock>): String {
@@ -562,7 +609,12 @@ object RichTextConverter {
         return sb.toString().trim('\n')
     }
 
-    fun blocksToHtml(blocks: List<DataBlock>): String {
+    fun interface MediaHtmlResolver {
+        /** Devuelve una data URI (o URL passthrough) para embeber el bloque, o null. */
+        fun resolveMedia(block: DataBlock): String?
+    }
+
+    fun blocksToHtml(blocks: List<DataBlock>, media: MediaHtmlResolver? = null): String {
         val sb = StringBuilder()
         for (block in blocks) {
             val segments = block.ensureSegments()
@@ -595,7 +647,15 @@ object RichTextConverter {
                 }
                 BlockType.COLLAPSIBLE -> {
                     sb.append("<details><summary>").append(htmlEscape(block.meta["summary"] ?: "")).append("</summary>")
-                        .append(blocksToHtml(listOf(block.copy(type = BlockType.TEXT)))).append("</details>")
+                        .append(blocksToHtml(listOf(block.copy(type = BlockType.TEXT)), media)).append("</details>")
+                }
+                BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.DRAWING,
+                BlockType.VOICE, BlockType.FILE -> {
+                    sb.append(mediaBlockToHtml(block, media))
+                }
+                BlockType.PAGE, BlockType.PAGE_LINK -> {
+                    val label = block.content.ifBlank { "Page" }
+                    sb.append("<p class=\"page-link\">📄 ").append(htmlEscape(label)).append("</p>")
                 }
                 else -> {}
             }
@@ -604,10 +664,95 @@ object RichTextConverter {
         return sb.toString()
     }
 
+    private fun mediaBlockToHtml(block: DataBlock, media: MediaHtmlResolver?): String {
+        val caption = block.meta["caption"]?.takeIf { it.isNotBlank() }
+        val label = when (block.type) {
+            BlockType.IMAGE -> "Image"
+            BlockType.VIDEO -> "Video"
+            BlockType.AUDIO -> "Audio"
+            BlockType.VOICE -> "Voice"
+            BlockType.DRAWING -> "Drawing"
+            BlockType.FILE -> "File"
+            else -> ""
+        }
+        val name = block.meta["name"]?.takeIf { it.isNotBlank() }
+            ?: caption
+            ?: block.content.substringAfterLast('/').takeIf { it.isNotBlank() }
+
+        val body: String = when (block.type) {
+            BlockType.VIDEO -> {
+                if (VideoUrlHelper.isYouTubeUrl(block.content)) {
+                    "<p class=\"video-link\"><a href=\"${htmlEscape(block.content)}\">▶ Video</a></p>"
+                } else {
+                    val src = media?.resolveMedia(block)
+                    if (src != null) "<video controls src=\"${htmlEscape(src)}\"></video>"
+                    else htmlEscape(name?.let { "[$label: $it]" } ?: "[$label]")
+                }
+            }
+            BlockType.IMAGE, BlockType.DRAWING -> {
+                val src = media?.resolveMedia(block)
+                if (src != null) {
+                    val align = block.meta["align"]
+                    val cls = if (align == "left" || align == "right") " class=\"float-$align\"" else ""
+                    "<img src=\"${htmlEscape(src)}\" alt=\"${htmlEscape(name ?: label)}\"$cls>"
+                } else {
+                    htmlEscape(name?.let { "[$label: $it]" } ?: "[$label]")
+                }
+            }
+            BlockType.AUDIO, BlockType.VOICE -> {
+                val src = media?.resolveMedia(block)
+                if (src != null) "<audio controls src=\"${htmlEscape(src)}\"></audio>"
+                else htmlEscape(name?.let { "[$label: $it]" } ?: "[$label]")
+            }
+            BlockType.FILE -> {
+                val src = media?.resolveMedia(block)
+                if (src != null) {
+                    "<p class=\"file-link\"><a href=\"${htmlEscape(src)}\" download=\"${htmlEscape(name ?: "file")}\">📎 ${htmlEscape(name ?: "File")}</a></p>"
+                } else {
+                    htmlEscape(name?.let { "[$label: $it]" } ?: "[$label]")
+                }
+            }
+            else -> ""
+        }
+
+        return if (!caption.isNullOrBlank() && body.startsWith("<")) {
+            "<figure>$body<figcaption>${htmlEscape(caption)}</figcaption></figure>"
+        } else {
+            body
+        }
+    }
+
     fun contentToPlainText(raw: String): String {
         val blocks = contentToBlocks(raw)
         if (blocks != null) return blocksToPlainText(blocks)
-        return segmentsToPlainText(markupToSegments(raw))
+        return legacyMarkupToPlainText(raw)
+    }
+
+    /** Convierte markup legacy a texto plano conservando checklists, reglas y media. */
+    private fun legacyMarkupToPlainText(raw: String): String {
+        val summaryRegex = Regex("""<summary>([\s\S]*?)</summary>""", RegexOption.DOT_MATCHES_ALL)
+        val text = raw
+            .replace(Regex("""<item\s+checked="true">([\s\S]*?)</item>""")) { "☑ ${it.groupValues[1].trim()}" }
+            .replace(Regex("""<item\s+checked="false">([\s\S]*?)</item>""")) { "☐ ${it.groupValues[1].trim()}" }
+            .replace(Regex("""<item>([\s\S]*?)</item>""")) { "☐ ${it.groupValues[1].trim()}" }
+            .replace(Regex("""\n*<hr\s*/?>\n*"""), "\n───\n")
+            .replace(Regex("""!audio\s*\[[^\]]*\]\([^\)]+\)"""), "[Audio]")
+            .replace(Regex("""!video\s*\[[^\]]*\]\([^\)]+\)"""), "[Video]")
+            .replace(Regex("""!\[[^\]]*\]\([^\)]+\)"""), "[Image]")
+            .replace(Regex("""<img\s+src="[^"]*"\s*/>|<img=[^>]+>"""), "[Image]")
+            .replace(Regex("""<video[^>]*>"""), "[Video]")
+            .replace(Regex("""<audio[^>]*>"""), "[Audio]")
+            .replace(Regex("""<details>([\s\S]*?)</details>""")) { m ->
+                val inner = m.groupValues[1]
+                val summary = summaryRegex.find(inner)?.groupValues?.get(1)?.trim() ?: ""
+                val body = inner.replace(summaryRegex, "").trim()
+                buildString {
+                    if (summary.isNotBlank()) append(summary)
+                    if (summary.isNotBlank() && body.isNotBlank()) append('\n')
+                    if (body.isNotBlank()) append(body)
+                }
+            }
+        return segmentsToPlainText(markupToSegments(text))
     }
 
     fun contentToMarkdown(raw: String): String {
@@ -616,10 +761,16 @@ object RichTextConverter {
         return segmentsToMarkdown(markupToSegments(raw))
     }
 
-    fun contentToHtml(raw: String): String {
+    fun contentToHtml(raw: String, media: MediaHtmlResolver? = null): String {
         val blocks = contentToBlocks(raw)
-        if (blocks != null) return blocksToHtml(blocks)
-        return segmentsToHtml(markupToSegments(raw))
+        if (blocks != null) return blocksToHtml(blocks, media)
+        return try {
+            val migrated = DataBlock.migrateLegacyContent(raw)
+            val html = blocksToHtml(migrated, media)
+            if (html.isNotBlank() || raw.isBlank()) html else segmentsToHtml(markupToSegments(raw))
+        } catch (e: Exception) {
+            segmentsToHtml(markupToSegments(raw))
+        }
     }
 
     /** Deserializa bloques ignorando el sufijo `---Attachments---`. */

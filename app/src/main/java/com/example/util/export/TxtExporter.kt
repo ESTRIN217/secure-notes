@@ -2,6 +2,7 @@ package com.example.util.export
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.example.R
@@ -36,11 +37,16 @@ class TxtExporter : Exporter {
                     sb.append("----------------------------\n\n")
                 }
             }
-            val file = File(context.cacheDir, "Exported_Notes.txt")
+            val fileName = if (notes.size == 1) {
+                "Note_${notes[0].note.id}_" + notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".txt"
+            } else {
+                "Exported_Notes.txt"
+            }
+            val file = File(context.cacheDir, fileName)
             FileOutputStream(file).use { out -> out.write(sb.toString().toByteArray()) }
             shareFile(context, file, "text/plain", context.getString(R.string.share_title_text))
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("TxtExporter", "Error exporting notes to TXT", e)
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
