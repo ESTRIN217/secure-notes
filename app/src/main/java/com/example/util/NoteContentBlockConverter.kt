@@ -7,19 +7,19 @@ object NoteContentBlockConverter {
     fun matchToMediaBlock(match: MatchResult, matchVal: String): DataBlock? {
         val isLinkedImg = match.groupValues[3].isNotEmpty()
         val isMdImg = match.groupValues[5].isNotEmpty()
-        val isMdVideo = match.groupValues[7].isNotEmpty()
-        val isMdAudio = match.groupValues[9].isNotEmpty()
-        val isHtmlMedia = match.groupValues[11].isNotEmpty()
-        val isHtmlShortMedia = match.groupValues[13].isNotEmpty()
+        val isMdVideo = match.groupValues[6].isNotEmpty()
+        val isMdAudio = match.groupValues[7].isNotEmpty()
+        val isHtmlMedia = match.groupValues[8].isNotEmpty()
+        val isHtmlShortMedia = match.groupValues[10].isNotEmpty()
 
         return when {
             isLinkedImg -> DataBlock(type = BlockType.IMAGE, content = match.groupValues[2], meta = mapOf("linkUrl" to match.groupValues[3]))
             isMdImg -> DataBlock(type = BlockType.IMAGE, content = match.groupValues[5])
-            isMdVideo -> DataBlock(type = BlockType.VIDEO, content = match.groupValues[7])
-            isMdAudio -> DataBlock(type = BlockType.AUDIO, content = match.groupValues[9])
+            isMdVideo -> DataBlock(type = BlockType.VIDEO, content = match.groupValues[6])
+            isMdAudio -> DataBlock(type = BlockType.AUDIO, content = match.groupValues[7])
             isHtmlMedia -> {
-                val type = match.groupValues[11]
-                val src = match.groupValues[12]
+                val type = match.groupValues[8]
+                val src = match.groupValues[9]
                 when (type) {
                     "img" -> DataBlock(type = BlockType.IMAGE, content = src)
                     "video" -> DataBlock(type = BlockType.VIDEO, content = src)
@@ -28,8 +28,8 @@ object NoteContentBlockConverter {
                 }
             }
             isHtmlShortMedia -> {
-                val type = match.groupValues[13]
-                val src = match.groupValues[14]
+                val type = match.groupValues[10]
+                val src = match.groupValues[11]
                 when (type) {
                     "img" -> DataBlock(type = BlockType.IMAGE, content = src)
                     "video" -> DataBlock(type = BlockType.VIDEO, content = src)

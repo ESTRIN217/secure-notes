@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [28])
 class HtmlMediaEmbedderTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

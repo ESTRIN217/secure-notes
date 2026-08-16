@@ -1,31 +1,34 @@
 package com.example.util
 
-import android.net.Uri
-
 object VideoUrlHelper {
 
     private val MEDIA_EXTENSIONS = setOf(
         "mp4", "webm", "mkv", "mov", "m4v", "3gp", "avi", "flv", "ts", "m3u8", "ogg", "ogv"
     )
 
+    private val YOUTUBE_ID_REGEX = Regex("[A-Za-z0-9_-]{11}")
+
     fun youTubeVideoId(url: String): String? {
         if (!url.startsWith("http")) return null
-        val uri = Uri.parse(url)
-        val host = uri.host?.lowercase() ?: return null
-        val raw = when {
-            host.endsWith("youtu.be") -> uri.path?.trimStart('/')
+        val withoutScheme = url.substringAfter("//", url)
+        val host = withoutScheme.substringBefore('/').substringBefore('?').lowercase()
+        val rest = withoutScheme.substringAfter('/', "")
+        val path = rest.substringBefore('?')
+        val query = rest.substringAfter('?', "")
+
+        val raw: String? = when {
+            host.endsWith("youtu.be") -> path
             host.contains("youtube.com") -> {
-                val path = uri.path ?: ""
                 when {
-                    path.startsWith("/shorts/") -> path.trimStart('/').substringAfter('/')
-                    path.startsWith("/embed/") -> path.trimStart('/').substringAfter('/')
-                    path.startsWith("/v/") -> path.trimStart('/').substringAfter('/')
-                    else -> uri.getQueryParameter("v")
+                    path.startsWith("shorts/") -> path.removePrefix("shorts/").substringBefore('/')
+                    path.startsWith("embed/") -> path.removePrefix("embed/").substringBefore('/')
+                    path.startsWith("v/") -> path.removePrefix("v/").substringBefore('/')
+                    else -> query.split('&').firstOrNull { it.startsWith("v=") }?.substringAfter("v=")
                 }
             }
             else -> null
         }
-        return raw?.trim()?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{11}")) }
+        return raw?.trim()?.takeIf { it.matches(YOUTUBE_ID_REGEX) }
     }
 
     fun isYouTubeUrl(url: String): Boolean = youTubeVideoId(url) != null
@@ -38,9 +41,9 @@ object VideoUrlHelper {
     fun isWebVideoUrl(url: String): Boolean {
         if (url.startsWith("content://") || url.startsWith("file://")) return false
         if (!url.startsWith("http://") && !url.startsWith("https://")) return false
-        val uri = Uri.parse(url)
-        if (uri.host.isNullOrBlank()) return false
-        val path = uri.path.orEmpty()
+        val host = url.substringAfter("//").substringBefore('/').substringBefore('?')
+        if (host.isBlank()) return false
+        val path = url.substringAfter("//").substringAfter('/', "").substringBefore('?')
         val extension = path.substringAfterLast('.', "").lowercase()
         return extension !in MEDIA_EXTENSIONS
     }

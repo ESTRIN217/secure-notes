@@ -28,20 +28,42 @@ class HtmlMediaEmbedder(
         }
     }
 
+    /** Bytes crudos de la media local (o dibujo rasterizado), sin base64. null si no resuelve. */
+    internal fun resolveBytes(block: DataBlock): ByteArray? {
+        return when (block.type) {
+            BlockType.DRAWING -> drawingBytes(block)
+            BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.VOICE, BlockType.FILE -> {
+                val src = block.content
+                if (src.isBlank() || src.startsWith("http://") || src.startsWith("https://")) null
+                else readBytes(src)
+            }
+            else -> null
+        }
+    }
+
     private fun resolveDrawing(block: DataBlock): String? {
         return try {
-            val png: ByteArray = when {
-                block.isWysiwygDrawing -> {
-                    DrawingPngRenderer.render(DrawingStrokeCodec.strokesFromJson(block.content)) ?: return null
-                }
-                else -> {
-                    val preview = block.meta["previewPath"]?.takeIf { it.isNotBlank() } ?: return null
-                    readBytes(preview) ?: return null
-                }
-            }
+            val png = drawingBytes(block) ?: return null
             "data:image/png;base64," + Base64.encodeToString(png, Base64.NO_WRAP)
         } catch (e: Exception) {
             Log.e("HtmlMediaEmbedder", "Error embedding drawing", e)
+            null
+        }
+    }
+
+    private fun drawingBytes(block: DataBlock): ByteArray? {
+        return try {
+            when {
+                block.isWysiwygDrawing -> {
+                    DrawingPngRenderer.render(DrawingStrokeCodec.strokesFromJson(block.content))
+                }
+                else -> {
+                    val preview = block.meta["previewPath"]?.takeIf { it.isNotBlank() } ?: return null
+                    readBytes(preview)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("HtmlMediaEmbedder", "Error rasterizing drawing", e)
             null
         }
     }
@@ -72,7 +94,7 @@ class HtmlMediaEmbedder(
         }
     }
 
-    private fun mimeFor(src: String, type: BlockType): String {
+    internal fun mimeFor(src: String, type: BlockType): String {
         val ext = src.substringAfterLast('.', "").substringBefore('?').lowercase()
         val fromExt = if (ext.isNotBlank()) MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) else null
         return fromExt ?: when (type) {
