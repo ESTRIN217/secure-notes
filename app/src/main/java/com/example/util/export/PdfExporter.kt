@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
+import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
@@ -39,15 +40,14 @@ class PdfExporter : Exporter {
             var page = pdfDocument.startPage(pageInfo)
             var canvas: Canvas = page.canvas
 
-            drawHeader(canvas, context, dec)
-
             val renderer = PdfBlockRenderer()
             val embedder = HtmlMediaEmbedder(context)
             val blocks = PdfBlockRenderer.blocksFor(dec.content)
-            var y = HEADER_BOTTOM
+            var y = drawHeader(canvas, context, dec)
             var pageNumber = 1
+            val maxHeight = (PAGE_HEIGHT - 2 * MARGIN).toInt()
             for (block in blocks) {
-                val needed = renderer.measureBlock(block, embedder, PAGE_WIDTH - (MARGIN * 2).toInt())
+                val needed = renderer.measureBlock(block, embedder, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight)
                 if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
                     pdfDocument.finishPage(page)
                     pageNumber++
@@ -55,7 +55,7 @@ class PdfExporter : Exporter {
                     canvas = page.canvas
                     y = MARGIN
                 }
-                y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, PAGE_WIDTH - (MARGIN * 2).toInt())
+                y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight)
             }
             pdfDocument.finishPage(page)
 
@@ -80,6 +80,7 @@ class PdfExporter : Exporter {
             val renderer = PdfBlockRenderer()
             val embedder = HtmlMediaEmbedder(context)
             val maxWidth = PAGE_WIDTH - (MARGIN * 2).toInt()
+            val maxHeight = (PAGE_HEIGHT - 2 * MARGIN).toInt()
             val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             val contentPaint = TextPaint().apply {
                 color = Color.BLACK; textSize = 13f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL); isAntiAlias = true
@@ -113,7 +114,7 @@ class PdfExporter : Exporter {
 
                 val blocks = PdfBlockRenderer.blocksFor(dec.content)
                 for (block in blocks) {
-                    val needed = renderer.measureBlock(block, embedder, maxWidth)
+                    val needed = renderer.measureBlock(block, embedder, maxWidth, maxHeight)
                     if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
                         pdfDocument.finishPage(page)
                         pageNumber++
@@ -121,7 +122,7 @@ class PdfExporter : Exporter {
                         canvas = page.canvas
                         y = MARGIN
                     }
-                    y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, maxWidth)
+                    y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, maxWidth, maxHeight)
                 }
                 y += 25f
             }
@@ -137,32 +138,74 @@ class PdfExporter : Exporter {
         }
     }
 
-    private fun drawHeader(canvas: Canvas, context: Context, dec: DecryptedNote) {
+    private fun drawHeader(canvas: Canvas, context: Context, dec: DecryptedNote): Float {
         val margin = MARGIN
-
-        val outlinePaint = Paint().apply {
-            color = Color.DKGRAY; style = Paint.Style.STROKE; strokeWidth = 2f; isAntiAlias = true
-        }
-        val fillPaint = Paint().apply {
-            color = Color.parseColor("#FAFAFA"); style = Paint.Style.FILL
-        }
-        canvas.drawRoundRect(margin - 10, margin - 10, PAGE_WIDTH - margin + 10, 180f, 12f, 12f, fillPaint)
-        canvas.drawRoundRect(margin - 10, margin - 10, PAGE_WIDTH - margin + 10, 180f, 12f, 12f, outlinePaint)
+        val pad = 14f
+        val boxLeft = margin - 10f
+        val boxRight = PAGE_WIDTH - margin + 10f
+        val boxTop = margin - 10f
+        val contentWidth = (boxRight - boxLeft - pad * 2).toInt()
 
         val titlePaint = TextPaint().apply {
-            color = Color.BLACK; textSize = 24f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true
+            color = Color.BLACK; textSize = 22f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); isAntiAlias = true
         }
-        val infoPaint = Paint().apply {
-            color = Color.GRAY; textSize = 11f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC); isAntiAlias = true
-        }
-        canvas.drawText(if (dec.title.length > 32) dec.title.take(30) + "..." else dec.title, margin + 10, margin + 35, titlePaint)
+        val titleLayout = StaticLayout.Builder.obtain(
+            dec.title, 0, dec.title.length, titlePaint, contentWidth
+        ).setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(2f, 1.1f).build()
 
-        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(dec.note.lastModified))
-        canvas.drawText(context.getString(R.string.export_label_last_modified, dateStr), margin + 10, margin + 85, infoPaint)
-        val tags = dec.note.cleanedTags()
-        if (tags.isNotEmpty()) {
-            canvas.drawText(context.getString(R.string.export_label_tags, tags.joinToString(", ")), margin + 10, margin + 105, infoPaint)
+        val infoPaint = TextPaint().apply {
+            color = Color.parseColor("#666666"); textSize = 11f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC); isAntiAlias = true
         }
+        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(dec.note.lastModified))
+        val dateText = context.getString(R.string.export_label_last_modified, dateStr)
+        val dateLayout = StaticLayout.Builder.obtain(
+            dateText, 0, dateText.length, infoPaint, contentWidth
+        ).build()
+
+        val tags = dec.note.cleanedTags()
+        var tagsLayout: StaticLayout? = null
+        if (tags.isNotEmpty()) {
+            val tagsText = context.getString(R.string.export_label_tags, tags.joinToString(", "))
+            tagsLayout = StaticLayout.Builder.obtain(
+                tagsText, 0, tagsText.length, infoPaint, contentWidth
+            ).setAlignment(Layout.Alignment.ALIGN_NORMAL).build()
+        }
+
+        var cy = pad
+        cy += titleLayout.height.toFloat() + 10f
+        cy += dateLayout.height.toFloat() + 4f
+        if (tagsLayout != null) cy += tagsLayout.height.toFloat()
+        val boxBottom = boxTop + cy + pad
+
+        val fillPaint = Paint().apply {
+            color = Color.parseColor("#FAFAFA"); style = Paint.Style.FILL; isAntiAlias = true
+        }
+        val borderPaint = Paint().apply {
+            color = Color.parseColor("#E0E0E0"); style = Paint.Style.STROKE; strokeWidth = 1f; isAntiAlias = true
+        }
+        canvas.drawRoundRect(boxLeft, boxTop, boxRight, boxBottom, 10f, 10f, fillPaint)
+        canvas.drawRoundRect(boxLeft, boxTop, boxRight, boxBottom, 10f, 10f, borderPaint)
+
+        val accentPaint = Paint().apply {
+            color = Color.parseColor("#1976D2"); style = Paint.Style.FILL; isAntiAlias = true
+        }
+        canvas.drawRoundRect(boxLeft, boxTop, boxRight, boxTop + 4f, 10f, 10f, accentPaint)
+        canvas.drawRect(boxLeft, boxTop + 4f, boxRight, boxTop + 4f, accentPaint)
+
+        var drawY = boxTop + pad
+        canvas.save(); canvas.translate(boxLeft + pad, drawY); titleLayout.draw(canvas); canvas.restore()
+        drawY += titleLayout.height.toFloat() + 10f
+
+        canvas.save(); canvas.translate(boxLeft + pad, drawY); dateLayout.draw(canvas); canvas.restore()
+        drawY += dateLayout.height.toFloat() + 4f
+
+        if (tagsLayout != null) {
+            canvas.save(); canvas.translate(boxLeft + pad, drawY); tagsLayout.draw(canvas); canvas.restore()
+        }
+
+        return boxBottom + 10f
     }
 
     private fun shareFile(context: Context, file: File, mimeType: String, title: String) {
@@ -183,7 +226,6 @@ class PdfExporter : Exporter {
         private const val PAGE_WIDTH = 595
         private const val PAGE_HEIGHT = 842
         private const val MARGIN = 50f
-        private const val HEADER_BOTTOM = 210f
 
         val instance = PdfExporter()
     }

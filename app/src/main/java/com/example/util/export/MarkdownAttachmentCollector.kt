@@ -2,7 +2,6 @@ package com.example.util.export
 
 import android.content.Context
 import android.net.Uri
-import android.util.Base64
 import android.util.Log
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
@@ -10,9 +9,8 @@ import com.example.util.RichTextConverter
 import java.io.File
 
 /**
- * Resuelve bloques de media a Markdown: imágenes/dibujos se incrustan inline como data URI y
- * los adjuntos no embebibles (video/audio/voz/archivo) se copian a `media/` para el ZIP.
- * Las URLs web se pasan tal cual como enlace.
+ * Resuelve bloques de media a Markdown: todos los archivos locales (imágenes, dibujos, video,
+ * audio, voz, archivo) se copian a `media/` para el ZIP. Las URLs web se pasan tal cual.
  */
 class MarkdownAttachmentCollector(
     context: Context
@@ -33,20 +31,10 @@ class MarkdownAttachmentCollector(
         if (src.isBlank()) return null
         if (src.startsWith("http://") || src.startsWith("https://")) return src
         return when (block.type) {
-            BlockType.IMAGE, BlockType.DRAWING -> embedAsDataUri(block)
+            BlockType.IMAGE, BlockType.DRAWING,
             BlockType.VIDEO, BlockType.AUDIO, BlockType.VOICE, BlockType.FILE -> copyToMedia(block)
             else -> null
         }
-    }
-
-    private fun embedAsDataUri(block: DataBlock): String? {
-        val bytes = embedder.resolveBytes(block) ?: return null
-        val mime = if (block.type == BlockType.DRAWING) {
-            "image/png"
-        } else {
-            embedder.mimeFor(block.content, block.type)
-        }
-        return "data:$mime;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
     private fun copyToMedia(block: DataBlock): String? {
@@ -73,6 +61,8 @@ class MarkdownAttachmentCollector(
     }
 
     private fun extensionFor(type: BlockType): String = when (type) {
+        BlockType.IMAGE -> ".jpg"
+        BlockType.DRAWING -> ".png"
         BlockType.VIDEO -> ".mp4"
         BlockType.AUDIO -> ".m4a"
         BlockType.VOICE -> ".3gp"

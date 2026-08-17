@@ -26,15 +26,15 @@ class MarkdownAttachmentCollectorTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `local image resolves to data uri and is not copied`() {
+    fun `local image is copied to media folder and tracked`() {
         val file = File(context.cacheDir, "img_1.png").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
         val collector = MarkdownAttachmentCollector(context)
 
         val result = collector.resolveMedia(DataBlock(type = BlockType.IMAGE, content = file.absolutePath))
 
-        assertNotNull(result)
-        assertTrue(result!!.startsWith("data:image/png;base64,"))
-        assertTrue(collector.mediaFiles.isEmpty())
+        assertEquals("media/img_1.png", result)
+        assertEquals(1, collector.mediaFiles.size)
+        assertTrue(collector.mediaFiles[0].exists())
     }
 
     @Test
@@ -105,7 +105,7 @@ class MarkdownAttachmentCollectorTest {
     }
 
     @Test
-    fun `wysiwyg drawing resolves to png data uri`() {
+    fun `wysiwyg drawing is copied to media folder as png`() {
         val strokes = listOf(
             DrawingStroke(
                 points = listOf(Offset(0.1f, 0.1f), Offset(0.9f, 0.9f)),
@@ -124,7 +124,9 @@ class MarkdownAttachmentCollectorTest {
         )
 
         assertNotNull(result)
-        assertTrue(result!!.startsWith("data:image/png;base64,"))
-        assertTrue(collector.mediaFiles.isEmpty())
+        assertTrue(result!!.startsWith("media/"))
+        assertTrue(result.endsWith(".png"))
+        assertEquals(1, collector.mediaFiles.size)
+        assertTrue(collector.mediaFiles[0].exists())
     }
 }

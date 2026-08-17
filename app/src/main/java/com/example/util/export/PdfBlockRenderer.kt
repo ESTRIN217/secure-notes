@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.text.Layout
@@ -21,12 +22,16 @@ import android.text.style.SuperscriptSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
 import android.text.style.URLSpan
+import android.util.Log
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.TableData
 import com.example.data.model.TextBaseline
 import com.example.data.model.TextSegment
 import com.example.util.RichTextConverter
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 /** Dibuja bloques de nota sobre el canvas de un PdfDocument conservando formato enriquecido y media. */
 class PdfBlockRenderer {
@@ -39,8 +44,8 @@ class PdfBlockRenderer {
         lastMedia = null
     }
 
-    fun measureBlock(block: DataBlock, embedder: HtmlMediaEmbedder, maxWidth: Int): Float =
-        renderBlock(null, block, embedder, 0f, 0f, maxWidth)
+    fun measureBlock(block: DataBlock, embedder: HtmlMediaEmbedder, maxWidth: Int, maxHeight: Int = Int.MAX_VALUE): Float =
+        renderBlock(null, block, embedder, 0f, 0f, maxWidth, maxHeight)
 
     fun drawBlock(
         canvas: Canvas,
@@ -48,8 +53,9 @@ class PdfBlockRenderer {
         embedder: HtmlMediaEmbedder,
         x: Float,
         y: Float,
-        maxWidth: Int
-    ): Float = renderBlock(canvas, block, embedder, x, y, maxWidth)
+        maxWidth: Int,
+        maxHeight: Int = Int.MAX_VALUE
+    ): Float = renderBlock(canvas, block, embedder, x, y, maxWidth, maxHeight)
 
     private fun renderBlock(
         canvas: Canvas?,
@@ -57,7 +63,8 @@ class PdfBlockRenderer {
         embedder: HtmlMediaEmbedder,
         x: Float,
         y: Float,
-        maxWidth: Int
+        maxWidth: Int,
+        maxHeight: Int = Int.MAX_VALUE
     ): Float {
         return when (block.type) {
             BlockType.TEXT -> drawTextBlock(canvas, block, x, y, maxWidth, textPaint(TEXT_SIZE), TEXT_SIZE, 6f)
@@ -83,7 +90,7 @@ class PdfBlockRenderer {
             BlockType.TABLE -> drawTable(canvas, block, x, y, maxWidth)
             BlockType.PAGE, BlockType.PAGE_LINK ->
                 drawTextBlock(canvas, block, x, y, maxWidth, textPaint(TEXT_SIZE, color = Color.parseColor("#1565C0")), TEXT_SIZE, 4f)
-            BlockType.IMAGE, BlockType.DRAWING -> drawMedia(canvas, block, embedder, x, y, maxWidth)
+            BlockType.IMAGE, BlockType.DRAWING -> drawMedia(canvas, block, embedder, x, y, maxWidth, maxHeight)
             else -> 0f
         }
     }
@@ -326,17 +333,22 @@ class PdfBlockRenderer {
         }
     }
 
-    private fun drawMedia(canvas: Canvas?, block: DataBlock, embedder: HtmlMediaEmbedder, x: Float, y: Float, maxWidth: Int): Float {
+    private fun drawMedia(canvas: Canvas?, block: DataBlock, embedder: HtmlMediaEmbedder, x: Float, y: Float, maxWidth: Int, maxHeight: Int): Float {
         if (block.content.isBlank()) return 0f
         val label = if (block.type == BlockType.IMAGE) "Image" else "Drawing"
         val bitmap = decodeMedia(block, embedder)
         if (bitmap == null) return drawMediaFallback(canvas, block, x, y, maxWidth, label)
 
-        val scale = if (bitmap.width > maxWidth) maxWidth.toFloat() / bitmap.width else 1f
+        val scaleW = if (bitmap.width > maxWidth) maxWidth.toFloat() / bitmap.width else 1f
+        val scaleH = if (bitmap.height > maxHeight) maxHeight.toFloat() / bitmap.height else 1f
+        val scale = minOf(scaleW, scaleH)
         val w = bitmap.width * scale
         val h = bitmap.height * scale
         if (canvas != null) {
-            canvas.drawBitmap(bitmap, x + (maxWidth - w) / 2f, y, null)
+            val m = Matrix()
+            m.postScale(scale, scale)
+            m.postTranslate(x + (maxWidth - w) / 2f, y)
+            canvas.drawBitmap(bitmap, m, null)
         }
         var total = h + 6f
         val caption = block.meta["caption"]?.takeIf { it.isNotBlank() }
@@ -371,6 +383,7 @@ class PdfBlockRenderer {
         val cached = lastMedia
         if (cached?.first == block) return cached.second
         val bytes = embedder.resolveBytes(block)
+            ?: if (block.type == BlockType.IMAGE && isWebUrl(block.content)) downloadWebImage(block.content) else null
         val bitmap = try {
             if (bytes != null) BitmapFactory.decodeByteArray(bytes, 0, bytes.size) else null
         } catch (e: Exception) {
@@ -378,6 +391,23 @@ class PdfBlockRenderer {
         }
         lastMedia = block to bitmap
         return bitmap
+    }
+
+    private fun isWebUrl(src: String): Boolean =
+        src.startsWith("http://") || src.startsWith("https://")
+
+    private fun downloadWebImage(url: String): ByteArray? {
+        return try {
+            val request = Request.Builder().url(url)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android) SecureNotes")
+                .build()
+            webClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) response.body?.bytes() else null
+            }
+        } catch (e: Exception) {
+            Log.e("PdfBlockRenderer", "Error downloading web image: $url", e)
+            null
+        }
     }
 
     private fun buildLayout(source: CharSequence, paint: TextPaint, width: Int, spacing: Boolean = false): StaticLayout {
@@ -474,6 +504,11 @@ class PdfBlockRenderer {
 
     companion object {
         const val TEXT_SIZE = 11f
+
+        private val webClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
 
         fun blocksFor(content: String): List<DataBlock> =
             RichTextConverter.contentToBlocks(content) ?: DataBlock.migrateLegacyContent(content)
