@@ -46,6 +46,11 @@
 # Compose
 -dontwarn androidx.compose.**
 
+# Arm AI Chat (llama.cpp Android binding)
+-keep class com.arm.aichat.** { *; }
+-keep class com.arm.aichat.internal.** { *; }
+-keep class com.arm.aichat.gguf.** { *; }
+
 # Firebase
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**

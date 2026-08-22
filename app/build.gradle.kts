@@ -18,19 +18,17 @@ if (keystorePropertiesFile.exists()) {
 
 android {
   namespace = "com.example"
-  ndkVersion = "30.0.14904198"
   buildToolsVersion = "36.1.0"
   compileSdk { version = release(37) { minorApiLevel = 1 } }
 
   defaultConfig {
     applicationId = "com.estrin217.securenotes"
-    minSdk = 24
+    minSdk = 33
     targetSdk = 36
     versionCode = 2
     versionName = "3.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    ndk { abiFilters += listOf("arm64-v8a") }
   }
 
   signingConfigs {
@@ -53,12 +51,6 @@ android {
     }
     debug {
       signingConfig = signingConfigs.getByName("release")
-    }
-  }
-  externalNativeBuild {
-    cmake {
-      path = file("CMakeLists.txt")
-      version = "3.22.1+"
     }
   }
   compileOptions {
@@ -90,6 +82,7 @@ dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
+  implementation(project(":lib"))
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)

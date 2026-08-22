@@ -198,12 +198,7 @@ class MainActivity : ComponentActivity() {
                 modelName = prefsRepo.getAiModelName()
             )
             val modelDownloader = ModelDownloader(appContext)
-            val llamaEngine = LlamaCppEngine(
-                context = appContext,
-                nCtx = 2048,
-                nGpuLayers = 0,
-                nThreads = 4
-            )
+            val llamaEngine = LlamaCppEngine(context = appContext)
             val onDeviceService = OnDeviceService(llamaEngine)
             val aiViewModel: AiViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {

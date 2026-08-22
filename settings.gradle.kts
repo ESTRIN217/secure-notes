@@ -26,3 +26,5 @@ dependencyResolutionManagement {
 rootProject.name = "secure-notes"
 
 include(":app")
+include(":lib")
+project(":lib").projectDir = file("/data/user/0/com.nullij.androidcodestudio/files/home/AndroidCSProjects/llama.cpp/examples/llama.android/lib")
