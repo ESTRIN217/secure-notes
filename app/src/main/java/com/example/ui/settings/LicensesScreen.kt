@@ -42,6 +42,7 @@ private val ossLibraries = listOf(
     OssLibrary("Kotlin Coroutines", "Apache 2.0", "https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt"),
     OssLibrary("WorkManager", "Apache 2.0", "https://developer.android.com/jetpack/androidx/releases/work"),
     OssLibrary("Android Biometric", "Apache 2.0", "https://developer.android.com/jetpack/androidx/releases/biometric"),
+    OssLibrary("llama.cpp", "MIT", "https://github.com/ggml-org/llama.cpp/blob/master/LICENSE"),
     OssLibrary("compose-markdown", "Apache 2.0", "https://github.com/jeziellago/compose-markdown/blob/main/LICENSE"),
     OssLibrary("Robolectric", "MIT", "https://github.com/robolectric/robolectric/blob/master/LICENSE"),
     OssLibrary("JUnit 4", "EPL 2.0", "https://github.com/junit-team/junit4/blob/main/LICENSE-junit.txt")

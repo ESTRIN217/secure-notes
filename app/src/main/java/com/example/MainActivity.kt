@@ -378,7 +378,6 @@ fun NavigationRailContent(
         modifier = Modifier
             .fillMaxHeight()
             .width(if (isLargeScreen) (if (isExtended) 220.dp else 72.dp) else 280.dp),
-        border = if (isLargeScreen) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
         Column(
             modifier = Modifier
@@ -386,22 +385,7 @@ fun NavigationRailContent(
                 .padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Toggle button (only on large screens)
-            if (isLargeScreen) {
-                IconButton(
-                    onClick = onToggleExtend,
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .testTag("toggle_rail_btn_rail")
-                ) {
-                    Icon(
-                        imageVector = if (isExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
-                        contentDescription = stringResource(R.string.toggle_navigation_rail)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Logo
             Image(
@@ -543,7 +527,7 @@ fun NavigationRailContent(
                         }
                     }
                 }
-            }
+            
 
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -551,15 +535,9 @@ fun NavigationRailContent(
             )
 
             if (isExtended) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
                     OutlinedButton(
                         onClick = onCreateTag,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
@@ -572,7 +550,7 @@ fun NavigationRailContent(
                     }
                     OutlinedButton(
                         onClick = onManageTags,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
@@ -583,7 +561,7 @@ fun NavigationRailContent(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.manage_tags), fontSize = 11.sp)
                     }
-                }
+                
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -607,13 +585,7 @@ fun NavigationRailContent(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
-
-
-
-
-
-
-

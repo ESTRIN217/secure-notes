@@ -105,7 +105,6 @@ fun AiChatScreen(
     val selectedOnDeviceModel by viewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
-    val noteTitle by viewModel.chatNoteTitle.collectAsStateWithLifecycle()
     val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
@@ -144,7 +143,7 @@ fun AiChatScreen(
         if (sessionId > 0) {
             viewModel.loadSession(sessionId, noteId)
         } else if (noteId > 0 && viewModel.currentSessionId.value <= 0) {
-            viewModel.createAndStartSession(noteId, noteTitle)
+            viewModel.createAndStartSession(noteId)
         } else if (sessionId <= 0 && viewModel.currentSessionId.value <= 0) {
             viewModel.createAndStartSession()
         }
@@ -227,7 +226,8 @@ fun AiChatScreen(
                     },
                     onDelete = { showDeleteDialog = it },
                     onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
-                    chatHistoryViewModel = chatHistoryViewModel
+                    chatHistoryViewModel = chatHistoryViewModel,
+                    drawerState = { scope.launch { drawerState.close() } }
                 )
             }
         }
@@ -319,23 +319,6 @@ fun AiChatScreen(
                     shadowElevation = 8.dp
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        ActionChipRowMinimal(
-                            currentAction = currentAction,
-                            onActionSelected = { currentAction = it },
-                            hasNoteContext = effectiveSessionId > 0 && noteTitle != null
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        SuggestionChips(
-                            hasHistory = conversationHistory.isNotEmpty(),
-                            onSuggestion = { suggestion ->
-                                viewModel.execute(
-                                    AiRequest(action = AiAction.GENERATE, prompt = suggestion, selectedText = selectedText, context = fullContent),
-                                    effectiveSessionId
-                                )
-                                inputText = ""
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
                         if (pendingAttachments.isNotEmpty()) {
                             LazyRow(
                                 modifier = Modifier.fillMaxWidth(),
@@ -343,10 +326,20 @@ fun AiChatScreen(
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
                                 items(pendingAttachments.size) { index ->
+                                    val attachment = pendingAttachments[index]
                                     InputChip(
                                         selected = false,
                                         onClick = { viewModel.removePendingAttachment(index) },
-                                        label = { Text(pendingAttachments[index].name.take(20), style = MaterialTheme.typography.labelSmall) },
+                                        label = { Text(attachment.name.take(20), style = MaterialTheme.typography.labelSmall) },
+                                        leadingIcon = {
+                                            if (attachment.source.startsWith("note")) {
+                                                Icon(
+                                                    Icons.Default.Description,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        },
                                         trailingIcon = {
                                             Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
                                         },
@@ -504,18 +497,12 @@ fun AiChatScreen(
                     .padding(paddingValues)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    val currentNoteTitle = noteTitle
-                    if (effectiveSessionId > 0 && currentNoteTitle != null) {
-                        NoteContextBar(
-                            noteTitle = currentNoteTitle,
-                            onRemove = { viewModel.detachNote() }
-                        )
-                    }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
                             EmptyChatWelcome(
                                 selectedText = selectedText,
                                 fullContent = fullContent,
+                                hasAttachments = pendingAttachments.isNotEmpty(),
                                 onSuggestion = { prompt ->
                                     viewModel.execute(
                                         AiRequest(action = AiAction.GENERATE, prompt = prompt, selectedText = selectedText, context = fullContent),
@@ -881,47 +868,47 @@ fun MessageBubble(
                             Text(stringResource(R.string.ai_insert), style = MaterialTheme.typography.labelMedium)
                         }
                     }
-                }
-            }
-
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.ai_copy)) },
-                    leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    onClick = {
+                    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        IconButton(onClick = {
                         clipboardScope.launch {
                             clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", turn.content)))
                         }
                         showMenu = false
-                    }
-                )
-                if (!isUser && turn.status == MessageStatus.ERROR) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.ai_retry)) },
-                        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
+                    }) {
+            Icon(
+                Icons.Default.ContentCopy,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        if (!isUser && turn.status == MessageStatus.ERROR) {
+        IconButton(onClick = {
                             onRetry()
                             showMenu = false
-                        }
-                    )
-                }
-                if (!isUser && turn.content.isNotBlank()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.ai_regenerate)) },
-                        leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
+                        }) {
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        }
+        if (!isUser && turn.content.isNotBlank()) {
+        IconButton(onClick = {
                             onResend(turn.content)
                             showMenu = false
-                        }
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.share)) },
-                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    onClick = {
+                        }) {
+            Icon(
+                Icons.Default.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        }
+        IconButton(onClick = {
                         val sendIntent = android.content.Intent().apply {
                             action = android.content.Intent.ACTION_SEND
                             putExtra(android.content.Intent.EXTRA_TEXT, turn.content)
@@ -929,27 +916,38 @@ fun MessageBubble(
                         }
                         context.startActivity(android.content.Intent.createChooser(sendIntent, null))
                         showMenu = false
-                    }
-                )
-                if (showInsert && isLastAssistant) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.ai_insert)) },
-                        leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
+                    }) {
+            Icon(
+                Icons.Default.Share,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        if (showInsert && isLastAssistant) {
+        IconButton(onClick = {
                             onInsert()
                             showMenu = false
-                        }
-                    )
-                }
-                if (turn.content.isNotBlank()) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.ai_pin_memory)) },
-                        leadingIcon = { Icon(Icons.Default.Psychology, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        onClick = {
+                        }) {
+            Icon(
+                Icons.Default.ContentPaste,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        }
+        if (turn.content.isNotBlank()) {
+        IconButton(onClick = {
                             onPinToMemory(turn.content)
                             showMenu = false
-                        }
-                    )
+                        }) {
+            Icon(
+                Icons.Default.Psychology,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+        }
+        }
+                    }
                 }
             }
         }
@@ -1065,6 +1063,7 @@ fun StreamingBubble(text: String, modelName: String) {
 fun EmptyChatWelcome(
     selectedText: String,
     fullContent: String,
+    hasAttachments: Boolean = false,
     onSuggestion: (String) -> Unit,
     onSummarize: () -> Unit
 ) {
@@ -1113,7 +1112,7 @@ fun EmptyChatWelcome(
                     label = { Text(ideasSuggestion, style = MaterialTheme.typography.labelSmall) },
                     leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(14.dp)) }
                 )
-                if (selectedText.isNotBlank() || fullContent.isNotBlank()) {
+                if (selectedText.isNotBlank() || fullContent.isNotBlank() || hasAttachments) {
                     FilterChip(
                         selected = false,
                         onClick = onSummarize,
@@ -1363,53 +1362,6 @@ fun ChatMessageList(
     }
 }
 
-@Composable
-fun NoteContextBar(
-    noteTitle: String,
-    onRemove: () -> Unit
-) {
-    Surface(
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Icon(
-                Icons.Default.Description,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = noteTitle,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.remove_note_context),
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteAttachmentSheet(
@@ -1526,7 +1478,8 @@ fun ChatHistoryDrawerContent(
     onRename: (ChatSessionWithPreview) -> Unit,
     onDelete: (ChatSessionWithPreview) -> Unit,
     onTogglePin: (ChatSessionWithPreview) -> Unit,
-    chatHistoryViewModel: ChatHistoryViewModel
+    chatHistoryViewModel: ChatHistoryViewModel,
+    drawerState: () -> Unit
 ) {
     val filteredSessions = remember(sessions, drawerSearchQuery) {
         if (drawerSearchQuery.isBlank()) sessions
@@ -1551,10 +1504,7 @@ fun ChatHistoryDrawerContent(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = {
-                chatHistoryViewModel.setSearchQuery("")
-                onSearchQueryChange("")
-            }) {
+            IconButton(onClick = { drawerState() }) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
             }
         }
@@ -1571,7 +1521,13 @@ fun ChatHistoryDrawerContent(
                 .padding(horizontal = 16.dp),
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            trailingIcon = { IconButton(onClick = {
+                chatHistoryViewModel.setSearchQuery("")
+                onSearchQueryChange("")
+            }) {
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+            } }
         )
 
         Spacer(modifier = Modifier.height(8.dp))

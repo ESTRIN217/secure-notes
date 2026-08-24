@@ -32,18 +32,28 @@ object AiPromptBuilder {
         return context.getString(resId)
     }
 
+    private fun markdownHint(action: AiAction): String = when (action) {
+        AiAction.GENERATE -> " Use Markdown formatting in your response."
+        AiAction.SUMMARIZE -> " Respond in Markdown."
+        AiAction.REWRITE -> " Respond in Markdown, preserving the original structure."
+        AiAction.TRANSLATE -> " Respond in Markdown, preserving the original structure exactly."
+        AiAction.MAKE_SHORTER -> " Respond in Markdown, preserving the original structure."
+        AiAction.FIX_GRAMMAR -> " Fix only grammar and spelling: keep the Markdown formatting unchanged."
+        AiAction.EXPLAIN -> " You may use Markdown headings, lists, and code blocks where helpful."
+    }
+
     fun buildUserPrompt(request: AiRequest): String {
-        val cleanContext = RichTextParser.cleanForAI(request.context)
-        val cleanSelectedText = RichTextParser.cleanForAI(request.selectedText)
+        val mdContext = RichTextParser.markdownForAI(request.context)
+        val mdSelectedText = RichTextParser.markdownForAI(request.selectedText)
         return when (request.action) {
             AiAction.GENERATE -> {
-                val contextPrefix = if (cleanContext.isNotBlank()) {
-                    "Current note context:\n${cleanContext}\n\n"
+                val contextPrefix = if (mdContext.isNotBlank()) {
+                    "Current note context:\n${mdContext}\n\n"
                 } else ""
                 "${contextPrefix}${request.prompt}"
             }
             AiAction.SUMMARIZE -> {
-                "Summarize the following text:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
+                "Summarize the following text:\n\n${mdSelectedText.ifBlank { mdContext }}"
             }
             AiAction.REWRITE -> {
                 val styleDesc = when (request.rewriteStyle) {
@@ -52,23 +62,23 @@ object AiPromptBuilder {
                     RewriteStyle.POETIC -> "florid, rhythmic, and expressive"
                     RewriteStyle.PROFESSIONAL -> "business-appropriate and polished"
                 }
-                val contextPrefix = if (cleanContext.isNotBlank()) {
-                    "Note context:\n${cleanContext}\n\n"
+                val contextPrefix = if (mdContext.isNotBlank()) {
+                    "Note context:\n${mdContext}\n\n"
                 } else ""
-                "${contextPrefix}Rewrite the following text in a $styleDesc style:\n\n${cleanSelectedText}"
+                "${contextPrefix}Rewrite the following text in a $styleDesc style:\n\n${mdSelectedText}"
             }
             AiAction.TRANSLATE -> {
-                "Translate the following text to ${request.targetLanguage}:\n\n${cleanSelectedText}"
+                "Translate the following text to ${request.targetLanguage}:\n\n${mdSelectedText}"
             }
             AiAction.MAKE_SHORTER -> {
-                "Make the following text more concise:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
+                "Make the following text more concise:\n\n${mdSelectedText.ifBlank { mdContext }}"
             }
             AiAction.FIX_GRAMMAR -> {
-                "Fix grammar and spelling in the following text:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
+                "Fix grammar and spelling in the following text:\n\n${mdSelectedText.ifBlank { mdContext }}"
             }
             AiAction.EXPLAIN -> {
-                "Explain the following text in simple terms:\n\n${cleanSelectedText.ifBlank { cleanContext }}"
+                "Explain the following text in simple terms:\n\n${mdSelectedText.ifBlank { mdContext }}"
             }
-        }
+        } + markdownHint(request.action)
     }
 }

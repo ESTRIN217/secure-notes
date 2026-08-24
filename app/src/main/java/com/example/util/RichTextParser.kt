@@ -653,11 +653,13 @@ class RichTextParser {
         fun stripTags(raw: String) = MarkdownConverter.stripTags(raw)
         fun convertToMarkdown(raw: String) = MarkdownConverter.convertToMarkdown(raw)
 
-        fun cleanForAI(raw: String): String {
+        private fun stripAttachmentsSuffix(raw: String): String {
             val delimiter = "\n\n---Attachments---\n"
-            val text = if (raw.contains(delimiter)) raw.substringBefore(delimiter) else raw
-            return RichTextConverter.contentToPlainText(text)
+            return if (raw.contains(delimiter)) raw.substringBefore(delimiter) else raw
         }
+
+        fun cleanForAI(raw: String): String = RichTextConverter.contentToPlainText(stripAttachmentsSuffix(raw))
+        fun markdownForAI(raw: String): String = RichTextConverter.contentToMarkdown(stripAttachmentsSuffix(raw))
         fun convertToHtml(raw: String) = HtmlConverter.convertToHtml(raw)
         fun convertHtmlToSecureNotes(html: String) = HtmlConverter.convertHtmlToSecureNotes(html)
     }

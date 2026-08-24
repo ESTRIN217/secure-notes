@@ -199,8 +199,8 @@ sealed class Screen {
                 chatHistoryViewModel = context.chatHistoryViewModel,
                 sessionId = 0,
                 noteId = noteId,
-                fullContent = context.aiViewModel.chatNoteContext.value,
-                selectedText = context.aiViewModel.chatSelectedText.value,
+                fullContent = "",
+                selectedText = "",
                 onBack = { context.navigator.onNavigateBack(Screen.NoteEditor(noteId)) },
                 onInsert = { text ->
                     context.aiViewModel.requestInsert(text)

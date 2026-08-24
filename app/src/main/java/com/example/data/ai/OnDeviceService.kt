@@ -21,7 +21,7 @@ data class LoadedModelInfo(
 )
 
 interface InferenceEngine : AIService {
-    suspend fun load(filePath: String): Result<Unit>
+    suspend fun load(filePath: String, model: OnDeviceModel): Result<Unit>
     fun unload()
     val isLoaded: Boolean
     val loadedInfo: LoadedModelInfo?
@@ -42,7 +42,7 @@ class OnDeviceService(
 
     suspend fun loadModel(filePath: String, model: OnDeviceModel): Result<Unit> {
         _modelState.value = ModelState.LOADING
-        return engine.load(filePath).also { result ->
+        return engine.load(filePath, model).also { result ->
             if (result.isSuccess) {
                 _loadedModelInfo.value = LoadedModelInfo(model, filePath)
                 _modelState.value = ModelState.READY

@@ -94,6 +94,18 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 
 ---
 
+## 🤖 Asistente IA Local (AI Chat)
+* **Chat IA 100% Local:** Conversa con un modelo de lenguaje directamente desde la app, sin que tus notas o mensajes lleguen a servicios en la nube. Función opcional, desactivada por defecto.
+* **Dos Backends Seleccionables:**
+  * 📱 **On-Device (llama.cpp):** Chat basado en llama.cpp — inferencia nativa de modelos GGUF ejecutada en el propio dispositivo (arm64-v8a), sin conexión de red.
+  * 🖥️ **Backend llama.cpp / Ollama (HTTP Local):** Conexión configurable por URL a un servidor LLM en tu red local (Ollama, LM Studio). Ningún dato abandona tu LAN.
+* **Acciones de Escritura Inteligente:** Generar texto, resumir, reescribir con estilos (formal, casual, poético, profesional), traducir, acortar, corregir gramática y explicar — sobre toda la nota o la selección actual.
+* **Contexto por Adjuntos:** Adjunta otras notas o archivos de texto al chat como contexto adicional; se muestran como chips removibles antes de enviar el mensaje.
+* **Historial de Chats:** Sesiones persistentes en Room con renombrado, fijado, borrado y exportación de conversaciones.
+* **Streaming e Inserción:** Respuestas generadas token a token en tiempo real, con opción de insertar el resultado directamente en tu nota.
+
+---
+
 ## ⚖️ Términos y Privacidad
 
 Secure Notes incluye una pantalla **"Términos y Privacidad"** accesible desde Ajustes > Legal y desde Acerca de > Enlaces Útiles.
@@ -104,11 +116,12 @@ Secure Notes incluye una pantalla **"Términos y Privacidad"** accesible desde A
 
 ## 🤖 Uso de Inteligencia Artificial
 
-Secure Notes planea integrar **Google Gemini API** (Firebase AI) para asistencia de escritura. Declaración completa en la app:
+La asistencia de IA es **opcional** y se ejecuta íntegramente en tu dispositivo o en tu red local, según el backend seleccionado. Declaración completa en la app (Ajustes > Legal):
 
-- Funciones de IA son **OPCIONALES** y requieren consentimiento explícito.
-- Los datos enviados **NO** se usan para entrenar modelos de Google.
-- A futuro: modelos de IA se ejecutarán **localmente** en el dispositivo.
+- Funciones de IA **OPCIONALES**, desactivadas por defecto y con consentimiento explícito.
+- Backend **On-Device (llama.cpp):** el modelo se ejecuta en el dispositivo; no requiere conexión de red.
+- Backend **Ollama / LM Studio:** conexión HTTP a un servidor LLM local; ningún dato sale de tu LAN.
+- Nunca se envían datos a APIs en la nube ni a terceros, y nada se usa para entrenar modelos externos.
 
 ## 🛡️ Soberanía de Datos (Client-Side Absolute)
 
@@ -148,6 +161,7 @@ Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependen
 | Kotlin Coroutines | Apache 2.0 |
 | WorkManager | Apache 2.0 |
 | Android Biometric | Apache 2.0 |
+| llama.cpp | MIT |
 | compose-markdown | Apache 2.0 |
 | Robolectric | MIT |
 | JUnit 4 | EPL 2.0 |
@@ -160,6 +174,7 @@ Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependen
 * **UI:** Jetpack Compose (Material Design 3)
 * **Persistencia Local:** Room Database (SQLite con migraciones robustas)
 * **Seguridad:** API de Criptografía de Android, PBKDF2 y AES-256
+* **IA Local:** llama.cpp nativo (JNI/NDK, arm64-v8a) · OkHttp para backends HTTP locales (Ollama / LM Studio)
 * **Arquitectura:** MVVM (Model-View-ViewModel) con flujos reactivos `StateFlow`
 
 ---

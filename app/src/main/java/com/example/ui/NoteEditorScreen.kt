@@ -297,7 +297,7 @@ fun NoteEditorScreen(
         language: String = "en"
     ) {
         val allContent = blocks.joinToString("\n") {
-            com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments())
+            com.example.util.RichTextConverter.segmentsToMarkdown(it.ensureSegments())
         }
         val text = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
             .takeIf { aiSelectionStart != aiSelectionEnd } ?: allContent
@@ -2481,7 +2481,7 @@ fun NoteEditorScreen(
                         if (activeSelection.first != activeSelection.last) {
                             showAiContextSheet = true
                         } else {
-                            aiViewModel.prepareChatForNote(content, "", title)
+                            aiViewModel.attachNoteAsAttachment(noteId, title, content)
                             onNavigateToAiChat(noteId)
                         }
                     },
@@ -2640,7 +2640,7 @@ fun NoteEditorScreen(
                         )
                         SuggestionChip(
                             onClick = {
-                                aiViewModel.prepareChatForNote(content, "", title)
+                                aiViewModel.attachNoteAsAttachment(noteId, title, content)
                                 showAiPanel = false
                                 onNavigateToAiChat(noteId)
                             },

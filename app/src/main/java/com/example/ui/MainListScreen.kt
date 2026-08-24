@@ -216,7 +216,6 @@ fun MainListScreen(
             val recorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 MediaRecorder(recorderContext)
             } else {
-                @Suppress("DEPRECATION")
                 MediaRecorder()
             }.apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -354,14 +353,6 @@ fun MainListScreen(
                     onManageTags = { showManageTagsDialog = true },
                     onNavigateToChatHistory = onNavigateToChatHistory,
                     aiEnabled = aiEnabled
-                )
-
-                // Custom division line
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
                 )
             }
 

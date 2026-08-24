@@ -11,10 +11,13 @@
 - Secrets Gradle Plugin configured to read `.env` (fallback `.env.example`), but **no secret is currently consumed** — `GEMINI_API_KEY` is a leftover; AI runs via Ollama or on-device llama.cpp, no API key.
 - Release signing: copy `key.properties.template` → `key.properties`. Debug builds also sign with release config.
 - `app/google-services.json` required for Firebase (Google services plugin).
-- **Native code**: `llama_jni.cpp` compiled from source via CMake (`app/CMakeLists.txt`). Prebuilt `.so` files
-  for `libllama.so`, `libggml.so`, `libggml-base.so`, `libggml-cpu.so` in `jniLibs/arm64-v8a/`. llama.cpp headers from `/storage/emulated/0/AndroidCSProjects/llama.cpp/include/`
-  and `/storage/emulated/0/AndroidCSProjects/llama.cpp/ggml/include/`. NDK 29.0.14206865. Build only supports `arm64-v8a`.
-- **KV cache cleared** via `llama_memory_clear` between inference calls to prevent cross-request contamination.
+- **Native AI (llama.cpp)**: uses the official Android binding from llama.cpp's `examples/llama.android/lib`
+  (`com.arm.aichat.AiChat` facade), consumed as Gradle module `:lib`. `settings.gradle.kts` points at an
+  app-private checkout: `/data/user/0/com.nullij.androidcodestudio/files/home/AndroidCSProjects/llama.cpp`
+  (commit `3dc7285b4`, locally patched: NDK 30.0.14904198, CMake 4.3.0). A second checkout exists at
+  `/storage/emulated/0/AndroidCSProjects/llama.cpp` but is NOT used by the build. Native code is built from
+  source by `:lib`'s CMake during Gradle sync — no `CMakeLists.txt` or prebuilt `.so` in this repo.
+  Build only supports `arm64-v8a`.
 
 ## Tests
 
@@ -39,7 +42,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | Data (Room) | `com.example.data.local` | `NoteDatabase.kt`, `NoteDao.kt`, `TagDao.kt` |
 | Model | `com.example.data.model` | `Note.kt`, `Tag.kt`, `DecryptedNote.kt`, `NoteContentBlock.kt`, `DataBlock.kt`, `UiState.kt`, `Attachment.kt`, `NavigationSection.kt` |
 | Encryption | `com.example.data.security` | `CipherService.kt` (interface), `EncryptionServiceImpl.kt` (AES-256/GCM), `KeyDerivation.kt` (PBKDF2, 200K iterations) |
-| AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, llama.cpp via JNI), `ModelDownloader.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
+| AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, official llama.cpp `llama.android` binding), `ModelDownloader.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
 | Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
@@ -95,7 +98,17 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
 - **Configuration cache**: `org.gradle.configuration-cache=true` in `gradle.properties`. Invalidate with `--no-configuration-cache` if build acts stale.
 - **Kotlin**: `kotlin.incremental=false` in `gradle.properties`. Clean builds may be required after KSP changes.
 - **Robolectric**: Unit tests use `@Config(sdk = [36])` (targetSdk). Screenshot tests require `@GraphicsMode(GraphicsMode.Mode.NATIVE)`.
+- **llama.android binding semantics** (`com.arm.aichat.internal.InferenceEngineImpl`):
+  - Singleton JNI engine. `setSystemPrompt()` is allowed **once per model load** and clears KV cache + chat history.
+  - Conversation context accumulates across requests sharing the same system prompt — there is no public
+    per-request reset without reloading the model (weights re-read from disk).
+  - `LlamaCppEngine` handles isolation: reloads on system-prompt change or non-`ModelReady` state; fast path otherwise.
+  - **Never call `destroy()`** — its companion caches the singleton, so destroying poisons it for the rest of the process.
+    `unload()`/`cleanUp()` is the only safe teardown.
+  - Context size (8192) and sampling temp (0.3) are hardcoded upstream; sampling params in `AiRequest` are ignored.
+  - Known limitation (documented-only): `maxTokens` can overshoot by up to ~user-prompt-length tokens —
+    stop position double-counts user tokens (`ai_chat.cpp:447`).
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.
 - **Localizations**: `values/` (en), `values-es-rVE/` (es-VE), `values-pt-rBR/` (pt-BR), `values-fr/` (fr), `values-it/` (it), `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
-- `compileSdk = 37`, `targetSdk = 36`, `minSdk = 24`.
+- `compileSdk = 37`, `targetSdk = 36`, `minSdk = 33`.
 - Gradle 9.5.1, AGP 9.3.1, Kotlin 2.4.10.

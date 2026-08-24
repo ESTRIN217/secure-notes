@@ -135,12 +135,12 @@ class AiViewModel(
                     val password = _masterPassword.value ?: ""
                     if (password.isEmpty()) return@register "Note #$noteId is encrypted. Unlock to read."
                     val decTitle = cipherService.decrypt(note.title, password, note.salt, note.iv).getOrDefault("")
-                    val decContent = com.example.util.RichTextConverter.contentToPlainText(
+                    val decContent = com.example.util.RichTextConverter.contentToMarkdown(
                         cipherService.decrypt(note.content, password, note.salt, note.iv).getOrDefault("")
                     )
                     "Title: $decTitle\n\n$decContent"
                 } else {
-                    "Title: ${note.title}\n\n${com.example.util.RichTextConverter.contentToPlainText(note.content)}"
+                    "Title: ${note.title}\n\n${com.example.util.RichTextConverter.contentToMarkdown(note.content)}"
                 }
             }
         )
@@ -210,15 +210,6 @@ class AiViewModel(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-
-    private val _chatNoteContext = MutableStateFlow("")
-    val chatNoteContext: StateFlow<String> = _chatNoteContext.asStateFlow()
-
-    private val _chatNoteTitle = MutableStateFlow<String?>(null)
-    val chatNoteTitle: StateFlow<String?> = _chatNoteTitle.asStateFlow()
-
-    private val _chatSelectedText = MutableStateFlow("")
-    val chatSelectedText: StateFlow<String> = _chatSelectedText.asStateFlow()
 
     private val _pendingInsert = MutableStateFlow<String?>(null)
     val pendingInsert: StateFlow<String?> = _pendingInsert.asStateFlow()
@@ -315,12 +306,6 @@ class AiViewModel(
     fun setAiEnabled(enabled: Boolean) {
         _aiEnabled.value = enabled
         prefsRepository.setAiEnabled(enabled)
-    }
-
-    fun prepareChatForNote(context: String, selected: String, noteTitle: String? = null) {
-        _chatNoteContext.value = context
-        _chatSelectedText.value = selected
-        _chatNoteTitle.value = noteTitle
     }
 
     fun requestInsert(text: String) {
@@ -582,14 +567,16 @@ class AiViewModel(
         _pendingAttachments.value = emptyList()
     }
 
-    fun detachNote() {
-        _chatNoteContext.value = ""
-        _chatSelectedText.value = ""
-        _chatNoteTitle.value = null
-        _currentNoteId.value = 0
+    fun attachNoteAsAttachment(noteId: Int, title: String, content: String) {
+        val source = "note:$noteId"
+        _pendingAttachments.update { list ->
+            list.filterNot { it.source == source } + FileAttachment(
+                name = title.ifBlank { "note" },
+                content = content,
+                source = source
+            )
+        }
     }
-
-    fun hasNoteContext(): Boolean = _currentNoteId.value > 0 && _chatNoteContext.value.isNotBlank()
 
     fun setMasterPassword(password: String?) {
         _masterPassword.value = password
@@ -612,8 +599,8 @@ class AiViewModel(
             val note = withContext(Dispatchers.IO) { noteDao.getNoteById(noteId) } ?: return@launch
             val password = _masterPassword.value
             val decrypted = decryptNoteForAttach(note, password)
-            prepareChatForNote(decrypted.content, "", decrypted.title)
-            _currentNoteId.value = noteId
+            if (!decrypted.isDecryptionSuccessful) return@launch
+            attachNoteAsAttachment(noteId, decrypted.title, decrypted.content)
         }
     }
 
@@ -691,7 +678,8 @@ class AiViewModel(
         val pendingFiles = _pendingAttachments.value
         val attachmentsContext = if (pendingFiles.isNotEmpty()) {
             pendingFiles.joinToString("\n\n---\n") { f ->
-                "[Attached file: ${f.name}]\n${f.content}"
+                if (f.source.startsWith("note")) "[Attached note: ${f.name}]\n${f.content}"
+                else "[Attached file: ${f.name}]\n${f.content}"
             } + "\n\n---\n"
         } else ""
 

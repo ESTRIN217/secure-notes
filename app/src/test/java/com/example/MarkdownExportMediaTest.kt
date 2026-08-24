@@ -10,8 +10,11 @@ import org.junit.Test
 
 class MarkdownExportMediaTest {
 
+    // Espeja MarkdownAttachmentCollector.resolveMedia: URLs web passthrough.
     private val fakeResolver = RichTextConverter.MediaMarkdownResolver { block ->
-        when (block.type) {
+        block.content.takeIf {
+            it.startsWith("http://") || it.startsWith("https://")
+        } ?: when (block.type) {
             BlockType.IMAGE, BlockType.DRAWING -> "data:image/png;base64,AAAA"
             BlockType.VIDEO, BlockType.AUDIO, BlockType.VOICE, BlockType.FILE -> {
                 "media/" + (block.meta["name"] ?: "file.bin")
@@ -113,7 +116,12 @@ class MarkdownExportMediaTest {
             type = BlockType.COLLAPSIBLE,
             content = "",
             meta = mapOf("summary" to "Ver más"),
-            richTextJson = TextSegment.serialize(listOf(TextSegment(text = "contenido **oculto**")))
+            richTextJson = TextSegment.serialize(
+                listOf(
+                    TextSegment(text = "contenido "),
+                    TextSegment(text = "oculto", bold = true)
+                )
+            )
         )
 
         val md = RichTextConverter.blocksToMarkdown(listOf(block), fakeResolver)
