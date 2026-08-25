@@ -32,8 +32,6 @@ object AppConstants {
     const val BIOMETRIC_KEY_ALIAS = "secure_notes_biometric_key"
     const val BIOMETRIC_ENCRYPTED_PASSWORD_KEY = "biometric_encrypted_password"
     const val BIOMETRIC_IV_KEY = "biometric_iv"
-    const val INCLUDE_ATTACHMENTS_KEY = "include_attachments"
-    const val COPY_ATTACHMENTS_LOCAL_KEY = "copy_attachments_local"
 
     const val ENCRYPT_BACKUPS_KEY = "encrypt_backups"
     const val AUTO_BACKUP_ENABLED_KEY = "auto_backup_enabled"

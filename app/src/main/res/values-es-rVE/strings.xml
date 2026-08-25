@@ -608,10 +608,6 @@
     <string name="biometric_disabled_desc">Usa huella digital o rostro para desbloquear</string>
     <string name="biometric_key_error">La clave biométrica no es válida. Vuelve a activarla en ajustes.</string>
     <string name="attachment_settings_title">Archivos adjuntos</string>
-    <string name="include_attachments_backup">Incluir archivos adjuntos en la copia de seguridad</string>
-    <string name="include_attachments_backup_desc">Incluir imágenes, dibujos y archivos en tu copia de seguridad</string>
-    <string name="copy_attachments_local">Copiar archivos adjuntos al almacenamiento interno</string>
-    <string name="copy_attachments_local_desc">Guardar automáticamente imágenes externas como archivos locales para que persistan</string>
     <string name="auto_lock_title">Bloqueo automático</string>
     <string name="auto_lock_disabled">Desactivado</string>
     <string name="auto_lock_timeout_desc">Bloquear tras %1$d minutos de inactividad</string>

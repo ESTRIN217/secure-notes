@@ -678,8 +678,8 @@ class AiViewModel(
         val pendingFiles = _pendingAttachments.value
         val attachmentsContext = if (pendingFiles.isNotEmpty()) {
             pendingFiles.joinToString("\n\n---\n") { f ->
-                if (f.source.startsWith("note")) "[Attached note: ${f.name}]\n${f.content}"
-                else "[Attached file: ${f.name}]\n${f.content}"
+                if (f.source.startsWith("note")) "${f.name}\n${f.content}"
+                else "${f.name}\n${f.content}"
             } + "\n\n---\n"
         } else ""
 

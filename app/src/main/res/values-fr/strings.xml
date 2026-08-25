@@ -489,10 +489,6 @@
     <string name="biometric_disabled_desc">Utilisez l\'empreinte digitale ou le visage pour déverrouiller</string>
     <string name="biometric_key_error">La clé biométrique n\'est pas valide. Veuillez la réactiver dans les paramètres.</string>
     <string name="attachment_settings_title">Pièces jointes</string>
-    <string name="include_attachments_backup">Inclure les pièces jointes dans la sauvegarde</string>
-    <string name="include_attachments_backup_desc">Inclure les images, dessins et fichiers dans votre sauvegarde</string>
-    <string name="copy_attachments_local">Copier les pièces jointes vers le stockage interne</string>
-    <string name="copy_attachments_local_desc">Enregistrer automatiquement les images externes en fichiers locaux pour les conserver</string>
     <string name="backup_encrypt_title">Chiffrer les sauvegardes</string>
     <string name="backup_encrypt_desc">Protéger les fichiers de sauvegarde avec votre mot de passe maître (AES-256 GCM)</string>
     <string name="backup_auto_title">Sauvegarde automatique vers le cloud</string>

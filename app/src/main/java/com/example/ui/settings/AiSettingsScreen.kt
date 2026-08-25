@@ -148,7 +148,6 @@ fun AiSettingsScreen(
                         onUnloadModel = { aiViewModel.unloadModel() },
                         isModelDownloaded = { aiViewModel.isModelDownloaded(it) }
                     )
-                    onDeviceTextModelsSection(recommendedModels)
                 }
 
                 item {
@@ -849,41 +848,6 @@ private fun ModelSelectionRow(
                 tint = statusColor,
                 modifier = Modifier.size(20.dp)
             )
-        }
-    }
-}
-
-private fun LazyListScope.onDeviceTextModelsSection(models: List<OnDeviceModel>) {
-    if (models.isEmpty()) return
-    val textExtensions = listOf(
-        ".txt", ".md", ".html", ".htm", ".json", ".xml",
-        ".csv", ".log", ".properties", ".cfg", ".ini",
-        ".yml", ".yaml", ".sh", ".bat", ".env"
-    )
-    item {
-        SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_text_models))
-        SettingsCardGroup {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = stringResource(R.string.ai_ondevice_text_formats),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    textExtensions.forEach { ext ->
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(ext) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 }

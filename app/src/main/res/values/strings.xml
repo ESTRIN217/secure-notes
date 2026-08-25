@@ -671,10 +671,6 @@
 
     <!-- v4.0 Attachment Settings -->
     <string name="attachment_settings_title">Attachments</string>
-    <string name="include_attachments_backup">Include attachments in backup</string>
-    <string name="include_attachments_backup_desc">Bundle images, drawings and files with your backup</string>
-    <string name="copy_attachments_local">Copy attachments to internal storage</string>
-    <string name="copy_attachments_local_desc">Automatically save external images as local files so they persist</string>
 
     <!-- Backup encryption & auto-backup -->
     <string name="backup_encrypt_title">Encrypt backups</string>

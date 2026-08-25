@@ -548,10 +548,6 @@
 
     <!-- v4.0 Attachment Settings -->
     <string name="attachment_settings_title">Anexos</string>
-    <string name="include_attachments_backup">Incluir anexos no backup</string>
-    <string name="include_attachments_backup_desc">Incluir imagens, desenhos e ficheiros no seu backup</string>
-    <string name="copy_attachments_local">Copiar anexos para o armazenamento interno</string>
-    <string name="copy_attachments_local_desc">Guardar automaticamente imagens externas como ficheiros locais para que persistam</string>
 
     <!-- Security improvements -->
     <string name="auto_lock_title">Bloqueio automático</string>

@@ -465,7 +465,7 @@ fun AiChatScreen(
                                         }
                                     }
                                 },
-                                enabled = sendEnabled || isProcessing,
+                                enabled = sendEnabled || isProcessing || pendingAttachments.isNotEmpty(),
                                 modifier = Modifier
                                     .size(48.dp)
                                     .graphicsLayer(scaleX = buttonScale, scaleY = buttonScale),
@@ -790,10 +790,6 @@ fun MessageBubble(
                             )
                         }
                     } else {
-                        Text(
-                            text = RichTextParser.parse(turn.content, hideTags = true),
-                            style = MaterialTheme.typography.bodyMedium.copy(color = textColor)
-                        )
                         if (turn.files.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(6.dp))
                             turn.files.forEach { file ->
@@ -810,6 +806,10 @@ fun MessageBubble(
                                 }
                             }
                         }
+                        Text(
+                            text = RichTextParser.parse(turn.content, hideTags = true),
+                            style = MaterialTheme.typography.bodyMedium.copy(color = textColor)
+                        )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(

@@ -57,8 +57,6 @@ class SyncWorker(
                 put(AppConstants.AUTO_UPDATE_CHECK_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
                 put(AppConstants.UPDATE_NOTIFICATIONS_KEY, sharedPrefs.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, true))
                 put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
-                put(AppConstants.INCLUDE_ATTACHMENTS_KEY, sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
-                put(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
                 put(AppConstants.PASSWORD_TYPE_KEY, sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, com.example.PasswordType.PASSWORD.name))
                 put(AppConstants.BIOMETRIC_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
                 put(AppConstants.SCREENSHOT_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
@@ -78,7 +76,6 @@ class SyncWorker(
 
             val encryptBackups = sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, hasPassword)
             val cachedPassword = encryptedPrefs.getString(AppConstants.CACHED_MASTER_PASSWORD_KEY, null)
-            val includeAttachments = sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false)
 
             val finalPayload: String
             if (encryptBackups && !cachedPassword.isNullOrEmpty()) {
@@ -103,40 +100,31 @@ class SyncWorker(
             var backupSize = 0L
             val success: Boolean
 
-            if (includeAttachments) {
-                val context = applicationContext
-                val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
-                tempDir.mkdirs()
-                val tempAttachmentsDir = File(tempDir, "attachments")
-                try {
-                    val allPathMaps = mutableMapOf<String, String>()
-                    rawNotes.forEach { note ->
-                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
-                        )
-                        allPathMaps.putAll(pathMap)
-                    }
-                    val zipFile = File(tempDir, "backup.zip")
-                    BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
-                    val zipBytes = zipFile.readBytes()
-                    backupSize = zipFile.length()
+            val context = applicationContext
+            val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+            tempDir.mkdirs()
+            val tempAttachmentsDir = File(tempDir, "attachments")
+            try {
+                val allPathMaps = mutableMapOf<String, String>()
+                rawNotes.forEach { note ->
+                    val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                        note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                    )
+                    allPathMaps.putAll(pathMap)
+                }
+                val zipFile = File(tempDir, "backup.zip")
+                BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
+                val zipBytes = zipFile.readBytes()
+                backupSize = zipFile.length()
 
-                    success = if (existingFileId != null) {
-                        syncService.uploadFileBytes(token, existingFileId, zipBytes).getOrDefault(false)
-                    } else {
-                        val newId = syncService.createBackupFile(token, "placeholder").getOrNull()
-                        newId != null && syncService.uploadFileBytes(token, newId, zipBytes).getOrDefault(false)
-                    }
-                } finally {
-                    tempDir.deleteRecursively()
-                }
-            } else {
-                backupSize = finalPayload.toByteArray().size.toLong()
                 success = if (existingFileId != null) {
-                    syncService.uploadFileContent(token, existingFileId, finalPayload).getOrDefault(false)
+                    syncService.uploadFileBytes(token, existingFileId, zipBytes).getOrDefault(false)
                 } else {
-                    syncService.createBackupFile(token, finalPayload).getOrNull() != null
+                    val newId = syncService.createBackupFile(token, "placeholder").getOrNull()
+                    newId != null && syncService.uploadFileBytes(token, newId, zipBytes).getOrDefault(false)
                 }
+            } finally {
+                tempDir.deleteRecursively()
             }
 
             if (!success) return Result.retry()

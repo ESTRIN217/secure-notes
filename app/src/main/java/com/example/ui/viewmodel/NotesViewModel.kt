@@ -110,9 +110,6 @@ class NotesViewModel(
     )
     val isBiometricEnabled = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
     private val biometricAuthManager = BiometricAuthManager(getApplication())
-    override val includeAttachments = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
-    override val copyAttachmentsLocal = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
-
     override val encryptBackups = MutableStateFlow(sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, hasPasswordInPrefs))
 
     // Screenshot / Recents (default = blocked)
@@ -505,14 +502,6 @@ class NotesViewModel(
         }
     }
 
-    override fun setIncludeAttachments(enabled: Boolean) {
-        setBooleanPref(includeAttachments, AppConstants.INCLUDE_ATTACHMENTS_KEY, enabled)
-    }
-
-    override fun setCopyAttachmentsLocal(enabled: Boolean) {
-        setBooleanPref(copyAttachmentsLocal, AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, enabled)
-    }
-
     override fun setEncryptBackups(enabled: Boolean) {
         setBooleanPref(encryptBackups, AppConstants.ENCRYPT_BACKUPS_KEY, enabled)
         if (enabled) cacheMasterPassword() else clearCachedPassword()
@@ -667,8 +656,8 @@ class NotesViewModel(
         iv: String = ""
     ): Int = withContext(Dispatchers.IO) {
         try {
-            // Copy content:// URIs to local storage if setting is enabled
-            val finalContent = if (copyAttachmentsLocal.value) {
+            // Copy content:// URIs to local storage
+            val finalContent = run {
                 val context = getApplication<Application>().applicationContext
                 val nextId = if (id != 0) id else (rawNotes.value.maxOfOrNull { it.id } ?: 0) + 1
                 var updatedContent = content
@@ -683,8 +672,6 @@ class NotesViewModel(
                     }
                 }
                 updatedContent
-            } else {
-                content
             }
 
             val effectiveSalt = if (salt.isNotEmpty()) salt else if (isEncrypted) cipherService.generateSalt() else ""
@@ -1025,8 +1012,6 @@ class NotesViewModel(
                     put(AppConstants.AUTO_UPDATE_CHECK_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
                     put(AppConstants.UPDATE_NOTIFICATIONS_KEY, sharedPrefs.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, true))
                     put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
-                    put(AppConstants.INCLUDE_ATTACHMENTS_KEY, sharedPrefs.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, false))
-                    put(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, sharedPrefs.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, false))
                     put(AppConstants.PASSWORD_TYPE_KEY, sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, com.example.PasswordType.PASSWORD.name))
                     put(AppConstants.BIOMETRIC_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
                     put(AppConstants.SCREENSHOT_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
@@ -1047,45 +1032,40 @@ class NotesViewModel(
                 // Collect attachments and rewrite paths BEFORE encryption/ZIP
                 var allPathMaps: Map<String, String> = emptyMap()
                 var attachmentTempDir: File? = null
-                val finalSyncPayload: String
 
-                if (includeAttachments.value) {
-                    val app = getApplication<Application>()
-                    val context = app.applicationContext
-                    val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
-                    tempDir.mkdirs()
-                    val tempAttachmentsDir = File(tempDir, "attachments")
-                    attachmentTempDir = tempDir
+                val app = getApplication<Application>()
+                val context = app.applicationContext
+                val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
+                tempDir.mkdirs()
+                val tempAttachmentsDir = File(tempDir, "attachments")
+                attachmentTempDir = tempDir
 
-                    val collectedMaps = mutableMapOf<String, String>()
-                    rawNotes.value.forEach { note ->
-                        val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                            note.content, note.backgroundImagePath, context, tempAttachmentsDir
-                        )
-                        collectedMaps.putAll(pathMap)
-                    }
-                    allPathMaps = collectedMaps
+                val collectedMaps = mutableMapOf<String, String>()
+                rawNotes.value.forEach { note ->
+                    val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
+                        note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                    )
+                    collectedMaps.putAll(pathMap)
+                }
+                allPathMaps = collectedMaps
 
-                    if (allPathMaps.isNotEmpty()) {
-                        val payloadObj = JSONObject(syncPayload)
-                        val notesArr = payloadObj.getJSONArray("notes")
-                        for (i in 0 until notesArr.length()) {
-                            val noteObj = notesArr.getJSONObject(i)
-                            val content = noteObj.optString("content", "")
-                            if (content.isNotEmpty()) {
-                                noteObj.put("content", BackupAttachmentHelper.rewriteContentPaths(content, allPathMaps))
-                            }
-                            val bgPath = noteObj.optString("backgroundImagePath", "")
-                            if (bgPath.isNotEmpty()) {
-                                noteObj.put("backgroundImagePath", BackupAttachmentHelper.rewriteContentPaths(bgPath, allPathMaps))
-                            }
+                val finalSyncPayload: String = if (allPathMaps.isNotEmpty()) {
+                    val payloadObj = JSONObject(syncPayload)
+                    val notesArr = payloadObj.getJSONArray("notes")
+                    for (i in 0 until notesArr.length()) {
+                        val noteObj = notesArr.getJSONObject(i)
+                        val content = noteObj.optString("content", "")
+                        if (content.isNotEmpty()) {
+                            noteObj.put("content", BackupAttachmentHelper.rewriteContentPaths(content, allPathMaps))
                         }
-                        finalSyncPayload = payloadObj.toString()
-                    } else {
-                        finalSyncPayload = syncPayload
+                        val bgPath = noteObj.optString("backgroundImagePath", "")
+                        if (bgPath.isNotEmpty()) {
+                            noteObj.put("backgroundImagePath", BackupAttachmentHelper.rewriteContentPaths(bgPath, allPathMaps))
+                        }
                     }
+                    payloadObj.toString()
                 } else {
-                    finalSyncPayload = syncPayload
+                    syncPayload
                 }
 
                 val shouldEncrypt = encryptBackups.value && isPasswordSet.value && masterPassword.value != null
@@ -1108,7 +1088,7 @@ class NotesViewModel(
                 }
 
                 var backupSize = 0L
-                val success = if (includeAttachments.value && attachmentTempDir != null) {
+                val success = if (attachmentTempDir != null) {
                     syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
                     try {
                         val zipFile = File(attachmentTempDir, "backup.zip")
@@ -1340,10 +1320,6 @@ class NotesViewModel(
                 editor.putBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, settings.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY))
             if (settings.has(AppConstants.CUSTOM_ORDER_KEY))
                 editor.putString(AppConstants.CUSTOM_ORDER_KEY, settings.getString(AppConstants.CUSTOM_ORDER_KEY))
-            if (settings.has(AppConstants.INCLUDE_ATTACHMENTS_KEY))
-                editor.putBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY, settings.getBoolean(AppConstants.INCLUDE_ATTACHMENTS_KEY))
-            if (settings.has(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
-                editor.putBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY, settings.getBoolean(AppConstants.COPY_ATTACHMENTS_LOCAL_KEY))
             if (settings.has(AppConstants.PASSWORD_TYPE_KEY))
                 editor.putString(AppConstants.PASSWORD_TYPE_KEY, settings.getString(AppConstants.PASSWORD_TYPE_KEY))
             if (settings.has(AppConstants.BIOMETRIC_ENABLED_KEY))

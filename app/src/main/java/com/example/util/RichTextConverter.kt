@@ -668,8 +668,10 @@ object RichTextConverter {
                 BlockType.BULLET_LIST -> sb.append("<ul><li>").append(segmentsToHtml(segments)).append("</li></ul>")
                 BlockType.NUMBERED_LIST -> sb.append("<ol><li>").append(segmentsToHtml(segments)).append("</li></ol>")
                 BlockType.CHECKLIST_ITEM -> {
-                    val mark = if (block.meta["checked"] == "true") "checked" else ""
-                    sb.append("<ul class=\"checklist\"><li data-checked=\"").append(mark).append("\">")
+                    val isChecked = block.meta["checked"] == "true"
+                    val checkAttr = if (isChecked) " checked" else ""
+                    sb.append("<ul class=\"checklist\"><li data-checked=\"").append(if (isChecked) "checked" else "").append("\">")
+                        .append("<input type=\"checkbox\"").append(checkAttr).append(">")
                         .append(segmentsToHtml(segments)).append("</li></ul>")
                 }
                 BlockType.QUOTE -> sb.append("<blockquote>").append(segmentsToHtml(segments)).append("</blockquote>")

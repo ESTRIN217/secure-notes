@@ -491,10 +491,6 @@
     <string name="biometric_disabled_desc">Usa impronta digitale o volto per sbloccare</string>
     <string name="biometric_key_error">La chiave biometrica non è valida. Riabilitala nelle impostazioni.</string>
     <string name="attachment_settings_title">Allegati</string>
-    <string name="include_attachments_backup">Includi allegati nel backup</string>
-    <string name="include_attachments_backup_desc">Includi immagini, disegni e file con il tuo backup</string>
-    <string name="copy_attachments_local">Copia allegati nell\'archivio interno</string>
-    <string name="copy_attachments_local_desc">Salva automaticamente le immagini esterne come file locali per conservarle</string>
     <string name="backup_encrypt_title">Crittografa backup</string>
     <string name="backup_encrypt_desc">Proteggi i file di backup con la tua password principale (AES-256 GCM)</string>
     <string name="backup_auto_title">Backup automatico sul cloud</string>
