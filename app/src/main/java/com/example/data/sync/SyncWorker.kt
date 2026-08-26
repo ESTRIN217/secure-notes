@@ -77,43 +77,61 @@ class SyncWorker(
             val encryptBackups = sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, hasPassword)
             val cachedPassword = encryptedPrefs.getString(AppConstants.CACHED_MASTER_PASSWORD_KEY, null)
 
-            val finalPayload: String
-            if (encryptBackups && !cachedPassword.isNullOrEmpty()) {
-                val salt = cipherService.generateSalt()
-                val iv = cipherService.generateIv()
-                val cipherPayload = cipherService.encrypt(syncPayload, cachedPassword, salt, iv).getOrDefault("")
-                finalPayload = JSONObject().apply {
-                    put("encrypted", true)
-                    put("salt", salt)
-                    put("iv", iv)
-                    put("data", cipherPayload)
-                }.toString()
-            } else {
-                finalPayload = JSONObject().apply {
-                    put("encrypted", false)
-                    put("data", syncPayload)
-                }.toString()
-            }
-
-            val existingFileId = syncService.searchBackupFile(token).getOrNull()
-
-            var backupSize = 0L
-            val success: Boolean
-
             val context = applicationContext
             val tempDir = File(context.cacheDir, "backup_attachments_${System.currentTimeMillis()}")
             tempDir.mkdirs()
-            val tempAttachmentsDir = File(tempDir, "attachments")
+            var backupSize = 0L
+            var success = false
             try {
                 val allPathMaps = mutableMapOf<String, String>()
                 rawNotes.forEach { note ->
                     val pathMap = BackupAttachmentHelper.collectAndCopyAttachments(
-                        note.content, note.backgroundImagePath, context, tempAttachmentsDir
+                        note.content, note.backgroundImagePath, context, tempDir
                     )
                     allPathMaps.putAll(pathMap)
                 }
+
+                val rewrittenPayload: String = if (allPathMaps.isNotEmpty()) {
+                    val payloadObj = JSONObject(syncPayload)
+                    val notesArr = payloadObj.getJSONArray("notes")
+                    for (i in 0 until notesArr.length()) {
+                        val noteObj = notesArr.getJSONObject(i)
+                        val content = noteObj.optString("content", "")
+                        if (content.isNotEmpty()) {
+                            noteObj.put("content", BackupAttachmentHelper.rewriteContentPaths(content, allPathMaps))
+                        }
+                        val bgPath = noteObj.optString("backgroundImagePath", "")
+                        if (bgPath.isNotEmpty()) {
+                            noteObj.put("backgroundImagePath", BackupAttachmentHelper.rewriteContentPaths(bgPath, allPathMaps))
+                        }
+                    }
+                    payloadObj.toString()
+                } else {
+                    syncPayload
+                }
+
+                val finalPayload: String
+                if (encryptBackups && !cachedPassword.isNullOrEmpty()) {
+                    val salt = cipherService.generateSalt()
+                    val iv = cipherService.generateIv()
+                    val cipherPayload = cipherService.encrypt(rewrittenPayload, cachedPassword, salt, iv).getOrDefault("")
+                    finalPayload = JSONObject().apply {
+                        put("encrypted", true)
+                        put("salt", salt)
+                        put("iv", iv)
+                        put("data", cipherPayload)
+                    }.toString()
+                } else {
+                    finalPayload = JSONObject().apply {
+                        put("encrypted", false)
+                        put("data", rewrittenPayload)
+                    }.toString()
+                }
+
+                val existingFileId = syncService.searchBackupFile(token).getOrNull()
+
                 val zipFile = File(tempDir, "backup.zip")
-                BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempAttachmentsDir, zipFile)
+                BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempDir, zipFile)
                 val zipBytes = zipFile.readBytes()
                 backupSize = zipFile.length()
 

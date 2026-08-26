@@ -353,26 +353,23 @@ class BackupViewModel(
                             return@launch
                         }
 
-                        // Copy attachments to persistent location
-                        val restoreDir = java.io.File(context.filesDir, "restored_attachments")
-                        restoreDir.mkdirs()
-                        val attachmentsDir = java.io.File(tempDir, "attachments")
-                        if (attachmentsDir.exists()) {
-                            attachmentsDir.copyRecursively(restoreDir, overwrite = true)
+                        // Copy extracted files to their original locations under filesDir/
+                        tempDir.listFiles()?.forEach { child ->
+                            child.copyRecursively(java.io.File(context.filesDir, child.name), overwrite = true)
                         }
 
-                        // Rewrite attachment paths in notes before restoring
+                        // Rewrite relative paths back to absolute paths in notes
+                        val filesDir = context.filesDir.absolutePath
                         val notesArr = json.optJSONArray("notes") ?: org.json.JSONArray()
                         for (i in 0 until notesArr.length()) {
                             val noteObj = notesArr.getJSONObject(i)
                             val content = noteObj.optString("content", "")
-                            val rewrittenContent = BackupAttachmentHelper.rewriteRestoredPaths(content, restoreDir)
-                            noteObj.put("content", rewrittenContent)
-
+                            if (content.isNotEmpty()) {
+                                noteObj.put("content", BackupAttachmentHelper.restoreRelativePaths(content, filesDir))
+                            }
                             val bgPath = noteObj.optString("backgroundImagePath", "")
                             if (bgPath.isNotEmpty()) {
-                                val rewrittenBg = BackupAttachmentHelper.rewriteRestoredPaths(bgPath, restoreDir)
-                                noteObj.put("backgroundImagePath", rewrittenBg)
+                                noteObj.put("backgroundImagePath", BackupAttachmentHelper.restoreRelativePaths(bgPath, filesDir))
                             }
                         }
 

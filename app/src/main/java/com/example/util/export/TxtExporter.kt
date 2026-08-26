@@ -22,11 +22,8 @@ class TxtExporter : Exporter {
     override fun export(context: Context, notes: List<DecryptedNote>) {
         try {
             val sb = StringBuilder()
-            val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             notes.forEachIndexed { index, dec ->
-                val dateStr = format.format(Date(dec.note.lastModified))
                 sb.append("=== ").append(dec.title.uppercase(Locale.getDefault())).append(" ===\n")
-                sb.append(context.getString(R.string.export_label_modified, dateStr)).append("\n")
                 val tags = dec.note.cleanedTags()
                 if (tags.isNotEmpty()) {
                     sb.append(context.getString(R.string.export_label_tags, tags.joinToString(", "))).append("\n")
@@ -38,7 +35,7 @@ class TxtExporter : Exporter {
                 }
             }
             val fileName = if (notes.size == 1) {
-                "Note_${notes[0].note.id}_" + notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".txt"
+                notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".txt"
             } else {
                 "Exported_Notes.txt"
             }

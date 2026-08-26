@@ -31,7 +31,12 @@ class HtmlExporter : Exporter {
     override fun export(context: Context, notes: List<DecryptedNote>) {
         try {
             val html = buildHtml(context, notes, HtmlMediaEmbedder(context))
-            writeAndShare(context, html, "Exported_Notes.html", "text/html", R.string.share_title_html)
+            val fileName = if (notes.size == 1) {
+              notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".html"
+            } else {
+            "Exported_Notes.html"
+            }
+            writeAndShare(context, html, fileName, "text/html", R.string.share_title_html)
         } catch (e: Exception) {
             Log.e("HtmlExporter", "Error exporting notes to HTML", e)
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()
@@ -53,7 +58,12 @@ class HtmlExporter : Exporter {
                     .toMap()
             }
             val html = buildHtml(context, notes, HtmlMediaEmbedder(context, webMedia))
-            writeAndShare(context, html, "Exported_Notes.html", "text/html", R.string.share_title_html)
+            val fileName = if (notes.size == 1) {
+              notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".html"
+            } else {
+            "Exported_Notes.html"
+            }
+            writeAndShare(context, html, fileName, "text/html", R.string.share_title_html)
         } catch (e: Exception) {
             Log.e("HtmlExporter", "Error exporting notes to HTML", e)
             Toast.makeText(context, context.getString(R.string.toast_export_error, e.localizedMessage), Toast.LENGTH_LONG).show()

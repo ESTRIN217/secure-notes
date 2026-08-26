@@ -59,7 +59,7 @@ class PdfExporter : Exporter {
             }
             pdfDocument.finishPage(page)
 
-            val fileName = "Note_${dec.note.id}_" + dec.title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".pdf"
+            val fileName = dec.title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".pdf"
             val file = File(context.cacheDir, fileName)
             FileOutputStream(file).use { out -> pdfDocument.writeTo(out) }
             pdfDocument.close()
@@ -81,7 +81,6 @@ class PdfExporter : Exporter {
             val embedder = HtmlMediaEmbedder(context)
             val maxWidth = PAGE_WIDTH - (MARGIN * 2).toInt()
             val maxHeight = (PAGE_HEIGHT - 2 * MARGIN).toInt()
-            val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             val contentPaint = TextPaint().apply {
                 color = Color.BLACK; textSize = 13f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL); isAntiAlias = true
             }
@@ -103,10 +102,8 @@ class PdfExporter : Exporter {
                 canvas.save(); canvas.translate(MARGIN, y); titleLayout.draw(canvas); canvas.restore()
                 y += titleLayout.height + 8f
 
-                val dateStr = format.format(Date(dec.note.lastModified))
                 val tags = dec.note.cleanedTags()
-                val metaText = context.getString(R.string.export_label_last_modified, dateStr) +
-                        if (tags.isNotEmpty()) " | " + context.getString(R.string.export_label_tags, tags.joinToString(", ")) else ""
+                val metaText = if (tags.isNotEmpty()) " | " + context.getString(R.string.export_label_tags, tags.joinToString(", ")) else ""
                 canvas.drawText(metaText, MARGIN, y, Paint().apply {
                     color = Color.GRAY; textSize = 10f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC); isAntiAlias = true
                 })
@@ -158,11 +155,6 @@ class PdfExporter : Exporter {
             color = Color.parseColor("#666666"); textSize = 11f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC); isAntiAlias = true
         }
-        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(dec.note.lastModified))
-        val dateText = context.getString(R.string.export_label_last_modified, dateStr)
-        val dateLayout = StaticLayout.Builder.obtain(
-            dateText, 0, dateText.length, infoPaint, contentWidth
-        ).build()
 
         val tags = dec.note.cleanedTags()
         var tagsLayout: StaticLayout? = null
@@ -175,7 +167,6 @@ class PdfExporter : Exporter {
 
         var cy = pad
         cy += titleLayout.height.toFloat() + 10f
-        cy += dateLayout.height.toFloat() + 4f
         if (tagsLayout != null) cy += tagsLayout.height.toFloat()
         val boxBottom = boxTop + cy + pad
 
@@ -197,9 +188,6 @@ class PdfExporter : Exporter {
         var drawY = boxTop + pad
         canvas.save(); canvas.translate(boxLeft + pad, drawY); titleLayout.draw(canvas); canvas.restore()
         drawY += titleLayout.height.toFloat() + 10f
-
-        canvas.save(); canvas.translate(boxLeft + pad, drawY); dateLayout.draw(canvas); canvas.restore()
-        drawY += dateLayout.height.toFloat() + 4f
 
         if (tagsLayout != null) {
             canvas.save(); canvas.translate(boxLeft + pad, drawY); tagsLayout.draw(canvas); canvas.restore()

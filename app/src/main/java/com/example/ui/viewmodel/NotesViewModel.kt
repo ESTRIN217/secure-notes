@@ -1178,7 +1178,7 @@ class NotesViewModel(
                 if (BackupAttachmentHelper.isZipBytes(backupBytes)) {
                     val tempDir = File(context.cacheDir, "restore_attachments_${System.currentTimeMillis()}")
                     tempDir.mkdirs()
-                    attachmentRestoreDir = File(tempDir, "attachments")
+                    attachmentRestoreDir = tempDir
                     val json = BackupAttachmentHelper.extractBackupZip(backupBytes, tempDir, context)
                     if (json == null) {
                         syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_backup_download_failed)) }
@@ -1216,19 +1216,20 @@ class NotesViewModel(
 
                 finalizeRestore(finalPayload)
 
-                // Restore attachment files
+                // Restore attachment files to their original locations
                 if (attachmentRestoreDir != null && attachmentRestoreDir.exists()) {
-                    val restoreDir = File(context.filesDir, "restored_attachments")
-                    restoreDir.mkdirs()
-                    attachmentRestoreDir.copyRecursively(restoreDir, overwrite = true)
+                    val filesDirPath = context.filesDir.absolutePath
+                    attachmentRestoreDir.listFiles()?.forEach { child ->
+                        child.copyRecursively(File(context.filesDir, child.name), overwrite = true)
+                    }
 
-                    // Rewrite paths in restored notes
+                    // Rewrite relative paths back to absolute paths in restored notes
                     val allNotes = noteDao.getAllNotesFlow().first()
                     allNotes.forEach { note ->
-                        val rewritten = BackupAttachmentHelper.rewriteRestoredPaths(note.content, restoreDir)
+                        val rewritten = BackupAttachmentHelper.restoreRelativePaths(note.content, filesDirPath)
                         if (rewritten != note.content) {
                             val bgRewritten = note.backgroundImagePath?.let {
-                                BackupAttachmentHelper.rewriteRestoredPaths(it, restoreDir)
+                                BackupAttachmentHelper.restoreRelativePaths(it, filesDirPath)
                             }
                             noteDao.updateNote(note.copy(content = rewritten, backgroundImagePath = bgRewritten))
                         }
@@ -1364,18 +1365,19 @@ class NotesViewModel(
                 }
                 finalizeRestore(decrypted)
 
-                // Restore attachment files after password decryption
+                // Restore attachment files to their original locations
                 if (attachmentDir != null && attachmentDir.exists()) {
                     val context = getApplication<Application>().applicationContext
-                    val restoreDir = java.io.File(context.filesDir, "restored_attachments")
-                    restoreDir.mkdirs()
-                    attachmentDir.copyRecursively(restoreDir, overwrite = true)
+                    val filesDirPath = context.filesDir.absolutePath
+                    attachmentDir.listFiles()?.forEach { child ->
+                        child.copyRecursively(java.io.File(context.filesDir, child.name), overwrite = true)
+                    }
                     val allNotes = noteDao.getAllNotesFlow().first()
                     allNotes.forEach { note ->
-                        val rewritten = com.example.util.BackupAttachmentHelper.rewriteRestoredPaths(note.content, restoreDir)
+                        val rewritten = BackupAttachmentHelper.restoreRelativePaths(note.content, filesDirPath)
                         if (rewritten != note.content) {
                             val bgRewritten = note.backgroundImagePath?.let {
-                                com.example.util.BackupAttachmentHelper.rewriteRestoredPaths(it, restoreDir)
+                                BackupAttachmentHelper.restoreRelativePaths(it, filesDirPath)
                             }
                             noteDao.updateNote(note.copy(content = rewritten, backgroundImagePath = bgRewritten))
                         }

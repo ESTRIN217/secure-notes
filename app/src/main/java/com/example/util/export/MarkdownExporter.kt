@@ -26,12 +26,9 @@ class MarkdownExporter : Exporter {
         try {
             val collector = MarkdownAttachmentCollector(context)
             val sb = StringBuilder()
-            val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             notes.forEachIndexed { index, dec ->
                 collector.prefix = if (notes.size > 1) "${index}_" else ""
-                val dateStr = format.format(Date(dec.note.lastModified))
                 sb.append("# ").append(dec.title).append("\n\n")
-                sb.append("**Last Modified:** ").append(dateStr).append("\n")
                 val tags = dec.note.cleanedTags()
                 if (tags.isNotEmpty()) {
                     sb.append("**Tags:** ").append(tags.joinToString(", ")).append("\n")
@@ -43,13 +40,13 @@ class MarkdownExporter : Exporter {
                 }
             }
             val mdName = if (notes.size == 1) {
-                "Note_${notes[0].note.id}_" + notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".md"
+                notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".md"
             } else {
                 "Exported_Notes.md"
             }
             val mdFile = File(context.cacheDir, mdName)
             FileOutputStream(mdFile).use { out -> out.write(sb.toString().toByteArray()) }
-            val zipFile = createZip(context, mdName.removeSuffix(".md") + ".zip", mdName, mdFile, collector.mediaFiles)
+            val zipFile = createZip(context, mdName.removeSuffix(".md")+ "Markdown" + ".zip", mdName, mdFile, collector.mediaFiles)
             shareFile(context, zipFile, "application/zip", context.getString(R.string.export_title_markdown))
         } catch (e: Exception) {
             Log.e("MarkdownExporter", "Error exporting notes to Markdown", e)

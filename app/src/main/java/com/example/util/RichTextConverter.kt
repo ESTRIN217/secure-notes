@@ -697,8 +697,8 @@ object RichTextConverter {
                     sb.append(mediaBlockToHtml(block, media))
                 }
                 BlockType.PAGE, BlockType.PAGE_LINK -> {
-                    val label = block.content.ifBlank { "Page" }
-                    sb.append("<p class=\"page-link\">📄 ").append(htmlEscape(label)).append("</p>")
+                  val label = block.content.ifBlank { "Page" }
+                  sb.append("<p><span style=\"font-weight:600;color:#1565c0;\">🔗 ").append(htmlEscape(label)).append("</span></p>")
                 }
                 else -> {}
             }
@@ -873,9 +873,12 @@ object RichTextConverter {
             } else {
                 htmlEscape(seg.text)
             }
-            val linkHref = seg.linkUrl?.let { " href=\"${htmlEscape(it)}\"" } ?: ""
             if (seg.linkUrl != null) {
-                sb.append("<a$linkHref>").append(inner).append("</a>")
+              if (seg.isNoteLink) {
+                sb.append("<span style=\"font-weight:600;color:#1565c0;\">").append(inner).append("</span>")
+              } else {
+                sb.append("<a href=\"${htmlEscape(seg.linkUrl)}\">").append(inner).append("</a>")
+              }
             } else {
                 val styles = mutableListOf<String>()
                 if (!seg.code) {

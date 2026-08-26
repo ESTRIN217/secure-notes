@@ -2841,7 +2841,8 @@ fun NoteEditorScreen(
                 showMoreSheet = false
                 onBack()
             },
-            onDismiss = { showMoreSheet = false }
+            onDismiss = { showMoreSheet = false },
+          onOpenPalette = { showPaletteSheet = true }
         )
 
         // Voice and File Attachment Bottom Sheet

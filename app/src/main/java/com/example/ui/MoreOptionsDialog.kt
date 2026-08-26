@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,7 +57,8 @@ fun MoreOptionsDialog(
     onFavoriteChange: (Boolean) -> Unit,
     onArchiveChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+  onOpenPalette: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -189,6 +191,16 @@ fun MoreOptionsDialog(
                                 ),
                                 modifier = Modifier.size(IconButtonDefaults.mediumIconSize)
                             )
+                        }
+                        FilledTonalIconButton(
+                          onClick = onOpenPalette,
+                          shape = IconButtonDefaults.mediumRoundShape,
+                          modifier = Modifier.size(toggleSize)
+                        ) {
+                          Icon(
+                            imageVector = Icons.Default.Palette,
+                            contentDescription = "Estilo de la nota"
+                          )
                         }
                     }
                 }
@@ -328,7 +340,8 @@ fun EditorMoreOptions(
     onFavoriteChange: (Boolean) -> Unit,
     onArchiveChange: (Boolean) -> Unit,
     onDeleted: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenPalette: () -> Unit = {}
 ) {
     if (!show) return
     val context = LocalContext.current
@@ -354,7 +367,8 @@ fun EditorMoreOptions(
                 onDeleted()
             }
         },
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        onOpenPalette = onOpenPalette
     )
 }
 

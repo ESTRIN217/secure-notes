@@ -16,7 +16,7 @@ import java.util.zip.ZipOutputStream
 
 object BackupAttachmentHelper {
     private const val TAG = "BackupAttachmentHelper"
-    private const val ATTACHMENTS_DIR = "attachments"
+
     private const val BACKUP_JSON_ENTRY = "backup.json"
     private const val ZIP_MAGIC = "PK"
 
@@ -124,8 +124,10 @@ object BackupAttachmentHelper {
     ): String? {
         return try {
             val uri = Uri.parse(uriStr)
-            val fileName = absPathToFileName(uriStr)
-            val destFile = File(tempAttachmentsDir, fileName)
+            val filesDir = context.filesDir.absolutePath
+            val relativePath = uriStr.removePrefix("$filesDir/")
+          val destFile = File(tempAttachmentsDir, relativePath)
+          destFile.parentFile?.mkdirs()
 
             if (uri.scheme == "content") {
                 context.contentResolver.openInputStream(uri)?.use { input ->
@@ -151,7 +153,7 @@ object BackupAttachmentHelper {
                     return null
                 }
             }
-            "$ATTACHMENTS_DIR/$fileName"
+            relativePath
         } catch (e: Exception) {
             Log.w(TAG, "Failed to copy attachment: $uriStr", e)
             warnings?.add("Failed to copy: $uriStr (${e.localizedMessage})")
@@ -159,11 +161,22 @@ object BackupAttachmentHelper {
         }
     }
 
-    private fun absPathToFileName(path: String): String {
-        val fileName = File(path).name
-        // Avoid name collisions by prefixing with a hash
-        val hash = path.hashCode().toLong().let { if (it < 0) -it else it }
-        return "${hash}_$fileName"
+
+    /**
+     * Restore relative file paths (e.g. "media/img.jpg") back to absolute paths
+     * by prepending the filesDir prefix.
+     */
+    fun restoreRelativePaths(content: String, filesDir: String): String {
+        var result = content
+        val relativePattern = Regex("""(?<=[\s"(,])(?!/)(?!https?://)(?!content://)[^\s"',)}]+\.[a-zA-Z0-9]{1,5}(?=[\s"',)}])""")
+        val matches = relativePattern.findAll(content).map { it.value }.toSet()
+        for (match in matches) {
+            val absolutePath = "$filesDir/$match"
+            if (File(absolutePath).exists()) {
+                result = result.replace(match, absolutePath)
+            }
+        }
+        return result
     }
 
     /**
@@ -198,7 +211,7 @@ object BackupAttachmentHelper {
                 for ((_, relPath) in pathMap) {
                     if (seen.contains(relPath)) continue
                     seen.add(relPath)
-                    val file = File(tempAttachmentsDir, relPath.removePrefix("$ATTACHMENTS_DIR/"))
+                    val file = File(tempAttachmentsDir, relPath)
                     if (file.exists()) {
                         zos.putNextEntry(ZipEntry(relPath))
                         FileInputStream(file).use { input ->
@@ -232,10 +245,9 @@ object BackupAttachmentHelper {
                     if (entryName == BACKUP_JSON_ENTRY) {
                         val jsonStr = zis.readBytes().toString(Charsets.UTF_8)
                         backupJson = JSONObject(jsonStr)
-                    } else if (entryName.startsWith("$ATTACHMENTS_DIR/")) {
-                        val fileName = entryName.removePrefix("$ATTACHMENTS_DIR/")
-                        val destFile = File(outputDir, fileName)
-                        destFile.parentFile?.mkdirs()
+                    } else {
+                        val destFile = File(outputDir, entryName)
+                      destFile.parentFile?.mkdirs()
                         FileOutputStream(destFile).use { output ->
                             zis.copyTo(output)
                         }
@@ -249,26 +261,6 @@ object BackupAttachmentHelper {
             Log.e(TAG, "extractBackupZip failed", e)
             null
         }
-    }
-
-    /**
-     * Rewrite relative attachment paths back to absolute app file paths.
-     */
-    fun rewriteRestoredPaths(
-        content: String,
-        restoreDir: File
-    ): String {
-        var result = content
-        val attachmentPattern = Regex("""$ATTACHMENTS_DIR/(\d+_.+?)(?=["'\s])""")
-        val matches = attachmentPattern.findAll(content).map { it.value }.toSet()
-        for (match in matches) {
-            val fileName = match.removePrefix("$ATTACHMENTS_DIR/")
-            val restoredFile = File(restoreDir, fileName)
-            if (restoredFile.exists()) {
-                result = result.replace(match, restoredFile.absolutePath)
-            }
-        }
-        return result
     }
 
     /**

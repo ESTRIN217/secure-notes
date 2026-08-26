@@ -25,12 +25,11 @@ class JsonExporter : Exporter {
     override fun export(context: Context, notes: List<DecryptedNote>) {
         try {
             val tempDir = File(context.cacheDir, "json_export_temp").apply { mkdirs() }
-            val attachmentsDir = File(tempDir, "attachments").apply { mkdirs() }
             val pathMap = mutableMapOf<String, String>()
 
             val notesArr = JSONArray()
             for (dec in notes) {
-                val noteJson = buildNoteJson(dec, context, attachmentsDir, pathMap)
+                val noteJson = buildNoteJson(dec, context, tempDir, pathMap)
                 notesArr.put(noteJson)
             }
 
@@ -44,8 +43,7 @@ class JsonExporter : Exporter {
             File(tempDir, "notes.json").writeText(jsonString)
 
             val zipName = if (notes.size == 1) {
-                "Note_${notes[0].note.id}_" +
-                        notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".zip"
+                notes[0].title.replace("[^a-zA-Z0-9]".toRegex(), "_")+ "JSON" + ".zip"
             } else {
                 "Exported_Notes.zip"
             }
@@ -54,7 +52,7 @@ class JsonExporter : Exporter {
             val success = BackupAttachmentHelper.buildBackupZip(
                 backupJson = jsonString,
                 pathMap = pathMap,
-                tempAttachmentsDir = attachmentsDir,
+                tempAttachmentsDir = tempDir,
                 outputZipFile = zipFile
             )
 
@@ -203,12 +201,11 @@ class JsonExporter : Exporter {
         attachmentsDir: File
     ): String? {
         return try {
-            val fileName = File(path).name
-            val hash = path.hashCode().toLong().let { if (it < 0) -it else it }
-            val uniqueName = "${hash}_$fileName"
-            val destFile = File(attachmentsDir, uniqueName)
-
             val uri = Uri.parse(path)
+            val relativePath = path.removePrefix("${context.filesDir.absolutePath}/")
+            val destFile = File(attachmentsDir, relativePath)
+            destFile.parentFile?.mkdirs()
+
             if (uri.scheme == "content") {
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(destFile).use { output -> input.copyTo(output) }
@@ -221,7 +218,7 @@ class JsonExporter : Exporter {
                 }
             }
 
-            "attachments/$uniqueName"
+            relativePath
         } catch (e: Exception) {
             Log.w(TAG, "Failed to copy attachment: $path", e)
             null
