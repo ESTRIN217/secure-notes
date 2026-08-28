@@ -1,5 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 plugins {
   alias(libs.plugins.android.application)
@@ -51,6 +53,7 @@ android {
     }
     debug {
       signingConfig = signingConfigs.getByName("release")
+      versionNameSuffix = "-Beta.${LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy"))}"
     }
   }
   compileOptions {
@@ -67,6 +70,20 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+}
+androidComponents {
+  onVariants { variant ->
+    val appName = "Secure-Notes"
+    val buildType = variant.buildType ?: "unknown"
+    val architecture = "arm64-v8a"
+    val newFileName = "${appName}-${buildType}-${architecture}.apk"
+
+    variant.outputs.forEach { output ->
+      if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
+        output.outputFileName.set(newFileName)
+      }
+    }
+  }
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

@@ -84,7 +84,8 @@ fun EditableFileBlock(
     var showRenameDialog by remember { mutableStateOf(false) }
     val cardColor = JsonColorizer.parseColor(color)
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()
+    .padding(bottom = 5.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

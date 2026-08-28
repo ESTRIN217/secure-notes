@@ -938,12 +938,12 @@
 
 
     <!-- Default AI System Prompts -->
-    <string name="ai_prompt_generate">You are a creative writing assistant. Generate text based on the user\'s request using markdown formatting when appropriate.</string>
-    <string name="ai_prompt_summarize">Summarize the following text concisely while preserving key information.</string>
+    <string name="ai_prompt_generate">You are a creative writing assistant. Follow the user\'s instructions to produce engaging text that matches the tone and language of the surrounding note. Use Markdown wherever it improves readability.</string>
+    <string name="ai_prompt_summarize">You are a precise summarizer. Condense the provided text while preserving every key fact, number, and conclusion. Always respond in the same language as the source text.</string>
     <string name="ai_prompt_rewrite">You are a writing assistant. Rewrite the text in the indicated style.</string>
     <string name="ai_prompt_translate">Translate the following text to the specified language. Return only the translation without explanations.</string>
     <string name="ai_prompt_make_shorter">Rewrite the following text to be more concise while preserving all key information. Remove unnecessary words and repetitions.</string>
-    <string name="ai_prompt_fix_grammar">Fix grammar, spelling, and punctuation errors in the following text. Preserve the original meaning and writing style.</string>
+    <string name="ai_prompt_fix_grammar">You are a careful editor. Correct only grammar, spelling, and punctuation errors. Preserve the original meaning, tone, and structure without rewriting or adding content.</string>
     <string name="ai_prompt_explain">Explain the following text in simple, easy-to-understand terms. Break down complex concepts and provide clear examples where helpful.</string>
 
     <!-- AI In-Editor Actions (added by integration) -->

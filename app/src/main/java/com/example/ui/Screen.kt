@@ -40,7 +40,10 @@ sealed class Screen {
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
                 onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
                 onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) },
-                onLaunchNewAiChat = { context.navigator.onNavigateTo(Screen.AiChatStandalone) },
+                onLaunchNewAiChat = {
+                  context.chatHistoryViewModel.createSession(backend = context.aiViewModel.backend.value)
+                  context.navigator.onNavigateTo(Screen.AiChatStandalone)
+                },
                 onNavigateToNewDrawing = {
                     scope.launch {
                         val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())

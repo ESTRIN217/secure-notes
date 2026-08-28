@@ -206,7 +206,8 @@ fun EditableDrawingBlock(
         else -> Alignment.Center
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()
+    .padding(bottom = 5.dp)) {
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = canvasHorizontalAlign

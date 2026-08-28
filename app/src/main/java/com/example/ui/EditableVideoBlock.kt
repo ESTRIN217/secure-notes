@@ -109,7 +109,8 @@ fun EditableVideoBlock(
         }
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()
+    .padding(bottom = 5.dp)) {
         val widthFraction = if (alignment == VIDEO_ALIGN_CENTER) 1f else 0.5f
         val horizontalAlign = when (alignment) {
             VIDEO_ALIGN_LEFT -> Alignment.CenterStart

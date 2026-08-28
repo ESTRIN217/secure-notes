@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.R
 import com.example.data.ai.AiAction
-import com.example.data.ai.RewriteStyle
 import com.example.data.model.Attachment
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
@@ -281,10 +280,6 @@ fun NoteEditorScreen(
     var aiPromptInput by remember { mutableStateOf("") }
     var aiSelectionStart by remember { mutableIntStateOf(0) }
     var aiSelectionEnd by remember { mutableIntStateOf(0) }
-    var aiPendingRewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
-    var aiPendingTargetLanguage by remember { mutableStateOf("en") }
-    var showAiStyleSubmenu by remember { mutableStateOf(false) }
-    var showAiLangSubmenu by remember { mutableStateOf(false) }
 
     val inPlaceResult by aiViewModel.inPlaceResult.collectAsStateWithLifecycle()
     val inPlaceStreamingText by aiViewModel.inPlaceStreamingText.collectAsStateWithLifecycle()
@@ -292,19 +287,15 @@ fun NoteEditorScreen(
     val inPlaceAction by aiViewModel.inPlaceAction.collectAsStateWithLifecycle()
 
     fun executeAiAction(
-        action: AiAction,
-        style: RewriteStyle = RewriteStyle.FORMAL,
-        language: String = "en"
+        action: AiAction
     ) {
         val allContent = blocks.joinToString("\n") {
             com.example.util.RichTextConverter.segmentsToMarkdown(it.ensureSegments())
         }
         val text = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
             .takeIf { aiSelectionStart != aiSelectionEnd } ?: allContent
-        aiViewModel.executeInPlace(action, text, style, language)
+        aiViewModel.executeInPlace(action, text)
         showAiContextSheet = false
-        showAiStyleSubmenu = false
-        showAiLangSubmenu = false
     }
 
     LaunchedEffect(searchQuery, searchCaseSensitive, searchFullWord, contentValue.text) {
@@ -3188,8 +3179,6 @@ fun NoteEditorScreen(
             ModalBottomSheet(
                 onDismissRequest = {
                     showAiContextSheet = false
-                    showAiStyleSubmenu = false
-                    showAiLangSubmenu = false
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -3207,87 +3196,22 @@ fun NoteEditorScreen(
                     Spacer(Modifier.height(4.dp))
                     Spacer(Modifier.height(16.dp))
 
-                    if (showAiStyleSubmenu) {
-                        Text(stringResource(R.string.ai_context_rewrite_style), style = MaterialTheme.typography.labelLarge)
-                        Spacer(Modifier.height(8.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RewriteStyle.entries.forEach { style ->
-                                FilterChip(
-                                    selected = aiPendingRewriteStyle == style,
-                                    onClick = {
-                                        aiPendingRewriteStyle = style
-                                        executeAiAction(AiAction.REWRITE, style = style)
-                                    },
-                                    label = { Text(style.name.lowercase().replaceFirstChar { it.uppercase() }, fontSize = 12.sp) }
-                                )
-                            }
-                        }
-                    } else if (showAiLangSubmenu) {
-                        Text(stringResource(R.string.ai_context_target_language), style = MaterialTheme.typography.labelLarge)
-                        Spacer(Modifier.height(8.dp))
-                        val languages = listOf("en", "es", "pt", "fr", "de", "it", "ja", "zh", "ru", "ar")
-                        val langLabels = mapOf(
-                            "en" to stringResource(R.string.ai_lang_en),
-                            "es" to stringResource(R.string.ai_lang_es),
-                            "pt" to stringResource(R.string.ai_lang_pt),
-                            "fr" to stringResource(R.string.ai_lang_fr),
-                            "de" to stringResource(R.string.ai_lang_de),
-                            "it" to stringResource(R.string.ai_lang_it),
-                            "ja" to stringResource(R.string.ai_lang_ja),
-                            "zh" to stringResource(R.string.ai_lang_zh),
-                            "ru" to stringResource(R.string.ai_lang_ru),
-                            "ar" to stringResource(R.string.ai_lang_ar)
+                    Text(stringResource(R.string.ai_context_quick_actions), style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { executeAiAction(AiAction.SUMMARIZE) },
+                            label = { Text(stringResource(R.string.ai_chip_summarize), fontSize = 12.sp) },
+                            leadingIcon = { }
                         )
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            languages.forEach { code ->
-                                FilterChip(
-                                    selected = aiPendingTargetLanguage == code,
-                                    onClick = {
-                                        aiPendingTargetLanguage = code
-                                        executeAiAction(AiAction.TRANSLATE, language = code)
-                                    },
-                                    label = { Text(langLabels[code] ?: code, fontSize = 12.sp) }
-                                )
-                            }
-                        }
-                    } else {
-                        Text(stringResource(R.string.ai_context_quick_actions), style = MaterialTheme.typography.labelLarge)
-                        Spacer(Modifier.height(8.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            AssistChip(
-                                onClick = { executeAiAction(AiAction.SUMMARIZE) },
-                                label = { Text(stringResource(R.string.ai_chip_summarize), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                            AssistChip(
-                                onClick = { showAiStyleSubmenu = true },
-                                label = { Text(stringResource(R.string.ai_chip_rewrite), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                            AssistChip(
-                                onClick = { showAiLangSubmenu = true },
-                                label = { Text(stringResource(R.string.ai_chip_translate), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                            AssistChip(
-                                onClick = { executeAiAction(AiAction.MAKE_SHORTER) },
-                                label = { Text(stringResource(R.string.ai_chip_make_shorter), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                            AssistChip(
-                                onClick = { executeAiAction(AiAction.FIX_GRAMMAR) },
-                                label = { Text(stringResource(R.string.ai_chip_fix_grammar), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                            AssistChip(
-                                onClick = { executeAiAction(AiAction.EXPLAIN) },
-                                label = { Text(stringResource(R.string.ai_chip_explain), fontSize = 12.sp) },
-                                leadingIcon = { }
-                            )
-                        }
+                        AssistChip(
+                            onClick = { executeAiAction(AiAction.FIX_GRAMMAR) },
+                            label = { Text(stringResource(R.string.ai_chip_fix_grammar), fontSize = 12.sp) },
+                            leadingIcon = { }
+                        )
                     }
                 }
             }
@@ -3305,11 +3229,7 @@ fun NoteEditorScreen(
                         Text(
                             text = when (inPlaceAction) {
                                 AiAction.SUMMARIZE -> stringResource(R.string.ai_progress_summarizing)
-                                AiAction.REWRITE -> stringResource(R.string.ai_progress_rewriting)
-                                AiAction.TRANSLATE -> stringResource(R.string.ai_progress_translating)
-                                AiAction.MAKE_SHORTER -> stringResource(R.string.ai_progress_making_shorter)
                                 AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_progress_fixing_grammar)
-                                AiAction.EXPLAIN -> stringResource(R.string.ai_progress_explaining)
                                 else -> stringResource(R.string.ai_generating)
                             },
                             style = MaterialTheme.typography.bodySmall

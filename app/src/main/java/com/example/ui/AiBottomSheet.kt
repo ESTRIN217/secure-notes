@@ -30,7 +30,6 @@ fun AiBottomSheet(
 ) {
     var currentAction by remember { mutableStateOf(AiAction.GENERATE) }
     var promptText by remember { mutableStateOf("") }
-    var rewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
     var targetLanguage by remember { mutableStateOf("en") }
 
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
@@ -98,35 +97,9 @@ fun AiBottomSheet(
                         )
                     }
                 }
-                AiAction.REWRITE -> {
-                    RewriteStyleSelector(
-                        currentStyle = rewriteStyle,
-                        onStyleSelected = { rewriteStyle = it }
-                    )
-                }
-                AiAction.TRANSLATE -> {
-                    LanguageSelector(
-                        currentLanguage = targetLanguage,
-                        onLanguageSelected = { targetLanguage = it }
-                    )
-                }
-                AiAction.MAKE_SHORTER -> {
-                    Text(
-                        text = stringResource(R.string.ai_desc_make_shorter),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 AiAction.FIX_GRAMMAR -> {
                     Text(
                         text = stringResource(R.string.ai_desc_fix_grammar),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                AiAction.EXPLAIN -> {
-                    Text(
-                        text = stringResource(R.string.ai_desc_explain),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -143,7 +116,6 @@ fun AiBottomSheet(
                         prompt = promptText,
                         selectedText = selectedText,
                         context = fullContent,
-                        rewriteStyle = rewriteStyle,
                         targetLanguage = targetLanguage
                     )
                     viewModel.execute(request, noteId)
@@ -169,11 +141,7 @@ fun AiBottomSheet(
                     when (currentAction) {
                         AiAction.GENERATE -> stringResource(R.string.ai_generate)
                         AiAction.SUMMARIZE -> stringResource(R.string.ai_summarize)
-                        AiAction.REWRITE -> stringResource(R.string.ai_rewrite)
-                        AiAction.TRANSLATE -> stringResource(R.string.ai_translate)
-                        AiAction.MAKE_SHORTER -> stringResource(R.string.ai_make_shorter)
                         AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_fix_grammar)
-                        AiAction.EXPLAIN -> stringResource(R.string.ai_explain)
                     }
                 )
             }
@@ -215,7 +183,6 @@ fun AiBottomSheet(
                                         prompt = promptText,
                                         selectedText = selectedText,
                                         context = fullContent,
-                                        rewriteStyle = rewriteStyle,
                                         targetLanguage = targetLanguage
                                     )
                                     viewModel.execute(request, noteId)
@@ -292,64 +259,17 @@ private fun ActionChipRow(
             }
         )
         FilterChip(
-            selected = currentAction == AiAction.REWRITE,
-            onClick = { onActionSelected(AiAction.REWRITE) },
-            label = { Text(stringResource(R.string.ai_rewrite)) },
+            selected = currentAction == AiAction.FIX_GRAMMAR,
+            onClick = { onActionSelected(AiAction.FIX_GRAMMAR) },
+            label = { Text(stringResource(R.string.ai_fix_grammar)) },
             leadingIcon = {
                 Icon(
-                    Icons.Default.Refresh,
+                    Icons.Default.Spellcheck,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp)
                 )
             }
         )
-        FilterChip(
-            selected = currentAction == AiAction.TRANSLATE,
-            onClick = { onActionSelected(AiAction.TRANSLATE) },
-            label = { Text(stringResource(R.string.ai_translate)) },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Translate,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        )
-    }
-}
-
-@Composable
-private fun RewriteStyleSelector(
-    currentStyle: RewriteStyle,
-    onStyleSelected: (RewriteStyle) -> Unit
-) {
-    Column {
-        Text(
-            text = stringResource(R.string.ai_style_label),
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            RewriteStyle.entries.forEach { style ->
-                FilterChip(
-                    selected = currentStyle == style,
-                    onClick = { onStyleSelected(style) },
-                    label = {
-                        Text(
-                            when (style) {
-                                RewriteStyle.FORMAL -> stringResource(R.string.ai_style_formal)
-                                RewriteStyle.CASUAL -> stringResource(R.string.ai_style_casual)
-                                RewriteStyle.POETIC -> stringResource(R.string.ai_style_poetic)
-                                RewriteStyle.PROFESSIONAL -> stringResource(R.string.ai_style_professional)
-                            }
-                        )
-                    }
-                )
-            }
-        }
     }
 }
 

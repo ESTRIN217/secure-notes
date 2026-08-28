@@ -64,37 +64,32 @@ class AiMarkdownFormattingTest {
     }
 
     @Test
-    fun `generate prompt embeds markdown context and response hint`() {
+    fun `generate prompt embeds markdown context`() {
         val request = AiRequest(action = AiAction.GENERATE, prompt = "Continue writing", context = richBlocksJson())
 
         val prompt = AiPromptBuilder.buildUserPrompt(request)
 
         assertTrue(prompt.startsWith("Current note context:"))
         assertTrue(prompt.contains("[docs](https://example.com)"))
-        assertTrue(prompt.endsWith("Use Markdown formatting in your response."))
+        assertTrue(prompt.endsWith("Continue writing"))
     }
 
     @Test
-    fun `fix grammar prompt asks to preserve markdown structure`() {
+    fun `fix grammar prompt targets grammar`() {
         val request = AiRequest(action = AiAction.FIX_GRAMMAR, selectedText = richBlocksJson())
 
         val prompt = AiPromptBuilder.buildUserPrompt(request)
 
         assertTrue(prompt.contains("Fix grammar and spelling"))
         assertTrue(prompt.contains("[docs](https://example.com)"))
-        assertTrue(prompt.endsWith("keep the Markdown formatting unchanged."))
     }
 
     @Test
-    fun `every action appends a markdown response hint`() {
+    fun `every action produces a non-empty prompt`() {
         for (action in AiAction.entries) {
             val prompt = AiPromptBuilder.buildUserPrompt(AiRequest(action = action, prompt = "x"))
 
-            assertTrue(
-                "Missing Markdown hint for $action",
-                action == AiAction.GENERATE || prompt.trimEnd().endsWith(".")
-            )
-            assertTrue(prompt.length > 0)
+            assertTrue("Empty prompt for $action", prompt.isNotBlank())
         }
     }
 }

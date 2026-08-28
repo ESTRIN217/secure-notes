@@ -92,7 +92,8 @@ fun EditableBookmarkBlock(
     val host = hostOf(url)
     val displayTitle = title.ifBlank { host.ifBlank { url } }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()
+    .padding(bottom = 5.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

@@ -94,7 +94,8 @@ fun EditableImageBlock(
     var resolveFailed by remember(src) { mutableStateOf(false) }
     val shouldAutoResolve = ImageUrlResolver.isWrapperUrl(src) && !resolveAttempted && !resolveFailed
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()
+    .padding(bottom = 5.dp)) {
         val widthFraction = if (alignment == IMAGE_ALIGN_CENTER) 1f else 0.5f
         val horizontalAlign = when (alignment) {
             IMAGE_ALIGN_LEFT -> Alignment.CenterStart

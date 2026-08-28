@@ -319,7 +319,6 @@ class AiViewModel(
     fun executeInPlace(
         action: AiAction,
         text: String,
-        rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
         targetLanguage: String = "en"
     ) {
         currentJob?.cancel()
@@ -335,7 +334,6 @@ class AiViewModel(
             action = action,
             selectedText = text,
             context = text,
-            rewriteStyle = rewriteStyle,
             targetLanguage = targetLanguage,
             customSystemPrompt = resolvedPrompt,
             temperature = _temperature.value,
@@ -684,13 +682,9 @@ class AiViewModel(
         } else ""
 
         val userPrompt = when (request.action) {
-            AiAction.REWRITE -> app.getString(com.example.R.string.ai_user_msg_rewrite, request.rewriteStyle.name.lowercase(), request.selectedText)
-            AiAction.SUMMARIZE -> app.getString(com.example.R.string.ai_user_msg_summarize, request.selectedText.ifBlank { request.context })
-            AiAction.TRANSLATE -> app.getString(com.example.R.string.ai_user_msg_translate, request.targetLanguage, request.selectedText)
             AiAction.GENERATE -> request.prompt.ifBlank { app.getString(com.example.R.string.ai_user_msg_generate) }
-            AiAction.MAKE_SHORTER -> app.getString(com.example.R.string.ai_user_msg_make_shorter, request.selectedText.ifBlank { request.context })
+            AiAction.SUMMARIZE -> app.getString(com.example.R.string.ai_user_msg_summarize, request.selectedText.ifBlank { request.context })
             AiAction.FIX_GRAMMAR -> app.getString(com.example.R.string.ai_user_msg_fix_grammar, request.selectedText.ifBlank { request.context })
-            AiAction.EXPLAIN -> app.getString(com.example.R.string.ai_user_msg_explain, request.selectedText.ifBlank { request.context })
         }
         val userMessage = if (attachmentsContext.isNotBlank()) {
             "$attachmentsContext$userPrompt"

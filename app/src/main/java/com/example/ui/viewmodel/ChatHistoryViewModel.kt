@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.ChatSessionDao
+import com.example.data.ai.AiBackend
 import com.example.data.local.ChatSessionEntity
 import com.example.data.local.ChatSessionWithPreview
 import com.example.data.local.ConversationDao
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.ui.viewmodel.AiViewModel
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatHistoryViewModel(
@@ -44,7 +46,7 @@ class ChatHistoryViewModel(
     fun createSession(
         noteId: Int? = null,
         noteTitle: String? = null,
-        backend: String = "ollama",
+        backend: AiBackend,
         modelName: String? = null
     ) {
         viewModelScope.launch {
@@ -53,7 +55,7 @@ class ChatHistoryViewModel(
                 title = if (noteTitle != null) "Chat - $noteTitle" else "New Chat",
                 noteId = noteId,
                 noteTitle = noteTitle,
-                backend = backend,
+                backend = if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama",
                 modelName = modelName,
                 createdAt = now,
                 updatedAt = now,

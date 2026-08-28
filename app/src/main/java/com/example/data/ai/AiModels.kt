@@ -3,23 +3,12 @@ package com.example.data.ai
 enum class AiAction {
     GENERATE,
     SUMMARIZE,
-    REWRITE,
-    TRANSLATE,
-    MAKE_SHORTER,
-    FIX_GRAMMAR,
-    EXPLAIN
+    FIX_GRAMMAR
 }
 
 enum class AiBackend {
     OLLAMA,
     ON_DEVICE
-}
-
-enum class RewriteStyle {
-    FORMAL,
-    CASUAL,
-    POETIC,
-    PROFESSIONAL
 }
 
 data class FileAttachment(
@@ -38,7 +27,6 @@ data class AiRequest(
     val prompt: String = "",
     val selectedText: String = "",
     val context: String = "",
-    val rewriteStyle: RewriteStyle = RewriteStyle.FORMAL,
     val targetLanguage: String = "en",
     val customSystemPrompt: String = "",
     val messages: List<ChatMessage> = emptyList(),

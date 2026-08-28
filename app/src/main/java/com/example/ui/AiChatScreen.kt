@@ -85,7 +85,6 @@ fun AiChatScreen(
 
     var currentAction by remember { mutableStateOf(AiAction.GENERATE) }
     var inputText by remember { mutableStateOf("") }
-    var rewriteStyle by remember { mutableStateOf(RewriteStyle.FORMAL) }
     var targetLanguage by remember { mutableStateOf("en") }
     var showRenameTitleDialog by remember { mutableStateOf(false) }
     var renameTitleText by remember { mutableStateOf("") }
@@ -217,7 +216,7 @@ fun AiChatScreen(
                         scope.launch { drawerState.close() }
                     },
                     onCreateSession = {
-                        chatHistoryViewModel.createSession()
+                        chatHistoryViewModel.createSession(backend = backend)
                         scope.launch { drawerState.close() }
                     },
                     onRename = { session ->
@@ -402,12 +401,7 @@ fun AiChatScreen(
                                             else -> when (currentAction) {
                                                 AiAction.GENERATE -> stringResource(R.string.ai_chat_hint_generate)
                                                 AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
-                                                AiAction.REWRITE -> stringResource(R.string.ai_chat_hint_rewrite)
-                                                AiAction.TRANSLATE -> stringResource(R.string.ai_chat_hint_translate)
-                                                AiAction.MAKE_SHORTER -> stringResource(R.string.ai_chat_hint_make_shorter)
-                                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_chat_hint_fix_grammar)
-                                                AiAction.EXPLAIN -> stringResource(R.string.ai_chat_hint_explain)
-                                        }
+                                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_chat_hint_fix_grammar)                                        }
                                         }
                                     )
                                 },
@@ -444,19 +438,14 @@ fun AiChatScreen(
                                             val prompt = when (currentAction) {
                                                 AiAction.GENERATE -> text
                                                 AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
-                                                AiAction.REWRITE -> context.getString(R.string.ai_chat_prompt_rewrite, rewriteStyle.name.lowercase())
-                                                AiAction.TRANSLATE -> context.getString(R.string.ai_chat_prompt_translate, targetLanguage)
-                                                AiAction.MAKE_SHORTER -> context.getString(R.string.ai_chat_prompt_make_shorter)
-                                                AiAction.FIX_GRAMMAR -> context.getString(R.string.ai_chat_prompt_fix_grammar)
-                                                AiAction.EXPLAIN -> context.getString(R.string.ai_chat_prompt_explain)
+                                              AiAction.FIX_GRAMMAR -> context.getString(R.string.ai_chat_prompt_fix_grammar)
                                             }
                                             val request = AiRequest(
                                                 action = currentAction,
                                                 prompt = prompt,
                                                 selectedText = selectedText,
                                                 context = fullContent,
-                                                rewriteStyle = rewriteStyle,
-                                                targetLanguage = targetLanguage
+                                              targetLanguage = targetLanguage
                                             )
                                             viewModel.execute(request, effectiveSessionId)
                                             if (currentAction == AiAction.GENERATE) {
@@ -1126,31 +1115,6 @@ fun EmptyChatWelcome(
 }
 
 @Composable
-fun SuggestionChips(hasHistory: Boolean, onSuggestion: (String) -> Unit) {
-    val context = LocalContext.current
-    if (hasHistory) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            val chips = listOf(
-                stringResource(R.string.ai_suggestion_explain_more),
-                stringResource(R.string.ai_suggestion_another_example),
-                stringResource(R.string.ai_suggestion_shorten)
-            )
-            chips.take(3).forEach { chip ->
-                FilterChip(
-                    selected = false,
-                    onClick = { onSuggestion(chip) },
-                    label = { Text(chip, style = MaterialTheme.typography.labelSmall, maxLines = 1) },
-                    leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun TypingIndicator() {
     val infiniteTransition = rememberInfiniteTransition()
     val dot1Alpha by infiniteTransition.animateFloat(
@@ -1217,69 +1181,6 @@ fun TypingIndicator() {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ActionChipRowMinimal(
-    currentAction: AiAction,
-    onActionSelected: (AiAction) -> Unit,
-    hasNoteContext: Boolean = false
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        FilterChip(
-            selected = currentAction == AiAction.GENERATE,
-            onClick = { onActionSelected(AiAction.GENERATE) },
-            label = { Text(stringResource(R.string.ai_generate), style = MaterialTheme.typography.labelSmall) },
-            leadingIcon = {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-            }
-        )
-        FilterChip(
-            selected = currentAction == AiAction.SUMMARIZE,
-            onClick = { onActionSelected(AiAction.SUMMARIZE) },
-            label = {
-                Text(
-                    if (hasNoteContext) stringResource(R.string.ai_summarize_notes)
-                    else stringResource(R.string.ai_summarize),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(14.dp))
-            }
-        )
-        FilterChip(
-            selected = currentAction == AiAction.REWRITE,
-            onClick = { onActionSelected(AiAction.REWRITE) },
-            label = {
-                Text(
-                    if (hasNoteContext) stringResource(R.string.ai_rewrite_note)
-                    else stringResource(R.string.ai_rewrite),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-            }
-        )
-        FilterChip(
-            selected = currentAction == AiAction.TRANSLATE,
-            onClick = { onActionSelected(AiAction.TRANSLATE) },
-            label = {
-                Text(
-                    if (hasNoteContext) stringResource(R.string.ai_translate_note)
-                    else stringResource(R.string.ai_translate),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            },
-            leadingIcon = {
-                Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(14.dp))
-            }
-        )
     }
 }
 

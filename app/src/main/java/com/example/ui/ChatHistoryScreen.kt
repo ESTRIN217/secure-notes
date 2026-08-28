@@ -42,6 +42,7 @@ fun ChatHistoryScreen(
 ) {
     val sessions by viewModel.sessions.collectAsStateWithLifecycle()
     val latestSessionId by viewModel.latestSessionId.collectAsStateWithLifecycle()
+  val aiBackend by aiViewModel.backend.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     var showDeleteDialog by remember { mutableStateOf<ChatSessionWithPreview?>(null) }
@@ -69,12 +70,39 @@ fun ChatHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.chat_history_title)) },
+                title = {                     
+                  OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(stringResource(R.string.chat_search_hint)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        ),
+                    trailingIcon = { 
+                      IconButton(onClick = {
+                        searchQuery = ""
+                      }) {
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                      } }
+                    ) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
-                }
+                },
+              actions = {
+                FilledIconButton(
+                        onClick = { 
+                          viewModel.createSession(backend = aiBackend) },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.chat_new))
+                    }
+              }
             )
         }
     ) { paddingValues ->
@@ -161,38 +189,6 @@ Icons.AutoMirrored.Filled.Chat,
                                 onTogglePin = { viewModel.togglePin(session.id, session.isPinned) }
                             )
                         }
-                    }
-                }
-            }
-
-            Surface(
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text(stringResource(R.string.chat_search_hint)) },
-                        modifier = Modifier.weight(1f),
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FilledIconButton(
-                        onClick = { viewModel.createSession() },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.chat_new))
                     }
                 }
             }
@@ -286,16 +282,6 @@ fun ChatSessionCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!session.previewText.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = session.previewText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val dateFormat = remember { SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()) }
