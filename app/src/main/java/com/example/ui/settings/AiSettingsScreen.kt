@@ -454,6 +454,14 @@ private fun LazyListScope.onDeviceDeviceInfoSection(deviceInfo: DeviceInfo) {
                     label = stringResource(R.string.ai_ondevice_class),
                     value = deviceInfo.deviceClass.name
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.ai_ondevice_engine_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

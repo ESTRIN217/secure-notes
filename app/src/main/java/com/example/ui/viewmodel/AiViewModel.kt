@@ -667,28 +667,23 @@ class AiViewModel(
         val currentHistory = _conversationHistory.value[sessionId] ?: emptyList()
         if (currentHistory.isNotEmpty()) {
             val chatMessages = currentHistory.takeLast(20).map { turn ->
-                ChatMessage(turn.role, turn.content)
+                val filesContext = if (turn.role == "user" && turn.files.isNotEmpty()) {
+                    turn.files.joinToString("\n\n") { f -> "--- ${f.name} ---\n${f.content}" } + "\n\n"
+                } else ""
+                ChatMessage(turn.role, "$filesContext${turn.content}")
             }
             enrichedRequest = enrichedRequest.copy(messages = chatMessages)
         }
 
         val app = getApplication<android.app.Application>()
         val pendingFiles = _pendingAttachments.value
-        val attachmentsContext = if (pendingFiles.isNotEmpty()) {
-            pendingFiles.joinToString("\n\n---\n") { f ->
-                if (f.source.startsWith("note")) "${f.name}\n${f.content}"
-                else "${f.name}\n${f.content}"
-            } + "\n\n---\n"
-        } else ""
 
         val userPrompt = when (request.action) {
             AiAction.GENERATE -> request.prompt.ifBlank { app.getString(com.example.R.string.ai_user_msg_generate) }
             AiAction.SUMMARIZE -> app.getString(com.example.R.string.ai_user_msg_summarize, request.selectedText.ifBlank { request.context })
             AiAction.FIX_GRAMMAR -> app.getString(com.example.R.string.ai_user_msg_fix_grammar, request.selectedText.ifBlank { request.context })
         }
-        val userMessage = if (attachmentsContext.isNotBlank()) {
-            "$attachmentsContext$userPrompt"
-        } else userPrompt
+        val userMessage = if (request.prompt.isBlank() && pendingFiles.isNotEmpty()) "" else userPrompt
         val filesJson = ConversationTurn.filesToJson(pendingFiles)
 
         val attachmentsContextForAi = if (pendingFiles.isNotEmpty()) {
@@ -732,7 +727,9 @@ class AiViewModel(
                 )
             }
             if (isFirstMessage || isNewSession) {
-                val title = userMessage.trim().split(Regex("\\s+")).take(2).joinToString(" ").ifBlank { "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis()))}" }
+                val title = userMessage.trim().split(Regex("\\s+")).take(2).joinToString(" ").ifBlank {
+                    pendingFiles.firstOrNull()?.name?.take(30) ?: "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis()))}"
+                }
                 _sessionTitle.value = title
                 withContext(Dispatchers.IO) {
                     chatSessionDao.updateTitle(sessionId, title)

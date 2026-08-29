@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +32,7 @@ import coil3.compose.AsyncImage
 import com.example.BuildConfig
 import com.example.R
 import com.example.ui.CustomTopBar
+import androidx.compose.foundation.isSystemInDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +98,25 @@ fun AboutScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                HeaderCard(platformLabel = platformLabel, version = version, archLabel = archLabel)
+                HeaderCard(
+                    image = R.drawable.img_app_icon,
+                    appName = stringResource(R.string.app_name),
+                    platformLabel = platformLabel,
+                    version = version,
+                    archLabel = archLabel
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                HeaderCard(
+                    image = if (isSystemInDarkTheme()) {
+                        "https://raw.githubusercontent.com/ggml-org/llama.brand/master/icon/icon-dark.svg"
+                    } else {
+                        "https://raw.githubusercontent.com/ggml-org/llama.brand/master/icon/icon-light.svg"
+                    },
+                    appName = "Llama.cpp",
+                    platformLabel = platformLabel,
+                    version = "0.2.0",
+                    archLabel = archLabel
+                )
             }
 
             item {
@@ -181,7 +198,13 @@ fun AboutScreen(
 }
 
 @Composable
-private fun HeaderCard(platformLabel: String, version: String, archLabel: String) {
+private fun HeaderCard(
+    image: Any?,
+    appName: String,
+    platformLabel: String,
+    version: String?,
+    archLabel: String
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -195,8 +218,8 @@ private fun HeaderCard(platformLabel: String, version: String, archLabel: String
                 .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.img_app_icon),
+            AsyncImage(
+                model = image,
                 contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier
                     .size(80.dp)
@@ -206,7 +229,7 @@ private fun HeaderCard(platformLabel: String, version: String, archLabel: String
             Spacer(modifier = Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.app_name),
+                    text = appName,
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -218,7 +241,9 @@ private fun HeaderCard(platformLabel: String, version: String, archLabel: String
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     SettingsBadge(text = platformLabel)
-                    SettingsBadge(text = "v$version")
+                    if (version != null) {
+                        SettingsBadge(text = "v$version")
+                    }
                     SettingsBadge(text = archLabel)
                 }
             }

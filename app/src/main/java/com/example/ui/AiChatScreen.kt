@@ -2,6 +2,7 @@ package com.example.ui
 
 import android.content.ClipData
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -120,7 +121,12 @@ fun AiChatScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            val name = uri.lastPathSegment ?: "file"
+            val name = context.contentResolver.query(
+                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx)?.takeIf { it.isNotBlank() } else null
+            } ?: uri.lastPathSegment ?: "file"
             val content = try {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText() ?: ""
             } catch (_: Exception) { "" }
@@ -425,7 +431,7 @@ fun AiChatScreen(
                                         viewModel.cancelGeneration()
                                     } else {
                                         val text = editingMessage ?: inputText
-                                        if (text.isBlank()) return@FilledIconButton
+                                        if (text.isBlank() && pendingAttachments.isEmpty()) return@FilledIconButton
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         buttonScale = 0.95f
                                         if (editingMessage != null) {
@@ -782,9 +788,21 @@ fun MessageBubble(
                         if (turn.files.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(6.dp))
                             turn.files.forEach { file ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-                                    Icon(Icons.AutoMirrored.Filled.InsertDriveFile, contentDescription = null, modifier = Modifier.size(14.dp), tint = textColor.copy(alpha = 0.6f))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                              Surface(
+                                modifier = Modifier,
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh
+                              ) {
+                                Row(
+                                  verticalAlignment = Alignment.CenterVertically, 
+                                  modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                      Icons.AutoMirrored.Filled.InsertDriveFile, 
+                                      contentDescription = null, 
+                                      modifier = Modifier.size(16.dp), 
+                                      tint = textColor.copy(alpha = 0.6f))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = file.name,
                                         style = MaterialTheme.typography.labelSmall,
@@ -793,6 +811,7 @@ fun MessageBubble(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                              }
                             }
                         }
                         Text(
