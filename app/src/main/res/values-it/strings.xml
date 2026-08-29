@@ -323,6 +323,24 @@
     <string name="toast_decrypt_failed">Decrittografia fallita! La password principale non corrisponde al backup.</string>
     <string name="toast_restore_success">Note ripristinate con successo dal cloud!</string>
     <string name="toast_restore_error">Errore di ripristino: %1$s</string>
+
+    <string name="cloud_backup_found_title">Backup cloud trovato</string>
+    <string name="cloud_backup_found_message">Abbiamo trovato un backup salvato nel tuo Google Drive. Vuoi ripristinarlo su questo dispositivo?</string>
+    <string name="cloud_backup_restore_action">Ripristina</string>
+    <string name="cloud_backup_restore_later">Non ora</string>
+
+    <string name="version_conflict_title">Conflitto di versione del backup</string>
+    <string name="version_conflict_message">Esistono due versioni diverse del tuo backup.
+
+Backup cloud: %1$s
+Backup locale: %2$s
+Differenza: %3$s
+
+Cosa vuoi fare?</string>
+    <string name="version_conflict_download">Scarica dal cloud</string>
+    <string name="version_conflict_overwrite">Sovrascrivi con la locale</string>
+
+
     <string name="password_hint">Password</string>
     <string name="restore_password_required">Questo backup è crittografato. Inserisci la password principale per ripristinare.</string>
     <string name="restore_password_dialog_title">Password di backup richiesta</string>

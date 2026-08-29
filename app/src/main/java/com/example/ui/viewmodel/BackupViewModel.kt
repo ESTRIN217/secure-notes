@@ -37,7 +37,11 @@ data class BackupUiState(
     val lastBackupSizeLocal: Long = 0L,
     val lastBackupSizeCloud: Long = 0L,
     val driveAccountEmail: String? = null,
-    val driveProfilePictureUri: String? = null
+    val driveProfilePictureUri: String? = null,
+    val cloudBackupPromptVisible: Boolean = false,
+    val versionConflictVisible: Boolean = false,
+    val cloudBackupTime: Long = 0L,
+    val localBackupTime: Long = 0L
 )
 
 class BackupViewModel(
@@ -120,6 +124,70 @@ class BackupViewModel(
 
     fun linkGoogleDrive(token: String, accountEmail: String = "", pictureUri: String = "") {
         cloudSyncManager.linkGoogleDrive(token, accountEmail, pictureUri)
+        checkCloudBackupAfterLink()
+    }
+
+    fun checkCloudBackupAfterLink() {
+        viewModelScope.launch {
+            val localTime = cloudSyncManager.getLocalBackupTime()
+            cloudSyncManager.checkForCloudBackup { cloudTime ->
+                if (cloudTime != null) {
+                    if (localTime == 0L || cloudTime == localTime) {
+                        // No version conflict: offer a simple restore confirmation.
+                        _uiState.update { it.copy(cloudBackupPromptVisible = true) }
+                    } else {
+                        showVersionConflict(cloudTime, localTime)
+                    }
+                }
+            }
+        }
+    }
+
+    fun checkCloudBeforeManualRestore() {
+        viewModelScope.launch {
+            val localTime = cloudSyncManager.getLocalBackupTime()
+            cloudSyncManager.checkForCloudBackup { cloudTime ->
+                if (cloudTime == null) {
+                    restoreFromCloud()
+                } else if (localTime == 0L || cloudTime == localTime) {
+                    restoreFromCloud()
+                } else {
+                    showVersionConflict(cloudTime, localTime)
+                }
+            }
+        }
+    }
+
+    private fun showVersionConflict(cloudTime: Long, localTime: Long) {
+        _uiState.update { it.copy(
+            versionConflictVisible = true,
+            cloudBackupPromptVisible = false,
+            cloudBackupTime = cloudTime,
+            localBackupTime = localTime
+        ) }
+    }
+
+    fun confirmDownload() {
+        _uiState.update { it.copy(versionConflictVisible = false, cloudBackupPromptVisible = false) }
+        restoreFromCloud()
+    }
+
+    fun confirmOverwrite() {
+        _uiState.update { it.copy(versionConflictVisible = false, cloudBackupPromptVisible = false) }
+        backupToCloud()
+    }
+
+    fun dismissVersionConflict() {
+        _uiState.update { it.copy(versionConflictVisible = false, cloudBackupPromptVisible = false) }
+    }
+
+    fun confirmRestore() {
+        _uiState.update { it.copy(cloudBackupPromptVisible = false) }
+        restoreFromCloud()
+    }
+
+    fun dismissRestorePrompt() {
+        _uiState.update { it.copy(cloudBackupPromptVisible = false) }
     }
 
     fun unlinkDrive() {
@@ -196,12 +264,13 @@ class BackupViewModel(
             put(AppConstants.AUTO_BACKUP_INTERVAL_KEY, sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
         }
 
+        val localBackupTime = System.currentTimeMillis()
         val innerJson = JSONObject().apply {
             put("version", 4)
             put("notes", notesArray)
             put("tags", tagsArray)
             put("settings", settings)
-            put("timestamp", System.currentTimeMillis())
+            put("timestamp", localBackupTime)
         }.toString(2)
 
         val output: String
@@ -231,7 +300,10 @@ class BackupViewModel(
 
         val size = output.toByteArray().size.toLong()
         _uiState.update { it.copy(lastBackupSizeLocal = size) }
-        sharedPrefs.edit().putLong(AppConstants.LAST_BACKUP_SIZE_LOCAL_KEY, size).apply()
+        sharedPrefs.edit()
+            .putLong(AppConstants.LAST_BACKUP_SIZE_LOCAL_KEY, size)
+            .putLong(AppConstants.LAST_LOCAL_BACKUP_TIME_KEY, localBackupTime)
+            .apply()
 
         return output
     }

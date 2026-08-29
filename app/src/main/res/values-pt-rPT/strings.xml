@@ -339,6 +339,24 @@
     <string name="toast_decrypt_failed">Falha na decifragem! A palavra-passe mestre não corresponde ao backup.</string>
     <string name="toast_restore_success">Notas restauradas com sucesso da nuvem!</string>
     <string name="toast_restore_error">Erro ao restaurar: %1$s</string>
+
+    <string name="cloud_backup_found_title">Backup na nuvem encontrado</string>
+    <string name="cloud_backup_found_message">Encontrámos um backup guardado no seu Google Drive. Deseja restaurá-lo neste dispositivo?</string>
+    <string name="cloud_backup_restore_action">Restaurar</string>
+    <string name="cloud_backup_restore_later">Agora não</string>
+
+    <string name="version_conflict_title">Conflito de versão do backup</string>
+    <string name="version_conflict_message">Há duas versões diferentes do seu backup.
+
+Backup na nuvem: %1$s
+Backup local: %2$s
+Diferença: %3$s
+
+O que deseja fazer?</string>
+    <string name="version_conflict_download">Transferir da nuvem</string>
+    <string name="version_conflict_overwrite">Sobrescrever com a local</string>
+
+
     <string name="password_hint">Palavra-passe</string>
     <string name="restore_password_required">Esta cópia de segurança está cifrada. Introduza a palavra-passe mestra para restaurar.</string>
     <string name="restore_password_dialog_title">Palavra-passe da cópia necessária</string>

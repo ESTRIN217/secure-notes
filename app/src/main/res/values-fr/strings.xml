@@ -323,6 +323,24 @@
     <string name="toast_decrypt_failed">Échec du déchiffrement ! Le mot de passe maître ne correspond pas à la sauvegarde.</string>
     <string name="toast_restore_success">Notes restaurées avec succès depuis le cloud !</string>
     <string name="toast_restore_error">Erreur de restauration : %1$s</string>
+
+    <string name="cloud_backup_found_title">Sauvegarde cloud trouvée</string>
+    <string name="cloud_backup_found_message">Nous avons trouvé une sauvegarde dans votre Google Drive. Souhaitez-vous la restaurer sur cet appareil ?</string>
+    <string name="cloud_backup_restore_action">Restaurer</string>
+    <string name="cloud_backup_restore_later">Plus tard</string>
+
+    <string name="version_conflict_title">Conflit de version de sauvegarde</string>
+    <string name="version_conflict_message">Il existe deux versions différentes de votre sauvegarde.
+
+Sauvegarde cloud : %1$s
+Sauvegarde locale : %2$s
+Différence : %3$s
+
+Que souhaitez-vous faire ?</string>
+    <string name="version_conflict_download">Télécharger depuis le cloud</string>
+    <string name="version_conflict_overwrite">Remplacer avec la locale</string>
+
+
     <string name="password_hint">Mot de passe</string>
     <string name="restore_password_required">Cette sauvegarde est chiffrée. Saisissez le mot de passe maître pour restaurer.</string>
     <string name="restore_password_dialog_title">Mot de passe de sauvegarde requis</string>

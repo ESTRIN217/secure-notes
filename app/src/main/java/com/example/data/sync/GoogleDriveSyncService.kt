@@ -24,15 +24,15 @@ class GoogleDriveSyncService : SyncService {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    override suspend fun searchBackupFile(accessToken: String): Result<String?> {
+    override suspend fun searchBackupFile(accessToken: String): Result<BackupFileInfo?> {
         val request = Request.Builder()
-            .url("$FILES_URL?q=name='secure_notes_backup.json' and trashed=false&fields=files(id)&spaces=appDataFolder")
+            .url("$FILES_URL?q=name='secure_notes_backup.json' and trashed=false&fields=files(id,modifiedTime)&spaces=appDataFolder")
             .addHeader("Authorization", "Bearer $accessToken")
             .get()
             .build()
 
         return try {
-            suspendCancellableCoroutine<String?> { continuation ->
+            suspendCancellableCoroutine<BackupFileInfo?> { continuation ->
                 val call = client.newCall(request)
                 continuation.invokeOnCancellation { call.cancel() }
                 call.enqueue(object : Callback {
@@ -49,8 +49,10 @@ class GoogleDriveSyncService : SyncService {
                                     val json = JSONObject(body)
                                     val filesArray = json.optJSONArray("files")
                                     if (filesArray != null && filesArray.length() > 0) {
-                                        val fileId = filesArray.getJSONObject(0).optString("id")
-                                        continuation.resume(fileId)
+                                        val fileObj = filesArray.getJSONObject(0)
+                                        val fileId = fileObj.optString("id")
+                                        val modifiedTime = parseModifiedTime(fileObj.optString("modifiedTime", ""))
+                                        continuation.resume(BackupFileInfo(fileId, modifiedTime))
                                         return
                                     }
                                 }
@@ -71,6 +73,16 @@ class GoogleDriveSyncService : SyncService {
         } catch (e: Exception) {
             Log.e(TAG, "searchBackupFile failed", e)
             Result.failure(e)
+        }
+    }
+
+    private fun parseModifiedTime(isoString: String): Long? {
+        if (isoString.isEmpty()) return null
+        return try {
+            java.time.Instant.parse(isoString).toEpochMilli()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed parsing modifiedTime", e)
+            null
         }
     }
 

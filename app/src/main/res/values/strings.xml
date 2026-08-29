@@ -486,6 +486,16 @@
     <string name="toast_restore_success">Successfully restored notes from Cloud!</string>
     <string name="toast_restore_error">Restore error: %1$s</string>
 
+    <string name="cloud_backup_found_title">Cloud Backup Found</string>
+    <string name="cloud_backup_found_message">We found a backup saved in your Google Drive. Would you like to restore it to this device?</string>
+    <string name="cloud_backup_restore_action">Restore</string>
+    <string name="cloud_backup_restore_later">Not now</string>
+
+    <string name="version_conflict_title">Backup Version Conflict</string>
+    <string name="version_conflict_message">There are two different versions of your backup.\n\nCloud backup: %1$s\nLocal backup: %2$s\nDifference: %3$s\n\nWhat would you like to do?</string>
+    <string name="version_conflict_download">Download from cloud</string>
+    <string name="version_conflict_overwrite">Overwrite with local</string>
+
     <!-- Export -->
     <string name="toast_export_error">Error exporting: %1$s</string>
 

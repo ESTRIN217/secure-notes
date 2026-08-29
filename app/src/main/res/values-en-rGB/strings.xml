@@ -339,6 +339,24 @@
     <string name="toast_decrypt_failed">Decrypt failed! Master password doesn\'t match backup.</string>
     <string name="toast_restore_success">Successfully restored notes from Cloud!</string>
     <string name="toast_restore_error">Restore error: %1$s</string>
+
+    <string name="cloud_backup_found_title">Cloud Backup Found</string>
+    <string name="cloud_backup_found_message">We found a backup saved in your Google Drive. Would you like to restore it to this device?</string>
+    <string name="cloud_backup_restore_action">Restore</string>
+    <string name="cloud_backup_restore_later">Not now</string>
+
+    <string name="version_conflict_title">Backup Version Conflict</string>
+    <string name="version_conflict_message">There are two different versions of your backup.
+
+Cloud backup: %1$s
+Local backup: %2$s
+Difference: %3$s
+
+What would you like to do?</string>
+    <string name="version_conflict_download">Download from cloud</string>
+    <string name="version_conflict_overwrite">Overwrite with local</string>
+
+
     <string name="password_hint">Password</string>
     <string name="restore_password_required">This backup is encrypted. Enter the master password to restore.</string>
     <string name="restore_password_dialog_title">Backup Password Required</string>

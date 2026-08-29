@@ -171,7 +171,7 @@ fun BackupRestoreScreen(
                         accountEmail = uiState.driveAccountEmail,
                         profilePictureUri = uiState.driveProfilePictureUri,
                         onBackupCloud = { viewModel.backupToCloud() },
-                        onRestoreCloud = { viewModel.restoreFromCloud() },
+                        onRestoreCloud = { viewModel.checkCloudBeforeManualRestore() },
                         onLinkDrive = signIn,
                         onUnlinkDrive = { viewModel.unlinkDrive() }
                     )
@@ -289,6 +289,53 @@ fun BackupRestoreScreen(
                     }
                 ) {
                     Text(stringResource(R.string.restore_password_dialog_cancel))
+                }
+            }
+        )
+    }
+
+    if (uiState.cloudBackupPromptVisible) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissRestorePrompt() },
+            icon = { Icon(Icons.Outlined.CloudDownload, contentDescription = null) },
+            title = { Text(stringResource(R.string.cloud_backup_found_title)) },
+            text = { Text(stringResource(R.string.cloud_backup_found_message)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmRestore() }) {
+                    Text(stringResource(R.string.cloud_backup_restore_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissRestorePrompt() }) {
+                    Text(stringResource(R.string.cloud_backup_restore_later))
+                }
+            }
+        )
+    }
+
+    if (uiState.versionConflictVisible) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissVersionConflict() },
+            icon = { Icon(Icons.Outlined.SyncProblem, contentDescription = null) },
+            title = { Text(stringResource(R.string.version_conflict_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.version_conflict_message,
+                        formatBackupTime(uiState.cloudBackupTime),
+                        formatBackupTime(uiState.localBackupTime),
+                        formatBackupDiff(uiState.cloudBackupTime, uiState.localBackupTime)
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmDownload() }) {
+                    Text(stringResource(R.string.version_conflict_download))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.confirmOverwrite() }) {
+                    Text(stringResource(R.string.version_conflict_overwrite))
                 }
             }
         )
@@ -678,6 +725,22 @@ private fun formatSize(bytes: Long): String {
         bytes < 1024 -> "$bytes B"
         bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
         else -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+    }
+}
+
+private fun formatBackupTime(epochMillis: Long): String {
+    if (epochMillis <= 0L) return ""
+    val sdf = java.text.SimpleDateFormat("dd/MM/yy HH:mm", java.util.Locale.getDefault())
+    return sdf.format(java.util.Date(epochMillis))
+}
+
+private fun formatBackupDiff(cloudTime: Long, localTime: Long): String {
+    val diff = Math.abs(cloudTime - localTime)
+    val minutes = diff / 60000L
+    return when {
+        minutes < 60 -> "$minutes m"
+        minutes < 24 * 60 -> String.format("%.1f h", minutes / 60.0)
+        else -> String.format("%.1f d", minutes / (24.0 * 60.0))
     }
 }
 

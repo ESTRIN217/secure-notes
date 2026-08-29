@@ -15,6 +15,8 @@ interface CloudSyncManager {
 
     fun linkGoogleDrive(token: String, accountEmail: String = "", pictureUri: String = "")
     fun unlinkGoogleDrive()
+    fun checkForCloudBackup(onResult: (Long?) -> Unit)
+    fun getLocalBackupTime(): Long
     fun forceSyncCloud()
     fun restoreSyncCloud()
     fun provideRestorePassword(password: String)

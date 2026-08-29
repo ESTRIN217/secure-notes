@@ -323,6 +323,24 @@
     <string name="toast_decrypt_failed">¡Descifrado fallido! La contraseña maestra no coincide con el respaldo.</string>
     <string name="toast_restore_success">¡Notas restauradas exitosamente desde la nube!</string>
     <string name="toast_restore_error">Error al restaurar: %1$s</string>
+
+    <string name="cloud_backup_found_title">Copia en la nube encontrada</string>
+    <string name="cloud_backup_found_message">Hemos encontrado una copia de seguridad guardada en tu Google Drive. ¿Quieres restaurarla en este dispositivo?</string>
+    <string name="cloud_backup_restore_action">Restaurar</string>
+    <string name="cloud_backup_restore_later">Ahora no</string>
+
+    <string name="version_conflict_title">Conflicto de versiones de copia</string>
+    <string name="version_conflict_message">Hay dos versiones distintas de tu copia de seguridad.
+
+Copia en la nube: %1$s
+Copia local: %2$s
+Diferencia: %3$s
+
+¿Qué deseas hacer?</string>
+    <string name="version_conflict_download">Descargar de la nube</string>
+    <string name="version_conflict_overwrite">Sobrescribir con la local</string>
+
+
     <string name="password_hint">Contraseña</string>
     <string name="restore_password_required">Esta copia de seguridad está cifrada. Introduce la contraseña maestra para restaurar.</string>
     <string name="restore_password_dialog_title">Contraseña de la copia requerida</string>

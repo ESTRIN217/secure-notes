@@ -943,6 +943,32 @@ class NotesViewModel(
         cancelPeriodicSync()
     }
 
+    override fun checkForCloudBackup(onResult: (Long?) -> Unit) {
+        viewModelScope.launch {
+            var token = driveAccessToken.value
+            if (token.isEmpty()) {
+                val newToken = refreshAccessToken()
+                if (newToken == null) {
+                    onResult(null)
+                    return@launch
+                }
+                token = newToken
+                driveAccessToken.value = newToken
+                encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
+            }
+            val fileInfo = syncService.searchBackupFile(token).getOrNull()
+                ?: refreshAccessToken()?.let { newToken ->
+                    driveAccessToken.value = newToken
+                    encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
+                    syncService.searchBackupFile(newToken).getOrNull()
+                }
+            onResult(fileInfo?.modifiedTime)
+        }
+    }
+
+    override fun getLocalBackupTime(): Long =
+        sharedPrefs.getLong(AppConstants.LAST_LOCAL_BACKUP_TIME_KEY, 0L)
+
     private suspend fun refreshAccessToken(): String? {
         val email = encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null) ?: return null
         return try {
@@ -960,7 +986,7 @@ class NotesViewModel(
     }
 
     private suspend fun performSyncWithToken(currentToken: String, finalPayload: String): Boolean {
-        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()
+        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()?.id
         return if (existingFileId != null) {
             syncService.uploadFileContent(currentToken, existingFileId, finalPayload).getOrDefault(false)
         } else {
@@ -970,7 +996,7 @@ class NotesViewModel(
     }
 
     private suspend fun performSyncWithTokenBytes(currentToken: String, data: ByteArray): Boolean {
-        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()
+        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()?.id
         return if (existingFileId != null) {
             syncService.uploadFileBytes(currentToken, existingFileId, data).getOrDefault(false)
         } else {
@@ -1133,7 +1159,7 @@ class NotesViewModel(
         viewModelScope.launch {
             syncState.update { it.copy(syncStage = SyncStage.SEARCHING, syncStatusMessage = getApplication<Application>().getString(R.string.toast_searching_backup)) }
             try {
-                var fileId = syncService.searchBackupFile(token).getOrNull()
+                var fileId = syncService.searchBackupFile(token).getOrNull()?.id
 
                 if (fileId == null) {
                     val newToken = refreshAccessToken()
@@ -1141,7 +1167,7 @@ class NotesViewModel(
                         token = newToken
                         driveAccessToken.value = newToken
                         encryptedPrefs.putString(AppConstants.DRIVE_ACCESS_TOKEN_KEY, newToken)
-                        fileId = syncService.searchBackupFile(token).getOrNull()
+                        fileId = syncService.searchBackupFile(token).getOrNull()?.id
                     }
                 }
 

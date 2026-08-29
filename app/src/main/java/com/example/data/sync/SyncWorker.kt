@@ -128,7 +128,7 @@ class SyncWorker(
                     }.toString()
                 }
 
-                val existingFileId = syncService.searchBackupFile(token).getOrNull()
+                val existingFileId = syncService.searchBackupFile(token).getOrNull()?.id
 
                 val zipFile = File(tempDir, "backup.zip")
                 BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, tempDir, zipFile)

@@ -38,6 +38,7 @@ object AppConstants {
     const val AUTO_BACKUP_INTERVAL_KEY = "auto_backup_interval"
     const val LAST_BACKUP_SIZE_CLOUD_KEY = "last_backup_size_cloud"
     const val LAST_BACKUP_SIZE_LOCAL_KEY = "last_backup_size_local"
+    const val LAST_LOCAL_BACKUP_TIME_KEY = "last_local_backup_time"
     const val CACHED_MASTER_PASSWORD_KEY = "cached_master_password"
 
     // Auto-lock timeout in minutes (0 = disabled)
