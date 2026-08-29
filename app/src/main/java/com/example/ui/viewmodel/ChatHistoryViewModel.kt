@@ -19,6 +19,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.ui.viewmodel.AiViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatHistoryViewModel(
@@ -52,7 +55,7 @@ class ChatHistoryViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val session = ChatSessionEntity(
-                title = if (noteTitle != null) "Chat - $noteTitle" else "New Chat",
+                title = if (noteTitle != null) "Chat - $noteTitle" else "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))}",
                 noteId = noteId,
                 noteTitle = noteTitle,
                 backend = if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama",

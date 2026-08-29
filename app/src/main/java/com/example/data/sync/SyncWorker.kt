@@ -149,10 +149,7 @@ class SyncWorker(
 
             sharedPrefs.edit()
                 .putLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, backupSize)
-                .putString(AppConstants.LAST_SYNC_TIME_KEY,
-                    SimpleDateFormat("HH:mm:ss", Locale.getDefault()).let { fmt ->
-                        applicationContext.getString(com.example.R.string.label_today_at, fmt.format(Date()))
-                    })
+                .putString(AppConstants.LAST_SYNC_TIME_KEY,SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date()))
                 .apply()
 
             return Result.success()

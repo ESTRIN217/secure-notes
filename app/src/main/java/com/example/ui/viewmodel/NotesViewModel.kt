@@ -1109,10 +1109,9 @@ class NotesViewModel(
                     lastBackupSizeCloud.value = backupSize
                     sharedPrefs.edit().putLong(AppConstants.LAST_BACKUP_SIZE_CLOUD_KEY, backupSize).apply()
 
-                    val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                    val timeStr = formatter.format(Date())
-                    sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-                    syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
+                    val timeStr = SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date())
+                    sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, timeStr).apply()
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = timeStr, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
                 } else {
                     syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_auth_expired)) }
                     unlinkGoogleDrive()
@@ -1338,10 +1337,9 @@ class NotesViewModel(
             editor.apply()
         }
 
-        val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        val timeStr = formatter.format(Date())
-        sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, getApplication<Application>().getString(R.string.label_today_at, timeStr)).apply()
-        syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = getApplication<Application>().getString(R.string.label_today_at, timeStr), syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
+        val timeStr = SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date())
+        sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, timeStr).apply()
+        syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = timeStr, syncStatusMessage = getApplication<Application>().getString(R.string.toast_restore_success)) }
     }
 
     override fun provideRestorePassword(password: String) {

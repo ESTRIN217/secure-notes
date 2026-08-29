@@ -496,7 +496,6 @@
     <string name="tag_default_work">Trabalho</string>
     <string name="tag_default_personal">Pessoal</string>
     <string name="tag_default_private">Privado</string>
-    <string name="label_today_at">Hoje às %s</string>
     <string name="title_imported_note">Nota importada</string>
 
     <!-- v4.0 Search counter -->

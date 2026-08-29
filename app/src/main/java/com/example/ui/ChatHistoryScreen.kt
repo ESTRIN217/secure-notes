@@ -284,7 +284,7 @@ fun ChatSessionCard(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val dateFormat = remember { SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()) }
+                    val dateFormat = remember { SimpleDateFormat("dd/MM/yy, hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis())) }
                     Text(
                         text = dateFormat.format(Date(session.updatedAt)),
                         style = MaterialTheme.typography.labelSmall,

@@ -568,7 +568,6 @@
     <string name="tag_default_work">Trabajo</string>
     <string name="tag_default_personal">Personal</string>
     <string name="tag_default_private">Privado</string>
-    <string name="label_today_at">Hoy a las %s</string>
     <string name="title_imported_note">Nota importada</string>
     <string name="search_match_counter">%1$d/%2$d</string>
     <string name="backup_encrypt_title">Cifrar copias de seguridad</string>

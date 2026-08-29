@@ -464,7 +464,6 @@
     <string name="tag_default_work">Lavoro</string>
     <string name="tag_default_personal">Personale</string>
     <string name="tag_default_private">Privato</string>
-    <string name="label_today_at">Oggi alle %s</string>
     <string name="title_imported_note">Nota importata</string>
     <string name="search_match_counter">%1$d/%2$d</string>
     <string name="password_type_label">Tipo di sicurezza</string>

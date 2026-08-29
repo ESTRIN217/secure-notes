@@ -535,7 +535,7 @@ class AiViewModel(
     fun createAndStartSession(noteId: Int = 0, noteTitle: String? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val title = if (noteTitle != null) "Chat - $noteTitle" else "New Chat"
+            val title = if (noteTitle != null) "Chat - $noteTitle" else "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))}"
             val session = ChatSessionEntity(
                 title = title,
                 noteId = noteId.takeIf { it > 0 },
@@ -732,7 +732,7 @@ class AiViewModel(
                 )
             }
             if (isFirstMessage || isNewSession) {
-                val title = userMessage.take(50).ifBlank { getApplication<android.app.Application>().getString(com.example.R.string.ai_session_title_new) }
+                val title = userMessage.trim().split(Regex("\\s+")).take(2).joinToString(" ").ifBlank { "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis()))}" }
                 _sessionTitle.value = title
                 withContext(Dispatchers.IO) {
                     chatSessionDao.updateTitle(sessionId, title)
