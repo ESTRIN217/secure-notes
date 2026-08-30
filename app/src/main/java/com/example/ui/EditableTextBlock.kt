@@ -81,6 +81,7 @@ fun EditableTextBlock(
     forcePlain: Boolean = false,
     highlightLanguage: String? = null,
     softWrap: Boolean = true,
+    showLineNumbers: Boolean = false,
     textStyle: TextStyle? = null,
     onEmptyBackspace: (() -> Unit)? = null
 ) {
@@ -236,6 +237,14 @@ fun EditableTextBlock(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
+            LineNumberColumn(
+                text = annotated.text,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                textStyle = textStyle
+            )
+        }
+
         if (prefix.isNotEmpty()) {
             Text(
                 text = prefix,

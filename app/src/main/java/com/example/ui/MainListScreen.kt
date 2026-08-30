@@ -111,6 +111,7 @@ fun MainListScreen(
     onNavigateToChatHistory: () -> Unit = {},
     onLaunchNewAiChat: () -> Unit = {},
     onNavigateToNewDrawing: () -> Unit = {},
+    onNavigateToCodeTools: () -> Unit = {},
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
@@ -734,6 +735,17 @@ fun MainListScreen(
                                             modifier = Modifier.testTag("fab_text")
                                         ) {
                                             Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.fab_text))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                onNavigateToCodeTools()
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_code_tools")
+                                        ) {
+                                            Icon(Icons.Default.Code, contentDescription = stringResource(R.string.code_tools))
                                         }
                                     }
                                 }

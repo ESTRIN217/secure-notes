@@ -171,7 +171,7 @@ Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependen
 
 ## 🛠️ Stack Tecnológico
 * **Lenguaje:** Kotlin
-* **UI:** Jetpack Compose (Material Design 3)
+* **UI:** Jetpack Compose (Material Design 3 Expressive)
 * **Persistencia Local:** Room Database (SQLite con migraciones robustas)
 * **Seguridad:** API de Criptografía de Android, PBKDF2 y AES-256
 * **IA Local:** llama.cpp nativo (JNI/NDK, arm64-v8a) · OkHttp para backends HTTP locales (Ollama / LM Studio)

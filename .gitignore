@@ -1,6 +1,7 @@
 *.iml
 .gradle
 .kotlin
+.opencode
 /local.properties
 /.idea/caches
 /.idea/libraries
@@ -19,3 +20,4 @@ debug.keystore
 key.properties
 *.jks
 *.keystore
+workspace.json

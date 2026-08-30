@@ -44,7 +44,8 @@ fun SettingsScreen(
     onNavigateToPrivacy: () -> Unit,
     onNavigateToLegalInfo: () -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
-    onNavigateToAiSettings: () -> Unit = {}
+    onNavigateToAiSettings: () -> Unit = {},
+    onNavigateToCodeTools: () -> Unit = {}
 ) {
     BackHandler(onBack = onBack)
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
@@ -226,6 +227,23 @@ fun SettingsScreen(
                             onClick = onNavigateToAiSettings
                         )
                     }
+                }
+            }
+
+            // --- TOOLS ---
+            item {
+                SettingsSectionTitle(title = stringResource(R.string.settings_tools))
+            }
+
+            item {
+                SettingsCardGroup {
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Code,
+                        title = stringResource(R.string.code_tools),
+                        subtitle = stringResource(R.string.code_tools_desc),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = onNavigateToCodeTools
+                    )
                 }
             }
 

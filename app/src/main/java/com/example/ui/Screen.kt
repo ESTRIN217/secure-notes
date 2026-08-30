@@ -3,6 +3,9 @@ package com.example.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import android.content.Intent
 import com.example.ui.viewmodel.StorageViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import kotlinx.coroutines.launch
@@ -26,6 +29,7 @@ sealed class Screen {
         @Composable
         override fun render(context: ScreenContext) {
             val scope = rememberCoroutineScope()
+            val androidAppContext = LocalContext.current
             MainListScreen(
                 viewModel = context.viewModel,
                 aiViewModel = context.aiViewModel,
@@ -44,6 +48,7 @@ sealed class Screen {
                   context.chatHistoryViewModel.createSession(backend = context.aiViewModel.backend.value)
                   context.navigator.onNavigateTo(Screen.AiChatStandalone)
                 },
+                onNavigateToCodeTools = { launchCodeEditor(androidAppContext) },
                 onNavigateToNewDrawing = {
                     scope.launch {
                         val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())
@@ -119,6 +124,7 @@ sealed class Screen {
     object SettingsHub : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
+            val androidAppContext = LocalContext.current
             com.example.ui.settings.SettingsScreen(
                 themeViewModel = context.themeViewModel,
                 aiViewModel = context.aiViewModel,
@@ -130,7 +136,8 @@ sealed class Screen {
                 onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
                 onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
                 onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) },
-                onNavigateToAiSettings = { context.navigator.onNavigateTo(Screen.AiSettings) }
+                onNavigateToAiSettings = { context.navigator.onNavigateTo(Screen.AiSettings) },
+                onNavigateToCodeTools = { launchCodeEditor(androidAppContext) }
             )
         }
     }
@@ -328,3 +335,7 @@ val ScreenSaver = mapSaver(
         }
     }
 )
+
+private fun launchCodeEditor(context: Context) {
+    context.startActivity(Intent(context, com.example.CodeEditorActivity::class.java))
+}

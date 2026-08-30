@@ -49,7 +49,8 @@ fun ReadOnlyTextBlock(
     modifier: Modifier = Modifier,
     showPrefix: Boolean = true,
     highlightLanguage: String? = null,
-    softWrap: Boolean = true
+    softWrap: Boolean = true,
+    showLineNumbers: Boolean = false
 ) {
     val annotated = remember(segments) { RichTextConverter.segmentsToAnnotatedString(segments) }
 
@@ -128,6 +129,14 @@ fun ReadOnlyTextBlock(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
+            LineNumberColumn(
+                text = annotated.text,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                textStyle = textStyle
+            )
+        }
+
         if (prefix.isNotEmpty()) {
             Text(
                 text = prefix,

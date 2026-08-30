@@ -634,6 +634,19 @@ O que deseja fazer?</string>
     <string name="about_licenses_desc">Bibliotecas de terceiros</string>
     <!-- AI Assistant -->
     <string name="ai_section">Assistente IA</string>
+    <string name="block_code_line_numbers">Números de linha</string>
+    <string name="code_tools">Ferramentas de Código</string>
+    <string name="code_tools_desc">Abra e edite arquivos de código ou configuração com destaque de sintaxe</string>
+    <string name="code_tools_save">Salvar</string>
+    <string name="code_tools_open_file">Abrir arquivo</string>
+    <string name="code_tools_new_document">Novo documento</string>
+    <string name="code_tools_share">Compartilhar</string>
+    <string name="code_tools_copied">Copiado</string>
+    <string name="code_tools_saved">Arquivo salvo</string>
+    <string name="code_tools_save_failed">Falha ao salvar</string>
+    <string name="code_tools_load_failed">Não foi possível ler este arquivo</string>
+    <string name="code_tools_empty">Nada para salvar</string>
+    <string name="settings_tools">Ferramentas</string>
     <string name="ai_assistant">Assistente IA</string>
     <string name="ai_enabled">Ativar Assistente IA</string>
     <string name="ai_enabled_desc">Use modelos locais de IA para assistência de escrita</string>

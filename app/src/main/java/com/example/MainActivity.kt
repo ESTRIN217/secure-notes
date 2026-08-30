@@ -1,8 +1,5 @@
 package com.example
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import android.app.Application
 import android.app.Activity
 import android.content.Context
@@ -55,7 +52,6 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
 import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
@@ -619,3 +615,4 @@ fun NavigationRailContent(
         }
     }
 }
+

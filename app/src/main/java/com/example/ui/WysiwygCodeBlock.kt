@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.WrapText
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -92,6 +93,7 @@ fun WysiwygCodeBlock(
     val highlightLanguage = language.takeIf { it.isNotBlank() }
     val showCaption = block.meta["showCaption"] == "true"
     val wrap = block.meta["wrap"] != "false"
+    val showLineNumbers = block.meta["lineNumbers"] != "false"
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showMoreMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -143,6 +145,7 @@ fun WysiwygCodeBlock(
                     forcePlain = true,
                     highlightLanguage = highlightLanguage,
                     softWrap = wrap,
+                    showLineNumbers = showLineNumbers && highlightLanguage != null,
                     onChange = { newSegs ->
                         onChange(
                             block.copy(
@@ -177,6 +180,7 @@ fun WysiwygCodeBlock(
                     showPrefix = false,
                     highlightLanguage = highlightLanguage,
                     softWrap = wrap,
+                    showLineNumbers = showLineNumbers && highlightLanguage != null,
                     onActivate = onTapToEdit,
                     onUrlClicked = onUrlClicked,
                     modifier = Modifier
@@ -264,6 +268,15 @@ fun WysiwygCodeBlock(
                     onClick = {
                         showMoreMenu = false
                         onChange(block.copy(meta = block.meta + ("wrap" to (!wrap).toString())))
+                    }
+                ),
+                BlockSheetAction(
+                    label = stringResource(R.string.block_code_line_numbers),
+                    icon = Icons.AutoMirrored.Filled.List,
+                    toggle = showLineNumbers,
+                    onClick = {
+                        showMoreMenu = false
+                        onChange(block.copy(meta = block.meta + ("lineNumbers" to (!showLineNumbers).toString())))
                     }
                 ),
                 BlockSheetAction(

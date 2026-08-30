@@ -635,6 +635,19 @@ What would you like to do?</string>
 
     <!-- AI Assistant -->
     <string name="ai_section">AI Assistant</string>
+    <string name="block_code_line_numbers">Line numbers</string>
+    <string name="code_tools">Code Tools</string>
+    <string name="code_tools_desc">Open and edit code or config files with syntax highlighting</string>
+    <string name="code_tools_save">Save</string>
+    <string name="code_tools_open_file">Open file</string>
+    <string name="code_tools_new_document">New document</string>
+    <string name="code_tools_share">Share</string>
+    <string name="code_tools_copied">Copied</string>
+    <string name="code_tools_saved">File saved</string>
+    <string name="code_tools_save_failed">Save failed</string>
+    <string name="code_tools_load_failed">Couldn\'t read this file</string>
+    <string name="code_tools_empty">Nothing to save</string>
+    <string name="settings_tools">Tools</string>
     <string name="ai_assistant">AI Assistant</string>
     <string name="ai_enabled">Enable AI Assistant</string>
     <string name="ai_enabled_desc">Use local AI models for writing assistance</string>
