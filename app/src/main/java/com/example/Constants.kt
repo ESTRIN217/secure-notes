@@ -22,6 +22,7 @@ object AppConstants {
     const val LANGUAGE_KEY = "language"
     const val AUTO_UPDATE_CHECK_KEY = "auto_update_check"
     const val UPDATE_NOTIFICATIONS_KEY = "update_notifications"
+    const val LAST_UPDATE_CHECK_KEY = "last_update_check"
     const val DRIVE_LINKED_KEY = "drive_linked"
     const val DRIVE_ACCESS_TOKEN_KEY = "drive_access_token"
     const val DRIVE_ACCOUNT_EMAIL_KEY = "drive_account_email"

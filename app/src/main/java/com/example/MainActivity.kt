@@ -8,6 +8,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.Build
 import android.widget.Toast
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -56,6 +57,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
 import coil3.compose.AsyncImage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -285,6 +288,27 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     )
     val updaterViewModel: UpdaterViewModel = viewModel()
+    LaunchedEffect(isUnlocked) {
+        updaterViewModel.createNotificationChannel()
+        if (isUnlocked) {
+            updaterViewModel.checkForUpdatesSilently()
+        }
+    }
+    val updaterState by updaterViewModel.uiState.collectAsStateWithLifecycle()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        updaterViewModel.onNotificationPermissionResult(granted)
+        if (granted) updaterViewModel.emitUpdateNotificationIfGranted()
+    }
+    LaunchedEffect(updaterState.hasUpdate, updaterState.notifications) {
+        if (updaterState.hasUpdate && updaterState.notifications &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            activity?.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val storageViewModel: StorageViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
@@ -323,6 +347,12 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             }
         }
     )
+
+    LaunchedEffect(Unit) {
+        if (activity?.intent?.getBooleanExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE, false) == true) {
+            currentScreen = Screen.UpdateInfo
+        }
+    }
 
     val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen) {
         ScreenContext(

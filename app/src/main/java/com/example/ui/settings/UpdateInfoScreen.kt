@@ -1,7 +1,14 @@
 package com.example.ui.settings
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -15,15 +22,23 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.AppUpdateConfig
 import com.example.ui.CustomTopBar
 import com.example.ui.viewmodel.UpdaterViewModel
+import com.example.ui.viewmodel.UpdateDownloadState
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +50,49 @@ fun UpdateInfoScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showChangelog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val installPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.onInstallPermissionResult()
+    }
+
+    var pendingNotificationEnable by rememberSaveable { mutableStateOf(false) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.onNotificationPermissionResult(granted)
+        pendingNotificationEnable = false
+        if (granted) {
+            viewModel.toggleNotifications(true)
+        }
+    }
+
+    fun handleNotificationToggle(enabled: Boolean) {
+        if (!enabled) {
+            pendingNotificationEnable = false
+            viewModel.toggleNotifications(false)
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingNotificationEnable = false
+            viewModel.toggleNotifications(true)
+        } else {
+            pendingNotificationEnable = true
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshNotificationPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val unknownLabel = stringResource(R.string.platform_unknown)
     val deviceArch = remember {
@@ -102,8 +160,14 @@ fun UpdateInfoScreen(
                         SettingsSwitchTile(
                             title = stringResource(R.string.update_notifications),
                             icon = Icons.Default.NotificationsNone,
-                            checked = uiState.notifications,
-                            onCheckedChange = { viewModel.toggleNotifications(it) }
+                            subtitle = if (uiState.notifications && !uiState.notificationPermissionGranted) {
+                                stringResource(R.string.update_notifications_permission_missing)
+                            } else {
+                                null
+                            },
+                            checked = uiState.notifications &&
+                                (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || uiState.notificationPermissionGranted),
+                            onCheckedChange = { handleNotificationToggle(it) }
                         )
                     }
                 }
@@ -132,7 +196,7 @@ fun UpdateInfoScreen(
                             if (uiState.hasUpdate) {
                                 val intent = android.content.Intent(
                                     android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse("https://github.com/ESTRIN217/secure-notes/releases/latest")
+                                    android.net.Uri.parse(AppUpdateConfig.releasesWebUrl)
                                 )
                                 context.startActivity(intent)
                             } else {
@@ -140,6 +204,102 @@ fun UpdateInfoScreen(
                             }
                         }
                     )
+                }
+            }
+
+            // --- DOWNLOAD & INSTALL ---
+            if (uiState.hasUpdate) {
+                item {
+                    SettingsSectionTitle(title = stringResource(R.string.update_download_title))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SettingsCardGroup {
+                        when (val state = uiState.downloadState) {
+                            UpdateDownloadState.Idle -> {
+                                SettingsListTile(
+                                    leadingIcon = Icons.Default.Download,
+                                    title = stringResource(R.string.update_download_install),
+                                    subtitle = stringResource(R.string.update_download_subtitle, AppUpdateConfig.GITHUB_REPO),
+                                    trailingIcon = Icons.Default.ChevronRight,
+                                    onClick = { viewModel.downloadAndInstall() }
+                                )
+                            }
+                            is UpdateDownloadState.Downloading -> {
+                                SettingsListTile(
+                                    leadingIcon = Icons.Default.Sync,
+                                    title = stringResource(R.string.update_downloading),
+                                    subtitle = if (state.totalMb > 0) {
+                                        stringResource(
+                                            R.string.update_download_progress,
+                                            state.progress,
+                                            state.downloadedMb,
+                                            state.totalMb
+                                        )
+                                    } else {
+                                        stringResource(R.string.platform_unknown)
+                                    },
+                                    trailingIcon = Icons.Default.Close,
+                                    onClick = { viewModel.cancelDownload() }
+                                )
+                                LinearProgressIndicator(
+                                    progress = { state.progress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                                )
+                            }
+                            UpdateDownloadState.PreparingInstall -> {
+                                SettingsListTile(
+                                    leadingIcon = Icons.Default.CheckCircle,
+                                    title = stringResource(R.string.update_preparing_install),
+                                    onClick = {}
+                                )
+                            }
+                            is UpdateDownloadState.DownloadFailed -> {
+                                SettingsListTile(
+                                    leadingIcon = Icons.Default.Error,
+                                    title = stringResource(R.string.update_download_failed),
+                                    subtitle = state.error,
+                                    onClick = { viewModel.checkForUpdates() },
+                                    trailingIcon = Icons.Default.Refresh
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- INSTALL PERMISSION ---
+            if (uiState.needsInstallPermission) {
+                item {
+                    SettingsCardGroup {
+                        SettingsListTile(
+                            leadingIcon = Icons.Default.Security,
+                            title = stringResource(R.string.update_install_permission_title),
+                            subtitle = stringResource(R.string.update_install_permission_subtitle),
+                            trailingIcon = Icons.Default.ChevronRight,
+                            onClick = {
+                                val intent = Intent(
+                                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                    Uri.parse("package:${context.packageName}")
+                                )
+                                installPermissionLauncher.launch(intent)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // --- ERROR ---
+            if (uiState.updateError) {
+                item {
+                    SettingsCardGroup {
+                        SettingsListTile(
+                            leadingIcon = Icons.Default.Error,
+                            title = stringResource(R.string.update_check_failed),
+                            trailingIcon = Icons.Default.Refresh,
+                            onClick = { viewModel.checkForUpdates() }
+                        )
+                    }
                 }
             }
 
@@ -183,10 +343,10 @@ fun UpdateInfoScreen(
                                         modifier = Modifier.padding(bottom = 12.dp),
                                         color = MaterialTheme.colorScheme.outlineVariant
                                     )
-                                    Text(
-                                        text = uiState.latestChangelog ?: "",
+                                    MarkdownText(
+                                        markdown = uiState.latestChangelog ?: "",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        linkColor = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
