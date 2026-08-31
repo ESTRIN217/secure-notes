@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkInteractionListener
@@ -97,6 +98,7 @@ fun EditableTextBlock(
         )
     }
     var isFocused by remember { mutableStateOf(false) }
+    var fieldWidthPx by remember { mutableStateOf(0) }
     val focusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
 
@@ -233,15 +235,22 @@ fun EditableTextBlock(
         modifier.fillMaxWidth()
     }
 
+    val rowAlignment = if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
+        Alignment.Top
+    } else {
+        Alignment.CenterVertically
+    }
+
     Row(
         modifier = rowModifier,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = rowAlignment
     ) {
         if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
             LineNumberColumn(
                 text = annotated.text,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                textStyle = textStyle
+                textStyle = textStyle,
+                contentWidthPx = if (softWrap) fieldWidthPx else 0
             )
         }
 
@@ -312,6 +321,7 @@ fun EditableTextBlock(
             modifier = blockModifier
                 .fillMaxWidth()
                 .then(if (softWrap) Modifier else Modifier.horizontalScroll(scrollState))
+                .onSizeChanged { fieldWidthPx = it.width }
                 .focusRequester(focusRequester)
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused

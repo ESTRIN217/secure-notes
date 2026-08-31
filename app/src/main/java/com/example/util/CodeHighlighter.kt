@@ -167,9 +167,12 @@ object CodeHighlighter {
 
     private val keywordStyle = SpanStyle(color = Color(0xFF3B82F6))
     private val stringStyle = SpanStyle(color = Color(0xFF16A34A))
+    private val stringInterpolationStyle = SpanStyle(color = Color(0xFFF59E0B))
     private val numberStyle = SpanStyle(color = Color(0xFF0891B2))
     private val commentStyle = SpanStyle(color = Color(0xFF8B93A3))
     private val typeStyle = SpanStyle(color = Color(0xFF9333EA))
+    private val annotationStyle = SpanStyle(color = Color(0xFF10B981))
+    private val functionStyle = SpanStyle(color = Color(0xFFA855F7))
 
     private val regexCache = mutableMapOf<String, Regex>()
 
@@ -180,20 +183,49 @@ object CodeHighlighter {
         if (code.text.isEmpty()) return code
         val config = langConfigs[language] ?: return code
         val regex = regexFor(config)
-        val builder = AnnotatedString.Builder(code.text)
-        for (match in regex.findAll(code.text)) {
+        val text = code.text
+        val builder = AnnotatedString.Builder(text)
+        val stringRanges = mutableListOf<IntRange>()
+        for (match in regex.findAll(text)) {
             val style = when {
                 match.groups["comment"] != null -> commentStyle
-                match.groups["string"] != null -> stringStyle
+                match.groups["string"] != null -> {
+                    stringRanges.add(match.range)
+                    stringStyle
+                }
                 match.groups["number"] != null -> numberStyle
-                match.groups["keyword"] != null -> keywordStyle
+                config.keywords.isNotEmpty() && match.groups["keyword"] != null -> keywordStyle
+                match.groups["annotation"] != null -> annotationStyle
                 match.groups["type"] != null -> typeStyle
+                match.groups["function"] != null -> functionStyle
                 else -> continue
             }
             builder.addStyle(style, match.range.first, match.range.last + 1)
         }
+        if (stringRanges.isNotEmpty()) {
+            val interpRegex = stringInterpolationRegex()
+            for (range in stringRanges) {
+                for (m in interpRegex.findAll(text, range.first)) {
+                    if (m.range.last > range.last) break
+                    if (m.range.first >= range.first) {
+                        builder.addStyle(
+                            stringInterpolationStyle,
+                            m.range.first,
+                            m.range.last + 1
+                        )
+                    }
+                }
+            }
+        }
         return builder.toAnnotatedString()
     }
+
+    private val interpRegexCache = mutableMapOf<String, Regex>()
+
+    private fun stringInterpolationRegex(): Regex =
+        interpRegexCache.getOrPut("") {
+            Regex("\\$\\{(?:[^{}]|\\{[^{}]*\\})*\\}|\\$[A-Za-z_][A-Za-z0-9_]*")
+        }
 
     private fun regexFor(config: LangConfig): Regex {
         val keywords = config.keywords.toList().sorted()
@@ -207,7 +239,7 @@ object CodeHighlighter {
             if (config.doubleDashComment) comments += "--[^\\n]*"
             comments += "//[^\\n]*"
 
-            val strings = "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`"
+            val strings = "\"\"\"(?:\\.|(?!\"\"\")[^\\\\])*?\"\"\"|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`"
             val numbers = "\\b\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b|0[xX][0-9a-fA-F]+"
             val keywordsPattern = if (keywords.isEmpty()) "" else "|(?<keyword>\\b(?:${keywords.joinToString("|")})\\b)"
             val pattern = buildString {
@@ -215,7 +247,9 @@ object CodeHighlighter {
                 append("|(?<string>").append(strings).append(')')
                 append("|(?<number>").append(numbers).append(')')
                 append(keywordsPattern)
-                append("|(?<type>[A-Z][A-Za-z0-9_]*)")
+                append("|(?<annotation>@[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)")
+                append("|(?<type>\\b[A-Z][A-Za-z0-9_]*)")
+                append("|(?<function>\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\())")
             }
             Regex(pattern)
         }

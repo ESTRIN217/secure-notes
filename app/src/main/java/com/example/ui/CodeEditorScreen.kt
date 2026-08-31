@@ -11,6 +11,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.model.BlockType
 import com.example.data.model.TextSegment
+import com.example.ui.theme.codeEditorTextStyle
 import com.example.util.CodeLanguageDetector
 import com.example.util.RichTextConverter
 
@@ -61,7 +64,7 @@ fun CodeEditorScreen(
     var content by remember { mutableStateOf(initialContent) }
     var language by remember { mutableStateOf(CodeLanguageDetector.detect(initialName, initialContent)) }
     var showLanguageSheet by remember { mutableStateOf(false) }
-    var wrap by remember { mutableStateOf(true) }
+    var wrap by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
     BackHandler(onBack = onBack)
@@ -127,6 +130,12 @@ fun CodeEditorScreen(
 
     val openMimeTypes = arrayOf(
         "text/*",
+        "text/x-kotlin",
+        "application/x-kotlin",
+        "application/x-kt",
+        "text/x-java",
+        "application/java",
+        "application/x-java",
         "application/json",
         "application/xml",
         "application/x-httpd-php",
@@ -134,7 +143,8 @@ fun CodeEditorScreen(
         "application/javascript",
         "application/typescript",
         "application/x-sh",
-        "application/x-python-code"
+        "application/x-python-code",
+        "application/octet-stream"
     )
 
     val segments = remember(content) {
@@ -195,10 +205,13 @@ fun CodeEditorScreen(
                     highlightLanguage = language,
                     softWrap = wrap,
                     showLineNumbers = true,
+                    textStyle = codeEditorTextStyle(),
                     onChange = { newSegs ->
                         content = RichTextConverter.segmentsToPlainText(newSegs)
                     },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                 )
             }
         }
