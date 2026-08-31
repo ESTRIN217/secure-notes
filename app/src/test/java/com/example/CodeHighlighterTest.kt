@@ -164,4 +164,218 @@ class CodeHighlighterTest {
         val spans = spanTextsOf(code, "html")
         assertTrue("comentario html no resaltado: $spans", spans.contains("<!-- val x = 1 -->"))
     }
+
+    @Test
+    fun `html highlights tag names as keywords`() {
+        val code = "<div class=\"x\">hola</div>"
+        val keywordSpans =
+            spanStylesOf(code, "html").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("div no resaltado como keyword: $keywordSpans", keywordSpans.contains("div"))
+    }
+
+    @Test
+    fun `html highlights tag brackets`() {
+        val code = "<div>hola</div>"
+        val bracketSpans =
+            spanStylesOf(code, "html").filter { it.second.color == Color(0xFF8B93A3) }.map { it.first }
+        assertTrue("apertura no resaltada: $bracketSpans", bracketSpans.contains("<"))
+        assertTrue("cierre no resaltado: $bracketSpans", bracketSpans.contains(">"))
+    }
+
+    @Test
+    fun `html highlights attribute names`() {
+        val code = "<a href=\"index.html\" target=\"_blank\">link</a>"
+        val attrSpans =
+            spanStylesOf(code, "html").filter { it.second.color == Color(0xFFF59E0B) }.map { it.first }
+        assertTrue("href no resaltado: $attrSpans", attrSpans.contains("href"))
+        assertTrue("target no resaltado: $attrSpans", attrSpans.contains("target"))
+    }
+
+    @Test
+    fun `html keeps attribute strings as strings`() {
+        val code = "<img src=\"logo.png\">"
+        val stringSpans = spansWithStyle(code, "html", Color(0xFF16A34A))
+        assertTrue("\"logo.png\" no resaltado: $stringSpans", stringSpans.contains("\"logo.png\""))
+    }
+
+    @Test
+    fun `html handles self closing tags`() {
+        val code = "<br/><img src=\"a.png\"/>"
+        val keywordSpans =
+            spanStylesOf(code, "html").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("br no resaltado: $keywordSpans", keywordSpans.contains("br"))
+        assertTrue("img no resaltado: $keywordSpans", keywordSpans.contains("img"))
+    }
+
+    @Test
+    fun `html comment content is not tag highlighted`() {
+        val code = "<!-- <div class=\"x\"> --><div>real</div>"
+        val spans = spanTextsOf(code, "html")
+        assertTrue("comentario completo no resaltado: $spans", spans.contains("<!-- <div class=\"x\"> -->"))
+        assertTrue("keyword dentro de comentario no debe aparecer: $spans", !spans.contains("class"))
+    }
+
+    @Test
+    fun `html text outside tags is not highlighted as tags`() {
+        val code = "<p>hola mundo</p>"
+        val spans = spanTextsOf(code, "html").map { it.trim() }.filter { it.isNotBlank() }
+        assertTrue("texto plano 'hola mundo' no debe resaltarse: $spans",
+            spans.none { it.contains("hola mundo") || it == "hola" || it == "mundo" })
+        assertTrue("p deberia resaltarse: $spans", spans.contains("p"))
+    }
+
+    @Test
+    fun `python highlights builtin functions and types as keywords`() {
+        val code = "print(len(range(3)))\nx: int = 5\nitems = list((1, 2))"
+        val keywordSpans =
+            spanStylesOf(code, "python").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("print no resaltado como keyword: $keywordSpans", keywordSpans.contains("print"))
+        assertTrue("len no resaltado: $keywordSpans", keywordSpans.contains("len"))
+        assertTrue("range no resaltado: $keywordSpans", keywordSpans.contains("range"))
+        assertTrue("int no resaltado: $keywordSpans", keywordSpans.contains("int"))
+        assertTrue("list no resaltado: $keywordSpans", keywordSpans.contains("list"))
+    }
+
+    @Test
+    fun `python keyword priorizado sobre funcion generica`() {
+        val code = "print(1)"
+        val keywordSpans =
+            spanStylesOf(code, "python").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        val functionSpans =
+            spanStylesOf(code, "python").filter { it.second.color == Color(0xFFA855F7) }.map { it.first }
+        assertTrue("print deberia ser keyword azul: $keywordSpans", keywordSpans.contains("print"))
+        assertTrue("print no deberia ser function: $functionSpans", functionSpans.none { it == "print" })
+    }
+
+    @Test
+    fun `python fstring expression is highlighted`() {
+        val code = "f\"sum = {a + b}\""
+        val interpSpans = spansWithStyle(code, "python", Color(0xFFF59E0B))
+        assertTrue("{a + b} no resaltado: $interpSpans", interpSpans.contains("{a + b}"))
+        val stringSpans = spansWithStyle(code, "python", Color(0xFF16A34A))
+        assertTrue("string padre no resaltado: $stringSpans", stringSpans.contains("\"sum = {a + b}\""))
+    }
+
+    @Test
+    fun `python plain string is not fstring interpolated`() {
+        val code = "\"valor = {x}\""
+        val interpSpans = spansWithStyle(code, "python", Color(0xFFF59E0B))
+        assertTrue("string plano no deberia resaltar {x}: $interpSpans", interpSpans.isEmpty())
+    }
+
+    @Test
+    fun `python fstring does not highlight outside braces`() {
+        val code = "f\"hola {name}\""
+        val interpSpans = spansWithStyle(code, "python", Color(0xFFF59E0B))
+        assertTrue("{name} no resaltado: $interpSpans", interpSpans.contains("{name}"))
+    }
+
+    @Test
+    fun `java highlights primitive types with distinct style`() {
+        val code = "int x = 5;\nboolean ok = true;\nvoid run() {}"
+        val primitiveSpans =
+            spanStylesOf(code, "java").filter { it.second.color == Color(0xFF0D9488) }.map { it.first }
+        assertTrue("int no resaltado como primitivo: $primitiveSpans", primitiveSpans.contains("int"))
+        assertTrue("boolean no resaltado como primitivo: $primitiveSpans", primitiveSpans.contains("boolean"))
+        assertTrue("void no resaltado como primitivo: $primitiveSpans", primitiveSpans.contains("void"))
+        val keywordSpans =
+            spanStylesOf(code, "java").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("primitivo no deberia ser keyword azul: $keywordSpans",
+            keywordSpans.none { it in setOf("int", "boolean", "void") })
+    }
+
+    @Test
+    fun `java highlights regular keywords as blue`() {
+        val code = "public final String name = null;"
+        val keywordSpans =
+            spanStylesOf(code, "java").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("public no resaltado: $keywordSpans", keywordSpans.contains("public"))
+        assertTrue("final no resaltado: $keywordSpans", keywordSpans.contains("final"))
+        assertTrue("null no resaltado: $keywordSpans", keywordSpans.contains("null"))
+    }
+
+    @Test
+    fun `java highlights new module and record keywords`() {
+        val code = "record Point(int x) {\n}\nmodule app { requires java.base; }"
+        val keywordSpans =
+            spanStylesOf(code, "java").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("record no resaltado: $keywordSpans", keywordSpans.contains("record"))
+        assertTrue("module no resaltado: $keywordSpans", keywordSpans.contains("module"))
+        assertTrue("requires no resaltado: $keywordSpans", keywordSpans.contains("requires"))
+    }
+
+    @Test
+    fun `java new keywords yield var sealed permits`() {
+        val code = "var x = 0;\nint y = switch (x) { case 0 -> 1; default -> 0; };\nsealed class A permits B {}"
+        val keywordSpans =
+            spanStylesOf(code, "java").filter { it.second.color == Color(0xFF3B82F6) }.map { it.first }
+        assertTrue("var no resaltado: $keywordSpans", keywordSpans.contains("var"))
+        assertTrue("sealed no resaltado: $keywordSpans", keywordSpans.contains("sealed"))
+        assertTrue("permits no resaltado: $keywordSpans", keywordSpans.contains("permits"))
+    }
+
+    @Test
+    fun `php highlights keywords comments and dollar interpolation`() {
+        val code = "<?php\n// comentario\n\$name = \"Hola\";\necho \"Hola \$name\";"
+        val blue = spansWithStyle(code, "php", Color(0xFF3B82F6))
+        val gray = spansWithStyle(code, "php", Color(0xFF8B93A3))
+        val amber = spansWithStyle(code, "php", Color(0xFFF59E0B))
+        assertTrue("php keyword no resaltado: $blue", blue.contains("php"))
+        assertTrue("echo keyword no resaltado: $blue", blue.contains("echo"))
+        assertTrue("comentario php no resaltado: $gray", gray.contains("// comentario"))
+        assertTrue("interpolacion \$name no resaltada: $amber", amber.contains("\$name"))
+    }
+
+    @Test
+    fun `ruby highlights keywords hash comments`() {
+        val code = "# comentario\ndef greet\n  puts \"hola\"\nend"
+        val blue = spansWithStyle(code, "ruby", Color(0xFF3B82F6))
+        val gray = spansWithStyle(code, "ruby", Color(0xFF8B93A3))
+        assertTrue("def no resaltado: $blue", blue.contains("def"))
+        assertTrue("end no resaltado: $blue", blue.contains("end"))
+        assertTrue("comentario ruby no resaltado: $gray", gray.contains("# comentario"))
+    }
+
+    @Test
+    fun `yaml and toml highlight hash comments and keywords`() {
+        val yaml = "# nota\nenabled: true\n"
+        val yblue = spansWithStyle(yaml, "yaml", Color(0xFF3B82F6))
+        val ygray = spansWithStyle(yaml, "yaml", Color(0xFF8B93A3))
+        assertTrue("yaml true no resaltado: $yblue", yblue.contains("true"))
+        assertTrue("yaml comentario no resaltado: $ygray", ygray.contains("# nota"))
+
+        val toml = "# nota\nenabled = false\n"
+        val tblue = spansWithStyle(toml, "toml", Color(0xFF3B82F6))
+        val tgray = spansWithStyle(toml, "toml", Color(0xFF8B93A3))
+        assertTrue("toml false no resaltado: $tblue", tblue.contains("false"))
+        assertTrue("toml comentario no resaltado: $tgray", tgray.contains("# nota"))
+    }
+
+    @Test
+    fun `ini highlights semicolon and hash comments`() {
+        val code = "; seccion\n# otra nota\n[db]\nhost=localhost\n"
+        val gray = spansWithStyle(code, "ini", Color(0xFF8B93A3))
+        assertTrue("; comentario no resaltado: $gray", gray.contains("; seccion"))
+        assertTrue("# comentario no resaltado: $gray", gray.contains("# otra nota"))
+    }
+
+    @Test
+    fun `dart highlights keywords and interpolation`() {
+        val code = "void main() { var name = 'x'; print('Hola \$name'); }"
+        val blue = spansWithStyle(code, "dart", Color(0xFF3B82F6))
+        val amber = spansWithStyle(code, "dart", Color(0xFFF59E0B))
+        assertTrue("void keyword no resaltado: $blue", blue.contains("void"))
+        assertTrue("var keyword no resaltado: $blue", blue.contains("var"))
+        assertTrue("interpolacion \$name no resaltada: $amber", amber.contains("\$name"))
+    }
+
+    @Test
+    fun `lua highlights keywords and double dash comments`() {
+        val code = "-- comentario\nlocal x = 1\nwhile x > 0 do\n  break\nend"
+        val blue = spansWithStyle(code, "lua", Color(0xFF3B82F6))
+        val gray = spansWithStyle(code, "lua", Color(0xFF8B93A3))
+        assertTrue("local no resaltado: $blue", blue.contains("local"))
+        assertTrue("while no resaltado: $blue", blue.contains("while"))
+        assertTrue("comentario lua no resaltado: $gray", gray.contains("-- comentario"))
+    }
 }

@@ -10,6 +10,7 @@ class CodeLanguageDetectorTest {
     @Test
     fun `maps common extensions to language codes`() {
         assertEquals("kotlin", CodeLanguageDetector.fromFileName("Main.kt"))
+        assertEquals("kotlin", CodeLanguageDetector.fromFileName("build.gradle.kts"))
         assertEquals("java", CodeLanguageDetector.fromFileName("App.java"))
         assertEquals("python", CodeLanguageDetector.fromFileName("script.py"))
         assertEquals("javascript", CodeLanguageDetector.fromFileName("app.js"))
@@ -29,6 +30,37 @@ class CodeLanguageDetectorTest {
     }
 
     @Test
+    fun `maps new languages to codes`() {
+        assertEquals("php", CodeLanguageDetector.fromFileName("index.php"))
+        assertEquals("php", CodeLanguageDetector.fromFileName("partial.phtml"))
+        assertEquals("ruby", CodeLanguageDetector.fromFileName("app.rb"))
+        assertEquals("ruby", CodeLanguageDetector.fromFileName("Rakefile.rake"))
+        assertEquals("yaml", CodeLanguageDetector.fromFileName("config.yaml"))
+        assertEquals("yaml", CodeLanguageDetector.fromFileName("compose.yml"))
+        assertEquals("toml", CodeLanguageDetector.fromFileName("Cargo.toml"))
+        assertEquals("ini", CodeLanguageDetector.fromFileName("settings.ini"))
+        assertEquals("ini", CodeLanguageDetector.fromFileName("app.properties"))
+        assertEquals("dart", CodeLanguageDetector.fromFileName("main.dart"))
+        assertEquals("lua", CodeLanguageDetector.fromFileName("script.lua"))
+        assertEquals("markdown", CodeLanguageDetector.fromFileName("README.md"))
+        assertEquals("markdown", CodeLanguageDetector.fromFileName("notes.markdown"))
+    }
+
+    @Test
+    fun `maps expanded extensions to existing languages`() {
+        assertEquals("javascript", CodeLanguageDetector.fromFileName("app.jsx"))
+        assertEquals("json", CodeLanguageDetector.fromFileName("settings.jsonc"))
+        assertEquals("xml", CodeLanguageDetector.fromFileName("schema.xsd"))
+        assertEquals("xml", CodeLanguageDetector.fromFileName("style.xsl"))
+        assertEquals("xml", CodeLanguageDetector.fromFileName("icon.svg"))
+        assertEquals("python", CodeLanguageDetector.fromFileName("gui.pyw"))
+        assertEquals("html", CodeLanguageDetector.fromFileName("page.xhtml"))
+        assertEquals("bash", CodeLanguageDetector.fromFileName("build.ksh"))
+        assertEquals("bash", CodeLanguageDetector.fromFileName("config.fish"))
+        assertEquals("kotlin", CodeLanguageDetector.fromFileName("plugin.ktm"))
+    }
+
+    @Test
     fun `extension matching is case insensitive`() {
         assertEquals("kotlin", CodeLanguageDetector.fromFileName("Main.KT"))
     }
@@ -36,7 +68,7 @@ class CodeLanguageDetectorTest {
     @Test
     fun `no known extension returns null`() {
         assertNull(CodeLanguageDetector.fromFileName("readme.txt"))
-        assertNull(CodeLanguageDetector.fromFileName("notes.md"))
+        assertNull(CodeLanguageDetector.fromFileName("notes.xyz"))
         assertNull(CodeLanguageDetector.fromFileName("archive.zip"))
     }
 

@@ -11,8 +11,12 @@ object CodeHighlighter {
         val keywords: Set<String>,
         val hashComment: Boolean = false,
         val doubleDashComment: Boolean = false,
+        val semicolonComment: Boolean = false,
         val blockComment: Boolean = true,
-        val htmlComment: Boolean = false
+        val htmlComment: Boolean = false,
+        val htmlTags: Boolean = false,
+        val fstring: Boolean = false,
+        val primitives: Set<String> = emptySet()
     )
 
     private val langConfigs: Map<String, LangConfig> = mapOf(
@@ -32,9 +36,13 @@ object CodeHighlighter {
                 "public", "private", "protected", "static", "final", "class", "interface", "extends",
                 "implements", "import", "package", "new", "if", "else", "for", "while", "do", "switch",
                 "case", "default", "break", "continue", "return", "try", "catch", "finally", "throw",
-                "throws", "void", "int", "long", "double", "float", "boolean", "byte", "char", "short",
-                "this", "super", "null", "true", "false", "instanceof", "synchronized", "abstract",
-                "native", "volatile", "transient", "enum", "assert"
+                "throws", "this", "super", "null", "true", "false", "instanceof", "synchronized",
+                "abstract", "native", "volatile", "transient", "enum", "assert", "record", "sealed",
+                "permits", "yield", "var", "module", "requires", "transitive", "exports", "opens",
+                "uses", "provides", "with", "to", "open"
+            ),
+            primitives = setOf(
+                "void", "int", "long", "double", "float", "boolean", "byte", "char", "short"
             )
         ),
         "python" to LangConfig(
@@ -42,10 +50,15 @@ object CodeHighlighter {
                 "def", "class", "if", "elif", "else", "for", "while", "in", "not", "and", "or",
                 "return", "yield", "lambda", "import", "from", "as", "pass", "break", "continue",
                 "try", "except", "finally", "raise", "with", "global", "nonlocal", "assert", "del",
-                "is", "None", "True", "False"
+                "is", "None", "True", "False",
+                "str", "int", "float", "bool", "list", "dict", "tuple", "set", "bytes", "object",
+                "type", "print", "input", "len", "range", "enumerate", "zip", "map", "filter",
+                "sorted", "reversed", "sum", "min", "max", "abs", "round", "open", "isinstance",
+                "issubclass", "getattr", "setattr", "hasattr", "super", "id", "repr", "all", "any"
             ),
             hashComment = true,
-            blockComment = false
+            blockComment = false,
+            fstring = true
         ),
         "javascript" to LangConfig(
             keywords = setOf(
@@ -68,14 +81,25 @@ object CodeHighlighter {
             )
         ),
         "html" to LangConfig(
-            keywords = emptySet(),
+            keywords = setOf(
+                "doctype", "html", "head", "body", "title", "meta", "link", "style", "script",
+                "div", "span", "p", "a", "img", "br", "hr", "ul", "ol", "li", "table", "thead",
+                "tbody", "tr", "td", "th", "form", "input", "button", "textarea", "select",
+                "option", "label", "nav", "header", "footer", "section", "article", "aside",
+                "main", "h1", "h2", "h3", "h4", "h5", "h6", "video", "audio", "canvas",
+                "iframe", "em", "strong", "small", "code", "pre", "blockquote"
+            ),
             blockComment = false,
-            htmlComment = true
+            htmlComment = true,
+            htmlTags = true
         ),
         "xml" to LangConfig(
-            keywords = emptySet(),
+            keywords = setOf(
+                "xml", "version", "encoding", "doctype", "cdata"
+            ),
             blockComment = false,
-            htmlComment = true
+            htmlComment = true,
+            htmlTags = true
         ),
         "css" to LangConfig(
             keywords = setOf(
@@ -162,6 +186,75 @@ object CodeHighlighter {
             ),
             hashComment = true,
             blockComment = false
+        ),
+        "php" to LangConfig(
+            keywords = setOf(
+                "php", "echo", "print", "if", "else", "elseif", "for", "foreach", "while", "do",
+                "switch", "case", "default", "break", "continue", "return", "function", "class",
+                "interface", "trait", "extends", "implements", "public", "private", "protected",
+                "static", "final", "abstract", "const", "var", "new", "this", "use", "namespace",
+                "try", "catch", "finally", "throw", "instanceof", "null", "true", "false", "global",
+                "include", "require", "include_once", "require_once", "isset", "unset", "empty",
+                "list", "array", "as", "and", "or", "xor", "not", "match", "fn", "readonly", "enum"
+            ),
+            hashComment = true,
+            blockComment = true
+        ),
+        "ruby" to LangConfig(
+            keywords = setOf(
+                "def", "class", "module", "if", "elsif", "else", "unless", "case", "when", "then",
+                "for", "while", "until", "do", "return", "yield", "begin", "rescue", "ensure", "end",
+                "require", "include", "extend", "attr_accessor", "attr_reader", "attr_writer",
+                "new", "self", "super", "nil", "true", "false", "and", "or", "not", "break", "next",
+                "redo", "retry", "raise", "catch", "throw", "lambda", "proc", "defined", "alias"
+            ),
+            hashComment = true,
+            blockComment = false
+        ),
+        "yaml" to LangConfig(
+            keywords = setOf(
+                "true", "false", "null", "yes", "no", "on", "off", "~", "none", "True", "False",
+                "Null", "Yes", "No", "On", "Off"
+            ),
+            hashComment = true,
+            blockComment = false
+        ),
+        "toml" to LangConfig(
+            keywords = setOf("true", "false"),
+            hashComment = true,
+            blockComment = false
+        ),
+        "ini" to LangConfig(
+            keywords = setOf("true", "false", "yes", "no", "on", "off", "null"),
+            hashComment = true,
+            semicolonComment = true,
+            blockComment = false
+        ),
+        "dart" to LangConfig(
+            keywords = setOf(
+                "void", "var", "final", "const", "class", "extends", "implements", "with", "mixin",
+                "abstract", "async", "await", "yield", "sync", "if", "else", "for", "while", "do",
+                "switch", "case", "default", "break", "continue", "return", "new", "this", "super",
+                "null", "true", "false", "late", "required", "factory", "typedef", "part", "import",
+                "export", "library", "operator", "get", "set", "rethrow", "throw", "try", "catch",
+                "finally", "is", "as", "in", "covariant", "dynamic"
+            )
+        ),
+        "lua" to LangConfig(
+            keywords = setOf(
+                "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto",
+                "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until",
+                "while", "self"
+            ),
+            doubleDashComment = true,
+            blockComment = false
+        ),
+        "markdown" to LangConfig(
+            keywords = setOf(
+                "true", "false", "null"
+            ),
+            hashComment = true,
+            blockComment = false
         )
     )
 
@@ -173,6 +266,9 @@ object CodeHighlighter {
     private val typeStyle = SpanStyle(color = Color(0xFF9333EA))
     private val annotationStyle = SpanStyle(color = Color(0xFF10B981))
     private val functionStyle = SpanStyle(color = Color(0xFFA855F7))
+    private val attributeStyle = SpanStyle(color = Color(0xFFF59E0B))
+    private val bracketStyle = SpanStyle(color = Color(0xFF8B93A3))
+    private val primitiveStyle = SpanStyle(color = Color(0xFF0D9488))
 
     private val regexCache = mutableMapOf<String, Regex>()
 
@@ -185,16 +281,21 @@ object CodeHighlighter {
         val regex = regexFor(config)
         val text = code.text
         val builder = AnnotatedString.Builder(text)
-        val stringRanges = mutableListOf<IntRange>()
+        val stringRanges = mutableListOf<Pair<IntRange, Boolean>>()
         for (match in regex.findAll(text)) {
             val style = when {
                 match.groups["comment"] != null -> commentStyle
                 match.groups["string"] != null -> {
-                    stringRanges.add(match.range)
+                    stringRanges.add(match.range to isFString(text, match.range, config))
                     stringStyle
                 }
                 match.groups["number"] != null -> numberStyle
+                config.primitives.isNotEmpty() && match.groups["keyword"] != null &&
+                    match.groups["keyword"]!!.value in config.primitives -> primitiveStyle
                 config.keywords.isNotEmpty() && match.groups["keyword"] != null -> keywordStyle
+                config.htmlTags && match.groups["attrName"] != null -> attributeStyle
+                config.htmlTags && match.groups["tagName"] != null -> keywordStyle
+                config.htmlTags && match.groups["tagBracket"] != null -> bracketStyle
                 match.groups["annotation"] != null -> annotationStyle
                 match.groups["type"] != null -> typeStyle
                 match.groups["function"] != null -> functionStyle
@@ -203,21 +304,34 @@ object CodeHighlighter {
             builder.addStyle(style, match.range.first, match.range.last + 1)
         }
         if (stringRanges.isNotEmpty()) {
-            val interpRegex = stringInterpolationRegex()
-            for (range in stringRanges) {
-                for (m in interpRegex.findAll(text, range.first)) {
-                    if (m.range.last > range.last) break
-                    if (m.range.first >= range.first) {
-                        builder.addStyle(
-                            stringInterpolationStyle,
-                            m.range.first,
-                            m.range.last + 1
-                        )
-                    }
+            applyInterpolations(builder, text, stringRanges)
+        }
+        return builder.toAnnotatedString()
+    }
+
+    private fun isFString(text: String, range: IntRange, config: LangConfig): Boolean {
+        if (!config.fstring) return false
+        val start = range.first
+        if (start <= 0) return false
+        var i = start - 1
+        while (i >= 0 && (text[i] == 'r' || text[i] == 'R')) i--
+        return i >= 0 && (text[i] == 'f' || text[i] == 'F')
+    }
+
+    private fun applyInterpolations(
+        builder: AnnotatedString.Builder,
+        text: String,
+        stringRanges: List<Pair<IntRange, Boolean>>
+    ) {
+        for ((range, isF) in stringRanges) {
+            val interpRegex = if (isF) fStringInterpolationRegex() else stringInterpolationRegex()
+            for (m in interpRegex.findAll(text, range.first)) {
+                if (m.range.last > range.last) break
+                if (m.range.first >= range.first) {
+                    builder.addStyle(stringInterpolationStyle, m.range.first, m.range.last + 1)
                 }
             }
         }
-        return builder.toAnnotatedString()
     }
 
     private val interpRegexCache = mutableMapOf<String, Regex>()
@@ -227,29 +341,45 @@ object CodeHighlighter {
             Regex("\\$\\{(?:[^{}]|\\{[^{}]*\\})*\\}|\\$[A-Za-z_][A-Za-z0-9_]*")
         }
 
+    private val fStringRegexCache = mutableMapOf<String, Regex>()
+
+    private fun fStringInterpolationRegex(): Regex =
+        fStringRegexCache.getOrPut("f") {
+            Regex("\\{(?:[^{}]|\\{[^{}]*\\})*\\}")
+        }
+
     private fun regexFor(config: LangConfig): Regex {
-        val keywords = config.keywords.toList().sorted()
-        val key = keywords.joinToString("|") +
-            "|" + config.hashComment + config.doubleDashComment + config.blockComment + config.htmlComment
+        val allKeywords = (config.keywords + config.primitives).sorted()
+        val key = allKeywords.joinToString("|") +
+            "|" + config.hashComment + config.doubleDashComment + config.semicolonComment +
+            config.blockComment +
+            config.htmlComment + config.htmlTags + config.fstring
         return regexCache.getOrPut(key) {
             val comments = mutableListOf<String>()
             if (config.blockComment) comments += "/\\*[\\s\\S]*?\\*/"
             if (config.htmlComment) comments += "<!--[\\s\\S]*?-->"
             if (config.hashComment) comments += "#[^\\n]*"
             if (config.doubleDashComment) comments += "--[^\\n]*"
-            comments += "//[^\\n]*"
+            if (config.semicolonComment) comments += ";[^\\n]*"
+            if (!config.htmlTags) comments += "//[^\\n]*"
 
             val strings = "\"\"\"(?:\\.|(?!\"\"\")[^\\\\])*?\"\"\"|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`"
             val numbers = "\\b\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b|0[xX][0-9a-fA-F]+"
-            val keywordsPattern = if (keywords.isEmpty()) "" else "|(?<keyword>\\b(?:${keywords.joinToString("|")})\\b)"
+            val keywordsPattern = if (allKeywords.isEmpty()) "" else "|(?<keyword>\\b(?:${allKeywords.joinToString("|")})\\b)"
             val pattern = buildString {
                 append("(?<comment>").append(comments.joinToString("|")).append(')')
                 append("|(?<string>").append(strings).append(')')
                 append("|(?<number>").append(numbers).append(')')
                 append(keywordsPattern)
-                append("|(?<annotation>@[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)")
-                append("|(?<type>\\b[A-Z][A-Za-z0-9_]*)")
-                append("|(?<function>\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\())")
+                if (config.htmlTags) {
+                    append("|(?<tagBracket></|/>|>|<)")
+                    append("|(?<attrName>\\b[A-Za-z_][\\w.:-]*(?=\\s*=))")
+                    append("|(?<tagName>(?<=<|</)[A-Za-z][\\w:-]*)")
+                } else {
+                    append("|(?<annotation>@[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)")
+                    append("|(?<type>\\b[A-Z][A-Za-z0-9_]*)")
+                    append("|(?<function>\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\())")
+                }
             }
             Regex(pattern)
         }

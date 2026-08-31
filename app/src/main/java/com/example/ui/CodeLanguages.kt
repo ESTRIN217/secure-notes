@@ -46,7 +46,15 @@ object CodeLanguages {
         CodeLanguage("go", "Go"),
         CodeLanguage("rust", "Rust"),
         CodeLanguage("swift", "Swift"),
-        CodeLanguage("bash", "Shell")
+        CodeLanguage("bash", "Shell"),
+        CodeLanguage("php", "PHP"),
+        CodeLanguage("ruby", "Ruby"),
+        CodeLanguage("yaml", "YAML"),
+        CodeLanguage("toml", "TOML"),
+        CodeLanguage("ini", "INI"),
+        CodeLanguage("dart", "Dart"),
+        CodeLanguage("lua", "Lua"),
+        CodeLanguage("markdown", "Markdown")
     )
 
     fun labelFor(code: String?): String =
