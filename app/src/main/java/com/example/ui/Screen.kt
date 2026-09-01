@@ -6,6 +6,9 @@ import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.ui.viewmodel.StorageViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import kotlinx.coroutines.launch
@@ -19,7 +22,8 @@ data class ScreenContext(
     val storageViewModel: StorageViewModel,
     val chatHistoryViewModel: ChatHistoryViewModel,
     val navigator: Navigator,
-    val currentScreen: Screen
+    val currentScreen: Screen,
+    val onImportFile: (Uri) -> Unit = {}
 )
 
 sealed class Screen {
@@ -30,6 +34,9 @@ sealed class Screen {
         override fun render(context: ScreenContext) {
             val scope = rememberCoroutineScope()
             val androidAppContext = LocalContext.current
+            val importLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.OpenDocument()
+            ) { uri -> uri?.let { context.onImportFile(it) } }
             MainListScreen(
                 viewModel = context.viewModel,
                 aiViewModel = context.aiViewModel,
@@ -54,6 +61,9 @@ sealed class Screen {
                         val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())
                         context.navigator.onNavigateTo(Screen.DrawingCanvas(noteId, null))
                     }
+                },
+                onImportFile = {
+                    importLauncher.launch(arrayOf("text/*", "application/json", "application/pdf"))
                 },
             )
         }

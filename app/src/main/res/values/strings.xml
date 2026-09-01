@@ -1039,4 +1039,18 @@
     <string name="ai_lang_zh">中文</string>
     <string name="ai_lang_ru">Русский</string>
     <string name="ai_lang_ar">العربية</string>
+
+    <!-- v4.0 File Manager -->
+    <string name="fab_import_file">Import file</string>
+    <string name="file_open_dialog_title">Open file: %1$s</string>
+    <string name="file_open_dialog_text">This file is not a Secure Notes document. Open it in the code editor or import its contents as a new note.</string>
+    <string name="file_open_dialog_pdf">This is a PDF file. You can view it in the built-in PDF viewer.</string>
+    <string name="file_open_import_note">Import as new note</string>
+    <string name="file_open_code_editor">Open in Code Editor</string>
+    <string name="file_open_view_pdf">View PDF</string>
+    <string name="file_open_import_error">Could not import this file</string>
+    <string name="pdf_viewer_title">PDF Viewer</string>
+    <string name="pdf_open_error">Could not open this PDF</string>
+    <string name="pdf_page_indicator">Page %1$d of %2$d</string>
+    <string name="pdf_page_count">%1$d pages</string>
     </resources>

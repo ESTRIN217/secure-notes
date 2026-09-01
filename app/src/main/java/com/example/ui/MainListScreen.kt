@@ -112,6 +112,7 @@ fun MainListScreen(
     onLaunchNewAiChat: () -> Unit = {},
     onNavigateToNewDrawing: () -> Unit = {},
     onNavigateToCodeTools: () -> Unit = {},
+    onImportFile: () -> Unit = {},
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
@@ -746,6 +747,17 @@ fun MainListScreen(
                                             modifier = Modifier.testTag("fab_code_tools")
                                         ) {
                                             Icon(Icons.Default.Code, contentDescription = stringResource(R.string.code_tools))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                onImportFile()
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_import_file")
+                                        ) {
+                                            Icon(Icons.Default.UploadFile, contentDescription = stringResource(R.string.fab_import_file))
                                         }
                                     }
                                 }

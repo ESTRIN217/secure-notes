@@ -926,4 +926,18 @@ Diferencia: %3$s
     <string name="toast_note_created_with_audio">Nota creada con audio</string>
     <string name="toast_note_created_with_image">Nota creada con imagen</string>
     <string name="note_image_load_error">No se pudo cargar la imagen</string>
+
+    <!-- v4.0 Gestor de Archivos -->
+    <string name="fab_import_file">Importar archivo</string>
+    <string name="file_open_dialog_title">Abrir archivo: %1$s</string>
+    <string name="file_open_dialog_text">Este archivo no es un documento de Secure Notes. Ábrelo en el editor de código o importa su contenido como una nueva nota.</string>
+    <string name="file_open_dialog_pdf">Este es un archivo PDF. Puedes verlo en el visor de PDF integrado.</string>
+    <string name="file_open_import_note">Importar como nueva nota</string>
+    <string name="file_open_code_editor">Abrir en Editor de Código</string>
+    <string name="file_open_view_pdf">Ver PDF</string>
+    <string name="file_open_import_error">No se pudo importar este archivo</string>
+    <string name="pdf_viewer_title">Visor de PDF</string>
+    <string name="pdf_open_error">No se pudo abrir este PDF</string>
+    <string name="pdf_page_indicator">Página %1$d de %2$d</string>
+    <string name="pdf_page_count">%1$d páginas</string>
 </resources>

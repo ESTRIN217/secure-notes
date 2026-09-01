@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
+import android.net.Uri
 import android.Manifest
 import android.content.pm.PackageManager
 import coil3.compose.AsyncImage
@@ -117,6 +118,8 @@ import com.example.ui.Navigator
 import com.example.ui.ScreenContext
 import com.example.util.MoveDirection
 import com.example.util.SortOption
+import com.example.util.FileImporter
+import com.example.util.ImportFileType
 import com.example.util.borderStrokeHelper
 import com.example.util.fillPackageNameOrScope
 import com.example.util.getColorName
@@ -135,13 +138,30 @@ import com.example.ui.ShareFormatSheet
 import com.example.ui.MainListScreen
 import com.example.ui.NoteCardItem
 import com.example.ui.SortOptionRow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var notesViewModel: NotesViewModel? = null
 
+    companion object {
+        @JvmStatic
+        var intentRelay: ((Intent) -> Unit)? = null
+    }
+
     override fun onUserInteraction() {
         super.onUserInteraction()
         notesViewModel?.resetAutoLockTimer()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intentRelay?.invoke(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        intentRelay = null
     }
 
     override fun attachBaseContext(newBase: Context) {
@@ -350,6 +370,68 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     }
 
+    val importScope = rememberCoroutineScope()
+    var pendingFile by remember { mutableStateOf<PendingFileInfo?>(null) }
+
+    fun enqueueFileImport(activity: Activity?, context: Context, uri: Uri) {
+        if (pendingFile != null) return
+        runCatching {
+            activity?.contentResolver?.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        importScope.launch {
+            val name = FileImporter.queryDisplayName(context, uri)
+            val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+            val type = FileImporter.detectFileType(name, mime)
+            if (!FileImporter.isImportable(type)) {
+                Toast.makeText(context, context.getString(R.string.file_open_import_error), Toast.LENGTH_SHORT).show()
+            } else {
+                pendingFile = PendingFileInfo(uri = uri, name = name ?: "file", mimeType = mime, type = type)
+            }
+        }
+    }
+
+    fun importAsNewNote(context: Context, info: PendingFileInfo) {
+        pendingFile = null
+        importScope.launch {
+            val content = FileImporter.convertToBlockContent(context, info.uri, info.type)
+            if (content == null) {
+                Toast.makeText(context, context.getString(R.string.file_open_import_error), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val noteId = viewModel.saveNoteAndGetId(
+                id = 0,
+                title = info.name,
+                content = content,
+                isEncrypted = false,
+                tagsList = emptyList()
+            )
+            navigator.onNavigateTo(Screen.NoteEditor(noteId))
+        }
+    }
+
+    fun openInCodeEditor(context: Context, info: PendingFileInfo) {
+        pendingFile = null
+        val editorIntent = Intent(context, com.example.CodeEditorActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            setDataAndType(info.uri, info.mimeType ?: "text/plain")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        context.startActivity(editorIntent)
+    }
+
+    fun viewPdf(context: Context, info: PendingFileInfo) {
+        pendingFile = null
+        context.startActivity(PdfViewerActivity.intentFor(context, info.uri))
+    }
+
+    DisposableEffect(Unit) {
+        MainActivity.intentRelay = { intent ->
+            intent.data?.let { enqueueFileImport(activity, context, it) }
+        }
+        activity?.intent?.data?.let { enqueueFileImport(activity, context, it) }
+        onDispose { MainActivity.intentRelay = null }
+    }
+
     val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen) {
         ScreenContext(
             viewModel = viewModel,
@@ -360,7 +442,11 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             storageViewModel = storageViewModel,
             chatHistoryViewModel = chatHistoryViewModel,
             navigator = navigator,
-            currentScreen = currentScreen
+            currentScreen = currentScreen,
+            onImportFile = { uri ->
+                runCatching { activity?.contentResolver?.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                enqueueFileImport(activity, context, uri)
+            }
         )
     }
 
@@ -381,6 +467,15 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             label = "ScreenTransition"
         ) { screen ->
             screen.render(screenContext)
+        }
+        pendingFile?.let { info ->
+            FileImportDialog(
+                info = info,
+                onImportNote = { importAsNewNote(context, info) },
+                onOpenCodeEditor = { openInCodeEditor(context, info) },
+                onViewPdf = { viewPdf(context, info) },
+                onDismiss = { pendingFile = null }
+            )
         }
     }
 }
@@ -614,5 +709,53 @@ fun NavigationRailContent(
             }
         }
     }
+}
+
+private data class PendingFileInfo(
+    val uri: Uri,
+    val name: String,
+    val mimeType: String?,
+    val type: ImportFileType
+)
+
+@Composable
+private fun FileImportDialog(
+    info: PendingFileInfo,
+    onImportNote: () -> Unit,
+    onOpenCodeEditor: () -> Unit,
+    onViewPdf: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(R.string.file_open_dialog_title, info.name))
+        },
+        text = {
+            Text(
+                stringResource(
+                    if (info.type == ImportFileType.PDF) R.string.file_open_dialog_pdf
+                    else R.string.file_open_dialog_text
+                )
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { if (info.type == ImportFileType.PDF) onViewPdf() else onImportNote() }) {
+                Text(stringResource(if (info.type == ImportFileType.PDF) R.string.file_open_view_pdf else R.string.file_open_import_note))
+            }
+        },
+        dismissButton = {
+            Row {
+                if (info.type != ImportFileType.PDF) {
+                    TextButton(onClick = onOpenCodeEditor) {
+                        Text(stringResource(R.string.file_open_code_editor))
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        }
+    )
 }
 

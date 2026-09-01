@@ -885,4 +885,18 @@ O que deseja fazer?</string>
     <string name="toast_note_created_with_audio">Nota criada com áudio</string>
     <string name="toast_note_created_with_image">Nota criada com imagem</string>
     <string name="note_image_load_error">Não foi possível carregar a imagem</string>
+
+    <!-- v4.0 Gestor de Arquivos -->
+    <string name="fab_import_file">Importar arquivo</string>
+    <string name="file_open_dialog_title">Abrir arquivo: %1$s</string>
+    <string name="file_open_dialog_text">Este arquivo não é um documento do Secure Notes. Abra-o no editor de código ou importe seu conteúdo como uma nova nota.</string>
+    <string name="file_open_dialog_pdf">Este é um arquivo PDF. Você pode vê-lo no visualizador de PDF integrado.</string>
+    <string name="file_open_import_note">Importar como nova nota</string>
+    <string name="file_open_code_editor">Abrir no Editor de Código</string>
+    <string name="file_open_view_pdf">Ver PDF</string>
+    <string name="file_open_import_error">Não foi possível importar este arquivo</string>
+    <string name="pdf_viewer_title">Visualizador de PDF</string>
+    <string name="pdf_open_error">Não foi possível abrir este PDF</string>
+    <string name="pdf_page_indicator">Página %1$d de %2$d</string>
+    <string name="pdf_page_count">%1$d páginas</string>
 </resources>

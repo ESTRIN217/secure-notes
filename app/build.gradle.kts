@@ -140,6 +140,8 @@ dependencies {
   implementation(libs.androidx.work.ktx)
   implementation(libs.androidx.biometric)
   implementation(libs.androidx.biometric.compose)
+  implementation(libs.androidx.pdf.viewer.fragment)
+  implementation(libs.androidx.appcompat)
   // implementation(libs.play.services.location)
   implementation(libs.play.services.auth)
   implementation(libs.retrofit)
