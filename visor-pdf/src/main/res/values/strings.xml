@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Visor PDF</string>
+    <string name="open_with_pdf">Abrir documento PDF</string>
+    <string name="select_pdf">Seleccionar PDF</string>
+    <string name="recent_files">Archivos recientes</string>
+    <string name="no_file_opened">Ningún documento abierto</string>
+    <string name="tap_to_open_pdf">Toca el botón para elegir un archivo PDF o ábrelo directamente desde otra app con «Abrir con»</string>
+    <string name="page_counter">Pág. %1$d de %2$d</string>
+    <string name="page_label">Página %1$d</string>
+    <string name="error_loading_pdf">Error al abrir el documento PDF</string>
+    <string name="share_file">Compartir archivo</string>
+    <string name="file_info">Detalles del archivo</string>
+    <string name="close">Cerrar</string>
+    <string name="jump_to_page">Ir a página</string>
+    <string name="go_to">Ir</string>
+    <string name="night_mode">Modo oscuro</string>
+    <string name="fit_width">Ajustar ancho</string>
+    <string name="zoom_in">Aumentar zoom</string>
+    <string name="zoom_out">Reducir zoom</string>
+    <string name="search_in_document">Buscar texto</string>
+    <string name="viewer_mode_androidx">Modo Jetpack PDF</string>
+    <string name="viewer_mode_classic">Modo Clásico</string>
+    <string name="engine_not_supported_notice">El visor Jetpack PDF requiere Android S+ con Extensiones SDK 13+. Usando el visor nativo estable.</string>
+</resources>

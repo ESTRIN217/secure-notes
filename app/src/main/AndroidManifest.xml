@@ -55,6 +55,30 @@
                 <data android:mimeType="application/json" />
                 <data android:mimeType="application/pdf" />
             </intent-filter>
+            <!-- Aparece en el diálogo "Abrir con" del sistema para archivos PDF (content://) -->
+            <intent-filter tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf" />
+                <data android:scheme="content" />
+            </intent-filter>
+
+            <!-- Aparece en "Abrir con" para archivos locales (file://) -->
+            <intent-filter tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf" />
+                <data android:scheme="file" />
+            </intent-filter>
+
+            <!-- Compatibilidad para intents sin esquema explícito con mimeType application/pdf -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
         </activity>
 
         <activity
@@ -73,15 +97,14 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/*" />
-                <data android:mimeType="application/*" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
         <activity
             android:name=".PdfViewerActivity"
             android:exported="false"
-            android:label="@string/pdf_viewer_title"
-            android:theme="@style/Theme.PdfViewer" />
+            android:label="@string/pdf_viewer_title" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

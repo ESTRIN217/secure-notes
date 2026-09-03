@@ -48,7 +48,7 @@ biometric = "1.4.0-alpha07"
 biometricCompose = "1.4.0-alpha07"
 credentials = "1.6.0"
 androidxPdf = "1.0.0-alpha19"
-appcompat = "1.7.1"
+
 credentialsPlayServicesAuth = "1.6.0"
 googleId = "1.2.0"
 material3 = "1.5.0-alpha25"
@@ -117,8 +117,11 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 androidx-work-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-biometric-compose = { group = "androidx.biometric", name = "biometric-compose", version.ref = "biometricCompose" }
-androidx-pdf-viewer-fragment = { group = "androidx.pdf", name = "pdf-viewer-fragment", version.ref = "androidxPdf" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-pdf-viewer = { group = "androidx.pdf", name = "pdf-viewer", version.ref = "androidxPdf" }
+androidx-pdf-viewer-fragment = { group = "androidx.pdf", name = "pdf-viewer-fragment", version = "1.0.0-alpha04" }
+androidx-pdf-document-service = { group = "androidx.pdf", name = "pdf-document-service", version.ref = "androidxPdf" }
+androidx-pdf-compose = { group = "androidx.pdf", name = "pdf-compose", version.ref = "androidxPdf" }
+androidx-fragment-compose = { group = "androidx.fragment", name = "fragment-compose", version = "1.8.6" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.PdfViewerActivity
 import com.example.R
 import com.example.data.ai.AiAction
 import com.example.data.model.Attachment
@@ -1236,6 +1237,10 @@ fun NoteEditorScreen(
                 android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
             }
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(path))
+            if (mime == "application/pdf") {
+                context.startActivity(PdfViewerActivity.intentFor(context, uri))
+                return
+            }
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, mime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
