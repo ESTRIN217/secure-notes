@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,20 +54,9 @@ fun MediaViewerScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar(
-                containerColor = Color.Black.copy(alpha = 0.7f),
-                borderStroke = BorderStroke(0.dp, Color.Transparent)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
-                        }
-                        Text(
+          TopAppBar(
+            title = {
+              Text(
                             text = when (type) {
                                 "image" -> stringResource(R.string.attachment_image)
                                 "audio" -> stringResource(R.string.attachment_audio)
@@ -74,11 +64,15 @@ fun MediaViewerScreen(
                             },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
                         )
-                    }
-                    Row {
-                        if (!isWebVideo) {
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
+            },
+            actions = {
+              if (!isWebVideo) {
                             IconButton(onClick = {
                                 try {
                                     val uri = if (src.startsWith("content://")) {
@@ -101,7 +95,7 @@ fun MediaViewerScreen(
                                     Toast.makeText(context, context.getString(R.string.toast_share_error), Toast.LENGTH_SHORT).show()
                                 }
                             }) {
-                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.option_share), tint = Color.White)
+                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.option_share))
                             }
                             IconButton(onClick = {
                                 try {
@@ -152,12 +146,11 @@ fun MediaViewerScreen(
                                     Toast.makeText(context, context.getString(R.string.toast_save_error), Toast.LENGTH_SHORT).show()
                                 }
                             }) {
-                                Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.option_save), tint = Color.White)
+                                Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.option_save))
                             }
-                        }
-                    }
-                }
+              }
             }
+          )
         },
         containerColor = Color.Black
     ) { paddingValues ->

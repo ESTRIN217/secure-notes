@@ -834,4 +834,28 @@ Que souhaitez-vous faire ?</string>
     <string name="pdf_open_error">Impossible d\'ouvrir ce PDF</string>
     <string name="pdf_page_indicator">Page %1$d sur %2$d</string>
     <string name="pdf_page_count">%1$d pages</string>
+
+    <!-- v4.0 Mode Flottant -->
+    <string name="floating_mode_title">Mode Flottant</string>
+    <string name="floating_mode_desc">Accès rapide aux notes en superposition depuis n\'importe quel écran</string>
+    <string name="floating_mode_tile_label">Note Flottante</string>
+    <string name="floating_mode_permission_title">Autorisation de superposition requise</string>
+    <string name="floating_mode_permission_desc">Pour afficher la bulle de notes flottante par-dessus d\'autres applications, Secure Notes a besoin de l\'autorisation \"Afficher sur d\'autres applications\".</string>
+    <string name="floating_mode_permission_button">Accorder l\'autorisation</string>
+    <string name="floating_mode_notification_title">Mode Flottant actif</string>
+    <string name="floating_mode_notification_text">Appuyez pour ouvrir la note rapide ou gérer la bulle</string>
+    <string name="floating_mode_stop">Arrêter</string>
+    <string name="floating_mode_quick_note">Note rapide</string>
+    <string name="floating_mode_recent_notes">Notes récentes</string>
+    <string name="floating_mode_note_title_hint">Titre…</string>
+    <string name="floating_mode_note_content_hint">Écrivez une note rapide…</string>
+    <string name="floating_mode_save_note">Enregistrer la note</string>
+    <string name="floating_mode_copy_text">Copier</string>
+    <string name="floating_mode_clear">Effacer</string>
+    <string name="floating_mode_open_app">Ouvrir l\'application</string>
+    <string name="floating_mode_minimize">Réduire</string>
+    <string name="floating_mode_close">Fermer</string>
+    <string name="floating_mode_note_saved">Note enregistrée avec succès !</string>
+    <string name="floating_mode_started">Bulle flottante active</string>
+    <string name="fab_floating_mode">Bulle flottante</string>
 </resources>

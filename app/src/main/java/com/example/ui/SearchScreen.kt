@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -138,27 +139,13 @@ fun SearchScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    OutlinedTextField(
+          TopAppBar(
+            title = {
+              OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { viewModel.searchQuery.value = it },
                         placeholder = { Text(stringResource(id = R.string.search_placeholder)) },
                         modifier = Modifier
-                            .weight(1f)
                             .focusRequester(focusRequester)
                             .testTag("search_input_field"),
                         singleLine = true,
@@ -188,8 +175,17 @@ fun SearchScreen(
                             unfocusedContainerColor = Color.Transparent
                         )
                     )
-                }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
             }
+          )
         }
     ) { innerPadding ->
         Column(

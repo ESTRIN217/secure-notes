@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <queries>
@@ -104,7 +107,28 @@
         <activity
             android:name=".PdfViewerActivity"
             android:exported="false"
-            android:label="@string/pdf_viewer_title" />
+            android:label="@string/pdf_viewer_title" 
+          android:theme="@style/Theme.MyApplication" />
+
+        <service
+            android:name=".service.FloatingBubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating quick notes overlay bubble accessible from any screen" />
+        </service>
+
+        <service
+            android:name=".service.FloatingNoteTileService"
+            android:exported="true"
+            android:icon="@drawable/img_app_icon"
+            android:label="@string/floating_mode_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

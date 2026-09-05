@@ -898,4 +898,28 @@ O que deseja fazer?</string>
     <string name="pdf_open_error">Não foi possível abrir este PDF</string>
     <string name="pdf_page_indicator">Página %1$d de %2$d</string>
     <string name="pdf_page_count">%1$d páginas</string>
+
+    <!-- v4.0 Modo Flutuante -->
+    <string name="floating_mode_title">Modo Flutuante</string>
+    <string name="floating_mode_desc">Acesso rápido a notas em sobreposição de qualquer tela</string>
+    <string name="floating_mode_tile_label">Nota Flutuante</string>
+    <string name="floating_mode_permission_title">Permissão de sobreposição necessária</string>
+    <string name="floating_mode_permission_desc">Para exibir a bolha de notas flutuante sobre outros aplicativos, o Secure Notes precisa da permissão de \"Sobrepor a outros aplicativos\".</string>
+    <string name="floating_mode_permission_button">Conceder permissão</string>
+    <string name="floating_mode_notification_title">Modo Flutuante ativo</string>
+    <string name="floating_mode_notification_text">Toque para abrir a nota rápida ou gerenciar a bolha</string>
+    <string name="floating_mode_stop">Parar</string>
+    <string name="floating_mode_quick_note">Nota rápida</string>
+    <string name="floating_mode_recent_notes">Notas recentes</string>
+    <string name="floating_mode_note_title_hint">Título…</string>
+    <string name="floating_mode_note_content_hint">Escreva uma nota rápida…</string>
+    <string name="floating_mode_save_note">Salvar nota</string>
+    <string name="floating_mode_copy_text">Copiar</string>
+    <string name="floating_mode_clear">Limpar</string>
+    <string name="floating_mode_open_app">Abrir aplicativo</string>
+    <string name="floating_mode_minimize">Minimizar</string>
+    <string name="floating_mode_close">Fechar</string>
+    <string name="floating_mode_note_saved">Nota salva com sucesso!</string>
+    <string name="floating_mode_started">Bolha flutuante ativa</string>
+    <string name="fab_floating_mode">Bolha flutuante</string>
 </resources>

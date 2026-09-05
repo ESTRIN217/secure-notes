@@ -368,6 +368,10 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         if (activity?.intent?.getBooleanExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE, false) == true) {
             currentScreen = Screen.UpdateInfo
         }
+        val noteId = activity?.intent?.getIntExtra("open_note_id", -1) ?: -1
+        if (noteId > 0) {
+            currentScreen = Screen.NoteEditor(noteId)
+        }
     }
 
     val importScope = rememberCoroutineScope()
@@ -427,6 +431,10 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
     DisposableEffect(Unit) {
         MainActivity.intentRelay = { intent ->
             intent.data?.let { enqueueFileImport(activity, context, it) }
+            val noteId = intent.getIntExtra("open_note_id", -1)
+            if (noteId > 0) {
+                navigator.onNavigateTo(Screen.NoteEditor(noteId))
+            }
         }
         activity?.intent?.data?.let { enqueueFileImport(activity, context, it) }
         onDispose { MainActivity.intentRelay = null }
@@ -509,8 +517,8 @@ fun NavigationRailContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Logo
-            Image(
-                painter = painterResource(id = R.drawable.img_app_icon),
+            AsyncImage(
+                model = R.mipmap.ic_launcher,
                 contentDescription = stringResource(id = R.string.cd_secure_notes_logo),
                 modifier = Modifier
                     .size(if (isExtended) 84.dp else 44.dp)

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LineWeight
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,30 +101,27 @@ fun DrawingCanvasScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar(borderStroke = canvasCardBorderStroke) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.drawing_canvas_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Row {
-                        IconButton(
-                            onClick = { strokes.clear() },
-                            modifier = Modifier.testTag("clear_canvas_btn")
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drawing_clear), tint = MaterialTheme.colorScheme.error)
-                        }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {
+              IconButton(
+                onClick = { strokes.clear() },
+                modifier = Modifier.testTag("clear_canvas_btn")
+              ) {
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drawing_clear), tint = MaterialTheme.colorScheme.error)
+              }
                         IconButton(
                             onClick = {
                                 if (canvasSize.width <= 0 || canvasSize.height <= 0) {
@@ -248,9 +246,8 @@ fun DrawingCanvasScreen(
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.drawing_save), tint = MaterialTheme.colorScheme.primary)
                         }
-                    }
-                }
             }
+          )
         }
     ) { paddingValues ->
         Column(

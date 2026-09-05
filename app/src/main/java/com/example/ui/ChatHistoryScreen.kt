@@ -82,12 +82,14 @@ fun ChatHistoryScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         ),
-                    trailingIcon = { 
+                    trailingIcon = {
+                      if (searchQuery.isNotEmpty()) {
                       IconButton(onClick = {
                         searchQuery = ""
                       }) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                       } }
+                    }
                     ) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

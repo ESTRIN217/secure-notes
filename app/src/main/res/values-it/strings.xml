@@ -834,4 +834,28 @@ Cosa vuoi fare?</string>
     <string name="pdf_open_error">Impossibile aprire questo PDF</string>
     <string name="pdf_page_indicator">Pagina %1$d di %2$d</string>
     <string name="pdf_page_count">%1$d pagine</string>
+
+    <!-- v4.0 Modalità Fluttuante -->
+    <string name="floating_mode_title">Modalità Fluttuante</string>
+    <string name="floating_mode_desc">Accesso rapido alle note in sovrimpressione da qualsiasi schermata</string>
+    <string name="floating_mode_tile_label">Nota Fluttuante</string>
+    <string name="floating_mode_permission_title">Autorizzazione di sovrapposizione richiesta</string>
+    <string name="floating_mode_permission_desc">Per mostrare la bolla di note fluttuante sopra altre applicazioni, Secure Notes richiede l\'autorizzazione \"Mostra sopra altre applicazioni\".</string>
+    <string name="floating_mode_permission_button">Concedi autorizzazione</string>
+    <string name="floating_mode_notification_title">Modalità Fluttuante attiva</string>
+    <string name="floating_mode_notification_text">Tocca per aprire la nota rapida o gestire la bolla</string>
+    <string name="floating_mode_stop">Interrompi</string>
+    <string name="floating_mode_quick_note">Nota rapida</string>
+    <string name="floating_mode_recent_notes">Note recenti</string>
+    <string name="floating_mode_note_title_hint">Titolo…</string>
+    <string name="floating_mode_note_content_hint">Scrivi una nota rapida…</string>
+    <string name="floating_mode_save_note">Salva nota</string>
+    <string name="floating_mode_copy_text">Copia</string>
+    <string name="floating_mode_clear">Cancella</string>
+    <string name="floating_mode_open_app">Apri app</string>
+    <string name="floating_mode_minimize">Riduci a icona</string>
+    <string name="floating_mode_close">Chiudi</string>
+    <string name="floating_mode_note_saved">Nota salvata con successo!</string>
+    <string name="floating_mode_started">Bolla fluttuante attiva</string>
+    <string name="fab_floating_mode">Bolla fluttuante</string>
 </resources>

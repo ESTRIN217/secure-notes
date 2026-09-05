@@ -32,7 +32,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.AppConstants
 import com.example.R
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
 import com.example.data.model.SyncStage
 import com.example.ui.viewmodel.BackupViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
@@ -129,22 +129,22 @@ fun BackupRestoreScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.backup_restore_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->

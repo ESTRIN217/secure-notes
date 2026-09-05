@@ -27,9 +27,11 @@ import com.example.AppConstants
 import com.example.DarkModeOption
 import com.example.R
 import com.example.data.ai.AiBackend
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
+import com.example.ui.floating.FloatingPermissionDialog
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ThemeViewModel
+import com.example.util.FloatingBubbleManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,32 +54,34 @@ fun SettingsScreen(
     val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
     val language by themeViewModel.language.collectAsStateWithLifecycle()
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
+    val isFloatingActive by FloatingBubbleManager.isRunningFlow().collectAsStateWithLifecycle()
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
+    var showFloatingPermissionDialog by remember { mutableStateOf(false) }
 
     val isDynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.nav_settings),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
@@ -237,6 +241,29 @@ fun SettingsScreen(
 
             item {
                 SettingsCardGroup {
+                    SettingsSwitchTile(
+                        icon = Icons.Default.Layers,
+                        title = stringResource(R.string.floating_mode_title),
+                        subtitle = stringResource(R.string.floating_mode_desc),
+                        checked = isFloatingActive,
+                        onCheckedChange = { enable ->
+                            if (enable) {
+                                if (FloatingBubbleManager.isOverlayPermissionGranted(context)) {
+                                    FloatingBubbleManager.startService(context)
+                                } else {
+                                    showFloatingPermissionDialog = true
+                                }
+                            } else {
+                                FloatingBubbleManager.stopService(context)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+
                     SettingsListTile(
                         leadingIcon = Icons.Default.Code,
                         title = stringResource(R.string.code_tools),
@@ -345,6 +372,16 @@ fun SettingsScreen(
     if (showChangelogSheet) {
         ChangelogBottomSheet(
             onDismiss = { showChangelogSheet = false }
+        )
+    }
+
+    if (showFloatingPermissionDialog) {
+        FloatingPermissionDialog(
+            onConfirm = {
+                showFloatingPermissionDialog = false
+                FloatingBubbleManager.openOverlaySettings(context)
+            },
+            onDismiss = { showFloatingPermissionDialog = false }
         )
     }
 }

@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.R
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
 import com.example.util.RichTextParser
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,25 +35,25 @@ fun LegalInfoScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.legal_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+              }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()

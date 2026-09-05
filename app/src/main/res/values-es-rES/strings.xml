@@ -834,4 +834,28 @@ Diferencia: %3$s
     <string name="pdf_open_error">No se pudo abrir este PDF</string>
     <string name="pdf_page_indicator">Página %1$d de %2$d</string>
     <string name="pdf_page_count">%1$d páginas</string>
+
+    <!-- v4.0 Modo Flotante -->
+    <string name="floating_mode_title">Modo Flotante</string>
+    <string name="floating_mode_desc">Acceso rápido a notas en superposición desde cualquier pantalla</string>
+    <string name="floating_mode_tile_label">Nota Flotante</string>
+    <string name="floating_mode_permission_title">Permiso de superposición necesario</string>
+    <string name="floating_mode_permission_desc">Para mostrar la burbuja de notas flotante sobre otras aplicaciones, Secure Notes requiere el permiso de \"Aparecer encima\".</string>
+    <string name="floating_mode_permission_button">Conceder permiso</string>
+    <string name="floating_mode_notification_title">Modo Flotante activo</string>
+    <string name="floating_mode_notification_text">Toca para abrir la nota rápida o gestionar la burbuja</string>
+    <string name="floating_mode_stop">Detener</string>
+    <string name="floating_mode_quick_note">Nota rápida</string>
+    <string name="floating_mode_recent_notes">Notas recientes</string>
+    <string name="floating_mode_note_title_hint">Título…</string>
+    <string name="floating_mode_note_content_hint">Escribe una nota rápida…</string>
+    <string name="floating_mode_save_note">Guardar nota</string>
+    <string name="floating_mode_copy_text">Copiar</string>
+    <string name="floating_mode_clear">Limpiar</string>
+    <string name="floating_mode_open_app">Abrir aplicación</string>
+    <string name="floating_mode_minimize">Minimizar</string>
+    <string name="floating_mode_close">Cerrar</string>
+    <string name="floating_mode_note_saved">¡Nota guardada con éxito!</string>
+    <string name="floating_mode_started">Burbuja flotante activa</string>
+    <string name="fab_floating_mode">Burbuja flotante</string>
 </resources>

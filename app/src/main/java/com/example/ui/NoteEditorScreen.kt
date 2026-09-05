@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.PdfViewerActivity
+import com.example.CodeEditorActivity
 import com.example.R
 import com.example.data.ai.AiAction
 import com.example.data.model.Attachment
@@ -1241,6 +1243,10 @@ fun NoteEditorScreen(
                 context.startActivity(PdfViewerActivity.intentFor(context, uri))
                 return
             }
+            if (mime == "application/octet-stream") {
+                // context.startActivity(CodeEditorActivity.intentFor(context, uri))
+                return
+            }
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, mime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -1408,26 +1414,22 @@ fun NoteEditorScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = handleSaveAndExit) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(
-                        onClick = { showMoreSheet = true },
-                        modifier = Modifier.testTag("more_note_btn")
-                    ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+          TopAppBar(
+            title = {},
+            navigationIcon = {
+              IconButton(onClick = handleSaveAndExit) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {
+              IconButton(
+                onClick = { showMoreSheet = true },
+                modifier = Modifier.testTag("more_note_btn")
+              ) {
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
+              }
             }
+          )
         }
     ) { innerPadding ->
         val isDark = isSystemInDarkTheme()

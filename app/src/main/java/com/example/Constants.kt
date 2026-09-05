@@ -48,6 +48,8 @@ object AppConstants {
     const val AUTO_LOCK_TIMEOUT_KEY = "auto_lock_timeout"
     const val AUTO_LOCK_TIMEOUT_DEFAULT = 5L
 
+    const val FLOATING_MODE_ENABLED_KEY = "floating_mode_enabled"
+
     // AI preferences
     const val AI_ENABLED_KEY = "ai_enabled"
     const val AI_BACKEND_KEY = "ai_backend"

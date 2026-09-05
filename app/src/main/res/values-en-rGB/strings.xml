@@ -899,4 +899,28 @@ What would you like to do?</string>
     <string name="pdf_open_error">Could not open this PDF</string>
     <string name="pdf_page_indicator">Page %1$d of %2$d</string>
     <string name="pdf_page_count">%1$d pages</string>
+
+    <!-- v4.0 Floating Mode -->
+    <string name="floating_mode_title">Floating Mode</string>
+    <string name="floating_mode_desc">Quick access to notes overlay from any screen</string>
+    <string name="floating_mode_tile_label">Floating Note</string>
+    <string name="floating_mode_permission_title">Overlay Permission Required</string>
+    <string name="floating_mode_permission_desc">To display the floating note bubble over other applications, Secure Notes requires the \"Display over other apps\" permission.</string>
+    <string name="floating_mode_permission_button">Grant Permission</string>
+    <string name="floating_mode_notification_title">Floating Mode Active</string>
+    <string name="floating_mode_notification_text">Tap to open quick note or manage bubble</string>
+    <string name="floating_mode_stop">Stop</string>
+    <string name="floating_mode_quick_note">Quick Note</string>
+    <string name="floating_mode_recent_notes">Recent Notes</string>
+    <string name="floating_mode_note_title_hint">Title…</string>
+    <string name="floating_mode_note_content_hint">Write a quick note…</string>
+    <string name="floating_mode_save_note">Save Note</string>
+    <string name="floating_mode_copy_text">Copy</string>
+    <string name="floating_mode_clear">Clear</string>
+    <string name="floating_mode_open_app">Open App</string>
+    <string name="floating_mode_minimize">Minimize</string>
+    <string name="floating_mode_close">Close</string>
+    <string name="floating_mode_note_saved">Note saved successfully!</string>
+    <string name="floating_mode_started">Floating bubble active</string>
+    <string name="fab_floating_mode">Floating bubble</string>
 </resources>

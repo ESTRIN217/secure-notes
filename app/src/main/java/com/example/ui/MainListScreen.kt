@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -205,6 +206,7 @@ fun MainListScreen(
 
     var showImageOptionsDialog by remember { mutableStateOf(false) }
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showFloatingPermissionDialog by remember { mutableStateOf(false) }
 
     val startAudioRecording: () -> Unit = {
         try {
@@ -362,17 +364,98 @@ fun MainListScreen(
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Scaffold(
                     topBar = {
-                        CustomTopBar {
-                            if (selectedNoteIds.isNotEmpty()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(
+                        TopAppBar(
+                            title = {
+                                if (selectedNoteIds.isNotEmpty()) {
+                                    Text(
+                                            text = selectedNoteIds.size.toString(),
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                } else {
+                                    when (currentSection) {
+                                            com.example.data.model.NavigationSection.TRASH -> {
+                                                Text(
+                                                    text = stringResource(id = R.string.nav_trash_title),
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            com.example.data.model.NavigationSection.ARCHIVED -> {
+                                                Text(
+                                                    text = stringResource(id = R.string.nav_archived_title),
+                                                    fontSize = 20.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            else -> {
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .height(48.dp)
+                                                        .testTag("search_field"),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                                                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.outlineVariant)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .padding(horizontal = 4.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        IconButton(
+                                                            onClick = onNavigateToSearch,
+                                                            modifier = Modifier.testTag("search_icon_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Search,
+                                                                contentDescription = stringResource(R.string.search_icon),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        Text(
+                                                            text = stringResource(id = R.string.search_placeholder),
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .clickable { onNavigateToSearch() },
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                        )
+                                                        IconButton(
+                                                            onClick = {
+                                                                isGridView = !isGridView
+                                                                prefs.edit().putBoolean("is_grid_view", isGridView).apply()
+                                                            },
+                                                            modifier = Modifier.testTag("toggle_view_mode_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = if (isGridView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.GridView,
+                                                                contentDescription = stringResource(id = R.string.menu_toggle_view),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        IconButton(
+                                                            onClick = { showSortBottomSheet = true },
+                                                            modifier = Modifier.testTag("sort_options_btn")
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                                                contentDescription = stringResource(id = R.string.menu_sort_options),
+                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                }
+                            },
+                            navigationIcon = {
+                                if (selectedNoteIds.isNotEmpty()) {
+                                    IconButton(
                                             onClick = { selectedNoteIds = emptySet() },
                                             modifier = Modifier.testTag("cancel_selection_btn")
                                         ) {
@@ -382,17 +465,27 @@ fun MainListScreen(
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = selectedNoteIds.size.toString(),
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-
-                                        IconButton(
+                                } else {
+                                    IconButton(
+                                            onClick = {
+                                                if (isLargeScreen) {
+                                                    isNavExtended = !isNavExtended
+                                                } else {
+                                                    scope.launch { drawerState.open() }
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("toggle_rail_btn")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
+                                                contentDescription = stringResource(R.string.toggle_navigation_rail)
+                                            )
+                                        }
+                                }
+                            },
+                            actions = {
+                                if (selectedNoteIds.isNotEmpty()) {
+                                    IconButton(
                                             onClick = {
                                                 viewModel.batchTogglePin(selectedNoteIds)
                                                 selectedNoteIds = emptySet()
@@ -470,45 +563,9 @@ fun MainListScreen(
                                                 tint = MaterialTheme.colorScheme.error
                                             )
                                         }
-                                    }
-                                }
-                            } else {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        IconButton(
-                                            onClick = {
-                                                if (isLargeScreen) {
-                                                    isNavExtended = !isNavExtended
-                                                } else {
-                                                    scope.launch { drawerState.open() }
-                                                }
-                                            },
-                                            modifier = Modifier.testTag("toggle_rail_btn")
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isLargeScreen && isNavExtended) Icons.AutoMirrored.Filled.MenuOpen else Icons.Default.Menu,
-                                                contentDescription = stringResource(R.string.toggle_navigation_rail)
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.width(4.dp))
-
-                                        when (currentSection) {
+                                } else {
+                                    when (currentSection) {
                                             com.example.data.model.NavigationSection.TRASH -> {
-                                                Text(
-                                                    text = stringResource(id = R.string.nav_trash_title),
-                                                    fontSize = 20.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.weight(1f))
                                                 if (notes.isNotEmpty()) {
                                                     OutlinedButton(
                                                         onClick = { showEmptyTrashAlert = true },
@@ -525,13 +582,6 @@ fun MainListScreen(
                                                 }
                                             }
                                             com.example.data.model.NavigationSection.ARCHIVED -> {
-                                                Text(
-                                                    text = stringResource(id = R.string.nav_archived_title),
-                                                    fontSize = 20.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.weight(1f))
                                                 IconButton(
                                                     onClick = onNavigateToSearch,
                                                     modifier = Modifier.testTag("archived_search_btn")
@@ -542,71 +592,9 @@ fun MainListScreen(
                                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
-                                            }
-                                            else -> {
-                                                Surface(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .height(48.dp)
-                                                        .testTag("search_field"),
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-                                                    border = BorderStroke(3.dp, MaterialTheme.colorScheme.outlineVariant)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .padding(horizontal = 4.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        IconButton(
-                                                            onClick = onNavigateToSearch,
-                                                            modifier = Modifier.testTag("search_icon_btn")
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Search,
-                                                                contentDescription = stringResource(R.string.search_icon),
-                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        }
-                                                        Text(
-                                                            text = stringResource(id = R.string.search_placeholder),
-                                                            modifier = Modifier
-                                                                .weight(1f)
-                                                                .clickable { onNavigateToSearch() },
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                                        )
-                                                        IconButton(
-                                                            onClick = {
-                                                                isGridView = !isGridView
-                                                                prefs.edit().putBoolean("is_grid_view", isGridView).apply()
-                                                            },
-                                                            modifier = Modifier.testTag("toggle_view_mode_btn")
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = if (isGridView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.GridView,
-                                                                contentDescription = stringResource(id = R.string.menu_toggle_view),
-                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        }
-                                                        IconButton(
-                                                            onClick = { showSortBottomSheet = true },
-                                                            modifier = Modifier.testTag("sort_options_btn")
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                                                contentDescription = stringResource(id = R.string.menu_sort_options),
-                                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        Spacer(modifier = Modifier.width(4.dp))
-
+                                            } 
+                                      else -> {}
+                                        } 
                                         val accountEmail by viewModel.driveAccountEmail.collectAsState()
                                         val profilePictureUri by viewModel.driveProfilePictureUri.collectAsState()
                                         if (accountEmail != null) {
@@ -663,10 +651,9 @@ fun MainListScreen(
                                                 }
                                             }
                                         }
-                                    }
                                 }
                             }
-                        }
+                        )
                     },
                     floatingActionButton = {
                         if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
@@ -758,6 +745,22 @@ fun MainListScreen(
                                             modifier = Modifier.testTag("fab_import_file")
                                         ) {
                                             Icon(Icons.Default.UploadFile, contentDescription = stringResource(R.string.fab_import_file))
+                                        }
+                                        SmallFloatingActionButton(
+                                            onClick = {
+                                                isFabExpanded = false
+                                                if (com.example.util.FloatingBubbleManager.isOverlayPermissionGranted(context)) {
+                                                    com.example.util.FloatingBubbleManager.startService(context)
+                                                    Toast.makeText(context, context.getString(R.string.floating_mode_started), Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    showFloatingPermissionDialog = true
+                                                }
+                                            },
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.testTag("fab_floating_mode")
+                                        ) {
+                                            Icon(Icons.Default.Layers, contentDescription = stringResource(R.string.fab_floating_mode))
                                         }
                                     }
                                 }
@@ -964,15 +967,15 @@ fun MainListScreen(
                                         Column(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
-                                        ) {
-                                            Image(
-                                                painter = painterResource(id = R.drawable.img_notes_empty),
-                                                contentDescription = stringResource(id = R.string.cd_empty_notes_banner),
-                                                modifier = Modifier
-                                                    .size(180.dp)
-                                                    .clip(RoundedCornerShape(24.dp))
-                                                    .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
-                                                contentScale = ContentScale.Crop
+                                        ) {                                          
+                                            AsyncImage(
+                                              model = R.mipmap.ic_launcher,
+                                              contentDescription = stringResource(id = R.string.cd_empty_notes_banner),
+                                              modifier = Modifier
+                                                .size(180.dp)
+                                                .clip(RoundedCornerShape(24.dp))
+                                                .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
+                                              contentScale = ContentScale.Crop
                                             )
                                             Spacer(modifier = Modifier.height(24.dp))
                                             Text(
@@ -1588,6 +1591,16 @@ fun MainListScreen(
                 }
                 draftPlayer?.release()
             }
+        }
+
+        if (showFloatingPermissionDialog) {
+            com.example.ui.floating.FloatingPermissionDialog(
+                onConfirm = {
+                    showFloatingPermissionDialog = false
+                    com.example.util.FloatingBubbleManager.openOverlaySettings(context)
+                },
+                onDismiss = { showFloatingPermissionDialog = false }
+            )
         }
     }
 }

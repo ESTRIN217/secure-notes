@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.BuildConfig
 import com.example.R
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.isSystemInDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,25 +67,25 @@ fun AboutScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.about_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+              }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
@@ -99,7 +99,7 @@ fun AboutScreen(
         ) {
             item {
                 HeaderCard(
-                    image = R.drawable.img_app_icon,
+                    image = R.mipmap.ic_launcher,
                     appName = stringResource(R.string.app_name),
                     platformLabel = platformLabel,
                     version = version,

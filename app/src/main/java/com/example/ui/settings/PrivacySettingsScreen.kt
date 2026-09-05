@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.AppConstants
 import com.example.AutoLockTimeout
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
 import com.example.PasswordType
 import com.example.R
 import com.example.ui.viewmodel.NotesViewModel
@@ -119,22 +119,22 @@ fun PrivacySettingsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.title_lock_settings),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->

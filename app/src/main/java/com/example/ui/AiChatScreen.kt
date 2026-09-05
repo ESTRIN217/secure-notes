@@ -1442,12 +1442,15 @@ fun ChatHistoryDrawerContent(
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             singleLine = true,
             shape = RoundedCornerShape(24.dp),
-            trailingIcon = { IconButton(onClick = {
+            trailingIcon = {
+              if (drawerSearchQuery.isNotEmpty()) {
+              IconButton(onClick = {
                 chatHistoryViewModel.setSearchQuery("")
                 onSearchQueryChange("")
             }) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
             } }
+            }
         )
 
         Spacer(modifier = Modifier.height(8.dp))

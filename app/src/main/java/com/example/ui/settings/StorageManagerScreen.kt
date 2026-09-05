@@ -28,7 +28,7 @@ import com.example.data.storage.AudioFileInfo
 import com.example.data.storage.StorageCategory
 import com.example.data.storage.StorageItem
 import com.example.data.storage.StorageOverview
-import com.example.ui.CustomTopBar
+import androidx.compose.material3.TopAppBar
 import com.example.ui.viewmodel.StorageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,22 +53,22 @@ fun StorageManagerScreen(
 
     Scaffold(
         topBar = {
-            CustomTopBar {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                    Text(
+          TopAppBar(
+            title = {
+              Text(
                         text = stringResource(R.string.settings_storage_manager),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-            }
+            },
+            navigationIcon = {
+              IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+            },
+            actions = {}
+          )
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
