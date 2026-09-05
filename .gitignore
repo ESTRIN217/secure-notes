@@ -21,3 +21,4 @@ key.properties
 *.jks
 *.keystore
 workspace.json
+app/google-services.json
