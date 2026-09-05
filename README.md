@@ -14,25 +14,23 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-173051.png" width="220" alt="Vista Principal (Material 3)"/>
+      <img src="assets/vista-principal.png" width="220" alt="Vista Principal (Material 3)"/>
       <br><b>Vista Principal</b>
     </td>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-173055.png" width="220" alt="Editor Enriquecido"/>
-      <br><b>Editor Flotante</b>
+      <img src="assets/editor.png" width="220" alt="Editor Enriquecido"/>
+      <br><b>Editor</b>
     </td>
     <td align="center">
-      <img src="https://github.com/ESTRIN217/secure-notes/blob/main/assets/Screenshot_20260703-174048.png" width="220" alt="Búsqueda Dinámica"/>
+      <img src="assets/búsqueda-y-filtro.png" width="220" alt="Búsqueda Dinámica"/>
       <br><b>Búsqueda y Filtros</b>
     </td>
   </tr>
 </table>
 
-> 💡 *Nota técnica sobre imágenes:* En este repositorio, para ajustar el tamaño de las imágenes de forma personalizada, utilizamos la etiqueta HTML `<img>` con el atributo `width="220"` dentro de tablas, lo que permite un alineado perfecto y responsivo en GitHub.
-
 ---
 
-## 🌎 Idiomas Soportados / Supported Languages / Idiomas Suportados
+## 🌎 Idiomas Soportados
 * **Español (VE)** - Traducción nativa completa.
 * **Português (BR)** - Tradução nativa completa.
 * **Français (FR)** - Traduction complète des sections légales.
@@ -49,8 +47,6 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 
 ## ⚙️ Configuración y Widgets Compartidos
 * **Settings Hub:** Pantalla central de configuración con secciones organizadas: Apariencia, Idioma, Privacidad y Seguridad, Almacenamiento y Datos, Información.
-* **Widgets MD3 Expressive:** Sistema de componentes compartidos (`SettingsSectionTitle`, `SettingsIconContainer`, `SettingsCardGroup`, `SettingsSwitchTile`, `SettingsListTile`) con consistencia visual: bordes de 1.5dp, esquinas de 28dp, iconos de 44dp.
-* **ViewModels Separados:** `ThemeViewModel` (tema/idioma), `BackupViewModel` (respaldos), `UpdaterViewModel` (actualizaciones) para mejor separación de responsabilidades.
 
 ---
 
@@ -72,7 +68,7 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 
 ---
 
-## 🔍 Búsqueda Inteligente y Filtros Avanzados (SearchScreen)
+## 🔍 Búsqueda Inteligente y Filtros Avanzados
 * **Historial de Búsquedas Recientes:** Guarda y gestiona de forma interactiva tus búsquedas previas con chips de sugerencias rápidas.
 * **Búsqueda en Tiempo Real:** Busca instantáneamente dentro del título y contenido de tus notas (incluyendo notas cifradas si se ha desbloqueado la sesión).
 * **Filtros Dinámicos e Interactivos:**
@@ -165,7 +161,8 @@ Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependen
 | compose-markdown | Apache 2.0 |
 | Robolectric | MIT |
 | JUnit 4 | EPL 2.0 |
-| App (MIT) | MIT — ESTRIN217 |
+| [visor-pdf](https://github.com/ESTRIN217/visor-pdf.git) | MIT - ESTRIN217 |
+| [App](LICENCE) (MIT) | MIT — ESTRIN217 |
 
 ---
 

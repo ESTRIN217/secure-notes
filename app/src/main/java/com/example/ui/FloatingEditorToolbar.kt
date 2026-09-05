@@ -46,6 +46,10 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatStrikethrough
+import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -416,32 +420,29 @@ private fun TextoToolbar(
         )
 
         FormattingToggleButton(
-            checked = "b" in activeTextStyles,
-            onCheckedChange = { onToggleTag("b") }
+          checked = "b" in activeTextStyles,
+          onCheckedChange = { onToggleTag("b") }
         ) {
-            Text("B", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+          Icon(Icons.Default.FormatBold, contentDescription = "Negrita")
         }
-
-        FormattingToggleButton(
-            checked = "i" in activeTextStyles,
-            onCheckedChange = { onToggleTag("i") }
-        ) {
-            Text("I", fontStyle = FontStyle.Italic, fontSize = 13.sp)
-        }
-
-        FormattingToggleButton(
-            checked = "u" in activeTextStyles,
-            onCheckedChange = { onToggleTag("u") }
-        ) {
-            Text("U", style = TextStyle(textDecoration = TextDecoration.Underline), fontSize = 13.sp)
-        }
-
-        FormattingToggleButton(
-            checked = "s" in activeTextStyles,
-            onCheckedChange = { onToggleTag("s") }
-        ) {
-            Text("S", style = TextStyle(textDecoration = TextDecoration.LineThrough), fontSize = 13.sp)
-        }
+                FormattingToggleButton(
+                    checked = "i" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("i") }
+                ) {
+                    Icon(Icons.Default.FormatItalic, contentDescription = "Itálica")
+                }
+                FormattingToggleButton(
+                    checked = "u" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("u") }
+                ) {
+                    Icon(Icons.Default.FormatUnderlined, contentDescription = "Subrayado")
+                }
+                FormattingToggleButton(
+                    checked = "s" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("s") }
+                ) {
+                    Icon(Icons.Default.FormatStrikethrough, contentDescription = "Tachado")
+                }
 
         ToolbarIconButton(
             icon = Icons.Default.Link, 

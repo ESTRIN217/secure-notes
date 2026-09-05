@@ -4,19 +4,28 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatStrikethrough
+import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +39,10 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.example.R
 import com.example.data.model.Note
+import com.example.data.model.TextSegment
+import com.example.ui.EditableTextBlock
+import com.example.ui.FormattingToggleButton
+import com.example.util.RichTextConverter
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -39,18 +52,34 @@ enum class FloatingTab { QUICK_NOTE, RECENT_NOTES }
 @Composable
 fun FloatingNoteCard(
     recentNotes: List<Note>,
-    onSaveNote: (title: String, content: String) -> Unit,
+    title: String,
+    segments: List<TextSegment>,
+    selection: IntRange,
+    pendingTypingStyle: TextSegment?,
+    activeTextStyles: Set<String>,
+    onTitleChange: (String) -> Unit,
+    onSegmentsChange: (List<TextSegment>) -> Unit,
+    onSelectionChange: (IntRange) -> Unit,
+    onToggleTag: (String) -> Unit,
+    onSaveNote: (title: String, segments: List<TextSegment>) -> Unit,
+    onClear: () -> Unit,
+    onHeaderDrag: (Offset) -> Unit,
+    onResizeCorner: (ResizeCorner, Offset) -> Unit,
+    onResetLayout: () -> Unit,
     onOpenApp: (noteId: Int?) -> Unit,
     onMinimize: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(FloatingTab.QUICK_NOTE) }
+    var resizeMode by remember { mutableStateOf(false) }
 
+    Box(modifier = modifier) {
     Surface(
-        modifier = modifier
-            .widthIn(min = 280.dp, max = 380.dp)
-            .heightIn(min = 360.dp, max = 500.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .widthIn(min = 280.dp)
+            .heightIn(min = 360.dp)
             .shadow(16.dp, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -65,7 +94,8 @@ fun FloatingNoteCard(
             FloatingCardHeader(
                 onOpenApp = { onOpenApp(null) },
                 onMinimize = onMinimize,
-                onClose = onClose
+                onClose = onClose,
+                onDrag = onHeaderDrag
             )
             Spacer(modifier = Modifier.height(8.dp))
             FloatingCardTabs(
@@ -74,7 +104,25 @@ fun FloatingNoteCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
             when (selectedTab) {
-                FloatingTab.QUICK_NOTE -> FloatingQuickNoteTab(onSaveNote = onSaveNote)
+                FloatingTab.QUICK_NOTE -> FloatingQuickNoteTab(
+                    title = title,
+                    segments = segments,
+                    selection = selection,
+                    pendingTypingStyle = pendingTypingStyle,
+                    activeTextStyles = activeTextStyles,
+                    onTitleChange = onTitleChange,
+                    onSegmentsChange = onSegmentsChange,
+                    onSelectionChange = onSelectionChange,
+                    onToggleTag = onToggleTag,
+                    onSaveNote = onSaveNote,
+                    onClear = onClear,
+                    resizeMode = resizeMode,
+                    onToggleResizeMode = { resizeMode = !resizeMode },
+                    onResetLayout = {
+                        onResetLayout()
+                        resizeMode = false
+                    }
+                )
                 FloatingTab.RECENT_NOTES -> FloatingRecentNotesTab(
                     notes = recentNotes,
                     onOpenNote = { onOpenApp(it.id) }
@@ -82,21 +130,84 @@ fun FloatingNoteCard(
             }
         }
     }
+    if (resizeMode) {
+        ResizeHandles(onResize = onResizeCorner)
+    }
+    }
+}
+
+@Composable
+private fun BoxScope.ResizeHandles(
+    onResize: (ResizeCorner, Offset) -> Unit
+) {
+    val currentOnResize by rememberUpdatedState(onResize)
+    ResizeHandle(
+        corner = ResizeCorner.TOP_LEFT,
+        onResize = currentOnResize,
+        modifier = Modifier.align(Alignment.TopStart)
+    )
+    ResizeHandle(
+        corner = ResizeCorner.TOP_RIGHT,
+        onResize = currentOnResize,
+        modifier = Modifier.align(Alignment.TopEnd)
+    )
+    ResizeHandle(
+        corner = ResizeCorner.BOTTOM_LEFT,
+        onResize = currentOnResize,
+        modifier = Modifier.align(Alignment.BottomStart)
+    )
+    ResizeHandle(
+        corner = ResizeCorner.BOTTOM_RIGHT,
+        onResize = currentOnResize,
+        modifier = Modifier.align(Alignment.BottomEnd)
+    )
+}
+
+@Composable
+private fun ResizeHandle(
+    corner: ResizeCorner,
+    onResize: (ResizeCorner, Offset) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .pointerInput(Unit) {
+                detectDragGestures { _, dragAmount -> onResize(corner, dragAmount) }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            border = androidx.compose.foundation.BorderStroke(
+                1.5.dp,
+                MaterialTheme.colorScheme.primary
+            ),
+            modifier = Modifier.size(16.dp)
+        ) {}
+    }
 }
 
 @Composable
 private fun FloatingCardHeader(
     onOpenApp: () -> Unit,
     onMinimize: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onDrag: (Offset) -> Unit
 ) {
+    val currentOnDrag by rememberUpdatedState(onDrag)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectDragGestures { _, dragAmount -> currentOnDrag(dragAmount) }
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Logo
             AsyncImage(
-                model = R.mipmap.ic_launcher,
+                model = R.mipmap.ic_launcher_round,
                 contentDescription = stringResource(id = R.string.cd_secure_notes_logo),
                 modifier = Modifier
                     .size(24.dp)
@@ -175,12 +286,24 @@ private fun TabButton(
 
 @Composable
 private fun FloatingQuickNoteTab(
-    onSaveNote: (title: String, content: String) -> Unit
+    title: String,
+    segments: List<TextSegment>,
+    selection: IntRange,
+    pendingTypingStyle: TextSegment?,
+    activeTextStyles: Set<String>,
+    onTitleChange: (String) -> Unit,
+    onSegmentsChange: (List<TextSegment>) -> Unit,
+    onSelectionChange: (IntRange) -> Unit,
+    onToggleTag: (String) -> Unit,
+    onSaveNote: (title: String, segments: List<TextSegment>) -> Unit,
+    onClear: () -> Unit,
+    resizeMode: Boolean,
+    onToggleResizeMode: () -> Unit,
+    onResetLayout: () -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
     var showSavedBanner by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
+    val plainText = remember(segments) { RichTextConverter.segmentsToPlainText(segments) }
 
     LaunchedEffect(showSavedBanner) {
         if (showSavedBanner) {
@@ -196,22 +319,29 @@ private fun FloatingQuickNoteTab(
         }
         QuickNoteInputs(
             title = title,
-            content = content,
-            onTitleChange = { title = it },
-            onContentChange = { content = it },
+            segments = segments,
+            selection = selection,
+            pendingTypingStyle = pendingTypingStyle,
+            onTitleChange = onTitleChange,
+            onSegmentsChange = onSegmentsChange,
+            onSelectionChange = onSelectionChange,
             modifier = Modifier.weight(1f)
         )
         Spacer(modifier = Modifier.height(8.dp))
         FloatingQuickNoteActions(
-            canSave = content.isNotBlank() || title.isNotBlank(),
+            canSave = plainText.isNotBlank() || title.isNotBlank(),
             onSave = {
-                onSaveNote(title.trim(), content.trim())
-                title = ""
-                content = ""
+                onSaveNote(title.trim(), segments)
+                onClear()
                 showSavedBanner = true
             },
-            onCopy = { clipboard.setText(AnnotatedString(content)) },
-            onClear = { title = ""; content = "" }
+            onCopy = { clipboard.setText(AnnotatedString(plainText)) },
+            onClear = onClear,
+            activeTextStyles = activeTextStyles,
+            onToggleTag = onToggleTag,
+            resizeMode = resizeMode,
+            onToggleResizeMode = onToggleResizeMode,
+            onResetLayout = onResetLayout
         )
     }
 }
@@ -237,9 +367,12 @@ private fun SavedFeedbackBanner() {
 @Composable
 private fun QuickNoteInputs(
     title: String,
-    content: String,
+    segments: List<TextSegment>,
+    selection: IntRange,
+    pendingTypingStyle: TextSegment?,
     onTitleChange: (String) -> Unit,
-    onContentChange: (String) -> Unit,
+    onSegmentsChange: (List<TextSegment>) -> Unit,
+    onSelectionChange: (IntRange) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -252,13 +385,58 @@ private fun QuickNoteInputs(
             shape = RoundedCornerShape(12.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
-        OutlinedTextField(
-            value = content,
-            onValueChange = onContentChange,
-            placeholder = { Text(stringResource(R.string.floating_mode_note_content_hint)) },
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(12.dp)
+        QuickNoteSegmentField(
+            segments = segments,
+            selection = selection,
+            pendingTypingStyle = pendingTypingStyle,
+            onSegmentsChange = onSegmentsChange,
+            onSelectionChange = onSelectionChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         )
+    }
+}
+
+@Composable
+private fun QuickNoteSegmentField(
+    segments: List<TextSegment>,
+    selection: IntRange,
+    pendingTypingStyle: TextSegment?,
+    onSegmentsChange: (List<TextSegment>) -> Unit,
+    onSelectionChange: (IntRange) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hint = stringResource(R.string.floating_mode_note_content_hint)
+    val isEmpty = remember(segments) {
+        RichTextConverter.segmentsToPlainText(segments).isEmpty()
+    }
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline
+        ),
+        modifier = modifier
+    ) {
+        Box(modifier = Modifier.padding(12.dp)) {
+            EditableTextBlock(
+                segments = segments,
+                onChange = onSegmentsChange,
+                onSelectionChange = onSelectionChange,
+                pendingTypingStyle = pendingTypingStyle,
+                initialSelection = selection.first,
+                showPrefix = false
+            )
+            if (isEmpty) {
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -267,30 +445,77 @@ private fun FloatingQuickNoteActions(
     canSave: Boolean,
     onSave: () -> Unit,
     onCopy: () -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+  activeTextStyles: Set<String>,
+  onToggleTag: (String) -> Unit,
+  resizeMode: Boolean,
+  onToggleResizeMode: () -> Unit,
+  onResetLayout: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+      FormattingToggleButton(
+        checked = "b" in activeTextStyles,
+        onCheckedChange = { onToggleTag("b") }
+      ) {
+        Icon(Icons.Default.FormatBold, contentDescription = "Negrita")
+      }
+                FormattingToggleButton(
+                    checked = "i" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("i") }
+                ) {
+                    Icon(Icons.Default.FormatItalic, contentDescription = "Itálica")
+                }
+                FormattingToggleButton(
+                    checked = "u" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("u") }
+                ) {
+                    Icon(Icons.Default.FormatUnderlined, contentDescription = "Subrayado")
+                }
+                FormattingToggleButton(
+                    checked = "s" in activeTextStyles,
+                    onCheckedChange = { onToggleTag("s") }
+                ) {
+                    Icon(Icons.Default.FormatStrikethrough, contentDescription = "Tachado")
+                }
         IconButton(onClick = onClear) {
             Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.floating_mode_clear))
         }
         OutlinedButton(onClick = onCopy, shape = RoundedCornerShape(12.dp)) {
             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.floating_mode_copy_text))
+            //Spacer(modifier = Modifier.width(4.dp))
+            //Text(stringResource(R.string.floating_mode_copy_text))
         }
-        Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = onSave,
             enabled = canSave,
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.floating_mode_save_note))
+            //Spacer(modifier = Modifier.width(4.dp))
+            //Text(stringResource(R.string.floating_mode_save_note))
+        }
+        IconButton(onClick = onToggleResizeMode) {
+            Icon(
+                Icons.Default.OpenInFull,
+                contentDescription = "Redimensionar",
+                tint = if (resizeMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        if (resizeMode) {
+            IconButton(onClick = onResetLayout) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "Restablecer tamaño",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
