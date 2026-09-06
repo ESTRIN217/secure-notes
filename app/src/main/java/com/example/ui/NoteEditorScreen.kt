@@ -131,7 +131,9 @@ fun NoteEditorScreen(
     onNavigateToDrawing: (Int, String?) -> Unit = { _, _ -> },
     onNavigateToMediaViewer: (String, String) -> Unit = { _, _ -> },
     onNavigateToAiChat: (Int) -> Unit = {},
-    onNavigateToNote: (Int) -> Unit = { _ -> }
+    onNavigateToNote: (Int) -> Unit = { _ -> },
+    draftGuard: DraftGuard? = null,
+    tabBarContent: @Composable () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -1145,6 +1147,28 @@ fun NoteEditorScreen(
         title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()
     }
 
+    LaunchedEffect(title, content, attachments.size, noteId) {
+        draftGuard?.hasUnsaved = noteId == 0 && hasContentToSave()
+    }
+
+    draftGuard?.saveAction = { onSaved ->
+        scope.launch {
+            val newId = viewModel.saveNoteAndGetId(
+                id = 0,
+                title = title.trim(),
+                content = contentForSave(),
+                isEncrypted = isEncrypted,
+                tagsList = selectedNoteTags,
+                backgroundColor = selectedBgColorId,
+                backgroundImagePath = selectedBgImagePath,
+                isPinned = isPinned,
+                isFavorite = isFavorite,
+                isArchived = isArchived
+            )
+            onSaved(newId)
+        }
+    }
+
     fun saveCurrentNote() {
         if (!hasContentToSave()) return
         viewModel.saveNote(
@@ -1414,7 +1438,8 @@ fun NoteEditorScreen(
 
     Scaffold(
         topBar = {
-          TopAppBar(
+          Column {
+            TopAppBar(
             title = {},
             navigationIcon = {
               IconButton(onClick = handleSaveAndExit) {
@@ -1429,7 +1454,9 @@ fun NoteEditorScreen(
                 Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
               }
             }
-          )
+            )
+            tabBarContent()
+          }
         }
     ) { innerPadding ->
         val isDark = isSystemInDarkTheme()

@@ -1076,5 +1076,14 @@
     <string name="floating_mode_close">Close</string>
     <string name="floating_mode_note_saved">Note saved successfully!</string>
     <string name="floating_mode_started">Floating bubble active</string>
+    <!-- v4.0 Multiple Tabs -->
+    <string name="tabs_close">Close tab</string>
+    <string name="tabs_close_others">Close other tabs</string>
+    <string name="tabs_close_all">Close all tabs</string>
+    <string name="tabs_new_note">New note</string>
+    <string name="tabs_draft_dialog_title">Unsaved draft</string>
+    <string name="tabs_draft_dialog_message">This new note has unsaved content. Save it before leaving, or it will be lost.</string>
+    <string name="tabs_draft_save">Save</string>
+    <string name="tabs_draft_discard">Discard</string>
     <string name="fab_floating_mode">Floating bubble</string>
 </resources>

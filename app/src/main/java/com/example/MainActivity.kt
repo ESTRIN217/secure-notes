@@ -116,6 +116,8 @@ import com.example.ui.Screen
 import com.example.ui.ScreenSaver
 import com.example.ui.Navigator
 import com.example.ui.ScreenContext
+import com.example.ui.OpenNoteTabs
+import com.example.ui.TabsSaver
 import com.example.util.MoveDirection
 import com.example.util.SortOption
 import com.example.util.FileImporter
@@ -282,6 +284,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
 
     var currentScreen by rememberSaveable(stateSaver = ScreenSaver) { mutableStateOf<Screen>(Screen.MainList) }
     var isBackNavigation by remember { mutableStateOf(false) }
+    val tabsManager = rememberSaveable(saver = TabsSaver) { OpenNoteTabs() }
     val context = LocalContext.current
 
     val activity = context as? Activity
@@ -337,10 +340,11 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     )
 
-    val navigator = remember {
+    val navigator = remember(tabsManager) {
         Navigator(
             onNavigateTo = { screen ->
                 isBackNavigation = false
+                if (screen is Screen.NoteEditor) tabsManager.openNote(screen.noteId)
                 currentScreen = screen
             },
             onNavigateBack = { to ->
@@ -370,7 +374,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
         val noteId = activity?.intent?.getIntExtra("open_note_id", -1) ?: -1
         if (noteId > 0) {
-            currentScreen = Screen.NoteEditor(noteId)
+            navigator.onNavigateTo(Screen.NoteEditor(noteId))
         }
     }
 
@@ -440,7 +444,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         onDispose { MainActivity.intentRelay = null }
     }
 
-    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen) {
+    val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen, tabsManager) {
         ScreenContext(
             viewModel = viewModel,
             themeViewModel = themeViewModel,
@@ -451,6 +455,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             chatHistoryViewModel = chatHistoryViewModel,
             navigator = navigator,
             currentScreen = currentScreen,
+            tabsManager = tabsManager,
             onImportFile = { uri ->
                 runCatching { activity?.contentResolver?.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
                 enqueueFileImport(activity, context, uri)

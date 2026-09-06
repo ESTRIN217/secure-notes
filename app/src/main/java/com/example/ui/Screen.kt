@@ -23,6 +23,7 @@ data class ScreenContext(
     val chatHistoryViewModel: ChatHistoryViewModel,
     val navigator: Navigator,
     val currentScreen: Screen,
+    val tabsManager: OpenNoteTabs,
     val onImportFile: (Uri) -> Unit = {}
 )
 
@@ -72,10 +73,12 @@ sealed class Screen {
     data class NoteEditor(val noteId: Int) : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
-            NoteEditorScreen(
+            NoteEditorTabsHost(
                 noteId = noteId,
+                tabsManager = context.tabsManager,
                 viewModel = context.viewModel,
                 aiViewModel = context.aiViewModel,
+                onSelectNote = { id -> context.navigator.onNavigateTo(Screen.NoteEditor(id)) },
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
                 onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
