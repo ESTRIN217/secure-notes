@@ -101,6 +101,7 @@ dependencies {
   // implementation(libs.accompanist.permissions)
   implementation(project(":lib"))
   implementation(project(":visor-pdf"))
+  implementation(project(":code-tools"))
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)

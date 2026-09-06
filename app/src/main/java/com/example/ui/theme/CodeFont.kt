@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import com.example.R
 
 /**
@@ -13,7 +14,8 @@ import com.example.R
  * (`!=`, `>=`, `<=`, `->`, `==` ...) which are disabled by default in this font.
  */
 val JetBrainsMonoFontFamily = FontFamily(
-    Font(R.font.jetbrains_mono_regular)
+    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
+    Font(R.font.jetbrains_mono_bold, FontWeight.Bold)
 )
 
 /** Code editor style: JetBrains Mono with coding ligatures enabled. */
