@@ -47,7 +47,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.example.PdfViewerActivity
 import com.example.CodeEditorActivity
 import com.example.R
 import com.example.data.ai.AiAction
@@ -133,7 +132,9 @@ fun NoteEditorScreen(
     onNavigateToAiChat: (Int) -> Unit = {},
     onNavigateToNote: (Int) -> Unit = { _ -> },
     draftGuard: DraftGuard? = null,
-    tabBarContent: @Composable () -> Unit = {}
+    tabBarContent: @Composable () -> Unit = {},
+    onOpenPdfTab: (Uri, String) -> Unit,
+    onOpenTextTab: (Uri, String) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -1256,19 +1257,34 @@ fun NoteEditorScreen(
         uri?.let { handlePickedFile(it) }
     }
 
+    fun isTextLikeFile(mime: String, ext: String): Boolean {
+        if (mime.startsWith("text/")) return true
+        if (mime == "application/json") return true
+        return ext in setOf(
+            "md", "markdown", "json", "xml", "yaml", "yml", "csv", "log",
+            "kt", "java", "js", "ts", "py", "html", "htm", "css"
+        )
+    }
+
     fun openExternalFile(path: String) {
         try {
-            val mime = run {
-                val ext = path.substringAfterLast('.', "").lowercase()
-                android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+            val file = File(path)
+            if (!file.exists()) {
+                Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
+                return
             }
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(path))
+            val ext = path.substringAfterLast('.', "").lowercase()
+            val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             if (mime == "application/pdf") {
-                context.startActivity(PdfViewerActivity.intentFor(context, uri))
+                onOpenPdfTab(uri, file.name)
                 return
             }
             if (mime == "application/octet-stream") {
-                // context.startActivity(CodeEditorActivity.intentFor(context, uri))
+                return
+            }
+            if (isTextLikeFile(mime, ext)) {
+                onOpenTextTab(uri, file.name)
                 return
             }
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -1277,7 +1293,7 @@ fun NoteEditorScreen(
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("NoteEditorScreen", "openExternalFile failed", e)
             Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
         }
     }
@@ -1437,8 +1453,12 @@ fun NoteEditorScreen(
     BackHandler(onBack = handleSaveAndExit)
 
     Scaffold(
+      modifier = Modifier
+        .statusBarsPadding()
+        .navigationBarsPadding(),
         topBar = {
           Column {
+            tabBarContent()
             TopAppBar(
             title = {},
             navigationIcon = {
@@ -1454,8 +1474,7 @@ fun NoteEditorScreen(
                 Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
               }
             }
-            )
-            tabBarContent()
+            )            
           }
         }
     ) { innerPadding ->

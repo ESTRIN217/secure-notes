@@ -47,6 +47,10 @@ sealed class Screen {
                 onNavigateToSearch = { context.navigator.onNavigateTo(Screen.Search) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
                 onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
+                onOpenMediaTab = { type, src, noteId ->
+                    context.navigator.onNavigateTo(Screen.NoteEditor(noteId))
+                    context.tabsManager.openMedia(type, src, noteId)
+                },
                 onNavigateToSettingsHub = { context.navigator.onNavigateTo(Screen.SettingsHub) },
                 onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
                 onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
@@ -74,14 +78,13 @@ sealed class Screen {
         @Composable
         override fun render(context: ScreenContext) {
             NoteEditorTabsHost(
-                noteId = noteId,
+                anchorNoteId = noteId,
                 tabsManager = context.tabsManager,
                 viewModel = context.viewModel,
                 aiViewModel = context.aiViewModel,
                 onSelectNote = { id -> context.navigator.onNavigateTo(Screen.NoteEditor(id)) },
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
-                onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
                 onNavigateToAiChat = { id -> context.navigator.onNavigateTo(Screen.AiChat(id)) },
                 onNavigateToNote = { id -> context.navigator.onNavigateTo(Screen.NoteEditor(id)) }
             )
@@ -118,7 +121,11 @@ sealed class Screen {
                 onNavigateToEditor = { noteId -> context.navigator.onNavigateTo(Screen.NoteEditor(noteId)) },
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
-                onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) }
+                onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
+                onOpenMediaTab = { type, src, noteId ->
+                    context.navigator.onNavigateTo(Screen.NoteEditor(noteId))
+                    context.tabsManager.openMedia(type, src, noteId)
+                }
             )
         }
     }

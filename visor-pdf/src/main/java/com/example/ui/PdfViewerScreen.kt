@@ -134,7 +134,9 @@ private val InvertColorMatrix = ColorMatrix(
 @Composable
 fun PdfViewerScreen(
     viewModel: PdfViewerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    topTabs: @Composable () -> Unit = {},
+    onClose: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -160,10 +162,15 @@ fun PdfViewerScreen(
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+        .fillMaxSize()
+        .statusBarsPadding()
+        .navigationBarsPadding(),
         containerColor = if (isNightMode) Color(0xFF101114) else MaterialTheme.colorScheme.background,
         topBar = {
-            AnimatedVisibility(
+            Column {
+                topTabs()
+                AnimatedVisibility(
                 visible = controlsVisible && uiState is PdfViewerUiState.Loaded,
                 enter = slideInVertically() + fadeIn(),
                 exit = slideOutVertically() + fadeOut()
@@ -192,7 +199,7 @@ fun PdfViewerScreen(
                         },
                         navigationIcon = {
                             IconButton(
-                                onClick = { viewModel.closeDocument() },
+                                onClick = { onClose?.invoke() ?: viewModel.closeDocument() },
                                 modifier = Modifier.testTag("close_document_button")
                             ) {
                                 Icon(
@@ -277,6 +284,7 @@ fun PdfViewerScreen(
                         )
                     )
                 }
+            }
             }
         }
     ) { innerPadding ->

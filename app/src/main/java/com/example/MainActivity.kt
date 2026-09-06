@@ -8,10 +8,10 @@ import android.os.Bundle
 import android.os.Build
 import android.widget.Toast
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -142,7 +142,7 @@ import com.example.ui.NoteCardItem
 import com.example.ui.SortOptionRow
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private var notesViewModel: NotesViewModel? = null
 
     companion object {

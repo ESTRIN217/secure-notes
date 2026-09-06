@@ -98,7 +98,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CodeToolsApp(viewModel: CodeEditorViewModel) {
+fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -169,7 +169,9 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            Column {
+                topTabs()
+                TopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -402,6 +404,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel) {
                     actionIconContentColor = theme.text
                 )
             )
+            }
         },
         modifier = Modifier
             .fillMaxSize()

@@ -42,7 +42,8 @@ import java.io.File
 fun MediaViewerScreen(
     type: String,
     src: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    tabBarContent: @Composable () -> Unit = {}
 ) {
     val context = LocalContext.current
     val isWebVideo = com.example.util.VideoUrlHelper.isWebVideoUrl(src)
@@ -53,8 +54,13 @@ fun MediaViewerScreen(
     BackHandler { onBack() }
 
     Scaffold(
+      modifier = Modifier
+        .statusBarsPadding()
+        .navigationBarsPadding(),
         topBar = {
-          TopAppBar(
+          Column {
+            tabBarContent()
+            TopAppBar(
             title = {
               Text(
                             text = when (type) {
@@ -150,7 +156,8 @@ fun MediaViewerScreen(
                             }
               }
             }
-          )
+            )
+          }
         },
         containerColor = Color.Black
     ) { paddingValues ->

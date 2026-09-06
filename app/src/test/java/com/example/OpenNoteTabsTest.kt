@@ -1,7 +1,9 @@
 package com.example.ui
 
+import androidx.compose.runtime.saveable.SaverScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -18,7 +20,7 @@ class OpenNoteTabsTest {
     fun `openNote adds tab and selects it`() {
         tabs.openNote(1, now = 1000L)
 
-        assertEquals(listOf(OpenTab(1, 1000L)), tabs.tabs.value)
+        assertEquals(listOf(OpenTab.Note(1, 1000L)), tabs.tabs.value)
         assertEquals(0, tabs.selectedIndex.value)
     }
 
@@ -29,7 +31,7 @@ class OpenNoteTabsTest {
         tabs.openNote(1, now = 3000L)
 
         assertEquals(2, tabs.tabs.value.size)
-        assertEquals(1, tabs.selectedTab?.noteId)
+        assertEquals(OpenTab.Note(1, 3000L), tabs.selectedTab)
     }
 
     @Test
@@ -38,7 +40,7 @@ class OpenNoteTabsTest {
         tabs.openNote(0, now = 2000L)
 
         assertEquals(1, tabs.tabs.value.size)
-        assertEquals(0, tabs.selectedTab?.noteId)
+        assertEquals("note:0", tabs.selectedTab?.key)
     }
 
     @Test
@@ -49,8 +51,8 @@ class OpenNoteTabsTest {
         tabs.openNote(99, now = 9999L)
 
         assertEquals(OpenNoteTabs.MAX_TABS, tabs.tabs.value.size)
-        assertEquals(null, tabs.tabs.value.find { it.noteId == 1 })
-        assertEquals(99, tabs.selectedTab?.noteId)
+        assertEquals(null, tabs.tabs.value.find { it.key == "note:1" })
+        assertEquals("note:99", tabs.selectedTab?.key)
     }
 
     @Test
@@ -60,8 +62,8 @@ class OpenNoteTabsTest {
             tabs.openNote(id, now = 100L + id)
         }
 
-        assertEquals(null, tabs.tabs.value.find { it.noteId == 1 })
-        assertEquals(0, tabs.tabs.value.find { it.noteId == 0 }?.noteId)
+        assertEquals(null, tabs.tabs.value.find { it.key == "note:1" })
+        assertEquals("note:0", tabs.tabs.value.find { it.key == "note:0" }?.key)
     }
 
     @Test
@@ -72,7 +74,7 @@ class OpenNoteTabsTest {
 
         val next = tabs.closeTab(2)
 
-        assertEquals(2, next)
+        assertEquals(OpenTab.Note(2, 2L), next)
         assertEquals(2, tabs.tabs.value.size)
     }
 
@@ -103,7 +105,7 @@ class OpenNoteTabsTest {
 
         val next = tabs.closeOthers(1)
 
-        assertEquals(2, next)
+        assertEquals(OpenTab.Note(2, 2L), next)
         assertEquals(1, tabs.tabs.value.size)
     }
 
@@ -114,8 +116,8 @@ class OpenNoteTabsTest {
 
         tabs.promoteDraft(7, now = 3L)
 
-        assertEquals(null, tabs.tabs.value.find { it.noteId == 0 })
-        assertEquals(7, tabs.tabs.value.find { it.noteId == 7 }?.noteId)
+        assertEquals(null, tabs.tabs.value.find { it.key == "note:0" })
+        assertEquals("note:7", tabs.tabs.value.find { it.key == "note:7" }?.key)
     }
 
     @Test
@@ -124,18 +126,118 @@ class OpenNoteTabsTest {
         tabs.openNote(1, now = 2L)
         tabs.openNote(2, now = 3L)
 
-        tabs.pruneMissing(setOf(2))
+        tabs.pruneMissing(setOf(2)) { true }
 
-        assertEquals(listOf(0, 2), tabs.tabs.value.map { it.noteId })
+        assertEquals(listOf("note:0", "note:2"), tabs.tabs.value.map { it.key })
     }
 
     @Test
     fun `restore filters drafts and caps max`() {
-        val ids = listOf(0, 1, 2, 3)
+        tabs.restore(
+            listOf(OpenTab.Note(0), OpenTab.Note(1), OpenTab.Note(2), OpenTab.Note(3)),
+            selected = 2
+        )
 
-        tabs.restore(ids, selected = 2)
-
-        assertEquals(listOf(1, 2, 3), tabs.tabs.value.map { it.noteId })
+        assertEquals(listOf("note:1", "note:2", "note:3"), tabs.tabs.value.map { it.key })
         assertEquals(2, tabs.selectedIndex.value)
+    }
+
+    @Test
+    fun `openMedia dedupes by type and src`() {
+        tabs.openMedia("image", "/a/img.png", 1, now = 1L)
+        tabs.openMedia("image", "/a/img.png", 1, now = 2L)
+        tabs.openMedia("video", "/a/img.png", 1, now = 3L)
+
+        assertEquals(2, tabs.tabs.value.size)
+        assertEquals("media:video:/a/img.png", tabs.selectedTab?.key)
+    }
+
+    @Test
+    fun `openPdf and openText add tabs`() {
+        tabs.openNote(1, now = 1L)
+        tabs.openPdf("content://pdf/1", "doc.pdf", now = 2L)
+        tabs.openText("content://txt/1", "notes.txt", now = 3L)
+
+        assertEquals(
+            listOf("note:1", "pdf:content://pdf/1", "text:content://txt/1"),
+            tabs.tabs.value.map { it.key }
+        )
+    }
+
+    @Test
+    fun `mixed tabs evict oldest non-draft first`() {
+        tabs.openNote(0, now = 1L)
+        for (id in 1..OpenNoteTabs.MAX_TABS) {
+            tabs.openMedia("image", "/img$id.png", null, now = 100L + id)
+        }
+
+        assertEquals(OpenNoteTabs.MAX_TABS, tabs.tabs.value.size)
+        assertEquals("note:0", tabs.tabs.value.find { it.key == "note:0" }?.key)
+        assertEquals(null, tabs.tabs.value.find { it.key == "media:image:/img1.png" })
+    }
+
+    @Test
+    fun `pruneMissing drops media with missing file`() {
+        tabs.openMedia("image", "/gone.png", null, now = 1L)
+        tabs.openMedia("image", "/here.png", null, now = 2L)
+
+        tabs.pruneMissing(emptySet()) { src -> src == "/here.png" }
+
+        assertEquals(listOf("media:image:/here.png"), tabs.tabs.value.map { it.key })
+    }
+
+    @Test
+    fun `selectTabByKey selects matching tab`() {
+        tabs.openNote(1, now = 1L)
+        tabs.openMedia("image", "/a.png", null, now = 2L)
+
+        tabs.selectTabByKey("note:1", now = 3L)
+
+        assertEquals("note:1", tabs.selectedTab?.key)
+    }
+
+    @Test
+    fun `closeTabByKey removes and returns neighbor`() {
+        tabs.openNote(1, now = 1L)
+        tabs.openMedia("image", "/a.png", null, now = 2L)
+
+        val next = tabs.closeTabByKey("media:image:/a.png")
+
+        assertEquals(OpenTab.Note(1, 1L), next)
+        assertEquals(1, tabs.tabs.value.size)
+    }
+
+    @Test
+    fun `restore keeps media pdf text tabs`() {
+        tabs.restore(
+            listOf(
+                OpenTab.Note(1),
+                OpenTab.Media("image", "/a.png", 1),
+                OpenTab.Pdf("content://p", "d.pdf"),
+                OpenTab.TextFile("content://t", "n.txt")
+            ),
+            selected = 3
+        )
+
+        assertEquals(4, tabs.tabs.value.size)
+        assertEquals(3, tabs.selectedIndex.value)
+    }
+
+    @Test
+    fun `saver roundtrips heterogeneous tabs`() {
+        tabs.openNote(4, now = 1L)
+        tabs.openMedia("video", "/v.mp4", 4, now = 2L)
+        tabs.openPdf("content://p", "d.pdf", now = 3L)
+
+        val scope = object : SaverScope {
+            override fun canBeSaved(value: Any): Boolean = true
+        }
+        val saved = with(TabsSaver) { scope.save(tabs) }!!
+        val restored = TabsSaver.restore(saved)!!
+
+        assertTrue(restored.tabs.value.map { it.key }.containsAll(
+            listOf("note:4", "media:video:/v.mp4", "pdf:content://p")
+        ))
+        assertEquals(tabs.selectedIndex.value, restored.selectedIndex.value)
     }
 }

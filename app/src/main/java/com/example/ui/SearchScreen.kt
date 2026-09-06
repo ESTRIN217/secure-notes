@@ -57,7 +57,8 @@ fun SearchScreen(
     onNavigateToEditor: (Int) -> Unit,
     onBack: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
-    onNavigateToMediaViewer: (String, String) -> Unit
+    onNavigateToMediaViewer: (String, String) -> Unit,
+    onOpenMediaTab: ((type: String, src: String, noteId: Int) -> Unit)? = null
 ) {
     BackHandler(onBack = onBack)
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -489,6 +490,7 @@ fun SearchScreen(
                                     isGrid = true,
                                     onNavigateToDrawing = onNavigateToDrawing,
                                     onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                    onOpenMediaTab = onOpenMediaTab,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)
@@ -511,6 +513,7 @@ fun SearchScreen(
                                     isGrid = false,
                                     onNavigateToDrawing = onNavigateToDrawing,
                                     onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                    onOpenMediaTab = onOpenMediaTab,
                                     onClick = {
                                         addRecentSearch(searchQuery)
                                         onNavigateToEditor(decryptedNote.note.id)

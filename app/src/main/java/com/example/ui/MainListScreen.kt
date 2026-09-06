@@ -105,6 +105,7 @@ fun MainListScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToMediaViewer: (String, String) -> Unit,
+    onOpenMediaTab: ((type: String, src: String, noteId: Int) -> Unit)? = null,
     onNavigateToSettingsHub: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToUpdateInfo: () -> Unit = {},
@@ -1087,6 +1088,7 @@ fun MainListScreen(
                                                 isGrid = true,
                                                 onNavigateToDrawing = onNavigateToDrawing,
                                                 onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                                onOpenMediaTab = onOpenMediaTab,
                                                 pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
                                                 onMoveUp = {
                                                     reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
@@ -1149,6 +1151,7 @@ fun MainListScreen(
                                             isGrid = false,
                                             onNavigateToDrawing = onNavigateToDrawing,
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
+                                            onOpenMediaTab = onOpenMediaTab,
                                             pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
                                             onMoveUp = {
                                                 reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
@@ -1681,6 +1684,7 @@ fun NoteCardItem(
     dragModifier: Modifier = Modifier,
     onNavigateToDrawing: ((Int, String?) -> Unit)? = null,
     onNavigateToMediaViewer: ((type: String, src: String) -> Unit)? = null,
+    onOpenMediaTab: ((type: String, src: String, noteId: Int) -> Unit)? = null,
     pageTitleById: (Int) -> String = { "" }
 ) {
     val note = decryptedNote.note
@@ -1688,6 +1692,15 @@ fun NoteCardItem(
     val pageBlockLabel = stringResource(R.string.block_page)
     
     val tagsList = remember(note.tagsJson) { note.parseTags() }
+
+    fun openMediaAttachment(type: String, src: String, noteId: Int) {
+        val openTab = onOpenMediaTab
+        if (openTab != null) {
+            openTab(type, src, noteId)
+            return
+        }
+        onNavigateToMediaViewer?.invoke(type, src)
+    }
 
     OutlinedCard(
         modifier = Modifier
@@ -1899,7 +1912,7 @@ fun NoteCardItem(
                                 .clickable {
                                     when (type) {
                                         "drawing" -> onNavigateToDrawing?.invoke(note.id, pathOrSrc)
-                                        else -> onNavigateToMediaViewer?.invoke(type, pathOrSrc)
+                                        else -> openMediaAttachment(type, pathOrSrc, note.id)
                                     }
                                 },
                             shape = RoundedCornerShape(8.dp),
