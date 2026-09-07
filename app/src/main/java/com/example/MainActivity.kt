@@ -85,7 +85,6 @@ import com.example.data.model.Tag
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.NoteEditorScreen
 import com.example.ui.DrawingCanvasScreen
-import com.example.ui.MediaViewerScreen
 import com.example.ui.settings.AboutScreen
 import com.example.ui.settings.BackupRestoreScreen
 import com.example.ui.settings.PrivacySettingsScreen

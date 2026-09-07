@@ -64,7 +64,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.video.videoFrameMillis
 import com.example.R
-import com.example.util.VideoUrlHelper
+import com.estrin217.visormedia.util.VideoUrlHelper
 
 private val VIDEO_CORNER = RoundedCornerShape(8.dp)
 private const val VIDEO_ALIGN_CENTER = "center"

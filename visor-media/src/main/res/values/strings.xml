@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">Visor Media</string>
+    <string name="attachment_image">Imagen</string>
+    <string name="attachment_audio">Audio</string>
+    <string name="attachment_video">Video</string>
+    <string name="back">Atrás</string>
+    <string name="option_share">Compartir</string>
+    <string name="option_save">Guardar</string>
+    <string name="toast_share_error">No se pudo compartir el archivo</string>
+    <string name="toast_saved_to_gallery">Guardado en la galería con éxito</string>
+    <string name="toast_save_error">Error al guardar el archivo multimedia</string>
+    <string name="cd_play_video">Reproducir video</string>
+    <string name="video_open_youtube">Ver en YouTube</string>
+    <string name="video_open_external">Abrir video en reproductor externo</string>
+    <string name="toast_cannot_open_url">No se puede abrir este enlace</string>
+    <string name="toast_video_play_error">No se pudo reproducir el video</string>
+    <string name="toast_audio_play_error">No se pudo reproducir el audio</string>
+    <string name="cd_play_pause_audio">Reproducir o pausar audio</string>
+    
+    <string name="media_library">Galería y Explorador</string>
+    <string name="open_url">Abrir URL</string>
+    <string name="pick_media">Elegir medio</string>
+    <string name="pick_image_video">Fotos y Videos</string>
+    <string name="pick_audio">Audio local</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_images">Fotos</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_video">Videos</string>
+    <string name="url_dialog_title">Abrir enlace multimedia</string>
+    <string name="url_dialog_hint">Introduce enlace (ej. https://...)</string>
+    <string name="url_dialog_type">Tipo de medio</string>
+    <string name="cancel">Cancelar</string>
+    <string name="open">Abrir visor</string>
+    <string name="preset_samples">Ejemplos rápidos:</string>
+    <string name="reset_zoom">Restablecer zoom</string>
+    <string name="rotate_image">Rotar 90°</string>
+    <string name="no_media_found">No se encontraron archivos</string>
+    <string name="no_media_desc">Selecciona fotos, música o videos de tu dispositivo o abre enlaces de internet.</string>
+    <string name="media_item_counter">%1$d de %2$d</string>
+    <string name="media_nav_previous">Anterior</string>
+    <string name="media_nav_next">Siguiente</string>
+    <string name="media_swipe_hint">Desliza para ver el siguiente</string>
+    <string name="video_playback_error">Error de reproducción</string>
+    <string name="retry_action">Reintentar</string>
+    <string name="video_open_browser">Abrir en navegador / reproductor externo</string>
+</resources>

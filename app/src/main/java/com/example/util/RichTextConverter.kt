@@ -10,6 +10,7 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
 import com.example.data.model.BlockType
+import com.estrin217.visormedia.util.VideoUrlHelper
 import com.example.data.model.DataBlock
 import com.example.data.model.TableData
 import com.example.data.model.TextBaseline

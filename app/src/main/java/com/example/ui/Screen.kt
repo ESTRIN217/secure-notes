@@ -133,7 +133,7 @@ sealed class Screen {
     data class MediaViewer(val type: String, val src: String, val previousScreen: Screen) : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
-            com.example.ui.MediaViewerScreen(
+            com.estrin217.visormedia.ui.MediaViewerScreen(
                 type = type,
                 src = src,
                 onBack = { context.navigator.onNavigateBack(previousScreen) },

@@ -9,7 +9,7 @@ import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.DrawingStrokeCodec
 import com.example.util.RichTextConverter
-import com.example.util.VideoUrlHelper
+import com.estrin217.visormedia.util.VideoUrlHelper
 import java.io.File
 import java.io.FileInputStream
 

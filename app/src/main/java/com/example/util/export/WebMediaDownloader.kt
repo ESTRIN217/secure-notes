@@ -3,7 +3,7 @@ package com.example.util.export
 import android.util.Base64
 import com.example.data.model.BlockType
 import com.example.util.ImageUrlResolver
-import com.example.util.VideoUrlHelper
+import com.estrin217.visormedia.util.VideoUrlHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient

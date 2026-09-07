@@ -47,6 +47,8 @@ import coil3.request.ImageRequest
 import coil3.video.videoFrameMillis
 import com.example.R
 import com.example.data.model.BlockRenderContext
+import com.estrin217.visormedia.ui.AudioPlayerWidget
+import com.estrin217.visormedia.util.VideoUrlHelper
 import com.example.data.model.ColumnAlignment
 import com.example.data.model.NoteContentBlock
 import com.example.util.RichTextParser
@@ -304,8 +306,8 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
                     contentAlignment = Alignment.Center
                 ) {
                     val contextForThumb = LocalContext.current
-                    val youTubeThumb = if (com.example.util.VideoUrlHelper.isYouTubeUrl(src)) {
-                        com.example.util.VideoUrlHelper.youTubeThumbnail(src)
+                    val youTubeThumb = if (VideoUrlHelper.isYouTubeUrl(src)) {
+                        VideoUrlHelper.youTubeThumbnail(src)
                     } else {
                         null
                     }
@@ -318,7 +320,7 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
                             loading = {},
                             error = {}
                         )
-                    } else if (!com.example.util.VideoUrlHelper.isWebVideoUrl(src)) {
+                    } else if (!VideoUrlHelper.isWebVideoUrl(src)) {
                         SubcomposeAsyncImage(
                             model = ImageRequest.Builder(contextForThumb)
                                 .data(src)

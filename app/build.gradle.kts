@@ -102,6 +102,7 @@ dependencies {
   implementation(project(":lib"))
   implementation(project(":visor-pdf"))
   implementation(project(":code-tools"))
+  implementation(project(":visor-media"))
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)

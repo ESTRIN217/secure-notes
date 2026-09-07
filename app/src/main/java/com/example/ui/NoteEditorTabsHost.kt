@@ -29,6 +29,7 @@ import com.estrin217.codetools.ui.CodeToolsApp
 import com.estrin217.pdfviewer.ui.PdfViewerScreen
 import com.estrin217.pdfviewer.ui.PdfViewerViewModel
 import com.example.R
+import com.estrin217.visormedia.ui.MediaViewerScreen
 import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.NotesViewModel
