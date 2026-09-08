@@ -1087,4 +1087,17 @@
     <string name="tabs_draft_discard">Discard</string>
     <string name="tabs_file_load_error">Couldn\'t open \"%1$s\"</string>
     <string name="fab_floating_mode">Floating bubble</string>
+
+    <!-- v4.0 Home Screen Widgets -->
+    <string name="widget_single_title">Secure Note</string>
+    <string name="widget_single_desc">Show a single note on your home screen</string>
+    <string name="widget_list_title">Secure Notes</string>
+    <string name="widget_list_desc">Show recent notes on your home screen</string>
+    <string name="widget_quick_title">Quick Note</string>
+    <string name="widget_quick_desc">Create a new note with one tap</string>
+    <string name="widget_quick_add">New note</string>
+    <string name="widget_config_title">Choose note</string>
+    <string name="widget_empty_note">No note selected</string>
+    <string name="widget_empty_list">No notes yet</string>
+    <string name="widget_locked_item">Locked — unlock the app to view</string>
 </resources>

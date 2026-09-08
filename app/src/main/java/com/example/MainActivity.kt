@@ -374,6 +374,9 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         val noteId = activity?.intent?.getIntExtra("open_note_id", -1) ?: -1
         if (noteId > 0) {
             navigator.onNavigateTo(Screen.NoteEditor(noteId))
+        } else if (activity?.intent?.getBooleanExtra("new_note", false) == true) {
+            navigator.onNavigateTo(Screen.NoteEditor(0))
+            activity?.intent?.removeExtra("new_note")
         }
     }
 
@@ -437,6 +440,8 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             val noteId = intent.getIntExtra("open_note_id", -1)
             if (noteId > 0) {
                 navigator.onNavigateTo(Screen.NoteEditor(noteId))
+            } else if (intent.getBooleanExtra("new_note", false)) {
+                navigator.onNavigateTo(Screen.NoteEditor(0))
             }
         }
         activity?.intent?.data?.let { enqueueFileImport(activity, context, it) }

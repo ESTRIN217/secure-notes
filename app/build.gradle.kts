@@ -146,6 +146,8 @@ dependencies {
   implementation(libs.androidx.pdf.viewer)
   implementation(libs.androidx.pdf.document.service)
   implementation(libs.androidx.pdf.compose)
+  implementation(libs.androidx.glance.appwidget)
+  implementation(libs.androidx.glance.material3)
   // implementation(libs.play.services.location)
   implementation(libs.play.services.auth)
   implementation(libs.retrofit)

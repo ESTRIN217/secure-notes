@@ -712,11 +712,18 @@ class NotesViewModel(
                 noteDao.updateNote(note)
                 id
             }
+            refreshHomeWidgets()
             result
         } catch (e: Exception) {
             Log.e("NotesViewModel", "saveNoteAndGetId failed", e)
             id
         }
+    }
+
+    private suspend fun refreshHomeWidgets() {
+        runCatching {
+            com.example.widget.WidgetUpdater.updateAll(getApplication<Application>().applicationContext)
+        }.onFailure { Log.e("NotesViewModel", "widget refresh failed", it) }
     }
 
     fun deleteNote(note: Note) {
