@@ -3,7 +3,8 @@ package com.example.widget
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.glance.Button
+import androidx.glance.ImageProvider
+import androidx.glance.appwidget.components.SquareIconButton
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -33,8 +34,9 @@ class QuickNoteWidget : GlanceAppWidget() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                text = context.getString(com.example.R.string.widget_quick_add),
+            SquareIconButton(
+                imageProvider = ImageProvider(com.example.R.drawable.add_24px),
+                contentDescription = context.getString(com.example.R.string.widget_quick_add),
                 onClick = actionStartActivity(newNoteIntent(context))
             )
         }

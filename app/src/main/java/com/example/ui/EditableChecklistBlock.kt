@@ -29,6 +29,7 @@ fun EditableChecklistBlock(
     onCursorChange: (Int) -> Unit = {},
     onSplit: ((before: List<TextSegment>, after: List<TextSegment>) -> Unit)? = null,
     onConvertToText: () -> Unit = {},
+    onEquationClicked: (latex: String, range: IntRange) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     requestFocus: Boolean = false,
     onFocusRequested: () -> Unit = {}
@@ -55,6 +56,7 @@ fun EditableChecklistBlock(
             onSelectionChange = {},
             onSplit = onSplit,
             onConvertToText = onConvertToText,
+            onEquationClicked = onEquationClicked,
             onEmptyBackspace = onConvertToText,
             showPrefix = false,
             requestFocus = requestFocus,

@@ -113,7 +113,7 @@ fun EditableFileBlock(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AttachFile,
+                            imageVector = fileIconForName(name),
                             contentDescription = stringResource(R.string.block_file_open),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
@@ -128,7 +128,8 @@ fun EditableFileBlock(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = name.substringAfterLast('.', "").ifBlank { stringResource(R.string.block_file_open) },
+                            text = name.substringAfterLast('.', "").uppercase()
+                                .ifBlank { stringResource(R.string.block_file_open) },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

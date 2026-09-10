@@ -3,8 +3,10 @@ package com.example.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -33,6 +35,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.BlockType
@@ -90,7 +93,6 @@ fun ReadOnlyTextBlock(
         when (blockType) {
             BlockType.BULLET_LIST -> "• "
             BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
-            BlockType.QUOTE -> "▎ "
             BlockType.CODE_BLOCK -> "  "
             else -> ""
         }
@@ -103,7 +105,8 @@ fun ReadOnlyTextBlock(
         BlockType.HEADING4 -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         BlockType.QUOTE -> MaterialTheme.typography.bodyLarge.copy(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Normal
+            fontWeight = FontWeight.Normal,
+            fontStyle = FontStyle.Italic
         )
         BlockType.CODE_BLOCK -> MaterialTheme.typography.bodyLarge.copy(
             fontFamily = FontFamily.Monospace,
@@ -115,19 +118,42 @@ fun ReadOnlyTextBlock(
         else -> MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     }
 
-    val rowModifier = if (blockType == BlockType.CALLOUT) {
-        modifier
+    val equationLatexList = remember(displayAnnotated) {
+        displayAnnotated.getStringAnnotations(RichTextConverter.EQ_ANNOTATION, 0, displayAnnotated.length)
+            .sortedBy { it.start }
+            .map { it.item }
+    }
+    val equationOnSurface = MaterialTheme.colorScheme.onSurface
+    val equationConfig = remember(textStyle, equationOnSurface) {
+        com.hrm.latex.renderer.model.LatexConfig(
+            fontSize = textStyle.fontSize,
+            theme = com.hrm.latex.renderer.model.LatexTheme.light(color = equationOnSurface),
+            accessibilityEnabled = true,
+            enableLayoutCache = true
+        )
+    }
+    val equationInlineMap = com.example.util.rememberEquationInlineMap(equationLatexList, equationConfig)
+
+    val rowModifier = if (blockType == BlockType.CALLOUT) {        modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .padding(horizontal = 16.dp, vertical = 12.dp)
+    } else if (blockType == BlockType.QUOTE) {
+        modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     } else {
         modifier.fillMaxWidth()
     }
 
     Row(
         modifier = rowModifier,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = if (blockType == BlockType.QUOTE || blockType == BlockType.CALLOUT) {
+            Alignment.Top
+        } else {
+            Alignment.CenterVertically
+        }
     ) {
         if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
             LineNumberColumn(
@@ -147,6 +173,8 @@ fun ReadOnlyTextBlock(
         }
 
         if (blockType == BlockType.CALLOUT) {
+            CalloutBar()
+            Spacer(Modifier.width(12.dp))
             Icon(
                 imageVector = Icons.Default.Lightbulb,
                 contentDescription = null,
@@ -156,16 +184,18 @@ fun ReadOnlyTextBlock(
             Spacer(Modifier.width(8.dp))
         }
 
-        val contentModifier = if (blockType == BlockType.QUOTE) {
-            Modifier.weight(1f).padding(start = 8.dp)
-        } else {
-            Modifier.weight(1f)
+        if (blockType == BlockType.QUOTE) {
+            QuoteBar()
+            Spacer(Modifier.width(12.dp))
         }
+
+        val contentModifier = Modifier.weight(1f)
 
         BasicText(
             text = annotatedWithLinks,
             style = textStyle,
             softWrap = softWrap,
+            inlineContent = equationInlineMap,
             onTextLayout = { layoutResult = it },
             modifier = contentModifier
                 .then(if (softWrap) Modifier else Modifier.horizontalScroll(scrollState))
@@ -179,4 +209,28 @@ fun ReadOnlyTextBlock(
                 }
         )
     }
+}
+
+@Composable
+private fun QuoteBar() {
+    Box(
+        modifier = Modifier
+            .width(4.dp)
+            .fillMaxHeight()
+            .heightIn(min = 24.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.primary)
+    )
+}
+
+@Composable
+private fun CalloutBar() {
+    Box(
+        modifier = Modifier
+            .width(4.dp)
+            .fillMaxHeight()
+            .heightIn(min = 24.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.tertiary)
+    )
 }

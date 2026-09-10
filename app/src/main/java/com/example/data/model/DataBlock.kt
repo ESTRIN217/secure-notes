@@ -149,7 +149,7 @@ data class DataBlock(
         copy(richTextJson = TextSegment.serialize(segments))
 
     fun ensureSegments(): List<TextSegment> {
-        segments()?.let { return it }
+        segments()?.let { return RichTextConverter.canonicalizeEquations(it) }
         return if (RichTextConverter.containsMarkup(content)) {
             RichTextConverter.markupToSegments(content)
         } else {

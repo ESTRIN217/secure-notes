@@ -107,16 +107,17 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null) {
-            val fileInfo = FileImportExportHelper.readExternalFile(context, uri)
-            if (fileInfo != null) {
-                viewModel.importExternalFile(fileInfo.name, fileInfo.content, fileInfo.language)
-            } else {
-                scope.launch {
-                    snackbarHostState.showSnackbar("No se pudo leer el archivo seleccionado")
-                }
-            }
+        if (uri == null) return@rememberLauncherForActivityResult
+        if (FileImportExportHelper.isOversize(context, uri)) {
+            scope.launch { snackbarHostState.showSnackbar("Archivo demasiado grande (máx. 2 MB)") }
+            return@rememberLauncherForActivityResult
         }
+        val fileInfo = FileImportExportHelper.readExternalFile(context, uri)
+        if (fileInfo == null) {
+            scope.launch { snackbarHostState.showSnackbar("No se pudo leer el archivo seleccionado") }
+            return@rememberLauncherForActivityResult
+        }
+        viewModel.importExternalFile(fileInfo.name, fileInfo.content, fileInfo.language)
     }
 
     val files by viewModel.files.collectAsState()

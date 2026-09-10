@@ -2,9 +2,12 @@ package com.example.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -69,6 +73,7 @@ fun EditableTextBlock(
     onDeleteBlock: () -> Unit = {},
     onConvertToText: () -> Unit = {},
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
+    onEquationClicked: (latex: String, range: IntRange) -> Unit = { _, _ -> },
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
     modifier: Modifier = Modifier,
     numberIndex: Int? = null,
@@ -174,6 +179,7 @@ fun EditableTextBlock(
     }
 
     val currentUrlClick by rememberUpdatedState(onUrlClicked)
+    val currentEquationClick by rememberUpdatedState(onEquationClicked)
 
     val annotatedWithLinks = remember(displayAnnotated) {
         val builder = AnnotatedString.Builder(displayAnnotated)
@@ -182,6 +188,21 @@ fun EditableTextBlock(
                 LinkAnnotation.Url(
                     url = range.item,
                     linkInteractionListener = LinkInteractionListener { currentUrlClick(range.item, range.start) }
+                ),
+                start = range.start,
+                end = range.end
+            )
+        }
+        for (range in displayAnnotated.getStringAnnotations(RichTextConverter.EQ_ANNOTATION, 0, displayAnnotated.length)) {
+            // El latex se deriva del texto visible (fuente de verdad): la anotación
+            // puede quedar obsoleta tras editar la fuente inline en el campo.
+            val latex = RichTextConverter.deriveLatex(displayAnnotated.text.substring(range.start, range.end))
+            builder.addLink(
+                LinkAnnotation.Clickable(
+                    tag = "EQ_EDIT",
+                    linkInteractionListener = LinkInteractionListener {
+                        currentEquationClick(latex, range.start..range.end)
+                    }
                 ),
                 start = range.start,
                 end = range.end
@@ -200,7 +221,6 @@ fun EditableTextBlock(
         when (blockType) {
             BlockType.BULLET_LIST -> "• "
             BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
-            BlockType.QUOTE -> "▎ "
             BlockType.CODE_BLOCK -> "  "
             else -> ""
         }
@@ -213,7 +233,8 @@ fun EditableTextBlock(
         BlockType.HEADING4 -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         BlockType.QUOTE -> MaterialTheme.typography.bodyLarge.copy(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Normal
+            fontWeight = FontWeight.Normal,
+            fontStyle = FontStyle.Italic
         )
         BlockType.CODE_BLOCK -> MaterialTheme.typography.bodyLarge.copy(
             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
@@ -231,11 +252,17 @@ fun EditableTextBlock(
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             .padding(horizontal = 16.dp, vertical = 12.dp)
+    } else if (blockType == BlockType.QUOTE) {
+        modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     } else {
         modifier.fillMaxWidth()
     }
 
-    val rowAlignment = if (showLineNumbers && blockType == BlockType.CODE_BLOCK) {
+    val rowAlignment = if (blockType == BlockType.QUOTE || blockType == BlockType.CALLOUT ||
+        showLineNumbers && blockType == BlockType.CODE_BLOCK
+    ) {
         Alignment.Top
     } else {
         Alignment.CenterVertically
@@ -264,6 +291,8 @@ fun EditableTextBlock(
         }
 
         if (blockType == BlockType.CALLOUT) {
+            CalloutBar()
+            Spacer(Modifier.width(12.dp))
             Icon(
                 imageVector = Icons.Default.Lightbulb,
                 contentDescription = null,
@@ -273,13 +302,12 @@ fun EditableTextBlock(
             Spacer(Modifier.width(8.dp))
         }
 
-        val blockModifier = if (blockType == BlockType.QUOTE) {
-            Modifier
-                .weight(1f)
-                .padding(start = 8.dp)
-        } else {
-            Modifier.weight(1f)
+        if (blockType == BlockType.QUOTE) {
+            QuoteBar()
+            Spacer(Modifier.width(12.dp))
         }
+
+        val blockModifier = Modifier.weight(1f)
 
         BasicTextField(
             value = fieldValue,
@@ -381,7 +409,7 @@ private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingS
         return old.subSequence(0, prefix) + old.subSequence(oldEnd, old.text.length)
     }
     val inheritIdx = if (prefix > 0) prefix - 1 else 0
-    val inherited = inheritedStyleAt(old, inheritIdx)
+    val inherited = inheritedStyleAtSkippingEquations(old, inheritIdx, prefix)
     val atEnd = prefix == old.text.length
     val base = if (forcePlain) {
         SpanStyle()
@@ -392,6 +420,17 @@ private fun applyPlainEdit(old: AnnotatedString, newText: String, pendingTypingS
     return old.subSequence(0, prefix) +
         AnnotatedString(inserted, spanStyle = base) +
         old.subSequence(oldEnd, old.text.length)
+}
+
+private fun inheritedStyleAtSkippingEquations(old: AnnotatedString, inheritIdx: Int, prefix: Int): SpanStyle {
+    val eqRanges = old.getStringAnnotations(RichTextConverter.EQ_ANNOTATION, 0, old.length)
+    val inEquation = eqRanges.any { inheritIdx in it.start until it.end }
+    if (!inEquation) return inheritedStyleAt(old, inheritIdx)
+    // Escribir pegado a una ecuación no debe heredar su estilo fallback (código):
+    // se hereda del siguiente carácter de texto, o vacío si no hay.
+    if (prefix >= old.length) return SpanStyle()
+    if (eqRanges.any { it.start == prefix }) return SpanStyle()
+    return inheritedStyleAt(old, prefix)
 }
 
 private fun inheritedStyleAt(annotated: AnnotatedString, index: Int): SpanStyle {
@@ -410,5 +449,29 @@ private fun commonPrefixLen(a: String, b: String): Int {
 }
 
 internal fun snapSelection(text: String, selection: TextRange): TextRange = selection
+
+@Composable
+private fun QuoteBar() {
+    Box(
+        modifier = Modifier
+            .width(4.dp)
+            .fillMaxHeight()
+            .heightIn(min = 24.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.primary)
+    )
+}
+
+@Composable
+private fun CalloutBar() {
+    Box(
+        modifier = Modifier
+            .width(4.dp)
+            .fillMaxHeight()
+            .heightIn(min = 24.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.tertiary)
+    )
+}
 
 private val exitOnEmptyTypes = setOf(BlockType.BULLET_LIST, BlockType.NUMBERED_LIST, BlockType.QUOTE, BlockType.CALLOUT)

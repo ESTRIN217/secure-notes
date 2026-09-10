@@ -464,7 +464,7 @@ private fun NoteContentBlock.FileBlock.renderFileBlock(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Description,
+                imageVector = fileIconForName(name),
                 contentDescription = stringResource(R.string.attachment_file),
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(36.dp)

@@ -268,9 +268,16 @@ class CodeEditorViewModel(
     }
 
     private fun importUri(context: Context, uri: Uri) {
-        FileImportExportHelper.readExternalFile(context, uri)?.let { info ->
-            importExternalFile(info.name, info.content, info.language)
+        if (FileImportExportHelper.isOversize(context, uri)) {
+            _toastMessage.value = "Archivo demasiado grande (máx. 2 MB)"
+            return
         }
+        val info = FileImportExportHelper.readExternalFile(context, uri)
+        if (info == null) {
+            _toastMessage.value = "No se pudo leer el archivo"
+            return
+        }
+        importExternalFile(info.name, info.content, info.language)
     }
 
     private fun streamExtra(intent: Intent): Uri? {

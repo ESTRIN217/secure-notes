@@ -1,6 +1,7 @@
 package com.example.util
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -20,6 +21,24 @@ object RichTextConverter {
 
     const val URL_ANNOTATION = "URL"
     const val EQ_ANNOTATION = "EQ"
+
+    /**
+     * Ecuaciones inline: el `text` del segmento es SIEMPRE la fuente `$latex$`
+     * (visible y editable, estilo Typora) y `equationLatex` se deriva de él.
+     * Así offsets de cursor, toolbar, split y persistencia son idénticos en
+     * edición y lectura; `latex-renderer` aporta el render real vía
+     * `InlineTextContent` y el fallback es la propia fuente.
+     */
+    fun fallbackText(latex: String): String = "$$latex$"
+
+    /** Deriva el latex del texto visible (`$x$`→`x`; tolera delimitadores rotos). */
+    fun deriveLatex(displayText: String): String {
+        var s = displayText
+        if (s.startsWith("$")) s = s.substring(1)
+        if (s.endsWith("$")) s = s.substring(0, s.length - 1)
+        return s
+    }
+
 
     private val escapeable = setOf('\\', '`', '*', '_', '~', '[', ']', '(', ')', '<', '>', '#', '-', '!', '|', '{', '}')
     private val inlineStyleTokens = setOf("b", "i", "u", "s", "code", "sub", "sup", "color", "bg", "font", "size", "url", "mark", "highlight", "var", "kbd", "samp", "small")
@@ -65,8 +84,7 @@ object RichTextConverter {
                             val closeEnd = if (closeIdx == -1) tag.endIndex else closeIdx + "</eq>".length
                             val latex = if (closeIdx == -1) "" else markup.substring(tag.endIndex, closeIdx)
                             flush()
-                            val rendered = MathRenderer.render(latex).text
-                            out.add(TextSegment(text = rendered, equationLatex = latex))
+                            out.add(TextSegment(text = fallbackText(latex), equationLatex = latex))
                             i = closeEnd
                             continue
                         }
@@ -222,14 +240,19 @@ object RichTextConverter {
 
     fun segmentsToAnnotatedString(segments: List<TextSegment>): AnnotatedString {
         val builder = AnnotatedString.Builder()
+        var eqIndex = 0
         for (seg in segments) {
+            val latex = seg.equationLatex
+            if (latex != null) {
+                // El alternate es el propio texto (fuente `$latex$`): offsets 1:1
+                // con el modelo y fallback automático si la medición falla.
+                if (seg.text.isNotEmpty()) appendEquationPlaceholder(builder, seg.text, latex, eqIndex++)
+                continue
+            }
             val start = builder.length
-            val display = if (seg.equationLatex != null) MathRenderer.render(seg.equationLatex).text else seg.text
+            val display = seg.text
             if (display.isEmpty()) continue
             builder.append(display)
-            if (seg.equationLatex != null) {
-                builder.addStringAnnotation(EQ_ANNOTATION, seg.equationLatex, start, builder.length)
-            }
             if (seg.linkUrl != null) {
                 builder.addStringAnnotation(URL_ANNOTATION, seg.linkUrl, start, builder.length)
             }
@@ -238,6 +261,22 @@ object RichTextConverter {
         }
         return builder.toAnnotatedString()
     }
+
+    private fun appendEquationPlaceholder(
+        builder: AnnotatedString.Builder,
+        alternate: String,
+        latex: String,
+        eqIndex: Int
+    ) {
+        val start = builder.length
+        builder.appendInlineContent(LatexEquationRenderer.inlineId(eqIndex), alternate)
+        builder.addStringAnnotation(EQ_ANNOTATION, latex, start, builder.length)
+        builder.addStyle(LatexEquationRenderer.fallbackStyle(), start, builder.length)
+    }
+
+    /** Latex de las ecuaciones en orden (índice ↔ inlineId) para el mapa `InlineTextContent`. */
+    fun equationLatexList(segments: List<TextSegment>): List<String> =
+        segments.mapNotNull { it.equationLatex }
 
     // ── AnnotatedString → segments ─────────────────────────────────────────
 
@@ -280,6 +319,10 @@ object RichTextConverter {
         url: String?,
         eq: String?
     ): TextSegment {
+        // La ecuación es atómica y sin estilo: el render lo pone latex-renderer.
+        // El latex se deriva del texto visible (única fuente de verdad), así la
+        // edición inline de la fuente no desincroniza el modelo.
+        if (eq != null) return TextSegment(text = chunk, equationLatex = deriveLatex(chunk))
         var bold = false
         var italic = false
         var underline = false
@@ -380,18 +423,22 @@ object RichTextConverter {
         transform: (TextSegment) -> TextSegment
     ): List<TextSegment> {
         if (start >= end || segments.isEmpty()) return segments
+        val s = snapEquationBounds(segments, start, preferStart = true)
+        val e = snapEquationBounds(segments, end, preferStart = false)
+        if (s >= e) return segments
         val out = mutableListOf<TextSegment>()
         var cursor = 0
         for (seg in segments) {
             val segStart = cursor
             val segEnd = cursor + seg.text.length
-            if (segEnd <= start || segStart >= end) {
+            if (segEnd <= s || segStart >= e) {
                 out.add(seg)
-            } else if (segStart >= start && segEnd <= end) {
-                out.add(transform(seg))
+            } else if (segStart >= s && segEnd <= e) {
+                // Las ecuaciones no toman estilos inline: se conservan intactas.
+                out.add(if (seg.equationLatex != null) seg else transform(seg))
             } else {
-                val leftLen = (start - segStart).coerceIn(0, seg.text.length)
-                val rightStart = (end - segStart).coerceIn(0, seg.text.length)
+                val leftLen = (s - segStart).coerceIn(0, seg.text.length)
+                val rightStart = (e - segStart).coerceIn(0, seg.text.length)
                 if (leftLen > 0) out.add(seg.copy(text = seg.text.substring(0, leftLen)))
                 if (leftLen < rightStart) {
                     out.add(transform(seg.copy(text = seg.text.substring(leftLen, rightStart))))
@@ -410,8 +457,10 @@ object RichTextConverter {
         newText: String
     ): List<TextSegment> {
         if (start >= end && newText.isEmpty()) return segments
-        val (left, _) = splitSegmentsAt(segments, start)
-        val (_, right) = splitSegmentsAt(segments, end)
+        val s = snapEquationBounds(segments, start, preferStart = true)
+        val e = snapEquationBounds(segments, end, preferStart = false)
+        val (left, _) = splitSegmentsAt(segments, s)
+        val (_, right) = splitSegmentsAt(segments, e)
         val insert = if (newText.isEmpty()) {
             emptyList()
         } else {
@@ -434,8 +483,10 @@ object RichTextConverter {
         insert: List<TextSegment>
     ): List<TextSegment> {
         if (start >= end && insert.isEmpty()) return segments
-        val (left, _) = splitSegmentsAt(segments, start)
-        val (_, right) = splitSegmentsAt(segments, end)
+        val s = snapEquationBounds(segments, start, preferStart = true)
+        val e = snapEquationBounds(segments, end, preferStart = false)
+        val (left, _) = splitSegmentsAt(segments, s)
+        val (_, right) = splitSegmentsAt(segments, e)
         return mergeAdjacent(left + insert + right)
     }
 
@@ -448,6 +499,64 @@ object RichTextConverter {
             cursor = segEnd
         }
         return out
+    }
+
+    /**
+     * Reemplaza el latex de la ecuación bajo `offset` (tap-to-edit).
+     * Devuelve la lista intacta si no hay ecuación en esa posición.
+     */
+    fun replaceEquationAt(
+        segments: List<TextSegment>,
+        offset: Int,
+        newLatex: String
+    ): List<TextSegment> {
+        if (newLatex.isBlank()) return segments
+        var cursor = 0
+        val out = segments.toMutableList()
+        for (idx in segments.indices) {
+            val seg = segments[idx]
+            val segEnd = cursor + seg.text.length
+            if (seg.equationLatex != null && cursor <= offset && offset < segEnd) {
+                out[idx] = seg.copy(text = fallbackText(newLatex), equationLatex = newLatex)
+                return mergeAdjacent(out)
+            }
+            cursor = segEnd
+        }
+        return segments
+    }
+
+    /**
+     * Normaliza segmentos ecuación legacy (texto unicode) a forma canónica:
+     * texto = fuente `$latex$`, sin estilos. Idempotente.
+     */
+    fun canonicalizeEquations(segments: List<TextSegment>): List<TextSegment> {
+        if (segments.none { it.equationLatex != null }) return segments
+        return segments.map { seg ->
+            if (seg.equationLatex == null) seg else TextSegment(
+                text = fallbackText(seg.equationLatex),
+                equationLatex = seg.equationLatex
+            )
+        }
+    }
+
+    /**
+     * Expulsa offsets al borde de la ecuación (las ecuaciones no se parten:
+     * el formato/corte las incluye enteras o las excluye).
+     */
+    private fun snapEquationBounds(
+        segments: List<TextSegment>,
+        offset: Int,
+        preferStart: Boolean
+    ): Int {
+        var cursor = 0
+        for (seg in segments) {
+            val segEnd = cursor + seg.text.length
+            if (seg.equationLatex != null && offset > cursor && offset < segEnd) {
+                return if (preferStart) cursor else segEnd
+            }
+            cursor = segEnd
+        }
+        return offset
     }
 
     private fun splitSegmentsAt(
@@ -870,7 +979,7 @@ object RichTextConverter {
         val sb = StringBuilder()
         for (seg in segments) {
             val inner = if (seg.equationLatex != null) {
-                htmlEscape(MathRenderer.render(seg.equationLatex).text)
+                "$" + htmlEscape(seg.equationLatex) + "$"
             } else {
                 htmlEscape(seg.text)
             }

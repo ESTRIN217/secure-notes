@@ -74,7 +74,6 @@ import com.example.util.ImageUrlResolver
 import com.example.util.BookmarkMetadataFetcher
 import com.example.util.MediaBlock
 import com.example.util.JsonColorizer
-import com.example.util.MathRenderer
 import com.example.util.RichTextParser
 import com.example.util.highlightMatches
 import com.example.util.parseToContentBlocks
@@ -401,6 +400,24 @@ fun NoteEditorScreen(
         contentValue = TextFieldValue(text = plain, selection = TextRange(clamped))
         activeSelection = clamped..clamped
         pendingSelection.value = clamped..clamped
+    }
+
+    fun applyEquationEdit(blockIndex: Int, offset: Int, latex: String) {
+        val block = blocks.getOrNull(blockIndex) ?: return
+        if (!block.contentIsText) return
+        val segs = block.ensureSegments()
+        val updated = com.example.util.RichTextConverter.replaceEquationAt(segs, offset, latex)
+        if (updated === segs) return
+        blocks = blocks.toMutableList().apply {
+            set(
+                blockIndex,
+                block.copy(
+                    content = "",
+                    richTextJson = com.example.data.model.TextSegment.serialize(updated)
+                )
+            )
+        }
+        saveBlocksToHistory()
     }
 
     fun syncActiveBlock() {
@@ -796,6 +813,8 @@ fun NoteEditorScreen(
 
     var showEquationDialog by remember { mutableStateOf(false) }
     var equationInput by remember { mutableStateOf("") }
+    // Edición de ecuación existente: (índice de bloque, offset del placeholder). Null = insertar.
+    var equationEditTarget by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
@@ -1402,6 +1421,7 @@ fun NoteEditorScreen(
             BlockAction.EQUATION_DIALOG -> {
                 clearSlashPlaceholder()
                 equationInput = ""
+                equationEditTarget = null
                 showEquationDialog = true
             }
         }
@@ -1974,6 +1994,11 @@ fun NoteEditorScreen(
                         onActiveCursorChange = { toolbarActiveCursorOffset = it },
                         onActiveSelectionChange = { activeSelection = it },
                         onParseResult = { toolbarParseResult = it },
+                        onEquationClicked = { blockIndex, latex, range ->
+                            equationInput = latex
+                            equationEditTarget = blockIndex to range.first
+                            showEquationDialog = true
+                        },
                         pendingFocusBlockIndex = pendingFocusBlockIndex,
                         onFocusHandled = { pendingFocusBlockIndex = -1 },
                         modifier = Modifier.fillMaxSize()
@@ -3377,12 +3402,21 @@ fun NoteEditorScreen(
         }
 
         if (showEquationDialog) {
+            val equationTarget = equationEditTarget
             AlertDialog(
                 onDismissRequest = {
                     showEquationDialog = false
                     equationInput = ""
+                    equationEditTarget = null
                 },
-                title = { Text(stringResource(id = R.string.dialog_insert_equation_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            id = if (equationTarget != null) R.string.dialog_edit_equation_title
+                            else R.string.dialog_insert_equation_title
+                        )
+                    )
+                },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
@@ -3403,12 +3437,19 @@ fun NoteEditorScreen(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(
-                                    text = MathRenderer.render(equationInput.trim()),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(8.dp),
-                                    maxLines = 4,
-                                    overflow = TextOverflow.Ellipsis
+                                com.hrm.latex.renderer.Latex(
+                                    latex = equationInput.trim(),
+                                    config = com.hrm.latex.renderer.model.LatexConfig(
+                                        fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                                        theme = com.hrm.latex.renderer.model.LatexTheme.light(
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        accessibilityEnabled = true
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState())
+                                        .padding(8.dp)
                                 )
                             }
                         }
@@ -3417,20 +3458,31 @@ fun NoteEditorScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            if (equationInput.isNotBlank()) {
-                                pendingInsert.value = "<eq>${equationInput.trim()}</eq>"
+                            val latex = equationInput.trim()
+                            if (latex.isNotBlank()) {
+                                if (equationTarget != null) {
+                                    applyEquationEdit(equationTarget.first, equationTarget.second, latex)
+                                } else {
+                                    pendingInsert.value = "<eq>$latex</eq>"
+                                }
                             }
                             equationInput = ""
+                            equationEditTarget = null
                             showEquationDialog = false
                         }
                     ) {
-                        Text(stringResource(id = R.string.btn_insert))
+                        Text(
+                            stringResource(
+                                id = if (equationTarget != null) R.string.btn_save else R.string.btn_insert
+                            )
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = {
                             equationInput = ""
+                            equationEditTarget = null
                             showEquationDialog = false
                         }
                     ) {

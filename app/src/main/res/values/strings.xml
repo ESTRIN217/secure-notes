@@ -320,6 +320,7 @@
     <string name="block_equation">Equation</string>
     <string name="block_equation_desc">Insert an equation</string>
     <string name="dialog_insert_equation_title">Insert Equation</string>
+    <string name="dialog_edit_equation_title">Edit Equation</string>
     <string name="label_equation_latex">LaTeX (e.g. E = mc^2)</string>
     <string name="block_highlight">Highlight</string>
     <string name="block_highlight_desc">Highlighted callout block</string>
@@ -1096,6 +1097,12 @@
     <string name="widget_quick_title">Quick Note</string>
     <string name="widget_quick_desc">Create a new note with one tap</string>
     <string name="widget_quick_add">New note</string>
+    <string name="widget_open_note">Open note</string>
+    <string name="widget_preview_sample_title">Trip notes</string>
+    <string name="widget_preview_sample_text">Flight at 8:40, hotel downtown, don\'t forget the charger and passport.</string>
+    <string name="widget_preview_sample_date">Jun 12, 09:30</string>
+    <string name="widget_preview_sample_title2">Grocery list</string>
+    <string name="widget_preview_sample_text2">Milk, eggs, bread and fresh fruit for the week.</string>
     <string name="widget_config_title">Choose note</string>
     <string name="widget_empty_note">No note selected</string>
     <string name="widget_empty_list">No notes yet</string>
