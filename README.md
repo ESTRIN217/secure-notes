@@ -1,15 +1,25 @@
 # Secure Notes
 
-Un bloc de notas moderno, elegante y seguro con cifrado de extremo a extremo (E2EE), organización avanzada y sincronización en la nube.
-
----
+Bloc de notas Android con **cifrado real en el dispositivo**, **editor por bloques estilo Notion** e **IA 100 % local opcional**. Tus notas nunca salen sin cifrar y tus prompts jamás tocan la nube.
 
 [![Latest release](https://img.shields.io/github/v/release/ESTRIN217/secure-notes?style=for-the-badge&labelColor=0d1117)](https://github.com/ESTRIN217/secure-notes/releases)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![minSdk](https://img.shields.io/badge/minSdk-33-blue.svg)
+![targetSdk](https://img.shields.io/badge/targetSdk-36-blue.svg)
+![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-7F52FF.svg)
+![Tests](https://img.shields.io/badge/tests-JUnit4%20%2B%20Robolectric%20%2B%20Roborazzi-green.svg)
+
+## Por qué existe
+
+Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifradas suelen tener editores pobres. Secure Notes une las tres cosas sin concesiones:
+
+| Necesidad | Secure Notes |
+|---|---|
+| **Privacidad real** | AES-256-GCM + PBKDF2 (200 000 iteraciones). Salt e IV aleatorios por nota. Sin la contraseña maestra es matemáticamente imposible descifrar, ni siquiera para el desarrollador o Google. |
+| **Editor a la altura** | WYSIWYG por bloques: títulos H1–H4, listas, checklists, tablas, citas, código con resaltado, LaTeX, imágenes, audio, dibujo, pestañas múltiples y menú `/`. |
+| **IA sin nube** | Chat opcional (desactivado por defecto): llama.cpp on-device o Ollama/LM Studio en tu LAN. Cero APIs externas, cero entrenamiento con tus datos. |
 
 ## 📸 Capturas de Pantalla
-
-Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, puedes visualizar la interfaz aquí:
 
 <table align="center">
   <tr>
@@ -30,195 +40,106 @@ Para mantener la consistencia visual y un diseño limpio en cualquier pantalla, 
 
 ---
 
-## 🌎 Idiomas Soportados
-* **Español (VE)** - Traducción nativa completa.
-* **Português (BR)** - Tradução nativa completa.
-* **Français (FR)** - Traduction complète des sections légales.
-* **English (US/UK)** - Default locale with complete support.
+## ✨ Características clave
+
+* **Cifrado por nota** con contraseña maestra, biometría y pantalla de privacidad dedicada.
+* **Editor por bloques** con formato enriquecido en línea, deshacer/rehacer, drag & drop y autoguardado.
+* **Organización**: etiquetas, favoritos, archivadas, colores, drag & drop en rejilla y búsqueda en tiempo real (incluye cifradas con sesión abierta).
+* **Multimedia**: imágenes, vídeo, audio, voz, archivos, dibujos y visor PDF integrado.
+* **Sincronía opcional**: Google Drive (`appDataFolder`, cifrado antes de subir) + exportación TXT/Markdown/PDF/HTML/JSON.
+* **IA local opcional**: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota.
+* **9 locales**, modo claro/oscuro, colores dinámicos, widgets y burbuja flotante.
+
+> 📖 Manual del editor (bloques, gestos, sintaxis): [docs/EDITOR.md](docs/EDITOR.md) · Guía de desarrollo del editor: [docs/EDITOR_DEV.md](docs/EDITOR_DEV.md)
 
 ---
 
-## 🎨 Características de Diseño / Design & UI
-* **Material Design 3 Expresivo:** Una interfaz limpia, moderna y altamente responsiva que sigue las directrices oficiales de diseño de Material Desing 3 Expresive.
-* **Modo Oscuro / Claro Automático:** Soporte completo para temas claros y oscuros respetando la configuración del sistema, adaptando los colores de las notas para una lectura sumamente cómoda.
-* **Vista en Rejilla y Lista:** Alternancia fluida entre visualización en cuadrícula o lista compacta (preferencia guardada automáticamente).
+## 🌎 Idiomas soportados
+
+Español (VE), Español (ES), Español (419), Português (BR/PT), Français, Italiano, English (US/GB). Las secciones legales están traducidas en todos los locales.
 
 ---
 
-## ⚙️ Configuración y Widgets Compartidos
-* **Settings Hub:** Pantalla central de configuración con secciones organizadas: Apariencia, Idioma, Privacidad y Seguridad, Almacenamiento y Datos, Información.
+## 🏗️ Arquitectura de un vistazo
+
+```mermaid
+flowchart LR
+    UI["Compose UI<br/>(Screen / Navigator)"] --> VM["ViewModels<br/>(StateFlow)"]
+    VM --> DAO["Room DAOs"]
+    DAO --> DB[("Room DB")]
+    VM --> CR["CipherService<br/>(AES-256-GCM)"]
+    VM --> SYNC["GoogleDriveSyncService<br/>(OkHttp)"]
+    VM --> AI["AIService<br/>(Ollama / On-Device)"]
+```
+
+MVVM de un solo módulo (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:code-tools` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
 
 ---
 
-## 🛡️ Privacidad y Seguridad
-* **Contraseña Maestra:** Protege tus notas confidenciales con una contraseña maestra única de alta seguridad.
-* **Algoritmo de Grado Militar (AES-256):** Las notas marcadas como cifradas se encriptan de forma segura utilizando derivación de claves mediante PBKDF2, generando un **Salt** y un **Vector de Inicialización (IV)** aleatorios por cada nota.
-* **Privacidad Absoluta:** Los datos cifrados se almacenan localmente en la base de datos de Room. Sin la contraseña maestra, es matemáticamente imposible descifrar o leer el contenido de las notas.
-* **Pantalla de Privacidad:** Sección dedicada para configurar o eliminar la contraseña maestra con confirmación de seguridad.
+## 📋 Requisitos previos
 
----
-
-## 📝 Editor de Notas Avanzado
-* **Editor WYSIWYG por Bloques:** Editor fluido estilo Notion con bloques (texto, títulos H1–H4, listas, tablas, citas…) y formato enriquecido en línea (negrita, color, subíndice, superíndice, ecuaciones, enlaces…).
-* **Formato Limpio:** Editor de texto fluido y minimalista con soporte para títulos y cuerpo de notas amplios.
-* **Asociación de Etiquetas:** Permite asignar múltiples etiquetas personalizadas para categorizar las notas.
-* **Personalización de Fondo (Colores):** Cambia el color de fondo de tus notas individuales utilizando una paleta pastel optimizada para legibilidad (Azul, Verde, Amarillo, Rosa, Púrpura, Naranja) o el color por defecto del sistema.
-
-> 📖 **Documentación completa del editor** (bloques, formato y referencia técnica): [docs/EDITOR.md](docs/EDITOR.md)
-
----
-
-## 🔍 Búsqueda Inteligente y Filtros Avanzados
-* **Historial de Búsquedas Recientes:** Guarda y gestiona de forma interactiva tus búsquedas previas con chips de sugerencias rápidas.
-* **Búsqueda en Tiempo Real:** Busca instantáneamente dentro del título y contenido de tus notas (incluyendo notas cifradas si se ha desbloqueado la sesión).
-* **Filtros Dinámicos e Interactivos:**
-  * ⭐ **Favoritos:** Filtra rápidamente para mostrar solo notas destacadas.
-  * 📦 **Archivadas:** Muestra u oculta notas archivadas para mantener tu espacio limpio.
-  * 🏷️ **Etiquetas:** Menú desplegable interactivo para filtrar notas por cualquier etiqueta existente.
-  * 🎨 **Colores:** Filtra notas de manera visual por su color de fondo específico.
-
----
-
-## 🔄 Sincronización en la Nube y Exportación
-* **Sincronización con Google Drive:** Vincula tu cuenta para realizar copias de seguridad automáticas y restaurar tus notas de forma segura en cualquier dispositivo.
-* **Múltiples Formatos de Exportación:** Guarda tus notas localmente o compártelas en formatos estándar de la industria:
-  * Texto Plano (`.txt`)
-  * Markdown (`.md`)
-  * PDF de alta fidelidad
-  * HTML Web enriquecido
-  * Respaldo crudo JSON
-
----
-
-## 🤖 Asistente IA Local (AI Chat)
-* **Chat IA 100% Local:** Conversa con un modelo de lenguaje directamente desde la app, sin que tus notas o mensajes lleguen a servicios en la nube. Función opcional, desactivada por defecto.
-* **Dos Backends Seleccionables:**
-  * 📱 **On-Device (llama.cpp):** Chat basado en llama.cpp — inferencia nativa de modelos GGUF ejecutada en el propio dispositivo (arm64-v8a), sin conexión de red.
-  * 🖥️ **Backend llama.cpp / Ollama (HTTP Local):** Conexión configurable por URL a un servidor LLM en tu red local (Ollama, LM Studio). Ningún dato abandona tu LAN.
-* **Acciones de Escritura Inteligente:** Generar texto, resumir, reescribir con estilos (formal, casual, poético, profesional), traducir, acortar, corregir gramática y explicar — sobre toda la nota o la selección actual.
-* **Contexto por Adjuntos:** Adjunta otras notas o archivos de texto al chat como contexto adicional; se muestran como chips removibles antes de enviar el mensaje.
-* **Historial de Chats:** Sesiones persistentes en Room con renombrado, fijado, borrado y exportación de conversaciones.
-* **Streaming e Inserción:** Respuestas generadas token a token en tiempo real, con opción de insertar el resultado directamente en tu nota.
-
----
-
-## ⚖️ Términos y Privacidad
-
-Secure Notes incluye una pantalla **"Términos y Privacidad"** accesible desde Ajustes > Legal y desde Acerca de > Enlaces Útiles.
-
-- **Autenticación**: Google OAuth maneja la autenticación. La pantalla de consentimiento de Google rige los permisos de cuenta.
-- **Términos de Uso**: La app se proporciona "tal cual". El usuario es responsable de su contraseña maestra.
-- **Privacidad**: Sin contraseña maestra, es matemáticamente imposible descifrar las notas.
-
-## 🤖 Uso de Inteligencia Artificial
-
-La asistencia de IA es **opcional** y se ejecuta íntegramente en tu dispositivo o en tu red local, según el backend seleccionado. Declaración completa en la app (Ajustes > Legal):
-
-- Funciones de IA **OPCIONALES**, desactivadas por defecto y con consentimiento explícito.
-- Backend **On-Device (llama.cpp):** el modelo se ejecuta en el dispositivo; no requiere conexión de red.
-- Backend **Ollama / LM Studio:** conexión HTTP a un servidor LLM local; ningún dato sale de tu LAN.
-- Nunca se envían datos a APIs en la nube ni a terceros, y nada se usa para entrenar modelos externos.
-
-## 🛡️ Soberanía de Datos (Client-Side Absolute)
-
-| Aspecto | Detalle |
-|---------|---------|
-| **Cifrado** | AES-256-GCM con autenticación integrada |
-| **Derivación de clave** | PBKDF2 con HMAC-SHA256, 200,000 iteraciones |
-| **Sal e IV** | Aleatorios por nota (SecureRandom) |
-| **Contraseña maestra** | Nunca sale del dispositivo, solo en memoria durante la sesión |
-| **Backups cloud** | Cifrados localmente *antes* de subir a Google Drive |
-| **Acceso de terceros** | Imposible sin la contraseña maestra |
-
-## ☁️ Google Drive
-
-La integración con Google Drive es **opcional** y se usa exclusivamente para:
-
-- **Copia de seguridad** en la carpeta AppData (inaccesible para el usuario).
-- **Autenticación OAuth 2.0** via Credential Manager.
-- **Cifrado client-side**: los backups se cifran con tu contraseña maestra antes de transmitirse.
-- **Desconexión total**: puedes revocar el acceso en cualquier momento desde Ajustes.
-
-## 📜 Licencias de Código Abierto
-
-Pantalla dedicada en **Ajustes > Legal > Licencias** listando todas las dependencias principales:
-
-| Librería | Licencia |
-|----------|----------|
-| Kotlin | Apache 2.0 |
-| Jetpack Compose | Apache 2.0 |
-| Material 3 | Apache 2.0 |
-| Room | Apache 2.0 |
-| OkHttp | Apache 2.0 |
-| Retrofit | Apache 2.0 |
-| Moshi | Apache 2.0 |
-| Coil | Apache 2.0 |
-| Firebase (Google) | Apache 2.0 |
-| Kotlin Coroutines | Apache 2.0 |
-| WorkManager | Apache 2.0 |
-| Android Biometric | Apache 2.0 |
-| llama.cpp | MIT |
-| compose-markdown | Apache 2.0 |
-| Robolectric | MIT |
-| JUnit 4 | EPL 2.0 |
-| [visor-pdf](https://github.com/ESTRIN217/visor-pdf.git) | MIT - ESTRIN217 |
-| [App](LICENCE) (MIT) | MIT — ESTRIN217 |
-
----
-
-## 🛠️ Stack Tecnológico
-* **Lenguaje:** Kotlin
-* **UI:** Jetpack Compose (Material Design 3 Expressive)
-* **Persistencia Local:** Room Database (SQLite con migraciones robustas)
-* **Seguridad:** API de Criptografía de Android, PBKDF2 y AES-256
-* **IA Local:** llama.cpp nativo (JNI/NDK, arm64-v8a) · OkHttp para backends HTTP locales (Ollama / LM Studio)
-* **Arquitectura:** MVVM (Model-View-ViewModel) con flujos reactivos `StateFlow`
-
----
-
-## 🧠 Software Engineering Principles
-
-This project is developed following industry‑standard practices to ensure maintainability, testability, and long‑term quality:
-
-### DRY (Don't Repeat Yourself)
-Shared Compose widgets (`SettingsSectionTitle`, `SettingsCardGroup`, `SettingsSwitchTile`, `SettingsListTile`) centralize repeated UI patterns. Rich‑text parsing and rendering logic lives in `RichTextParser` — a single source of truth for the custom tag system.
-
-### SOLID
-| Principle | How it's applied |
+| Herramienta | Versión |
 |---|---|
-| **SRP** | ViewModels handle one screen; `NoteDao` owns DB access; `EncryptionUtils` owns crypto; Composables are pure UI. |
-| **OCP** | New note formats or export types are added by extending parameters, not modifying existing functions. |
-| **LSP** | `DarkModeOption` enum values are fully substitutable; `BackupViewModel` treats local and cloud backups uniformly. |
-| **ISP** | Fine‑grained composable parameters instead of wide interfaces. UI callbacks use single‑method Kotlin lambdas. |
-| **DIP** | Dependencies injected via constructor (no static singletons). `GoogleDriveSyncService`, `NoteDao`, and `EncryptionUtils` are test‑friendly abstractions. |
+| JDK | 17 |
+| Gradle / AGP / Kotlin | 9.5.1 / 9.3.1 / 2.4.10 |
+| Android SDK | `compileSdk 37`, `targetSdk 36`, `minSdk 33` |
+| NDK / CMake (solo IA on-device) | 30.0.14904198 / 4.3.0 |
+| llama.cpp checkout | commit `3dc7285b4` en la ruta que indica `settings.gradle.kts` (`:lib`), o ajusta `projectDir` |
+| Firma | `key.properties` (copia desde `key.properties.template`) |
+| Google (solo sync/Drive) | `app/google-services.json` |
 
-### Clean Code
-- Functions ≤ 20 lines with single responsibility.
-- Intention‑revealing names (`encryptContent`, `toggleDarkMode`, `searchNotes`).
-- Guard clauses replace deep nesting.
-- Comments document *why* (edge cases, design trade‑offs), never *what*.
+> Solo se compila `arm64-v8a`. El plugin de secretos lee `.env` (ver `.env.example`); hoy ningún secreto es consumido: la IA no usa API keys.
 
-### KISS (Keep It Simple, Stupid)
-- Single‑module app with manual constructor DI — no framework overhead.
-- `StateFlow` + `collectAsState()` for reactive UI — no additional reactive libraries.
-- Room as the sole persistence layer — no separate cache, no ORM.
+## 🚀 Instalación y guía rápida
 
-### YAGNI (You Aren't Gonna Need It)
-- No repository abstraction until a second data source is introduced.
-- Interfaces declared only when substitution (testing, alternate impl) is actually required.
-- No feature flags, dead code, or speculative navigation routes.
+```bash
+git clone https://github.com/ESTRIN217/secure-notes.git
+cd secure-notes
+cp key.properties.template key.properties   # completa tus datos de firma
+# (opcional, solo Drive) coloca tu app/google-services.json
+sh gradlew assembleDebug                     # APK en app/build/outputs/
+sh gradlew test                              # unitarios + Robolectric + Roborazzi
+```
 
-### Error Handling & Robustness
-- All async operations return sealed `UiState` (Loading / Success / Error).
-- Input validated at the UI boundary; encryption failures surfaced as explicit `EncryptionResult` types.
-- No silent exception swallowing — every `catch` either logs or re‑wraps.
-- Room I/O and file operations run on `Dispatchers.IO`; crypto failures never crash the UI.
+Si el build se comporta raro (caché de configuración o KSP), `sh gradlew clean --no-configuration-cache`.
+
+## 🗂️ Estructura del proyecto
+
+```
+secure-notes/
+├── app/                 # :app — UI, ViewModels, Room, cifrado, IA, sync
+│   └── src/main/{java/com/example/{ui,data,util},res,assets}
+├── visor-pdf/           # :visor-pdf — visor PDF (PdfRenderer + androidx.pdf)
+├── visor-media/         # :visor-media — galería audio/vídeo (Media3 + Coil3)
+├── code-tools/          # :code-tools — editor de código con resaltado
+├── docs/                # EDITOR, EDITOR_DEV, GUIDELINES, ARCHITECTURE, ROADMAP, adr/
+├── .github/             # CI + plantillas de issues/PRs
+├── CHANGELOG.md         # historial por versión (Keep a Changelog)
+├── THIRD-PARTY-NOTICES  # licencias runtime distribuidas en el APK
+└── LICENSE              # MIT
+```
 
 ---
 
-## Licencia
+## ⚖️ Términos, privacidad e IA (resumen)
 
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para obtener más detalles.
+La fuente de verdad legal vive en la app (**Ajustes > Legal**), traducida a los 9 locales:
+
+- **Términos**: app "tal cual"; tú custodias tu contraseña maestra (si la pierdes, nadie puede recuperar tus notas).
+- **Privacidad**: cifrado/descifrado exclusivamente en tu dispositivo; backups cifrados antes de subir.
+- **IA**: opcional, desactivada por defecto, on-device o LAN; jamás nube ni entrenamiento externo.
+- **Drive**: opcional, carpeta privada `AppData`, OAuth 2.0, revocable en Ajustes.
+- **Licencias OSS**: Ajustes > Legal > Licencias (fuente: `app/src/main/assets/oss-licenses.json`).
+
+Para reportar vulnerabilidades de forma privada, ver [SECURITY.md](SECURITY.md).
+
+---
+
+## 🤝 Contribución y licencia
+
+Lee [CONTRIBUTING.md](CONTRIBUTING.md) (estilo, tests, flujo de PRs) y el [CHANGELOG.md](CHANGELOG.md). Decisiones de diseño: [docs/adr/](docs/adr/). Dependencias y sus licencias: [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+
+Este proyecto está licenciado bajo la Licencia MIT — ver [LICENSE](LICENSE).
 
 ---
 

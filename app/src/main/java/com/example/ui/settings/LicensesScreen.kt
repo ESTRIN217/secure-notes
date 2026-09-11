@@ -22,31 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import androidx.compose.material3.TopAppBar
-
-private data class OssLibrary(
-    val name: String,
-    val license: String,
-    val url: String
-)
-
-private val ossLibraries = listOf(
-    OssLibrary("Kotlin", "Apache 2.0", "https://github.com/JetBrains/kotlin/blob/master/license/LICENSE"),
-    OssLibrary("Jetpack Compose", "Apache 2.0", "https://developer.android.com/jetpack/compose"),
-    OssLibrary("Material 3 (Material Design)", "Apache 2.0", "https://github.com/material-components/material-components-android"),
-    OssLibrary("Room", "Apache 2.0", "https://developer.android.com/jetpack/androidx/releases/room"),
-    OssLibrary("OkHttp", "Apache 2.0", "https://github.com/square/okhttp/blob/master/LICENSE.txt"),
-    OssLibrary("Retrofit", "Apache 2.0", "https://github.com/square/retrofit/blob/master/LICENSE.txt"),
-    OssLibrary("Moshi", "Apache 2.0", "https://github.com/square/moshi/blob/master/LICENSE.txt"),
-    OssLibrary("Coil", "Apache 2.0", "https://github.com/coil-kt/coil/blob/main/LICENSE.txt"),
-    OssLibrary("Firebase (Google)", "Apache 2.0", "https://firebase.google.com/terms"),
-    OssLibrary("Kotlin Coroutines", "Apache 2.0", "https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt"),
-    OssLibrary("WorkManager", "Apache 2.0", "https://developer.android.com/jetpack/androidx/releases/work"),
-    OssLibrary("Android Biometric", "Apache 2.0", "https://developer.android.com/jetpack/androidx/releases/biometric"),
-    OssLibrary("llama.cpp", "MIT", "https://github.com/ggml-org/llama.cpp/blob/master/LICENSE"),
-    OssLibrary("compose-markdown", "Apache 2.0", "https://github.com/jeziellago/compose-markdown/blob/main/LICENSE"),
-    OssLibrary("Robolectric", "MIT", "https://github.com/robolectric/robolectric/blob/master/LICENSE"),
-    OssLibrary("JUnit 4", "EPL 2.0", "https://github.com/junit-team/junit4/blob/main/LICENSE-junit.txt")
-)
+import com.example.util.OssLibrary
+import com.example.util.loadOssLicenses
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,13 +33,20 @@ fun LicensesScreen(
 ) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
+    var ossLibraries by remember { mutableStateOf<List<OssLibrary>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        ossLibraries = loadOssLicenses(context.applicationContext)
+    }
 
     val openUrl = { url: String ->
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e("LicensesScreen", "openUrl failed", e)
+        if (url.isNotBlank()) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("LicensesScreen", "openUrl failed", e)
+            }
         }
     }
 
@@ -175,8 +159,9 @@ private fun OssLibraryItem(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            val subtitle = if (lib.version.isNotBlank()) "${lib.license} · ${lib.version}" else lib.license
             Text(
-                text = lib.license,
+                text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

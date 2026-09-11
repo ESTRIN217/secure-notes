@@ -89,34 +89,13 @@ Todas las opciones se aplican a la **selección** actual. Si no hay selección, 
 
 ### Modelo de datos
 
-El contenido de una nota es una lista JSON de `DataBlock`:
+El contenido de una nota es una lista JSON de `DataBlock`: `richTextJson`
+(segmentos estilizados) es la **fuente de verdad** del editor y `content`
+(markup HTML-like, ver sintaxis abajo) existe para compatibilidad y exportación.
+Tablas, checklist, multimedia y marcadores guardan sus propiedades en `meta`.
 
-```kotlin
-data class DataBlock(
-    val type: BlockType,
-    val content: String = "",              // markup interno (ver sintaxis)
-    val meta: Map<String, String> = emptyMap(),
-    val richTextJson: String? = null        // segmentos estilizados (fuente de verdad)
-)
-```
-
-```kotlin
-enum class BlockType {
-    TEXT, HEADING1, HEADING2, HEADING3, HEADING4,
-    BULLET_LIST, NUMBERED_LIST, CHECKLIST_ITEM,
-    QUOTE, CODE_BLOCK, CALLOUT, PAGE, PAGE_LINK,
-    IMAGE, VIDEO, AUDIO, DRAWING, VOICE, FILE,
-    TABLE, HORIZONTAL_RULE, COLLAPSIBLE
-}
-```
-
-- **`richTextJson`** guarda la lista de `TextSegment` (texto + estilos) y es la **fuente de verdad** del editor.
-- **`content`** contiene el markup HTML-like (misma información, formato de texto) y se usa para compatibilidad, exportación y contenido legacy.
-- **Tablas** se serializan como `TableData` (headers, rows, columnWeights, bgColorHex, showHeader) dentro de `meta["table"]`.
-- **Checklist / Collapsible** guardan estado en `meta` (`checked`, `summary`). Cada ítem de checklist usa `richTextJson` para su formato enriquecido.
-- **Media** (imagen, vídeo, audio, voz, archivo, dibujo) guardan `fileUri`, `fileName`, `caption`, `showCaption`, `align`, `color` y el flag `wysiwyg` en `meta`; los trazos del dibujo se serializan como JSON en `meta["strokes"]`.
-- **Marcador web** guarda `url` (en `content`), `title`, `description` y `favicon` en `meta`.
-- **Indentación** de bloques de texto/listas se guarda en `meta["indentLevel"]`.
+> Definición completa (`DataBlock`, `BlockType`, claves de `meta`, `TextSegment`):
+> [`EDITOR_DEV.md` §3](EDITOR_DEV.md).
 
 ### Sintaxis markup interna (HTML-like)
 

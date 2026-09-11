@@ -1,0 +1,69 @@
+## Licencias de código abierto — Secure Notes
+
+> Alcance: solo dependencias **runtime distribuidas en el APK** (lo que se envía al
+> usuario). Quedan fuera dependencias de test (`JUnit`, `Robolectric`, `Roborazzi`,
+> `Espresso`) y plugins de build (`AGP`, `KSP`, `Secrets`, `google-services`).
+> Fuente de verdad para la app: `app/src/main/assets/oss-licenses.json`, que la
+> pantalla **Ajustes > Legal > Licencias** (`LicensesScreen`) carga en tiempo de
+> ejecución. Este archivo y ese JSON deben mantenerse sincronizados.
+>
+> App propia: licencia MIT, ver `LICENSE` (no se modifica por decisión del proyecto).
+
+### Lenguaje y UI
+
+| Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
+|---|---|---|---|---|---|
+| Kotlin (stdlib, plugin Compose) | 2.4.10 | Apache-2.0 | JetBrains | https://github.com/JetBrains/kotlin/blob/master/license/LICENSE | Lenguaje base |
+| Jetpack Compose BOM (ui, ui-graphics, runtime, activity-compose, lifecycle-runtime-compose, lifecycle-viewmodel-compose, navigation-compose) | BOM 2026.06.01 · activity 1.13.0 · lifecycle 2.11.0 · navigation 2.9.8 | Apache-2.0 | Google / AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | UI declarativa, navegación |
+| Material 3 + Material Icons (core, extended) + window-size-class | 1.5.0-alpha25 | Apache-2.0 | Google | https://github.com/material-components/material-components-android/blob/master/LICENSE | Material Design 3 Expressive |
+| AndroidX base (core-ktx 1.19.0, lifecycle-runtime-ktx 2.11.0, fragment-compose 1.8.6) | ver tabla | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | Base, ciclo de vida |
+| Glance (appwidget, material3) | 1.3.0-alpha02 | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | Widget de inicio |
+
+### Persistencia, seguridad y trabajo en segundo plano
+
+| Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
+|---|---|---|---|---|---|
+| Room (runtime, ktx) | 2.8.4 | Apache-2.0 | AOSP | https://developer.android.com/jetpack/androidx/releases/room | Notas, sesiones de chat, memoria IA |
+| Security-Crypto | 1.1.0 | Apache-2.0 | AOSP | https://developer.android.com/jetpack/androidx/releases/security | Almacén cifrado |
+| WorkManager (work-runtime-ktx) | 2.11.2 | Apache-2.0 | AOSP | https://developer.android.com/jetpack/androidx/releases/work | `SyncWorker` (copias Drive) |
+| Biometric (+ biometric-compose) | 1.4.0-alpha07 | Apache-2.0 | AOSP | https://developer.android.com/jetpack/androidx/releases/biometric | Desbloqueo con biometría |
+| Kotlinx Coroutines (core, android) | 1.11.0 | Apache-2.0 | JetBrains | https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt | `StateFlow`, I/O en `Dispatchers.IO` |
+
+### Red, JSON e imágenes
+
+| Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
+|---|---|---|---|---|---|
+| OkHttp (+ logging-interceptor) | 5.4.0 | Apache-2.0 | Square | https://github.com/square/okhttp/blob/master/LICENSE.txt | Backend Ollama/LM Studio, red de Coil |
+| Retrofit (+ converter-moshi) | 3.0.0 | Apache-2.0 | Square | https://github.com/square/retrofit/blob/master/LICENSE.txt | Cliente HTTP Google Drive |
+| Moshi (moshi-kotlin) | 1.15.2 | Apache-2.0 | Square | https://github.com/square/moshi/blob/master/LICENSE.txt | JSON de bloques `DataBlock` |
+| Coil 3 (compose, video, network-okhttp, svg) | 3.5.0 | Apache-2.0 | Coil Contributors | https://github.com/coil-kt/coil/blob/main/LICENSE.txt | Avatares, adjuntos, miniaturas |
+
+### Multimedia y renderizado
+
+| Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
+|---|---|---|---|---|---|
+| Media3 (exoplayer, ui, common, exoplayer-hls) | 1.7.1 | Apache-2.0 | AOSP | https://github.com/androidx/media/blob/release/LICENSE | `:visor-media` (audio/vídeo) |
+| PDF Viewer (viewer, viewer-fragment, document-service, compose) | 1.0.0-alpha19 (fragment alpha04) | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/pdf/pdf-viewer/build.gradle | `:visor-pdf` |
+| compose-markdown | 0.7.2 | MIT | Jeziel Lago (© 2021) | https://github.com/jeziellago/compose-markdown/blob/main/LICENSE | Render Markdown |
+| LaTeX (base, parser, renderer) | 1.5.4 | MIT | huarangmeng (© 2026) | https://github.com/huarangmeng/latex/blob/master/LICENSE | Ecuaciones en notas |
+
+### IA local
+
+| Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
+|---|---|---|---|---|---|
+| llama.cpp (nativo, compilado desde fuente por `:lib`) | commit `3dc7285b4` | MIT | The ggml authors (© 2023-2026) | https://github.com/ggml-org/llama.cpp/blob/master/LICENSE | Inferencia GGUF on-device (`arm64-v8a`) |
+| Binding llama.android (`:lib`, fachada `com.arm.aichat.AiChat`) | checkout app-privado | Apache-2.0 | ARM / ggml-org (sample) | https://github.com/ggml-org/llama.cpp/tree/master/examples/llama.android | `OnDeviceService` / `LlamaCppEngine` |
+
+### Google (licencias propietarias)
+
+| Librería | Versión | Licencia | Titular | URL de términos | Uso en la app |
+|---|---|---|---|---|---|
+| Firebase Analytics (BOM) | BOM 34.16.0 | Términos de Firebase / Android SDK License (propietaria) | Google | https://firebase.google.com/terms |
+| Play Services Auth + GoogleId + credentials-play-services-auth (+ androidx.credentials base Apache-2.0) | auth 21.6.0 · googleid 1.2.0 · creds-psa 1.6.0 | Android SDK License (propietaria) | Google | https://developer.android.com/studio/terms.html | OAuth 2.0, Credential Manager, Drive |
+
+### Módulos internos (código propio)
+
+| Módulo | Licencia | Titular | Uso |
+|---|---|---|---|
+| `:visor-pdf`, `:visor-media`, `:code-tools` | MIT | ESTRIN217 | Visor PDF, visor multimedia, editor de código (ver `LICENSE` raíz) |
+

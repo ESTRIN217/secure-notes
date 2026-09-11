@@ -36,23 +36,23 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 
 | Layer | Path | Key files |
 |---|---|---|
-| UI / Navigation | `com.example.ui` | `MainListScreen.kt`, `NoteEditorScreen.kt`, `AiChatScreen.kt`, `DrawingCanvasScreen.kt`, `MediaViewerScreen.kt`, `SearchScreen.kt`, `LockScreen.kt` |
-| Settings UI | `com.example.ui.settings` | `SettingsScreen.kt`, `PrivacySettingsScreen.kt`, `BackupRestoreScreen.kt`, `AiSettingsScreen.kt`, `StorageManagerScreen.kt`, `AboutScreen.kt`, `SettingsWidgets.kt` |
+| UI / Navigation | `com.example.ui` | `MainListScreen.kt`, `NoteEditorScreen.kt`, `AiChatScreen.kt`, `DrawingCanvasScreen.kt`, `SearchScreen.kt`, `LockScreen.kt` (media viewer vive en `:visor-media`: `com.estrin217.visormedia.ui.MediaViewerScreen`) |
+| Settings UI | `com.example.ui.settings` | `SettingsScreen.kt`, `PrivacySettingsScreen.kt`, `BackupRestoreScreen.kt`, `AiSettingsScreen.kt`, `StorageManagerScreen.kt`, `AboutScreen.kt`, `LegalInfoScreen.kt`, `LicensesScreen.kt`, `SettingsWidgets.kt` |
 | ViewModel | `com.example.ui.viewmodel` | `NotesViewModel.kt`, `ThemeViewModel.kt`, `BackupViewModel.kt`, `UpdaterViewModel.kt`, `AiViewModel.kt`, `StorageViewModel.kt`, `ChatHistoryViewModel.kt` |
 | Data (Room) | `com.example.data.local` | `NoteDatabase.kt`, `NoteDao.kt`, `TagDao.kt` |
-| Model | `com.example.data.model` | `Note.kt`, `Tag.kt`, `DecryptedNote.kt`, `NoteContentBlock.kt`, `DataBlock.kt`, `UiState.kt`, `Attachment.kt`, `NavigationSection.kt` |
+| Model | `com.example.data.model` | `Note.kt` (incluye `Tag`), `DecryptedNote.kt`, `NoteContentBlock.kt`, `DataBlock.kt`, `UiState.kt`, `Attachment.kt`, `NavigationSection.kt` |
 | Encryption | `com.example.data.security` | `CipherService.kt` (interface), `EncryptionServiceImpl.kt` (AES-256/GCM), `KeyDerivation.kt` (PBKDF2, 200K iterations) |
 | AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, official llama.cpp `llama.android` binding), `ModelDownloader.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
-| Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
+| Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `OssLicenses.kt` (lee `assets/oss-licenses.json`), `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
 
 **Entrypoint**: `com.example.MainActivity` (package `com.example`, applicationId `com.estrin217.securenotes`).
 
 ## Key Conventions
 
 ### DI
-- No DI framework. ViewModels constructed via `ViewModelProvider.Factory` in `MainActivity.kt` (NotesViewModel ~line 172, AiViewModel ~line 208).
+- No DI framework. ViewModels constructed via `ViewModelProvider.Factory` in `MainActivity.kt` (NotesViewModel ~line 196, AiViewModel ~line 229).
 - Dependencies (`NoteDatabase`, `CipherService`, `GoogleDriveSyncService`) created manually and injected through factory.
 - `AiViewModel` created with `PreferencesRepository`, `OllamaService`, `OnDeviceService`, `ModelDownloader`, Room DAOs (`conversationDao`, `chatSessionDao`, `noteDao`, `memoryDao`) injected via factory.
 
@@ -73,7 +73,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 
 ## Editor Content Format
 
-Editor is a Notion-style **block editor** (Notion-like). Note content is stored as a JSON list of `DataBlock` (`com.example.data.model.DataBlock`) with a `BlockType` enum: `TEXT`, `HEADING1-4`, `BULLET_LIST`, `NUMBERED_LIST`, `CHECKLIST_ITEM`, `QUOTE`, `CODE_BLOCK`, `CALLOUT`, `PAGE`, `IMAGE`, `VIDEO`, `AUDIO`, `DRAWING`, `VOICE`, `FILE`, `TABLE`, `HORIZONTAL_RULE`, `COLLAPSIBLE`. Tables use `TableData` (headers/rows/weights, serialized to JSON in `meta`).
+Editor is a Notion-style **block editor** (Notion-like). Note content is stored as a JSON list of `DataBlock` (`com.example.data.model.DataBlock`) with a `BlockType` enum: `TEXT`, `HEADING1-4`, `BULLET_LIST`, `NUMBERED_LIST`, `CHECKLIST_ITEM`, `QUOTE`, `CODE_BLOCK`, `CALLOUT`, `PAGE`, `PAGE_LINK`, `IMAGE`, `VIDEO`, `AUDIO`, `DRAWING`, `VOICE`, `FILE`, `BOOKMARK`, `TABLE`, `HORIZONTAL_RULE`, `COLLAPSIBLE`. Tables use `TableData` (headers/rows/weights, serialized to JSON in `meta`).
 
 Each block's rich-text body still uses legacy HTML-like tags parsed by `RichTextParser`/`HtmlTagParser`:
 
@@ -111,4 +111,4 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.
 - **Localizations**: `values/` (en), `values-es-rVE/` (es-VE), `values-pt-rBR/` (pt-BR), `values-fr/` (fr), `values-it/` (it), `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
 - `compileSdk = 37`, `targetSdk = 36`, `minSdk = 33`.
-- Gradle 9.5.1, AGP 9.3.1, Kotlin 2.4.10.
+- Gradle 9.7.0, AGP 9.3.1, Kotlin 2.4.10.

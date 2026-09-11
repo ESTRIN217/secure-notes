@@ -1,52 +1,79 @@
-# Secure Notes WYSIWYG Rich Text Editor & Color Picker Skill
+# Editor WYSIWYG por bloques y estilo MD3 Expressive — Skill
 
-This document details the architecture, design guidelines, and code patterns utilized in the Secure Notes WYSIWYG rich text editor, Material Design 3 Expressive Outlined styling, custom color selector dialogs, and native regional localization.
+ Patrones de UI y edición de Secure Notes: editor por bloques estilo Notion,
+ Material Design 3 Expressive y localización en 9 idiomas.
 
-> **All code in this skill follows the principles in [AGENTS.md](AGENTS.md): DRY, SOLID, Clean Code, KISS, YAGNI, Error Handling & Robustness.**
+> Todo el código de esta skill sigue `AGENTS.md` y los principios de
+> [docs/GUIDELINES.md](docs/GUIDELINES.md): DRY, SOLID, código limpio, KISS,
+> YAGNI y manejo de errores con `Result` + `Log.e()`.
+> Manual de usuario: [docs/EDITOR.md](docs/EDITOR.md) ·
+> guía de desarrollo: [docs/EDITOR_DEV.md](docs/EDITOR_DEV.md).
 
 ---
 
 ## 1. Material Design 3 Expressive
 
-Following modern Material Design 3 guidelines:
-- **Expressive Components**: High-contrast, rounded outlines (`RoundedCornerShape` / `CircleShape`), custom card layouts (`OutlinedCard` with thin outlines and crisp borders).
-- **Aesthetic Pairings**: Bold typography for structural headings paired with clean, readable fonts. Standard 48dp touch targets on interactive buttons.
-- **Dynamic Color Indicators**: Formatting toolbar icons dynamically display the color at the cursor's current position to represent the actual parsed state of the note.
+- **Componentes expresivos**: tarjetas con esquinas generosas (`RoundedCornerShape`
+  28dp en grupos de ajustes), bordes finos y tipografía marcada para títulos.
+- **Widgets compartidos** (`com.example.ui.settings`): `SettingsSectionTitle`,
+  `SettingsCardGroup`, `SettingsSwitchTile`, `SettingsListTile` — no duplicar
+  patrones de ajustes fuera de ellos.
+- **Indicadores dinámicos**: los botones del toolbar flotante reflejan el formato
+  bajo el cursor (estado parseado real, no asumido).
+- **Toques de 48dp** en botones interactivos; colores dinámicos y modo
+  claro/oscuro según el sistema.
 
 ---
 
-## 2. WYSIWYG Rich Text Editor Architecture
+## 2. Arquitectura del editor por bloques
 
-The rich text editor is built on top of a single `BasicTextField` / `OutlinedTextField` containing the raw Markdown/HTML tags, coupled with a customized bidirectional index mapper to preserve cursor placement and tag visibility.
+El editor es **presentacional (controlado)**: `BlockEditor` recibe los bloques y
+reporta cambios hacia arriba. Nada se persiste dentro del editor.
 
-### Parsing and Rendering Flow:
-1. **Raw Text Input**: The user interacts with a single, unified text input containing formatted inline tags (e.g., `<color=#1976D2>Text</color>`, `<normal>Normal Text</normal>`).
-2. **Concealed Visual Mapping**: The `RichTextParser` strips raw formatting tags to construct a visually clean `AnnotatedString` while applying proper `SpanStyle` styling for font, size, foreground color, background color, superscript, subscript, bold, italic, and underline.
-3. **Bidirectional Offset Mapping**: A custom tracker maps index position `originalToTransformed` (from raw input text containing tags to clean rendered text) and `transformedToSource` to ensure perfect cursor movement and selections.
+```
+NoteEditorScreen (estado local + persistencia)
+  └─ BlockEditor(blocks, onBlocksChange, …)
+       └─ BlockRow(block, …)              // dispatcher: when (block.type)
+            ├─ EditableTextBlock          // base de todo bloque de texto
+            ├─ Checklist / Collapsible / Table / Code / Image / Video / Audio…
+            └─ ReadOnlyTextBlock
+```
+
+- **Fuente de verdad**: `richTextJson` (`TextSegment.serialize`); `content`
+  (markup HTML-like) solo existe para compatibilidad legacy y exportación.
+- **Regla de oro**: al escribir `onChange`, guardar SIEMPRE `richTextJson`; todo
+  render y todo cambio pasa por `ensureSegments()`.
+- **Flujo de escritura**: `EditableTextBlock` trabaja con `AnnotatedString`
+  construido desde `TextSegment`s y conserva el cursor con `OffsetMapper`.
+- **Menú de bloques**: tecla `/` (`SlashCommandMenu`, `BLOCK_COMMANDS`) o botón
+  `+` de la barra flotante (`FloatingEditorToolbar`, modos MAIN / TEXT_FORMAT /
+  SEARCH). Enter divide, Backspace en vacío fusiona/elimina, arrastrar reordena.
+- **Conversión**: `RichTextConverter` (`markupToSegments`, `segmentsToMarkup/Html/Md`,
+  `applySpanStyle`); parseo legacy en `RichTextParser`/`HtmlTagParser`.
 
 ---
 
-## 3. Dynamic Color Selector Dialogs
+## 3. Diálogos de color y formato
 
-A custom modular dialog (`ColorSelectionDialog`) is implemented for both Font Color and Background Color selection. It offers three distinct inputs:
-1. **Predefined Material Colors**: Quick cards presenting preset hex codes for Red (`#D32F2F`), Blue (`#1976D2`), and Green (`#388E3C`).
-2. **Color Picker Slider**: A continuous hue-based slider track combined with a real-time visual preview circle and manual hex input box.
-3. **Clear Option**: A dedicated button to remove custom formatting tags and revert to the default theme colors.
-
----
-
-## 4. Native Localized Translations
-
-To support multi-national deployment, strings are extracted natively across three regional configuration files:
-- **English (Default)**: `app/src/main/res/values/strings.xml`
-- **Spanish (Venezuela - VE)**: `app/src/main/res/values-es-rVE/strings.xml`
-- **Portuguese (Brazil - BR)**: `app/src/main/res/values-pt-rBR/strings.xml`
+`ColorSelectionDialog` (color de letra y resaltado): paleta de colores predefinidos,
+deslizador de tono con vista previa, entrada hexadecimal manual y opción de limpiar
+formato. El formato se aplica a la **selección** o como **modo de escritura** si no
+hay selección (ver tabla de formatos en `docs/EDITOR.md`).
 
 ---
 
-## 5. Rich Image and Video Insertion Options
+## 4. Localización nativa (9 locales)
 
-When inserting rich media items into notes, the editor presents an expressive options dialog containing three pathways:
-1. **Gallery Integration**: Launches a system-native file and content selection picker (`GetContent` contract) supporting `image/*` and `video/*` MIMEs to load stored files and insert them automatically as rendered HTML tags.
-2. **Camera Capture**: Registers specific standard intent contracts (`TakePicture` and `CaptureVideo`) pointing directly to temporary workspace cache paths. Checks and requests dynamic CAMERA permissions at runtime for compliance.
-3. **Web Link Input**: Toggles an expressive inline `OutlinedTextField` form allowing immediate manual URL entry.
+Todo string nuevo va en los 9 `strings.xml`: `values` (en), `values-es-rVE`,
+`values-es-rES`, `values-b+es+419`, `values-pt-rBR`, `values-pt-rPT`, `values-fr`,
+`values-it`, `values-en-rGB`. Las secciones legales están traducidas en todos.
+
+---
+
+## 5. Inserción de imagen y vídeo
+
+Vía menú `/` o barra `+` como **bloques reales** (no tags sueltos): galería,
+cámara o URL (con miniatura 16:9 para YouTube/shorts). Se guardan `fileUri`,
+`fileName`, `caption`, `align` y `wysiwyg` en `meta`. Al añadir un bloque nuevo,
+seguir el checklist de `docs/EDITOR_DEV.md` §4 (enum, `BlockRow`, slash menu,
+preview, exportadores y test de round-trip).

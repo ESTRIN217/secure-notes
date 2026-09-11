@@ -1,0 +1,199 @@
+{
+  "scope": "runtime-apk-only",
+  "generatedFrom": "THIRD-PARTY-NOTICES (repo root)",
+  "notice": "Solo dependencias runtime distribuidas en el APK. Test (JUnit/Robolectric/Roborazzi/Espresso) y plugins de build excluidos a proposito.",
+  "libraries": [
+    {
+      "name": "Kotlin (stdlib, plugin Compose)",
+      "version": "2.4.10",
+      "license": "Apache-2.0",
+      "copyright": "JetBrains",
+      "url": "https://github.com/JetBrains/kotlin/blob/master/license/LICENSE",
+      "use": "Lenguaje base"
+    },
+    {
+      "name": "Jetpack Compose (BOM: ui, runtime, activity-compose, lifecycle, navigation)",
+      "version": "BOM 2026.06.01, activity 1.13.0, lifecycle 2.11.0, navigation 2.9.8",
+      "license": "Apache-2.0",
+      "copyright": "Google / AOSP",
+      "url": "https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt",
+      "use": "UI declarativa y navegacion"
+    },
+    {
+      "name": "Material 3 + Material Icons + window-size-class",
+      "version": "1.5.0-alpha25",
+      "license": "Apache-2.0",
+      "copyright": "Google",
+      "url": "https://github.com/material-components/material-components-android/blob/master/LICENSE",
+      "use": "Material Design 3 Expressive"
+    },
+    {
+      "name": "AndroidX base (core-ktx, lifecycle-runtime-ktx, fragment-compose)",
+      "version": "core-ktx 1.19.0, lifecycle 2.11.0, fragment-compose 1.8.6",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt",
+      "use": "Base y ciclo de vida"
+    },
+    {
+      "name": "Glance (appwidget, material3)",
+      "version": "1.3.0-alpha02",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt",
+      "use": "Widget de inicio"
+    },
+    {
+      "name": "Room (runtime, ktx)",
+      "version": "2.8.4",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://developer.android.com/jetpack/androidx/releases/room",
+      "use": "Notas, chats, memoria IA"
+    },
+    {
+      "name": "Security-Crypto",
+      "version": "1.1.0",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://developer.android.com/jetpack/androidx/releases/security",
+      "use": "Almacen cifrado"
+    },
+    {
+      "name": "WorkManager",
+      "version": "2.11.2",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://developer.android.com/jetpack/androidx/releases/work",
+      "use": "SyncWorker (copias Drive)"
+    },
+    {
+      "name": "Biometric (+ biometric-compose)",
+      "version": "1.4.0-alpha07",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://developer.android.com/jetpack/androidx/releases/biometric",
+      "use": "Desbloqueo con biometria"
+    },
+    {
+      "name": "Credential Manager (androidx.credentials)",
+      "version": "1.6.0",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://developer.android.com/jetpack/androidx/releases/credentials",
+      "use": "Base Credential Manager"
+    },
+    {
+      "name": "Kotlinx Coroutines (core, android)",
+      "version": "1.11.0",
+      "license": "Apache-2.0",
+      "copyright": "JetBrains",
+      "url": "https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt",
+      "use": "StateFlow, I/O"
+    },
+    {
+      "name": "OkHttp (+ logging-interceptor)",
+      "version": "5.4.0",
+      "license": "Apache-2.0",
+      "copyright": "Square",
+      "url": "https://github.com/square/okhttp/blob/master/LICENSE.txt",
+      "use": "Backend Ollama/LM Studio"
+    },
+    {
+      "name": "Retrofit (+ converter-moshi)",
+      "version": "3.0.0",
+      "license": "Apache-2.0",
+      "copyright": "Square",
+      "url": "https://github.com/square/retrofit/blob/master/LICENSE.txt",
+      "use": "Cliente HTTP Google Drive"
+    },
+    {
+      "name": "Moshi (moshi-kotlin)",
+      "version": "1.15.2",
+      "license": "Apache-2.0",
+      "copyright": "Square",
+      "url": "https://github.com/square/moshi/blob/master/LICENSE.txt",
+      "use": "JSON de bloques DataBlock"
+    },
+    {
+      "name": "Coil 3 (compose, video, network-okhttp, svg)",
+      "version": "3.5.0",
+      "license": "Apache-2.0",
+      "copyright": "Coil Contributors",
+      "url": "https://github.com/coil-kt/coil/blob/main/LICENSE.txt",
+      "use": "Imagenes y adjuntos"
+    },
+    {
+      "name": "Media3 (exoplayer, ui, common, hls)",
+      "version": "1.7.1",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://github.com/androidx/media/blob/release/LICENSE",
+      "use": "visor-media (audio/video)"
+    },
+    {
+      "name": "PDF Viewer (viewer, viewer-fragment, document-service, compose)",
+      "version": "1.0.0-alpha19",
+      "license": "Apache-2.0",
+      "copyright": "AOSP",
+      "url": "https://github.com/androidx/androidx/blob/androidx-main/pdf/pdf-viewer/build.gradle",
+      "use": "visor-pdf"
+    },
+    {
+      "name": "compose-markdown",
+      "version": "0.7.2",
+      "license": "MIT",
+      "copyright": "Jeziel Lago (c) 2021",
+      "url": "https://github.com/jeziellago/compose-markdown/blob/main/LICENSE",
+      "use": "Render Markdown"
+    },
+    {
+      "name": "LaTeX (base, parser, renderer)",
+      "version": "1.5.4",
+      "license": "MIT",
+      "copyright": "huarangmeng (c) 2026",
+      "url": "https://github.com/huarangmeng/latex/blob/master/LICENSE",
+      "use": "Ecuaciones en notas"
+    },
+    {
+      "name": "llama.cpp (nativo)",
+      "version": "commit 3dc7285b4",
+      "license": "MIT",
+      "copyright": "The ggml authors (c) 2023-2026",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/master/LICENSE",
+      "use": "Inferencia GGUF on-device"
+    },
+    {
+      "name": "Binding llama.android (:lib, AiChat)",
+      "version": "checkout app-privado",
+      "license": "Apache-2.0",
+      "copyright": "ARM / ggml-org (sample)",
+      "url": "https://github.com/ggml-org/llama.cpp/tree/master/examples/llama.android",
+      "use": "OnDeviceService / LlamaCppEngine"
+    },
+    {
+      "name": "Firebase Analytics (BOM)",
+      "version": "BOM 34.16.0",
+      "license": "Propietaria (Terminos Firebase)",
+      "copyright": "Google",
+      "url": "https://firebase.google.com/terms",
+      "use": "Analitica"
+    },
+    {
+      "name": "Play Services Auth + GoogleId + credentials-play-services-auth",
+      "version": "auth 21.6.0, googleid 1.2.0, creds-psa 1.6.0",
+      "license": "Propietaria (Android SDK License)",
+      "copyright": "Google",
+      "url": "https://developer.android.com/studio/terms.html",
+      "use": "OAuth 2.0 y Drive"
+    },
+    {
+      "name": "Modulos internos (:visor-pdf, :visor-media, :code-tools)",
+      "version": "repo",
+      "license": "MIT",
+      "copyright": "ESTRIN217",
+      "url": "https://github.com/ESTRIN217/secure-notes/blob/master/LICENSE",
+      "use": "Codigo propio"
+    }
+  ]
+}

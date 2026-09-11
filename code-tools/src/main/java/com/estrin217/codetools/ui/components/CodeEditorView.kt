@@ -43,6 +43,7 @@ import com.estrin217.codetools.syntax.SyntaxHighlighter
 import com.estrin217.codetools.syntax.SyntaxTheme
 import com.estrin217.codetools.syntax.SyntaxVisualTransformation
 import com.estrin217.codetools.ui.theme.JetBrainsMono
+import com.estrin217.codetools.R
 
 @Composable
 fun CodeEditorView(

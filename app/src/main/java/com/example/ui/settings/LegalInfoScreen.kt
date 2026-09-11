@@ -106,6 +106,16 @@ fun LegalInfoScreen(
             }
 
             item {
+                LegalSection(
+                    icon = Icons.Default.Security,
+                    title = stringResource(R.string.legal_section_security),
+                    content = stringResource(R.string.legal_section_security_content),
+                    isExpanded = expandedSection == 4,
+                    onToggle = { expandedSection = if (expandedSection == 4) null else 4 }
+                )
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.legal_google_oauth_note),
