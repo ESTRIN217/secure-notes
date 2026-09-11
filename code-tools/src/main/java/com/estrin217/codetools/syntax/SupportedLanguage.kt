@@ -32,7 +32,7 @@ enum class SupportedLanguage(
     ENV("Config / ENV", "env", "text/plain", listOf("env", "properties"), "# "),
     INI_TOML("INI / TOML", "ini", "text/plain", listOf("ini", "toml", "conf", "cfg"), "# "),
     MARKDOWN("Markdown", "md", "text/markdown", listOf("md", "markdown"), "> "),
-    PLAIN_TEXT("Texto Plano", "txt", "text/plain", listOf("txt", "log"), "# ");
+    PLAIN_TEXT("Plain Text", "txt", "text/plain", listOf("txt", "log"), "# ");
 
     companion object {
         fun fromFileName(fileName: String): SupportedLanguage {

@@ -25,7 +25,7 @@ class JsonColorizer {
         }
     }
 
-    fun parseSecureNotesJson(text: String, defaultTitle: String = "Imported Note"): Pair<String, String> {
+    fun parseSecureNotesJson(text: String, defaultTitle: String): Pair<String, String> {
         val json = org.json.JSONObject(text.trim())
         val title = json.optString("title", defaultTitle)
         val summary = json.optString("summary", "")
@@ -142,7 +142,7 @@ class JsonColorizer {
 
         fun isJson(text: String) = default.isJson(text)
         fun isSecureNotesJson(text: String) = default.isSecureNotesJson(text)
-        fun parseSecureNotesJson(text: String, defaultTitle: String = "Imported Note") = default.parseSecureNotesJson(text, defaultTitle)
+        fun parseSecureNotesJson(text: String, defaultTitle: String) = default.parseSecureNotesJson(text, defaultTitle)
         fun parseColor(value: String?) = default.parseColor(value)
         fun highlightJson(text: String, builder: AnnotatedString.Builder) = default.highlightJson(text, builder)
     }

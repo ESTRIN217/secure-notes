@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.estrin217.pdfviewer.R
 import com.estrin217.pdfviewer.data.PageDimension
 import com.estrin217.pdfviewer.data.PdfFileInfo
 import com.estrin217.pdfviewer.data.PdfRendererEngine
@@ -23,7 +24,7 @@ import java.io.File
 
 sealed interface PdfViewerUiState {
     data object Empty : PdfViewerUiState
-    data class Loading(val message: String = "Cargando documento...") : PdfViewerUiState
+    data class Loading(val message: String) : PdfViewerUiState
     data class Loaded(
         val uri: Uri,
         val fileInfo: PdfFileInfo,
@@ -78,7 +79,7 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun openUri(context: Context, uri: Uri) {
         currentUri = uri
-        _uiState.value = PdfViewerUiState.Loading("Abriendo PDF...")
+        _uiState.value = PdfViewerUiState.Loading(getApplication<Application>().getString(R.string.opening_pdf))
         _currentPage.value = 0
         _zoomScale.value = 1f
 
@@ -107,7 +108,7 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             } catch (e: Exception) {
                 _uiState.value = PdfViewerUiState.Error(
-                    e.message ?: "No se pudo leer el archivo PDF seleccionado"
+                    e.message ?: getApplication<Application>().getString(R.string.error_reading_pdf)
                 )
             }
         }
@@ -240,12 +241,12 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
                 clipData = ClipData.newRawUri("PDF", shareUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            val chooser = Intent.createChooser(shareIntent, "Compartir PDF").apply {
+            val chooser = Intent.createChooser(shareIntent, getApplication<Application>().getString(R.string.share_pdf_title)).apply {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(chooser)
         } catch (e: Exception) {
-            Toast.makeText(context, "No fue posible compartir el archivo: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.share_error, e.localizedMessage), Toast.LENGTH_SHORT).show()
         }
     }
 

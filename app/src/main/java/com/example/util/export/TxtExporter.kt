@@ -29,7 +29,7 @@ class TxtExporter : Exporter {
                     sb.append(context.getString(R.string.export_label_tags, tags.joinToString(", "))).append("\n")
                 }
                 sb.append("\n")
-                sb.append(RichTextConverter.contentToPlainText(dec.content)).append("\n\n")
+                sb.append(RichTextConverter.contentToPlainText(dec.content, context)).append("\n\n")
                 if (index < notes.size - 1) {
                     sb.append("----------------------------\n\n")
                 }

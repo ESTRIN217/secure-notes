@@ -281,7 +281,7 @@ class BackupViewModel(
                 val iv = cipherService.generateIv()
                 val cipherPayload = cipherService.encrypt(innerJson, pass, salt, iv).getOrDefault("")
                 if (cipherPayload.isEmpty()) {
-                    throw java.lang.IllegalStateException("Encryption failed")
+                    throw java.lang.IllegalStateException(getApplication<Application>().getString(R.string.backup_err_encryption))
                 }
                 output = JSONObject().apply {
                     put("encrypted", true)

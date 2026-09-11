@@ -272,7 +272,7 @@ fun AiChatScreen(
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        text = "${activeMemories.size} memories",
+                                        text = stringResource(R.plurals.chat_active_memories, activeMemories.size, activeMemories.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                     )
@@ -346,7 +346,7 @@ fun AiChatScreen(
                                             }
                                         },
                                         trailingIcon = {
-                                            Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp))
                                         },
                                         shape = RoundedCornerShape(8.dp)
                                     )
@@ -709,7 +709,7 @@ fun MessageBubble(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "AI",
+                            text = stringResource(R.string.ai),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -833,14 +833,14 @@ fun MessageBubble(
                         )
                         turn.formattedDuration?.let { dur ->
                             Text(
-                                text = " · $dur",
+                                text = stringResource(R.string.chat_msg_duration, dur),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.5f)
                             )
                         }
                         if (!isUser && modelName.isNotBlank()) {
                             Text(
-                                text = " · $modelName",
+                                text = stringResource(R.string.chat_msg_model, modelName),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.35f),
                                 maxLines = 1,
@@ -1028,7 +1028,7 @@ fun StreamingBubble(text: String, modelName: String) {
                 modifier = Modifier.size(20.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("AI", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(stringResource(R.string.ai), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
             Spacer(modifier = Modifier.width(4.dp))
@@ -1055,7 +1055,7 @@ fun StreamingBubble(text: String, modelName: String) {
                     )
                     if (modelName.isNotBlank()) {
                         Text(
-                            text = " · $modelName",
+                            text = stringResource(R.string.chat_msg_model, modelName),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                             maxLines = 1, overflow = TextOverflow.Ellipsis
@@ -1087,7 +1087,7 @@ fun EmptyChatWelcome(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "AI",
+                        text = stringResource(R.string.ai),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1161,7 +1161,7 @@ fun TypingIndicator() {
                     modifier = Modifier.size(20.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("AI", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(stringResource(R.string.ai), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -1291,6 +1291,7 @@ fun NoteAttachmentSheet(
     onDismiss: () -> Unit,
     onNoteSelected: (DecryptedNote) -> Unit
 ) {
+    val context = LocalContext.current
     val notes by viewModel.availableNotes.collectAsStateWithLifecycle()
     val sheetState = rememberBottomSheetState(
         initialValue = SheetValue.Hidden,
@@ -1357,7 +1358,7 @@ fun NoteAttachmentSheet(
                                     )
                                     if (decryptedNote.isDecryptionSuccessful && decryptedNote.content.isNotBlank()) {
                                         Text(
-                                            text = com.example.util.RichTextConverter.contentToPlainText(decryptedNote.content)
+                                            text = com.example.util.RichTextConverter.contentToPlainText(decryptedNote.content, context)
                                                 .take(80).replace("\n", " "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,

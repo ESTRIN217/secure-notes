@@ -16,6 +16,7 @@
     <string name="toast_video_play_error">No se pudo reproducir el video</string>
     <string name="toast_audio_play_error">No se pudo reproducir el audio</string>
     <string name="cd_play_pause_audio">Reproducir o pausar audio</string>
+    <string name="loading_audio">Cargando audio...</string>
     
     <string name="media_library">Galería y Explorador</string>
     <string name="open_url">Abrir URL</string>
@@ -43,4 +44,33 @@
     <string name="video_playback_error">Error de reproducción</string>
     <string name="retry_action">Reintentar</string>
     <string name="video_open_browser">Abrir en navegador / reproductor externo</string>
+    <string name="type_photo">Foto</string>
+    <string name="url_type_label">Tipo de archivo:</string>
+    <string name="url_placeholder">https://...</string>
+    <string name="url_title_label">Título descriptivo (opcional)</string>
+    <string name="url_title_placeholder">Mi medio web</string>
+    <string name="sample_oceans">Océanos HD</string>
+    <string name="sample_hls">HLS Stream M3U8</string>
+    <string name="sample_youtube">YouTube En App</string>
+    <string name="sample_audio">Pista Instrumental</string>
+    <string name="chip_exoplayer_mp4">ExoPlayer MP4</string>
+    <string name="chip_exoplayer_hls">ExoPlayer HLS</string>
+    <string name="chip_youtube">YouTube</string>
+    <string name="chip_audio_mp3">Audio MP3</string>
+    <string name="default_web_photo">Foto Web</string>
+    <string name="default_web_audio">Pista de Audio Web</string>
+    <string name="default_web_video">Video Web</string>
+    <string name="cd_scale_video">Escalar video</string>
+    <string name="video_error_403">Acceso no autorizado (HTTP 403): El servidor remoto denegó la solicitud.</string>
+    <string name="video_error_http">Error del servidor remoto (Código HTTP %1$d).</string>
+    <string name="video_error_network">Error de conexión de red al cargar el video.</string>
+    <string name="video_error_generic">No se pudo reproducir este video</string>
+    <string name="audio_error_403">Acceso restringido (HTTP 403): El servidor no permite reproducir este audio.</string>
+    <string name="audio_error_http">Error del servidor de audio (Código HTTP %1$d).</string>
+    <string name="audio_error_network">Error de conexión a internet al cargar el audio.</string>
+    <string name="audio_error_generic">No se pudo reproducir este audio web o local.</string>
+    <string name="cd_alert">Alerta</string>
+    <string name="cd_rewind_10s">Retroceder 10s</string>
+    <string name="cd_forward_10s">Adelantar 10s</string>
+    <string name="share_subject_fallback">Medio compartido</string>
 </resources>

@@ -64,6 +64,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
@@ -740,9 +741,9 @@ private fun HeaderColumnHandle(
             }
         )
         DropdownMenu(expanded = showMenu, onDismissRequest = { onShowMenuChange(false) }) {
-            DropdownMenuItem(text = { Text("Insert column left") }, onClick = { onShowMenuChange(false); onInsertLeft() })
-            DropdownMenuItem(text = { Text("Insert column right") }, onClick = { onShowMenuChange(false); onInsertRight() })
-            DropdownMenuItem(text = { Text("Delete column") }, onClick = { onShowMenuChange(false); onDeleteColumn() }, enabled = canDeleteColumn)
+            DropdownMenuItem(text = { Text(stringResource(R.string.insert_column_left)) }, onClick = { onShowMenuChange(false); onInsertLeft() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.insert_column_right)) }, onClick = { onShowMenuChange(false); onInsertRight() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.delete_column)) }, onClick = { onShowMenuChange(false); onDeleteColumn() }, enabled = canDeleteColumn)
         }
     }
 }
@@ -882,9 +883,9 @@ private fun RowHandle(
             }
         )
         DropdownMenu(expanded = showMenu, onDismissRequest = { onShowMenuChange(false) }) {
-            DropdownMenuItem(text = { Text("Insert row above") }, onClick = { onShowMenuChange(false); onInsertAbove() })
-            DropdownMenuItem(text = { Text("Insert row below") }, onClick = { onShowMenuChange(false); onInsertBelow() })
-            DropdownMenuItem(text = { Text("Delete row") }, onClick = { onShowMenuChange(false); onDeleteRow() }, enabled = canDeleteRow)
+            DropdownMenuItem(text = { Text(stringResource(R.string.insert_row_above)) }, onClick = { onShowMenuChange(false); onInsertAbove() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.insert_row_below)) }, onClick = { onShowMenuChange(false); onInsertBelow() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.delete_row)) }, onClick = { onShowMenuChange(false); onDeleteRow() }, enabled = canDeleteRow)
         }
     }
 }
@@ -993,7 +994,7 @@ private fun AddColumnFooter(onClick: () -> Unit, outline: Color) {
             .size(28.dp),
         contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Default.Add, contentDescription = "Add column", tint = outline)
+        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_column), tint = outline)
     }
 }
 
@@ -1011,9 +1012,9 @@ private fun AddRowFooter(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Add, contentDescription = "Add row", modifier = Modifier.size(18.dp), tint = outline)
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_row), modifier = Modifier.size(18.dp), tint = outline)
         }
-        Text("Add row", style = MaterialTheme.typography.bodySmall, color = outline)
+        Text(stringResource(R.string.add_row), style = MaterialTheme.typography.bodySmall, color = outline)
     }
 }
 
@@ -1089,7 +1090,7 @@ private fun FloatingToolbar(
                 )
             }
             IconButton(onClick = onOpenMoreMenu) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

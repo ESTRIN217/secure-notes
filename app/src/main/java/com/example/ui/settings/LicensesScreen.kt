@@ -121,7 +121,7 @@ fun LicensesScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "MIT — ESTRIN217",
+                                text = stringResource(R.string.license_mit_estrin),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

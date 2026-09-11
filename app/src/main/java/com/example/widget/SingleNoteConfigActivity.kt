@@ -79,8 +79,8 @@ class SingleNoteConfigActivity : ComponentActivity() {
             LazyColumn {
                 items(notes, key = { it.id }) { note ->
                     ListItem(
-                        headlineContent = { Text(widgetTitle(note)) },
-                        supportingContent = { Text(widgetSummary(note.content), maxLines = 2) },
+                        headlineContent = { Text(widgetTitle(this@SingleNoteConfigActivity, note)) },
+                        supportingContent = { Text(widgetSummary(note.content, this@SingleNoteConfigActivity), maxLines = 2) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(note) }

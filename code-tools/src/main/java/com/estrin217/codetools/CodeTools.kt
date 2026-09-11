@@ -1,5 +1,6 @@
 package com.estrin217.codetools
 
+import android.app.Application
 import android.content.Context
 import com.estrin217.codetools.data.db.CodeToolsDatabase
 import com.estrin217.codetools.data.repository.CodeFileRepository
@@ -14,6 +15,9 @@ object CodeTools {
 
     fun viewModelFactory(context: Context): CodeEditorViewModelFactory {
         val database = CodeToolsDatabase.getInstance(context.applicationContext)
-        return CodeEditorViewModelFactory(CodeFileRepository(database.codeFileDao()))
+        return CodeEditorViewModelFactory(
+            CodeFileRepository(database.codeFileDao()),
+            context.applicationContext as Application
+        )
     }
 }

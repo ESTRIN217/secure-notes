@@ -1,6 +1,7 @@
 package com.example.ui.settings
 
 import android.accounts.Account
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -324,7 +325,7 @@ fun BackupRestoreScreen(
                         R.string.version_conflict_message,
                         formatBackupTime(uiState.cloudBackupTime),
                         formatBackupTime(uiState.localBackupTime),
-                        formatBackupDiff(uiState.cloudBackupTime, uiState.localBackupTime)
+                        formatBackupDiff(LocalContext.current, uiState.cloudBackupTime, uiState.localBackupTime)
                     )
                 )
             },
@@ -424,7 +425,7 @@ fun CloudSection(
             )
             if (backupSize > 0L) {
                 Text(
-                    text = stringResource(R.string.backup_size_label, formatSize(backupSize)),
+                    text = stringResource(R.string.backup_size_label, formatSize(LocalContext.current, backupSize)),
                     fontSize = 12.sp,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -658,7 +659,7 @@ fun LocalSection(
             )
             if (backupSize > 0L) {
                 Text(
-                    text = stringResource(R.string.backup_size_label, formatSize(backupSize)),
+                    text = stringResource(R.string.backup_size_label, formatSize(LocalContext.current, backupSize)),
                     fontSize = 12.sp,
                     color = colorScheme.onSurfaceVariant
                 )
@@ -720,11 +721,11 @@ fun SkeletonBody(modifier: Modifier = Modifier) {
     }
 }
 
-private fun formatSize(bytes: Long): String {
+private fun formatSize(context: Context, bytes: Long): String {
     return when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
-        else -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+        bytes < 1024 -> context.getString(R.string.size_bytes, bytes)
+        bytes < 1024 * 1024 -> context.getString(R.string.size_kb, bytes / 1024.0)
+        else -> context.getString(R.string.size_mb, bytes / (1024.0 * 1024.0))
     }
 }
 
@@ -734,13 +735,13 @@ private fun formatBackupTime(epochMillis: Long): String {
     return sdf.format(java.util.Date(epochMillis))
 }
 
-private fun formatBackupDiff(cloudTime: Long, localTime: Long): String {
+private fun formatBackupDiff(context: Context, cloudTime: Long, localTime: Long): String {
     val diff = Math.abs(cloudTime - localTime)
     val minutes = diff / 60000L
     return when {
-        minutes < 60 -> "$minutes m"
-        minutes < 24 * 60 -> String.format("%.1f h", minutes / 60.0)
-        else -> String.format("%.1f d", minutes / (24.0 * 60.0))
+        minutes < 60 -> context.getString(R.string.diff_minutes, minutes)
+        minutes < 24 * 60 -> context.getString(R.string.diff_hours, minutes / 60.0)
+        else -> context.getString(R.string.diff_days, minutes / (24.0 * 60.0))
     }
 }
 

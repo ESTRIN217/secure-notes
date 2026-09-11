@@ -185,7 +185,7 @@ fun MediaViewerScreen(
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     this.type = "text/plain"
                                     putExtra(Intent.EXTRA_TEXT, src)
-                                    putExtra(Intent.EXTRA_SUBJECT, currentItem.title.ifEmpty { "Medio compartido" })
+                                    putExtra(Intent.EXTRA_SUBJECT, currentItem.title.ifEmpty { context.getString(R.string.share_subject_fallback) })
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, null))
                             } else {

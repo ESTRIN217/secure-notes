@@ -1,5 +1,6 @@
 package com.example.util
 
+import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.AnnotatedString
@@ -10,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
+import com.example.R
 import com.example.data.model.BlockType
 import com.estrin217.visormedia.util.VideoUrlHelper
 import com.example.data.model.DataBlock
@@ -590,7 +592,7 @@ object RichTextConverter {
     fun segmentsToPlainText(segments: List<TextSegment>): String =
         segments.joinToString("") { it.plainText }
 
-    fun blocksToPlainText(blocks: List<DataBlock>): String {
+    fun blocksToPlainText(blocks: List<DataBlock>, context: Context? = null): String {
         val sb = StringBuilder()
         var numberedCounter = 0
         for (block in blocks) {
@@ -641,7 +643,7 @@ object RichTextConverter {
                 BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.DRAWING,
                 BlockType.VOICE, BlockType.FILE, BlockType.PAGE -> {
                     numberedCounter = 0
-                    sb.append(mediaBlockToPlainText(block))
+                    sb.append(mediaBlockToPlainText(block, context))
                 }
                 else -> numberedCounter = 0
             }
@@ -663,25 +665,28 @@ object RichTextConverter {
         return sb.toString()
     }
 
-    private fun mediaLabel(type: BlockType): String = when (type) {
-        BlockType.IMAGE -> "Image"
-        BlockType.VIDEO -> "Video"
-        BlockType.AUDIO -> "Audio"
-        BlockType.DRAWING -> "Drawing"
-        BlockType.VOICE -> "Voice"
-        BlockType.FILE -> "File"
-        else -> ""
+    private fun mediaLabel(type: BlockType, context: Context?): String {
+        fun res(id: Int, fallback: String) = context?.getString(id) ?: fallback
+        return when (type) {
+            BlockType.IMAGE -> res(R.string.export_media_image, "Image")
+            BlockType.VIDEO -> res(R.string.export_media_video, "Video")
+            BlockType.AUDIO -> res(R.string.export_media_audio, "Audio")
+            BlockType.DRAWING -> res(R.string.export_media_drawing, "Drawing")
+            BlockType.VOICE -> res(R.string.export_media_voice, "Voice")
+            BlockType.FILE -> res(R.string.export_media_file, "File")
+            else -> ""
+        }
     }
 
-    private fun mediaBlockToPlainText(block: DataBlock): String {
-        val label = mediaLabel(block.type)
+    private fun mediaBlockToPlainText(block: DataBlock, context: Context?): String {
+        val label = mediaLabel(block.type, context)
         if (label.isEmpty()) return ""
         val name = block.meta["name"]?.takeIf { it.isNotBlank() }
             ?: block.meta["caption"]?.takeIf { it.isNotBlank() }
         return if (name != null) "[$label: $name]" else "[$label]"
     }
 
-    fun blocksToMarkdown(blocks: List<DataBlock>, media: MediaMarkdownResolver? = null): String {
+    fun blocksToMarkdown(blocks: List<DataBlock>, media: MediaMarkdownResolver? = null, context: Context? = null): String {
         val sb = StringBuilder()
         for (block in blocks) {
             val segments = block.ensureSegments()
@@ -719,11 +724,11 @@ object RichTextConverter {
                     if (src != null) {
                         val alt = block.meta["name"]?.takeIf { it.isNotBlank() }
                             ?: block.meta["caption"]?.takeIf { it.isNotBlank() }
-                            ?: mediaLabel(block.type)
+                            ?: mediaLabel(block.type, context)
                         sb.append("![").append(alt.replace("]", "\\]"))
                             .append("](").append(src.replace(")", "\\)")).append(")")
                     } else {
-                        sb.append(mediaBlockToPlainText(block))
+                        sb.append(mediaBlockToPlainText(block, context))
                     }
                 }
                 BlockType.VIDEO, BlockType.AUDIO, BlockType.VOICE, BlockType.FILE -> {
@@ -731,21 +736,22 @@ object RichTextConverter {
                     if (src != null) {
                         val name = block.meta["name"]?.takeIf { it.isNotBlank() }
                             ?: block.meta["caption"]?.takeIf { it.isNotBlank() }
-                            ?: mediaLabel(block.type)
+                            ?: mediaLabel(block.type, context)
                         sb.append("[").append(name.replace("]", "\\]"))
                             .append("](").append(src.replace(")", "\\)")).append(")")
                     } else {
-                        sb.append(mediaBlockToPlainText(block))
+                        sb.append(mediaBlockToPlainText(block, context))
                     }
                 }
                 BlockType.PAGE, BlockType.PAGE_LINK -> {
-                    val label = block.content.ifBlank { "Page" }
+                    val label = block.content.ifBlank { context?.getString(R.string.export_page_fallback) ?: "Page" }
                     sb.append("📄 ").append(label)
                 }
                 BlockType.COLLAPSIBLE -> {
-                    val summary = block.meta["summary"]?.takeIf { it.isNotBlank() } ?: "Details"
+                    val summary = block.meta["summary"]?.takeIf { it.isNotBlank() }
+                        ?: context?.getString(R.string.export_details_fallback) ?: "Details"
                     sb.append("<details><summary>").append(summary).append("</summary>")
-                        .append(blocksToMarkdown(listOf(block.copy(type = BlockType.TEXT)), media))
+                        .append(blocksToMarkdown(listOf(block.copy(type = BlockType.TEXT)), media, context))
                         .append("</details>")
                 }
                 else -> {}
@@ -765,7 +771,7 @@ object RichTextConverter {
         fun resolveMedia(block: DataBlock): String?
     }
 
-    fun blocksToHtml(blocks: List<DataBlock>, media: MediaHtmlResolver? = null): String {
+    fun blocksToHtml(blocks: List<DataBlock>, media: MediaHtmlResolver? = null, context: Context? = null): String {
         val sb = StringBuilder()
         for (block in blocks) {
             val segments = block.ensureSegments()
@@ -800,14 +806,14 @@ object RichTextConverter {
                 }
                 BlockType.COLLAPSIBLE -> {
                     sb.append("<details><summary>").append(htmlEscape(block.meta["summary"] ?: "")).append("</summary>")
-                        .append(blocksToHtml(listOf(block.copy(type = BlockType.TEXT)), media)).append("</details>")
+                        .append(blocksToHtml(listOf(block.copy(type = BlockType.TEXT)), media, context)).append("</details>")
                 }
                 BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.DRAWING,
                 BlockType.VOICE, BlockType.FILE -> {
-                    sb.append(mediaBlockToHtml(block, media))
+                    sb.append(mediaBlockToHtml(block, media, context))
                 }
                 BlockType.PAGE, BlockType.PAGE_LINK -> {
-                  val label = block.content.ifBlank { "Page" }
+                  val label = block.content.ifBlank { context?.getString(R.string.export_page_fallback) ?: "Page" }
                   sb.append("<p><span style=\"font-weight:600;color:#1565c0;\">🔗 ").append(htmlEscape(label)).append("</span></p>")
                 }
                 else -> {}
@@ -817,24 +823,18 @@ object RichTextConverter {
         return sb.toString()
     }
 
-    private fun mediaBlockToHtml(block: DataBlock, media: MediaHtmlResolver?): String {
+    private fun mediaBlockToHtml(block: DataBlock, media: MediaHtmlResolver?, context: Context?): String {
         val caption = block.meta["caption"]?.takeIf { it.isNotBlank() }
-        val label = when (block.type) {
-            BlockType.IMAGE -> "Image"
-            BlockType.VIDEO -> "Video"
-            BlockType.AUDIO -> "Audio"
-            BlockType.VOICE -> "Voice"
-            BlockType.DRAWING -> "Drawing"
-            BlockType.FILE -> "File"
-            else -> ""
-        }
+        val label = mediaLabel(block.type, context)
+        val fileLabel = context?.getString(R.string.export_media_file) ?: "File"
         val name = block.meta["name"]?.takeIf { it.isNotBlank() }
             ?: caption
 
         val body: String = when (block.type) {
             BlockType.VIDEO -> {
                 if (VideoUrlHelper.isYouTubeUrl(block.content)) {
-                    "<p class=\"video-link\"><a href=\"${htmlEscape(block.content)}\">▶ Video</a></p>"
+                    val videoLink = context?.getString(R.string.export_video_link, label) ?: "▶ $label"
+                    "<p class=\"video-link\"><a href=\"${htmlEscape(block.content)}\">$videoLink</a></p>"
                 } else {
                     val src = media?.resolveMedia(block)
                     if (src != null) "<video controls src=\"${htmlEscape(src)}\"></video>"
@@ -859,7 +859,7 @@ object RichTextConverter {
             BlockType.FILE -> {
                 val src = media?.resolveMedia(block)
                 if (src != null) {
-                    "<p class=\"file-link\"><a href=\"${htmlEscape(src)}\" download=\"${htmlEscape(name ?: "file")}\">📎 ${htmlEscape(name ?: "File")}</a></p>"
+                    "<p class=\"file-link\"><a href=\"${htmlEscape(src)}\" download=\"${htmlEscape(name ?: "file")}\">📎 ${htmlEscape(name ?: fileLabel)}</a></p>"
                 } else {
                     htmlEscape(name?.let { "[$label: $it]" } ?: "[$label]")
                 }
@@ -874,26 +874,29 @@ object RichTextConverter {
         }
     }
 
-    fun contentToPlainText(raw: String): String {
+    fun contentToPlainText(raw: String, context: Context? = null): String {
         val blocks = contentToBlocks(raw)
-        if (blocks != null) return blocksToPlainText(blocks)
-        return legacyMarkupToPlainText(raw)
+        if (blocks != null) return blocksToPlainText(blocks, context)
+        return legacyMarkupToPlainText(raw, context)
     }
 
     /** Convierte markup legacy a texto plano conservando checklists, reglas y media. */
-    private fun legacyMarkupToPlainText(raw: String): String {
+    private fun legacyMarkupToPlainText(raw: String, context: Context?): String {
         val summaryRegex = Regex("""<summary>([\s\S]*?)</summary>""", RegexOption.DOT_MATCHES_ALL)
+        val audioLabel = context?.getString(R.string.export_media_audio) ?: "Audio"
+        val videoLabel = context?.getString(R.string.export_media_video) ?: "Video"
+        val imageLabel = context?.getString(R.string.export_media_image) ?: "Image"
         val text = raw
             .replace(Regex("""<item\s+checked="true">([\s\S]*?)</item>""")) { "☑ ${it.groupValues[1].trim()}" }
             .replace(Regex("""<item\s+checked="false">([\s\S]*?)</item>""")) { "☐ ${it.groupValues[1].trim()}" }
             .replace(Regex("""<item>([\s\S]*?)</item>""")) { "☐ ${it.groupValues[1].trim()}" }
             .replace(Regex("""\n*<hr\s*/?>\n*"""), "\n───\n")
-            .replace(Regex("""!audio\s*\[[^\]]*\]\([^\)]+\)"""), "[Audio]")
-            .replace(Regex("""!video\s*\[[^\]]*\]\([^\)]+\)"""), "[Video]")
-            .replace(Regex("""!\[[^\]]*\]\([^\)]+\)"""), "[Image]")
-            .replace(Regex("""<img\s+src="[^"]*"\s*/>|<img=[^>]+>"""), "[Image]")
-            .replace(Regex("""<video[^>]*>"""), "[Video]")
-            .replace(Regex("""<audio[^>]*>"""), "[Audio]")
+            .replace(Regex("""!audio\s*\[[^\]]*\]\([^\)]+\)"""), "[$audioLabel]")
+            .replace(Regex("""!video\s*\[[^\]]*\]\([^\)]+\)"""), "[$videoLabel]")
+            .replace(Regex("""!\[[^\]]*\]\([^\)]+\)"""), "[$imageLabel]")
+            .replace(Regex("""<img\s+src="[^"]*"\s*/>|<img=[^>]+>"""), "[$imageLabel]")
+            .replace(Regex("""<video[^>]*>"""), "[$videoLabel]")
+            .replace(Regex("""<audio[^>]*>"""), "[$audioLabel]")
             .replace(Regex("""<details>([\s\S]*?)</details>""")) { m ->
                 val inner = m.groupValues[1]
                 val summary = summaryRegex.find(inner)?.groupValues?.get(1)?.trim() ?: ""
@@ -907,24 +910,24 @@ object RichTextConverter {
         return segmentsToPlainText(markupToSegments(text))
     }
 
-    fun contentToMarkdown(raw: String, media: MediaMarkdownResolver? = null): String {
+    fun contentToMarkdown(raw: String, media: MediaMarkdownResolver? = null, context: Context? = null): String {
         val blocks = contentToBlocks(raw)
-        if (blocks != null) return blocksToMarkdown(blocks, media)
+        if (blocks != null) return blocksToMarkdown(blocks, media, context)
         return try {
             val migrated = DataBlock.migrateLegacyContent(raw)
-            val md = blocksToMarkdown(migrated, media)
+            val md = blocksToMarkdown(migrated, media, context)
             if (md.isNotBlank() || raw.isBlank()) md else segmentsToMarkdown(markupToSegments(raw))
         } catch (e: Exception) {
             segmentsToMarkdown(markupToSegments(raw))
         }
     }
 
-    fun contentToHtml(raw: String, media: MediaHtmlResolver? = null): String {
+    fun contentToHtml(raw: String, media: MediaHtmlResolver? = null, context: Context? = null): String {
         val blocks = contentToBlocks(raw)
-        if (blocks != null) return blocksToHtml(blocks, media)
+        if (blocks != null) return blocksToHtml(blocks, media, context)
         return try {
             val migrated = DataBlock.migrateLegacyContent(raw)
-            val html = blocksToHtml(migrated, media)
+            val html = blocksToHtml(migrated, media, context)
             if (html.isNotBlank() || raw.isBlank()) html else segmentsToHtml(markupToSegments(raw))
         } catch (e: Exception) {
             segmentsToHtml(markupToSegments(raw))

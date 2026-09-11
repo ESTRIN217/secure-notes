@@ -47,7 +47,7 @@ class PdfExporter : Exporter {
             var pageNumber = 1
             val maxHeight = (PAGE_HEIGHT - 2 * MARGIN).toInt()
             for (block in blocks) {
-                val needed = renderer.measureBlock(block, embedder, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight)
+                val needed = renderer.measureBlock(block, embedder, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight, context)
                 if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
                     pdfDocument.finishPage(page)
                     pageNumber++
@@ -55,7 +55,7 @@ class PdfExporter : Exporter {
                     canvas = page.canvas
                     y = MARGIN
                 }
-                y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight)
+                y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight, context)
             }
             pdfDocument.finishPage(page)
 
@@ -111,7 +111,7 @@ class PdfExporter : Exporter {
 
                 val blocks = PdfBlockRenderer.blocksFor(dec.content)
                 for (block in blocks) {
-                    val needed = renderer.measureBlock(block, embedder, maxWidth, maxHeight)
+                    val needed = renderer.measureBlock(block, embedder, maxWidth, maxHeight, context)
                     if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
                         pdfDocument.finishPage(page)
                         pageNumber++
@@ -119,7 +119,7 @@ class PdfExporter : Exporter {
                         canvas = page.canvas
                         y = MARGIN
                     }
-                    y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, maxWidth, maxHeight)
+                    y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, maxWidth, maxHeight, context)
                 }
                 y += 25f
             }

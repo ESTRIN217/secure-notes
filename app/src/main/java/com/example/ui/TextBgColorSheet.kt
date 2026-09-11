@@ -184,9 +184,9 @@ private fun HsvPicker(onColorSelected: (String) -> Unit) {
             }
         }
 
-        HsvSliderRow(label = "H", valueRange = 0f..360f, value = hue, onValueChange = { hue = it })
-        HsvSliderRow(label = "S", valueRange = 0f..1f, value = sat, onValueChange = { sat = it })
-        HsvSliderRow(label = "V", valueRange = 0f..1f, value = value, onValueChange = { value = it })
+        HsvSliderRow(label = stringResource(R.string.hsv_h), valueRange = 0f..360f, value = hue, onValueChange = { hue = it })
+        HsvSliderRow(label = stringResource(R.string.hsv_s), valueRange = 0f..1f, value = sat, onValueChange = { sat = it })
+        HsvSliderRow(label = stringResource(R.string.hsv_v), valueRange = 0f..1f, value = value, onValueChange = { value = it })
 
         Button(
             onClick = { onColorSelected(hex) },

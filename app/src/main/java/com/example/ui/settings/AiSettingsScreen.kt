@@ -440,7 +440,7 @@ private fun LazyListScope.onDeviceDeviceInfoSection(deviceInfo: DeviceInfo) {
                 DeviceInfoRow(
                     icon = Icons.Default.Memory,
                     label = stringResource(R.string.ai_ondevice_ram),
-                    value = "${deviceInfo.availableRamMb} MB available / ${deviceInfo.totalRamMb} MB total"
+                    value = stringResource(R.string.ai_device_ram, deviceInfo.availableRamMb, deviceInfo.totalRamMb)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 DeviceInfoRow(
@@ -579,7 +579,7 @@ private fun LazyListScope.onDeviceActionsSection(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${selected.fileSizeMb}MB · Min ${selected.minRamMb}MB RAM · Rec ${selected.recommendedRamMb}MB RAM",
+                        text = stringResource(R.string.ai_model_meta, selected.fileSizeMb, selected.minRamMb, selected.recommendedRamMb),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -592,12 +592,12 @@ private fun LazyListScope.onDeviceActionsSection(
                             modifier = Modifier.fillMaxWidth()
                         )
                         val speedText = if (d.speedBytesPerSec >= 1_000_000) {
-                            String.format("%.1f MB/s", d.speedBytesPerSec / 1_000_000.0)
+                            stringResource(R.string.ai_download_speed_mb, d.speedBytesPerSec / 1_000_000.0)
                         } else {
-                            String.format("%.0f KB/s", d.speedBytesPerSec / 1_000.0)
+                            stringResource(R.string.ai_download_speed_kb, d.speedBytesPerSec / 1_000.0)
                         }
                         Text(
-                            text = "${d.downloadedMb}MB / ${d.totalMb}MB (${(d.progress * 100).toInt()}%) · $speedText",
+                            text = stringResource(R.string.ai_download_progress, d.downloadedMb, d.totalMb, (d.progress * 100).toInt(), speedText),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -809,7 +809,7 @@ private fun RecommendedModelCard(model: OnDeviceModel) {
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "${model.fileSizeMb}MB · Needs ${model.minRamMb}MB RAM",
+                    text = stringResource(R.string.ai_model_needs_ram, model.fileSizeMb, model.minRamMb),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -844,7 +844,7 @@ private fun ModelSelectionRow(
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
             )
             Text(
-                text = "${model.fileSizeMb}MB · Min ${model.minRamMb}MB RAM",
+                text = stringResource(R.string.ai_model_min_ram, model.fileSizeMb, model.minRamMb),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

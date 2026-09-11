@@ -87,13 +87,13 @@ class NotesListWidget : GlanceAppWidget() {
 
     @Composable
     private fun NoteListMiniCard(context: Context, note: Note) {
-        val summary = widgetSummary(note.content)
+        val summary = widgetSummary(note.content, context)
         Column(
             modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 6.dp)
                 .background(GlanceTheme.colors.surfaceVariant).cornerRadius(12.dp)
                 .padding(12.dp).clickable(actionStartActivity(openNoteIntent(context, note.id)))
         ) {
-            Text(text = widgetTitle(note), style = cardTitleStyle(), maxLines = 1)
+            Text(text = widgetTitle(context, note), style = cardTitleStyle(), maxLines = 1)
             if (summary.isNotBlank()) {
                 Spacer(modifier = GlanceModifier.height(4.dp))
                 Text(text = summary, style = cardSummaryStyle(), maxLines = 2)

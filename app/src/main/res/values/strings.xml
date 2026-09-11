@@ -512,6 +512,7 @@
 
     <!-- Export -->
     <string name="toast_export_error">Error exporting: %1$s</string>
+    <string name="export_err_zip">ZIP creation failed</string>
 
     <!-- Other common messages -->
     <string name="clear_all">Clear All</string>
@@ -589,6 +590,9 @@
     <string name="update_download_progress">%1$.0f%% downloaded (%2$d MB / %3$d MB)</string>
     <string name="update_preparing_install">Preparing install…</string>
     <string name="update_download_failed">Download failed</string>
+    <string name="update_err_no_url">No download URL</string>
+    <string name="update_err_checksum">Checksum verification failed</string>
+    <string name="update_err_install">Install failed</string>
     <string name="update_check_failed">Check failed — tap to retry</string>
     <string name="update_install_permission_title">Allow installing apps from this source</string>
     <string name="update_install_permission_subtitle">Grant the "install unknown apps" permission to install the update</string>
@@ -666,6 +670,16 @@
     <string name="pdf_watermark_plain">📝 PLAIN LOCAL COPY</string>
     <string name="export_label_modified">Modified: %s</string>
     <string name="export_label_tags">Tags: %s</string>
+    <string name="export_label_tags_md">**Tags:** %1$s</string>
+    <string name="export_media_image">Image</string>
+    <string name="export_media_video">Video</string>
+    <string name="export_media_audio">Audio</string>
+    <string name="export_media_drawing">Drawing</string>
+    <string name="export_media_voice">Voice</string>
+    <string name="export_media_file">File</string>
+    <string name="export_page_fallback">Page</string>
+    <string name="export_details_fallback">Details</string>
+    <string name="export_video_link">▶ %1$s</string>
     <string name="export_label_last_modified">Last Modified: %s</string>
 
     <!-- v4.0 Default / Seed data -->
@@ -724,6 +738,7 @@
     <string name="backup_e2ee_badge">AES-256 E2E Encrypted</string>
     <string name="backup_e2ee_disabled_badge">Not encrypted</string>
     <string name="toast_encrypt_backup_no_password">Cannot encrypt backup: master password not available. Unlock the app first.</string>
+    <string name="backup_err_encryption">Encryption failed</string>
 
     <!-- Security improvements -->
     <string name="auto_lock_title">Auto-lock</string>
@@ -1023,6 +1038,17 @@
     <string name="ai_error_unknown">Unknown error</string>
     <string name="ai_error_connection">Connection error</string>
     <string name="ai_error_unexpected">Unexpected error</string>
+    <string name="ai_err_ollama_ssl">SSL connection error. For local servers use \'http://\' instead of \'https://\', or install a valid certificate.</string>
+    <string name="ai_err_ollama_empty">Empty response from the model</string>
+    <string name="ai_err_ollama_connect">Cannot connect to the server. Is Ollama running and reachable at %1$s?</string>
+    <string name="ai_err_ollama_timeout">Connection timed out. Check the URL and network connectivity.</string>
+    <string name="ai_err_ollama_host">Cannot resolve the host. Verify the URL is correct.</string>
+    <string name="ai_err_http_status">HTTP %1$d: %2$s</string>
+    <string name="ai_err_no_model">No model loaded. Load a local model first.</string>
+    <string name="ai_err_insufficient_memory">Insufficient memory: %1$s</string>
+    <string name="ai_err_download_invalid_gguf">The downloaded file is not a valid GGUF model</string>
+    <string name="ai_err_download_empty">Downloaded file is empty</string>
+    <string name="ai_err_download_failed">Download failed</string>
     <string name="ai_user_msg_generate">Generate text</string>
     <string name="ai_user_msg_summarize">Summarize: %1$s</string>
     <string name="ai_user_msg_rewrite">Rewrite in %1$s style: %2$s</string>
@@ -1107,4 +1133,156 @@
     <string name="widget_empty_note">No note selected</string>
     <string name="widget_empty_list">No notes yet</string>
     <string name="widget_locked_item">Locked — unlock the app to view</string>
+    <string name="widget_note_untitled">Untitled</string>
+    <string name="text">Text</string>
+    <string name="heading_4">Heading 4</string>
+    <string name="bulleted_list">Bulleted List</string>
+    <string name="numbered_list">Numbered List</string>
+    <string name="checklist">Checklist</string>
+    <string name="quote">Quote</string>
+    <string name="code_block">Code Block</string>
+    <string name="highlight">Highlight</string>
+    <string name="page">Page</string>
+    <string name="page_link">Page Link</string>
+    <string name="divider">Divider</string>
+    <string name="image">Image</string>
+    <string name="video">Video</string>
+    <string name="audio">Audio</string>
+    <string name="drawing">Drawing</string>
+    <string name="voice_note">Voice Note</string>
+    <string name="file">File</string>
+    <string name="bookmark">Bookmark</string>
+    <string name="table">Table</string>
+    <string name="collapsible">Collapsible</string>
+    <string name="add_block">Add block</string>
+    <string name="insert_column_left">Insert column left</string>
+    <string name="insert_column_right">Insert column right</string>
+    <string name="delete_column">Delete column</string>
+    <string name="insert_row_above">Insert row above</string>
+    <string name="insert_row_below">Insert row below</string>
+    <string name="delete_row">Delete row</string>
+    <string name="add_column">Add column</string>
+    <string name="add_row">Add row</string>
+    <string name="more">More</string>
+    <string name="remove">Remove</string>
+    <string name="ai">AI</string>
+    <string name="insert_table">Insert Table</string>
+    <string name="include_header_row">Include header row</string>
+
+    <!-- ViewModel placeholder labels -->
+    <string name="note_placeholder_encrypted">[Encrypted]</string>
+    <string name="note_placeholder_locked">[Unlock to read notes]</string>
+    <string name="note_placeholder_corrupted">[Corrupted / Wrong Password]</string>
+    <string name="note_placeholder_cannot_decrypt">[Cannot decrypt]</string>
+    <string name="note_untitled">Untitled</string>
+
+    <!-- Storage cleanup messages -->
+    <plurals name="storage_deleted_orphans">
+        <item quantity="one">Deleted %1$d orphan file</item>
+        <item quantity="other">Deleted %1$d orphan files</item>
+    </plurals>
+    <plurals name="storage_deleted_files">
+        <item quantity="one">Deleted %1$d file</item>
+        <item quantity="other">Deleted %1$d files</item>
+    </plurals>
+    <plurals name="storage_deleted_audio">
+        <item quantity="one">Deleted %1$d audio file — %2$s</item>
+        <item quantity="other">Deleted %1$d audio files — %2$s</item>
+    </plurals>
+    <string name="storage_freed">Freed %1$s</string>
+
+    <!-- AI chat -->
+    <string name="chat_new_session">New Chat</string>
+    <string name="chat_title_with_note">Chat - %1$s</string>
+    <string name="chat_title_at_time">Chat %1$s</string>
+    <string name="chat_export_header">Exported: %1$s</string>
+    <string name="chat_role_you">You</string>
+    <string name="ai_backend_on_device">On-Device</string>
+
+    <!-- Floating editor toolbar -->
+    <string name="asistente_ia">AI Assistant</string>
+    <string name="bloques">Blocks</string>
+    <string name="opciones_de_texto">Text options</string>
+    <string name="limpiar_formato">Clear formatting</string>
+    <string name="deshacer">Undo</string>
+    <string name="rehacer">Redo</string>
+    <string name="convertir_bloque">Convert block</string>
+    <string name="eliminar_bloque">Delete block</string>
+    <string name="aumentar_sangria">Increase indent</string>
+    <string name="disminuir_sangria">Decrease indent</string>
+    <string name="subir_bloque">Move block up</string>
+    <string name="bajar_bloque">Move block down</string>
+    <string name="estilo_de_la_nota">Note style</string>
+    <string name="detener_lectura">Stop reading</string>
+    <string name="leer_en_voz_alta">Read aloud</string>
+    <string name="anadir_dibujo">Add drawing</string>
+    <string name="adjuntar_archivo">Attach file</string>
+    <string name="panel_ia">AI panel</string>
+    <string name="pegar_con_formato">Paste with formatting</string>
+    <string name="insertar_fecha">Insert date</string>
+    <string name="alternar_teclado">Toggle keyboard</string>
+    <string name="buscar">Search</string>
+    <string name="volver">Back</string>
+    <string name="color_de_texto_y_fondo">Text and background color</string>
+    <string name="negrita">Bold</string>
+    <string name="italica">Italic</string>
+    <string name="subrayado">Underline</string>
+    <string name="tachado">Strikethrough</string>
+    <string name="enlace">Link</string>
+    <string name="codigo_inline">Inline code</string>
+    <string name="ecuaciones">Equations</string>
+    <string name="anterior">Previous</string>
+    <string name="siguiente">Next</string>
+    <string name="mas_opciones">More options</string>
+    <string name="cerrar_busqueda">Close search</string>
+    <string name="coincidir_mayusculas">Match case</string>
+    <string name="palabra_completa">Whole word</string>
+    <string name="redimensionar">Resize</string>
+    <string name="restablecer_tamano">Reset size</string>
+
+    <!-- Editor table dialog -->
+    <string name="rows_label">Rows:</string>
+    <string name="cols_label">Cols:</string>
+    <string name="table_header_cell">Header %1$d</string>
+
+    <!-- AI chat -->
+    <plurals name="chat_active_memories">
+        <item quantity="one">1 memory</item>
+        <item quantity="other">%1$d memories</item>
+    </plurals>
+    <string name="chat_msg_duration"> · %1$s</string>
+    <string name="chat_msg_model"> · %1$s</string>
+
+    <!-- Color picker HSV labels -->
+    <string name="hsv_h">H</string>
+    <string name="hsv_s">S</string>
+    <string name="hsv_v">V</string>
+
+    <!-- Code languages -->
+    <string name="code_lang_plain">Plain text</string>
+    <string name="code_lang_shell">Shell</string>
+
+    <!-- Audio block -->
+    <string name="time_separator">%1$s / %2$s</string>
+
+    <!-- Backup / storage units -->
+    <string name="size_bytes">%1$d B</string>
+    <string name="size_kb">%.1f KB</string>
+    <string name="size_mb">%.1f MB</string>
+    <string name="diff_minutes">%1$d m</string>
+    <string name="diff_hours">%.1f h</string>
+    <string name="diff_days">%.1f d</string>
+    <string name="storage_item_percentage">%1$s (%2$s)</string>
+
+    <!-- AI settings device info -->
+    <string name="ai_device_ram">%1$d MB available / %2$d MB total</string>
+    <string name="ai_model_meta">%1$sMB · Min %2$sMB RAM · Rec %3$sMB RAM</string>
+    <string name="ai_download_speed_mb">%.1f MB/s</string>
+    <string name="ai_download_speed_kb">%.0f KB/s</string>
+    <string name="ai_download_progress">%1$sMB / %2$sMB (%3$d%%) · %4$s</string>
+    <string name="ai_model_needs_ram">%1$sMB · Needs %2$sMB RAM</string>
+    <string name="ai_model_min_ram">%1$sMB · Min %2$sMB RAM</string>
+
+    <!-- Licenses -->
+    <string name="license_mit_estrin">MIT — ESTRIN217</string>
 </resources>

@@ -77,6 +77,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.estrin217.codetools.R
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -109,12 +111,12 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         if (FileImportExportHelper.isOversize(context, uri)) {
-            scope.launch { snackbarHostState.showSnackbar("Archivo demasiado grande (máx. 2 MB)") }
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.file_too_large)) }
             return@rememberLauncherForActivityResult
         }
         val fileInfo = FileImportExportHelper.readExternalFile(context, uri)
         if (fileInfo == null) {
-            scope.launch { snackbarHostState.showSnackbar("No se pudo leer el archivo seleccionado") }
+            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.file_read_error)) }
             return@rememberLauncherForActivityResult
         }
         viewModel.importExternalFile(fileInfo.name, fileInfo.content, fileInfo.language)
@@ -180,14 +182,14 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                     ) {
                         Column {
                             Text(
-                                text = currentFile?.name ?: "Sin título",
+                                text = currentFile?.name ?: stringResource(R.string.untitled),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "${language.displayName} • $totalLines lín",
+                                text = stringResource(R.string.status_lang_lines, language.displayName, totalLines),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -201,7 +203,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                     ) {
                         Icon(
                             imageVector = Icons.Default.Folder,
-                            contentDescription = "Ver archivos",
+                            contentDescription = stringResource(R.string.cd_view_files),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -213,7 +215,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                         onClick = { viewModel.toggleEditMode() },
                         label = {
                             Text(
-                                text = if (isEditMode) "Editar" else "Ver",
+                                text = if (isEditMode) stringResource(R.string.mode_edit) else stringResource(R.string.mode_view),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -237,7 +239,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar y reemplazar",
+                            contentDescription = stringResource(R.string.cd_search_replace),
                             tint = if (isSearchVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -249,7 +251,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoFixHigh,
-                            contentDescription = "Formatear código",
+                            contentDescription = stringResource(R.string.format_code),
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -261,7 +263,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                     ) {
                         Icon(
                             imageVector = Icons.Default.Save,
-                            contentDescription = "Guardar",
+                            contentDescription = stringResource(R.string.save),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -272,7 +274,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                             onClick = { showOverflowMenu = true },
                             modifier = Modifier.testTag("appbar_overflow_btn")
                         ) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Más opciones")
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
                         }
 
                         DropdownMenu(
@@ -280,7 +282,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                             onDismissRequest = { showOverflowMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Abrir archivo externo...") },
+                                text = { Text(stringResource(R.string.menu_open_external)) },
                                 leadingIcon = { Icon(Icons.Default.FileOpen, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -289,7 +291,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_open_external_file")
                             )
                             DropdownMenuItem(
-                                text = { Text("Nuevo archivo...") },
+                                text = { Text(stringResource(R.string.menu_new_file)) },
                                 leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -298,7 +300,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_new_file")
                             )
                             DropdownMenuItem(
-                                text = { Text("Ir a la línea...") },
+                                text = { Text(stringResource(R.string.menu_jump_line)) },
                                 leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -307,7 +309,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_jump_line")
                             )
                             DropdownMenuItem(
-                                text = { Text("Resaltado de sintaxis") },
+                                text = { Text(stringResource(R.string.menu_syntax)) },
                                 leadingIcon = { Icon(Icons.Default.TextFields, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -316,7 +318,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_language")
                             )
                             DropdownMenuItem(
-                                text = { Text("Tema del editor") },
+                                text = { Text(stringResource(R.string.menu_theme)) },
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -325,7 +327,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_theme")
                             )
                             DropdownMenuItem(
-                                text = { Text(if (showLineNumbers) "Ocultar número de líneas" else "Mostrar número de líneas") },
+                                text = { Text(if (showLineNumbers) stringResource(R.string.menu_hide_lines) else stringResource(R.string.menu_show_lines)) },
                                 leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -333,7 +335,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (wordWrap) "Desactivar ajuste de línea" else "Ajuste de línea (Word Wrap)") },
+                                text = { Text(if (wordWrap) stringResource(R.string.menu_wrap_off) else stringResource(R.string.menu_wrap_on)) },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -341,7 +343,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Formatear código") },
+                                text = { Text(stringResource(R.string.format_code)) },
                                 leadingIcon = { Icon(Icons.Default.AutoFixHigh, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -350,7 +352,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                                 modifier = Modifier.testTag("menu_format_code")
                             )
                             DropdownMenuItem(
-                                text = { Text("Opciones de formateo...") },
+                                text = { Text(stringResource(R.string.menu_format_options)) },
                                 leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
@@ -360,7 +362,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                             )
                             if (language == SupportedLanguage.JSON) {
                                 DropdownMenuItem(
-                                    text = { Text("Compactar JSON (Minify)") },
+                                    text = { Text(stringResource(R.string.menu_minify)) },
                                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatAlignLeft, contentDescription = null) },
                                     onClick = {
                                         showOverflowMenu = false
@@ -370,29 +372,29 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                             }
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Copiar código") },
+                                text = { Text(stringResource(R.string.copy_code)) },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Code", textFieldValue.text))
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("Código copiado al portapapeles")
+                                        snackbarHostState.showSnackbar(context.getString(R.string.copied_clipboard))
                                     }
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Compartir script") },
+                                text = { Text(stringResource(R.string.share_script)) },
                                 leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
                                     val sendIntent = Intent().apply {
                                         action = Intent.ACTION_SEND
                                         putExtra(Intent.EXTRA_TEXT, textFieldValue.text)
-                                        putExtra(Intent.EXTRA_SUBJECT, currentFile?.name ?: "script")
+                                        putExtra(Intent.EXTRA_SUBJECT, currentFile?.name ?: context.getString(R.string.share_subject_default))
                                         type = "text/plain"
                                     }
-                                    context.startActivity(Intent.createChooser(sendIntent, "Compartir código"))
+                                    context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_chooser)))
                                 }
                             )
                         }
@@ -444,7 +446,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cerrar",
+                                contentDescription = stringResource(R.string.close),
                                 tint = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -517,7 +519,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Lín $cursorLine, Col $cursorCol",
+                            text = stringResource(R.string.status_cursor, cursorLine, cursorCol),
                             color = theme.lineNumber,
                             fontSize = 11.sp,
                             fontFamily = JetBrainsMono,
@@ -529,7 +531,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                             fontSize = 11.sp
                         )
                         Text(
-                            text = "$totalLines líns",
+                            text = stringResource(R.string.status_lines, totalLines),
                             color = theme.lineNumber,
                             fontSize = 11.sp,
                             fontFamily = JetBrainsMono
@@ -565,7 +567,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ZoomOut,
-                                contentDescription = "Reducir tamaño",
+                                contentDescription = stringResource(R.string.zoom_out),
                                 tint = theme.lineNumber,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -584,7 +586,7 @@ fun CodeToolsApp(viewModel: CodeEditorViewModel, topTabs: @Composable () -> Unit
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ZoomIn,
-                                contentDescription = "Aumentar tamaño",
+                                contentDescription = stringResource(R.string.zoom_in),
                                 tint = theme.lineNumber,
                                 modifier = Modifier.size(16.dp)
                             )

@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.R
 import com.example.data.PreferencesRepository
 import com.example.data.ai.*
 import com.example.data.local.ChatSessionDao
@@ -147,7 +148,7 @@ class AiViewModel(
         register(
             com.example.data.ai.tools.CreateNoteTool.spec,
             { args ->
-                val title = args["title"]?.toString() ?: "Untitled"
+                val title = args["title"]?.toString() ?: application.getString(R.string.note_untitled)
                 val content = args["content"]?.toString() ?: ""
                 kotlinx.coroutines.runBlocking {
                     withContext(Dispatchers.IO) {
@@ -249,7 +250,7 @@ class AiViewModel(
     private val _currentSessionId = MutableStateFlow(0)
     val currentSessionId: StateFlow<Int> = _currentSessionId.asStateFlow()
 
-    private val _sessionTitle = MutableStateFlow("New Chat")
+    private val _sessionTitle = MutableStateFlow(application.getString(R.string.chat_new_session))
     val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
 
     private val _currentNoteId = MutableStateFlow(0)
@@ -285,7 +286,7 @@ class AiViewModel(
 
     private fun currentModelName(): String = when (_backend.value) {
         AiBackend.OLLAMA -> _modelName.value
-        AiBackend.ON_DEVICE -> _selectedOnDeviceModel.value?.displayName ?: "On-Device"
+        AiBackend.ON_DEVICE -> _selectedOnDeviceModel.value?.displayName ?: getApplication<Application>().getString(R.string.ai_backend_on_device)
     }
 
     fun isAvailable(): Boolean = currentService.isAvailable
@@ -535,7 +536,14 @@ class AiViewModel(
     fun createAndStartSession(noteId: Int = 0, noteTitle: String? = null) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val title = if (noteTitle != null) "Chat - $noteTitle" else "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))}"
+            val title = if (noteTitle != null) {
+                getApplication<Application>().getString(R.string.chat_title_with_note, noteTitle)
+            } else {
+                getApplication<Application>().getString(
+                    R.string.chat_title_at_time,
+                    SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))
+                )
+            }
             val session = ChatSessionEntity(
                 title = title,
                 noteId = noteId.takeIf { it > 0 },
@@ -728,7 +736,10 @@ class AiViewModel(
             }
             if (isFirstMessage || isNewSession) {
                 val title = userMessage.trim().split(Regex("\\s+")).take(2).joinToString(" ").ifBlank {
-                    pendingFiles.firstOrNull()?.name?.take(30) ?: "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis()))}"
+                    pendingFiles.firstOrNull()?.name?.take(30) ?: getApplication<Application>().getString(
+                        R.string.chat_title_at_time,
+                        SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(System.currentTimeMillis()))
+                    )
                 }
                 _sessionTitle.value = title
                 withContext(Dispatchers.IO) {
@@ -891,11 +902,11 @@ class AiViewModel(
         val sb = StringBuilder()
         val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
         sb.appendLine("=== ${_sessionTitle.value} ===")
-        sb.appendLine("Exported: ${dateFormat.format(java.util.Date())}")
+        sb.appendLine(getApplication<Application>().getString(R.string.chat_export_header, dateFormat.format(java.util.Date())))
         sb.appendLine()
         for (turn in turns) {
             val time = turn.formattedTime
-            val role = if (turn.role == "user") "You" else "AI"
+            val role = if (turn.role == "user") getApplication<Application>().getString(R.string.chat_role_you) else getApplication<Application>().getString(R.string.ai)
             val model = turn.modelName?.let { " ($it)" } ?: ""
             val files = if (turn.files.isNotEmpty()) {
                 " [" + turn.files.joinToString(", ") { it.name } + "]"

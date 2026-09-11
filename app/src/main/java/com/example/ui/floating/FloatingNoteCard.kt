@@ -463,25 +463,25 @@ private fun FloatingQuickNoteActions(
         checked = "b" in activeTextStyles,
         onCheckedChange = { onToggleTag("b") }
       ) {
-        Icon(Icons.Default.FormatBold, contentDescription = "Negrita")
+        Icon(Icons.Default.FormatBold, contentDescription = stringResource(R.string.negrita))
       }
                 FormattingToggleButton(
                     checked = "i" in activeTextStyles,
                     onCheckedChange = { onToggleTag("i") }
                 ) {
-                    Icon(Icons.Default.FormatItalic, contentDescription = "Itálica")
+                    Icon(Icons.Default.FormatItalic, contentDescription = stringResource(R.string.italica))
                 }
                 FormattingToggleButton(
                     checked = "u" in activeTextStyles,
                     onCheckedChange = { onToggleTag("u") }
                 ) {
-                    Icon(Icons.Default.FormatUnderlined, contentDescription = "Subrayado")
+                    Icon(Icons.Default.FormatUnderlined, contentDescription = stringResource(R.string.subrayado))
                 }
                 FormattingToggleButton(
                     checked = "s" in activeTextStyles,
                     onCheckedChange = { onToggleTag("s") }
                 ) {
-                    Icon(Icons.Default.FormatStrikethrough, contentDescription = "Tachado")
+                    Icon(Icons.Default.FormatStrikethrough, contentDescription = stringResource(R.string.tachado))
                 }
         IconButton(onClick = onClear) {
             Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.floating_mode_clear))
@@ -503,7 +503,7 @@ private fun FloatingQuickNoteActions(
         IconButton(onClick = onToggleResizeMode) {
             Icon(
                 Icons.Default.OpenInFull,
-                contentDescription = "Redimensionar",
+                contentDescription = stringResource(R.string.redimensionar),
                 tint = if (resizeMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
@@ -512,7 +512,7 @@ private fun FloatingQuickNoteActions(
             IconButton(onClick = onResetLayout) {
                 Icon(
                     Icons.Default.Refresh,
-                    contentDescription = "Restablecer tamaño",
+                    contentDescription = stringResource(R.string.restablecer_tamano),
                     modifier = Modifier.size(18.dp)
                 )
             }

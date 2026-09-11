@@ -372,7 +372,7 @@ fun PdfViewerScreen(
                                     OutlinedButton(
                                         onClick = { viewModel.closeDocument() }
                                     ) {
-                                        Text("Volver al inicio")
+                                        Text(stringResource(R.string.back_to_start))
                                     }
                                 }
                             }
@@ -644,7 +644,7 @@ private fun BottomViewerControls(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
-                    contentDescription = "Página anterior",
+                    contentDescription = stringResource(R.string.previous_page),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -674,7 +674,7 @@ private fun BottomViewerControls(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = "Página siguiente",
+                    contentDescription = stringResource(R.string.next_page),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -752,7 +752,7 @@ private fun JumpToPageDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Selecciona una página entre 1 y $pageCount",
+                    text = stringResource(R.string.select_page_between, pageCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -778,7 +778,7 @@ private fun JumpToPageDialog(
                             }
                         }
                     },
-                    label = { Text("Número de página") },
+                    label = { Text(stringResource(R.string.page_number)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -796,7 +796,7 @@ private fun JumpToPageDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -827,11 +827,11 @@ private fun FileInfoDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoItem(label = "Nombre", value = fileInfo.name)
-                InfoItem(label = "Tamaño", value = fileInfo.sizeFormatted)
-                InfoItem(label = "Total de páginas", value = "${fileInfo.pageCount} páginas")
+                InfoItem(label = stringResource(R.string.file_name_label), value = fileInfo.name)
+                InfoItem(label = stringResource(R.string.file_size_label), value = fileInfo.sizeFormatted)
+                InfoItem(label = stringResource(R.string.total_pages), value = stringResource(R.string.page_count_value, fileInfo.pageCount))
                 InfoItem(
-                    label = "Ubicación / URI",
+                    label = stringResource(R.string.file_location_label),
                     value = fileInfo.uriString.take(80) + if (fileInfo.uriString.length > 80) "..." else ""
                 )
             }

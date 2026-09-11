@@ -218,7 +218,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         if (_uiState.value.downloadState is UpdateDownloadState.Downloading) return
         val downloadUrl = _uiState.value.downloadUrl
         if (downloadUrl == null) {
-            _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed("No download URL")) }
+            _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(getApplication<Application>().getString(R.string.update_err_no_url))) }
             return
         }
         val expectedChecksum = _uiState.value.checksum
@@ -266,7 +266,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                     if (actual == null || !actual.equals(expectedChecksum, ignoreCase = true)) {
                         Log.e(TAG, "checksum mismatch: expected=$expectedChecksum actual=$actual")
                         targetFile.delete()
-                        _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed("Checksum verification failed")) }
+                        _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(getApplication<Application>().getString(R.string.update_err_checksum))) }
                         return@launch
                     }
                 } else {
@@ -282,7 +282,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     Log.e(TAG, "download failed", e)
                     targetFile.delete()
-                    _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(e.message ?: "Download failed")) }
+                    _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(e.message ?: getApplication<Application>().getString(R.string.update_download_failed))) }
                 }
             }
         }
@@ -338,7 +338,7 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
             appContext.startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "install intent failed", e)
-            _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(e.message ?: "Install failed")) }
+                    _uiState.update { it.copy(downloadState = UpdateDownloadState.DownloadFailed(e.message ?: getApplication<Application>().getString(R.string.update_err_install))) }
         }
     }
 

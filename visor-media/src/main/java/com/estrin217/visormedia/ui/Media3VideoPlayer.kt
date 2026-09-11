@@ -109,16 +109,16 @@ fun Media3VideoPlayer(
                 val userMsg = when {
                     cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException -> {
                         if (cause.responseCode == 403) {
-                            "Acceso no autorizado (HTTP 403): El servidor remoto denegó la solicitud."
+                            context.getString(R.string.video_error_403)
                         } else {
-                            "Error del servidor remoto (Código HTTP ${cause.responseCode})."
+                            context.getString(R.string.video_error_http, cause.responseCode)
                         }
                     }
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> {
-                        "Error de conexión de red al cargar el video."
+                        context.getString(R.string.video_error_network)
                     }
-                    else -> error.localizedMessage ?: "No se pudo reproducir este video"
+                    else -> error.localizedMessage ?: context.getString(R.string.video_error_generic)
                 }
                 errorMessage = userMsg
             }
@@ -300,7 +300,7 @@ fun Media3VideoPlayer(
                             AspectRatioFrameLayout.RESIZE_MODE_FILL -> Icons.Default.AspectRatio
                             else -> Icons.Default.Fullscreen
                         },
-                        contentDescription = "Escalar video",
+                        contentDescription = stringResource(R.string.cd_scale_video),
                         modifier = Modifier.size(20.dp)
                     )
                 }

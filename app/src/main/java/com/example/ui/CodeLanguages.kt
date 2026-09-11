@@ -25,11 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.R
 
-data class CodeLanguage(val code: String, val label: String)
+data class CodeLanguage(val code: String, val label: String, val labelRes: Int? = null)
 
 object CodeLanguages {
     val all = listOf(
-        CodeLanguage("", "Plain text"),
+        CodeLanguage("", "", R.string.code_lang_plain),
         CodeLanguage("kotlin", "Kotlin"),
         CodeLanguage("java", "Java"),
         CodeLanguage("python", "Python"),
@@ -46,7 +46,7 @@ object CodeLanguages {
         CodeLanguage("go", "Go"),
         CodeLanguage("rust", "Rust"),
         CodeLanguage("swift", "Swift"),
-        CodeLanguage("bash", "Shell"),
+        CodeLanguage("bash", "", R.string.code_lang_shell),
         CodeLanguage("php", "PHP"),
         CodeLanguage("ruby", "Ruby"),
         CodeLanguage("yaml", "YAML"),
@@ -57,8 +57,12 @@ object CodeLanguages {
         CodeLanguage("markdown", "Markdown")
     )
 
-    fun labelFor(code: String?): String =
-        all.firstOrNull { it.code == code }?.label ?: "Plain text"
+    @Composable
+    fun resolveLabel(code: String?): String {
+        val lang = all.firstOrNull { it.code == code }
+        if (lang?.labelRes != null) return stringResource(lang.labelRes)
+        return lang?.label ?: stringResource(R.string.code_lang_plain)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +106,7 @@ fun CodeLanguageSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = lang.label,
+                        text = CodeLanguages.resolveLabel(lang.code),
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,

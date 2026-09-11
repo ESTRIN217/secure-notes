@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.estrin217.codetools.R
 import com.estrin217.codetools.syntax.SupportedLanguage
 import com.estrin217.codetools.syntax.SyntaxTheme
 import com.estrin217.codetools.syntax.SyntaxThemes
@@ -54,14 +56,15 @@ fun JumpToLineDialog(
 ) {
     var lineInput by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    val invalidLineText = stringResource(R.string.jump_line_invalid, totalLines)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ir a la Línea") },
+        title = { Text(stringResource(R.string.jump_line_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Introduce el número de línea (1 - $totalLines):",
+                    text = stringResource(R.string.jump_line_hint, totalLines),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
@@ -88,17 +91,17 @@ fun JumpToLineDialog(
                         onJump(num)
                         onDismiss()
                     } else {
-                        error = "Línea inválida (1 - $totalLines)"
+                        error = invalidLineText
                     }
                 },
                 modifier = Modifier.testTag("jump_line_confirm_btn")
             ) {
-                Text("Ir")
+                Text(stringResource(R.string.go))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -111,10 +114,11 @@ fun NewFileDialog(
 ) {
     var fileName by remember { mutableStateOf("") }
     var selectedLanguage by remember { mutableStateOf(SupportedLanguage.BASH) }
+    val defaultScriptName = stringResource(R.string.new_file_default, selectedLanguage.fileExtension)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nuevo Archivo de Código") },
+        title = { Text(stringResource(R.string.new_file_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -127,8 +131,8 @@ fun NewFileDialog(
                             selectedLanguage = detected
                         }
                     },
-                    label = { Text("Nombre del archivo") },
-                    placeholder = { Text("ej. script.sh, config.yaml") },
+                    label = { Text(stringResource(R.string.new_file_name_label)) },
+                    placeholder = { Text(stringResource(R.string.new_file_name_hint)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -136,7 +140,7 @@ fun NewFileDialog(
                 )
 
                 Text(
-                    text = "Sintaxis / Tipo de archivo:",
+                    text = stringResource(R.string.new_file_syntax_label),
                     style = MaterialTheme.typography.labelLarge
                 )
 
@@ -179,7 +183,7 @@ fun NewFileDialog(
             Button(
                 onClick = {
                     val finalName = if (fileName.isBlank()) {
-                        "nuevo_script.${selectedLanguage.fileExtension}"
+                        defaultScriptName
                     } else if (!fileName.contains('.')) {
                         "$fileName.${selectedLanguage.fileExtension}"
                     } else {
@@ -190,12 +194,12 @@ fun NewFileDialog(
                 },
                 modifier = Modifier.testTag("new_file_create_btn")
             ) {
-                Text("Crear")
+                Text(stringResource(R.string.create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -220,7 +224,7 @@ fun LanguageSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Resaltado de Sintaxis") },
+        title = { Text(stringResource(R.string.syntax_title)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -229,7 +233,7 @@ fun LanguageSelectorDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar lenguaje (ej. Rust, SQL)...") },
+                    placeholder = { Text(stringResource(R.string.syntax_search_hint)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -270,7 +274,7 @@ fun LanguageSelectorDialog(
                             if (lang == currentLanguage) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Seleccionado",
+                                    contentDescription = stringResource(R.string.selected_cd),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -282,7 +286,7 @@ fun LanguageSelectorDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -296,7 +300,7 @@ fun ThemeSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tema del Editor") },
+        title = { Text(stringResource(R.string.theme_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SyntaxThemes.all.forEach { theme ->
@@ -341,7 +345,7 @@ fun ThemeSelectorDialog(
                             if (theme.id == currentTheme.id) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Activo",
+                                    contentDescription = stringResource(R.string.active_cd),
                                     tint = theme.function
                                 )
                             }
@@ -353,7 +357,7 @@ fun ThemeSelectorDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(stringResource(R.string.close))
             }
         }
     )

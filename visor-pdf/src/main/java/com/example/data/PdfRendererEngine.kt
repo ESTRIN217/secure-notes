@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.util.LruCache
+import com.estrin217.pdfviewer.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -60,7 +61,7 @@ class PdfRendererEngine(private val context: Context) {
                     }
                     outputStream.flush()
                 }
-            } ?: throw IllegalStateException("No se pudo leer el archivo seleccionado")
+            } ?: throw IllegalStateException(context.getString(R.string.error_reading_pdf))
 
             tempFile = cacheFile
             val pfd = ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY)

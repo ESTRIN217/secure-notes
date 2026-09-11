@@ -63,7 +63,7 @@ class SingleNoteWidget : GlanceAppWidget() {
         ) {
             Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Top) {
                 when {
-                    note != null -> NoteBody(note)
+                    note != null -> NoteBody(context, note)
                     locked -> StaticBody(context.getString(com.example.R.string.widget_locked_item))
                     else -> StaticBody(context.getString(com.example.R.string.widget_empty_note))
                 }
@@ -73,9 +73,9 @@ class SingleNoteWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun ColumnScope.NoteBody(note: Note) {
-        val body = widgetSummary(note.content).ifBlank { "…" }
-        Text(text = widgetTitle(note), style = noteTitleStyle(), maxLines = 2)
+    private fun ColumnScope.NoteBody(context: Context, note: Note) {
+        val body = widgetSummary(note.content, context).ifBlank { "…" }
+        Text(text = widgetTitle(context, note), style = noteTitleStyle(), maxLines = 2)
         Spacer(modifier = GlanceModifier.height(4.dp))
         LazyColumn(modifier = GlanceModifier.defaultWeight()) {
             items(listOf(body)) { paragraph -> Text(text = paragraph, style = noteBodyStyle()) }

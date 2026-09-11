@@ -264,7 +264,7 @@ fun EditableAudioBlock(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${formatTime(currentPositionMs)} / ${formatTime(durationMs)}",
+                        text = stringResource(R.string.time_separator, formatTime(currentPositionMs), formatTime(durationMs)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

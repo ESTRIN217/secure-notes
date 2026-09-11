@@ -59,7 +59,7 @@ class JsonExporter : Exporter {
             tempDir.deleteRecursively()
 
             if (!success || !zipFile.exists()) {
-                Toast.makeText(context, context.getString(R.string.toast_export_error, "ZIP creation failed"), Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.toast_export_error, context.getString(R.string.export_err_zip)), Toast.LENGTH_LONG).show()
                 return
             }
 

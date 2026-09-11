@@ -2,6 +2,7 @@ package com.example.widget
 
 import android.content.Context
 import com.example.AppConstants
+import com.example.R
 import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
 import com.example.data.security.SecurePrefsStore
@@ -15,14 +16,14 @@ fun widgetVisibleNotes(notes: List<Note>): List<Note> {
         .sortedByDescending { it.lastModified }
 }
 
-fun widgetTitle(note: Note): String {
+fun widgetTitle(context: Context, note: Note): String {
     val title = note.title.trim()
     if (title.isNotEmpty()) return title
-    return "Untitled"
+    return context.getString(R.string.widget_note_untitled)
 }
 
-fun widgetSummary(content: String): String {
-    return RichTextConverter.contentToPlainText(content).trim().take(140)
+fun widgetSummary(content: String, context: Context): String {
+    return RichTextConverter.contentToPlainText(content, context).trim().take(140)
 }
 
 fun isPasswordSet(context: Context): Boolean {

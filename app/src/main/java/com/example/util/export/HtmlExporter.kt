@@ -113,7 +113,7 @@ class HtmlExporter : Exporter {
                 sb.append(" | ").append(esc(context.getString(R.string.export_label_tags, tags.joinToString(", "))))
             }
             sb.append("</div>")
-            sb.append("<div class=\"content\">").append(RichTextConverter.contentToHtml(dec.content, embedder)).append("</div>")
+            sb.append("<div class=\"content\">").append(RichTextConverter.contentToHtml(dec.content, embedder, context)).append("</div>")
             sb.append("</div>")
         }
         sb.append("</body></html>")

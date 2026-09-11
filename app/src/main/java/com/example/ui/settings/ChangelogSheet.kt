@@ -150,7 +150,7 @@ private fun ChangelogReleaseItem(release: GithubRelease) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsBadge(text = "v${release.version}")
+            SettingsBadge(text = stringResource(R.string.update_current_version_label, release.version))
             Text(
                 text = release.date,
                 style = MaterialTheme.typography.bodySmall,

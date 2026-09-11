@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.R
 import com.example.data.local.ChatSessionDao
 import com.example.data.ai.AiBackend
 import com.example.data.local.ChatSessionEntity
@@ -55,7 +56,14 @@ class ChatHistoryViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val session = ChatSessionEntity(
-                title = if (noteTitle != null) "Chat - $noteTitle" else "Chat ${SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))}",
+                title = if (noteTitle != null) {
+                    getApplication<Application>().getString(R.string.chat_title_with_note, noteTitle)
+                } else {
+                    getApplication<Application>().getString(
+                        R.string.chat_title_at_time,
+                        SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date(now))
+                    )
+                },
                 noteId = noteId,
                 noteTitle = noteTitle,
                 backend = if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama",

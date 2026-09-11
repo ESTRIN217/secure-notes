@@ -1,14 +1,17 @@
 package com.estrin217.codetools.ui
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.estrin217.codetools.R
 import com.estrin217.codetools.data.model.CodeFile
 import com.estrin217.codetools.data.repository.CodeFileRepository
 import com.estrin217.codetools.data.samples.CodeSamples
@@ -30,8 +33,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class CodeEditorViewModel(
-    private val repository: CodeFileRepository
-) : ViewModel() {
+    private val repository: CodeFileRepository,
+    application: Application
+) : AndroidViewModel(application) {
 
     val files: StateFlow<List<CodeFile>> = repository.allFiles
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -204,7 +208,7 @@ class CodeEditorViewModel(
             val newId = repository.saveFile(newFile)
             val saved = newFile.copy(id = newId)
             selectFile(saved)
-            _toastMessage.value = "Archivo creado: ${saved.name}"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_created, saved.name)
         }
     }
     fun importExternalFile(name: String, content: String, detectedLanguage: SupportedLanguage) {
@@ -236,7 +240,7 @@ class CodeEditorViewModel(
                 val finalFile = fileToSave.copy(id = savedId)
 
                 selectFile(finalFile)
-                _toastMessage.value = "¡Fino! Archivo abierto: ${finalFile.name}"
+                _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_opened, finalFile.name)
             } finally {
                 isExternalImportInProgress = false
             }
@@ -269,12 +273,12 @@ class CodeEditorViewModel(
 
     private fun importUri(context: Context, uri: Uri) {
         if (FileImportExportHelper.isOversize(context, uri)) {
-            _toastMessage.value = "Archivo demasiado grande (máx. 2 MB)"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_too_large)
             return
         }
         val info = FileImportExportHelper.readExternalFile(context, uri)
         if (info == null) {
-            _toastMessage.value = "No se pudo leer el archivo"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_read_error)
             return
         }
         importExternalFile(info.name, info.content, info.language)
@@ -299,7 +303,7 @@ class CodeEditorViewModel(
         viewModelScope.launch {
             repository.saveFile(updated)
             _currentFile.value = updated
-            _toastMessage.value = "Guardado: ${updated.name}"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_saved, updated.name)
         }
     }
 
@@ -314,7 +318,7 @@ class CodeEditorViewModel(
                     createNewFile("script.sh", SupportedLanguage.BASH)
                 }
             }
-            _toastMessage.value = "Archivo eliminado"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_file_deleted)
         }
     }
 
@@ -366,7 +370,7 @@ class CodeEditorViewModel(
             text = newText,
             selection = TextRange(lineEnd + 1 + lineText.length)
         )
-        _toastMessage.value = "Línea duplicada"
+        _toastMessage.value = getApplication<Application>().getString(R.string.toast_line_duplicated)
     }
 
     fun deleteCurrentLine() {
@@ -389,7 +393,7 @@ class CodeEditorViewModel(
             text = newText,
             selection = TextRange(lineStart.coerceAtMost(newText.length))
         )
-        _toastMessage.value = "Línea eliminada"
+        _toastMessage.value = getApplication<Application>().getString(R.string.toast_line_deleted)
     }
 
     fun toggleCommentOnCurrentLine() {
@@ -441,7 +445,7 @@ class CodeEditorViewModel(
         _textFieldValue.value = _textFieldValue.value.copy(
             selection = TextRange(charOffset.coerceIn(0, text.length))
         )
-        _toastMessage.value = "Ir a línea $lineNumber"
+        _toastMessage.value = getApplication<Application>().getString(R.string.toast_go_to_line, lineNumber)
     }
 
     fun updateFormatOptions(options: FormatOptions) {
@@ -454,7 +458,7 @@ class CodeEditorViewModel(
     fun formatCode(customOptions: FormatOptions? = null) {
         val text = _textFieldValue.value.text
         if (text.isBlank()) {
-            _toastMessage.value = "¡Epa pana, no hay código para formatear!"
+            _toastMessage.value = getApplication<Application>().getString(R.string.toast_nothing_to_format)
             return
         }
 
@@ -470,7 +474,7 @@ class CodeEditorViewModel(
                 val formatted = result.formattedCode
                 val newCursor = oldCursor.coerceIn(0, formatted.length)
                 _textFieldValue.value = TextFieldValue(formatted, TextRange(newCursor))
-                _toastMessage.value = "¡Código formateado al pelo! (${lang.displayName})"
+                _toastMessage.value = getApplication<Application>().getString(R.string.toast_code_formatted, lang.displayName)
                 _formatError.value = null
             }
             is FormattingResult.Error -> {
@@ -496,7 +500,7 @@ class CodeEditorViewModel(
         when (val result = CodeFormattingManager.minify(text, _language.value)) {
             is FormattingResult.Success -> {
                 _textFieldValue.value = TextFieldValue(result.formattedCode, TextRange(0))
-                _toastMessage.value = "JSON compactado correctamente"
+                _toastMessage.value = getApplication<Application>().getString(R.string.toast_json_minified)
                 _formatError.value = null
             }
             is FormattingResult.Error -> {
@@ -606,7 +610,7 @@ class CodeEditorViewModel(
         val count = regex.findAll(text).count()
 
         _textFieldValue.value = TextFieldValue(newText, TextRange(0))
-        _toastMessage.value = "Reemplazadas $count coincidencias"
+        _toastMessage.value = getApplication<Application>().getString(R.string.toast_replaced, count)
     }
 
     // Cursor position info helper
@@ -622,12 +626,13 @@ class CodeEditorViewModel(
 }
 
 class CodeEditorViewModelFactory(
-    private val repository: CodeFileRepository
+    private val repository: CodeFileRepository,
+    private val application: Application
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CodeEditorViewModel::class.java)) {
-            return CodeEditorViewModel(repository) as T
+            return CodeEditorViewModel(repository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

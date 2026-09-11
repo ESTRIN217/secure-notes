@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
+import com.example.R
 import com.example.data.local.NoteDatabase
 import com.example.data.storage.AudioFileInfo
 import com.example.data.storage.StorageAnalyzer
@@ -75,7 +76,8 @@ class StorageViewModel(
             val deleted = withContext(Dispatchers.IO) {
                 StorageAnalyzer.deleteFiles(orphans)
             }
-            _lastCleanupMessage.value = "Deleted $deleted orphan file(s)"
+            _lastCleanupMessage.value = getApplication<Application>()
+                .resources.getQuantityString(R.plurals.storage_deleted_orphans, deleted, deleted)
             scanStorage()
         }
     }
@@ -85,7 +87,8 @@ class StorageViewModel(
             val deleted = withContext(Dispatchers.IO) {
                 StorageAnalyzer.deleteFiles(files)
             }
-            _lastCleanupMessage.value = "Deleted $deleted file(s)"
+            _lastCleanupMessage.value = getApplication<Application>()
+                .resources.getQuantityString(R.plurals.storage_deleted_files, deleted, deleted)
             scanStorage()
         }
     }
@@ -103,7 +106,12 @@ class StorageViewModel(
             val deleted = withContext(Dispatchers.IO) {
                 StorageAnalyzer.deleteFiles(deletable)
             }
-            _lastCleanupMessage.value = "Deleted $deleted audio file(s) — ${StorageAnalyzer.formatSize(freed)}"
+            _lastCleanupMessage.value = getApplication<Application>().resources.getQuantityString(
+                R.plurals.storage_deleted_audio,
+                deleted,
+                deleted,
+                StorageAnalyzer.formatSize(freed)
+            )
             scanStorage()
         }
     }
@@ -117,7 +125,8 @@ class StorageViewModel(
             val freed = withContext(Dispatchers.IO) {
                 StorageAnalyzer.clearCache(getApplication())
             }
-            _lastCleanupMessage.value = "Freed ${StorageAnalyzer.formatSize(freed)}"
+            _lastCleanupMessage.value = getApplication<Application>()
+                .getString(R.string.storage_freed, StorageAnalyzer.formatSize(freed))
             scanStorage()
         }
     }

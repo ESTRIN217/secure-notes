@@ -31,10 +31,10 @@ class MarkdownExporter : Exporter {
                 sb.append("# ").append(dec.title).append("\n\n")
                 val tags = dec.note.cleanedTags()
                 if (tags.isNotEmpty()) {
-                    sb.append("**Tags:** ").append(tags.joinToString(", ")).append("\n")
+                    sb.append(context.getString(R.string.export_label_tags_md, tags.joinToString(", "))).append("\n")
                 }
                 sb.append("\n---\n\n")
-                sb.append(RichTextConverter.contentToMarkdown(dec.content, collector)).append("\n\n")
+                sb.append(RichTextConverter.contentToMarkdown(dec.content, collector, context)).append("\n\n")
                 if (index < notes.size - 1) {
                     sb.append("\n\n---\n\n")
                 }

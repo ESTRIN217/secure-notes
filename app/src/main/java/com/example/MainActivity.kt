@@ -214,12 +214,13 @@ class MainActivity : FragmentActivity() {
             val appContext = this@MainActivity.applicationContext
             val prefsRepo = SharedPreferencesRepository(appContext)
             val ollamaService = OllamaService(
+                context = appContext,
                 endpointUrl = prefsRepo.getAiEndpointUrl(),
                 modelName = prefsRepo.getAiModelName()
             )
             val modelDownloader = ModelDownloader(appContext)
             val llamaEngine = LlamaCppEngine(context = appContext)
-            val onDeviceService = OnDeviceService(llamaEngine)
+            val onDeviceService = OnDeviceService(llamaEngine, appContext)
             val aiViewModel: AiViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {
                     @Suppress("UNCHECKED_CAST")

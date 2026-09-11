@@ -51,6 +51,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.estrin217.codetools.R
 import com.estrin217.codetools.data.model.CodeFile
 import com.estrin217.codetools.syntax.SupportedLanguage
 import com.estrin217.codetools.ui.theme.JetBrainsMono
@@ -105,7 +107,7 @@ fun FilesDrawerSheet(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Archivos",
+                        text = stringResource(R.string.files_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -124,7 +126,7 @@ fun FilesDrawerSheet(
                     ) {
                         Icon(imageVector = Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Abrir", fontSize = 13.sp)
+                        Text(stringResource(R.string.open), fontSize = 13.sp)
                     }
 
                     Button(
@@ -136,7 +138,7 @@ fun FilesDrawerSheet(
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Nuevo", fontSize = 13.sp)
+                        Text(stringResource(R.string.file_new), fontSize = 13.sp)
                     }
                 }
             }
@@ -145,7 +147,7 @@ fun FilesDrawerSheet(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Filtrar archivos por nombre...") },
+                placeholder = { Text(stringResource(R.string.files_filter_hint)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,7 +167,7 @@ fun FilesDrawerSheet(
                 if (userFiles.isNotEmpty()) {
                     item {
                         Text(
-                            text = "MIS ARCHIVOS (${userFiles.size})",
+                            text = stringResource(R.string.files_my_files, userFiles.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
@@ -190,7 +192,7 @@ fun FilesDrawerSheet(
                     item {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "PLANTILLAS Y EJEMPLOS (${sampleFiles.size})",
+                            text = stringResource(R.string.files_samples, sampleFiles.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.secondary,
                             fontWeight = FontWeight.Bold,
@@ -278,7 +280,7 @@ private fun FileItemRow(
                         color = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        text = "$lineCount líneas ($charCount car)",
+                        text = stringResource(R.string.files_meta, lineCount, charCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -291,7 +293,7 @@ private fun FileItemRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Eliminar",
+                    contentDescription = stringResource(R.string.delete),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )

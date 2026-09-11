@@ -80,11 +80,21 @@ class NotesViewModel(
     private fun decryptNote(note: Note, password: String?): DecryptedNote {
         if (!note.isEncrypted) return DecryptedNote(note, note.title, note.content, true)
         val pass = password ?: ""
-        if (pass.isEmpty()) return DecryptedNote(note, "[Encrypted]", "[Unlock to read notes]", false)
+        if (pass.isEmpty()) return DecryptedNote(
+            note,
+            getApplication<Application>().getString(R.string.note_placeholder_encrypted),
+            getApplication<Application>().getString(R.string.note_placeholder_locked),
+            false
+        )
         val decTitle = cipherService.decrypt(note.title, pass, note.salt, note.iv)
         val decContent = cipherService.decrypt(note.content, pass, note.salt, note.iv)
         return if (decTitle.isFailure || decContent.isFailure) {
-            DecryptedNote(note, "[Corrupted / Wrong Password]", "[Cannot decrypt]", false)
+            DecryptedNote(
+                note,
+                getApplication<Application>().getString(R.string.note_placeholder_corrupted),
+                getApplication<Application>().getString(R.string.note_placeholder_cannot_decrypt),
+                false
+            )
         } else {
             DecryptedNote(note, decTitle.getOrDefault(""), decContent.getOrDefault(""), true)
         }

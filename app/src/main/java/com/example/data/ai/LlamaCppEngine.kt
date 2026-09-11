@@ -2,6 +2,7 @@ package com.example.data.ai
 
 import android.content.Context
 import android.util.Log
+import com.example.R
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine as ArmInferenceEngine
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +45,7 @@ class LlamaCppEngine(
                 Result.success(Unit)
             } catch (e: OutOfMemoryError) {
                 Log.e(TAG, "OOM loading model", e)
-                Result.failure(Exception("Memoria insuficiente: ${e.message}"))
+                Result.failure(Exception(context.getString(R.string.ai_err_insufficient_memory, e.message ?: "")))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load engine", e)
                 Result.failure(e)
@@ -96,7 +97,7 @@ class LlamaCppEngine(
 
     private suspend fun ensureReady(systemPrompt: String) {
         if (_loadedPath == null) {
-            throw IllegalStateException("No hay modelo cargado. Carga un modelo local primero.")
+            throw IllegalStateException(context.getString(R.string.ai_err_no_model))
         }
         if (_systemPromptPending) {
             applySystemPrompt(systemPrompt)

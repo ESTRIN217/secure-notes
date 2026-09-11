@@ -199,7 +199,7 @@ fun MoreOptionsDialog(
                         ) {
                           Icon(
                             imageVector = Icons.Default.Palette,
-                            contentDescription = "Estilo de la nota"
+                            contentDescription = stringResource(R.string.estilo_de_la_nota)
                           )
                         }
                     }

@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -185,7 +186,7 @@ fun CodeEditorView(
                     decorationBox = { innerTextField ->
                         if (codeText.isEmpty()) {
                             Text(
-                                text = "// Escribe o pega tu script o configuración aquí...",
+                                text = stringResource(R.string.editor_placeholder),
                                 style = codeTextStyle.copy(color = theme.comment)
                             )
                         }

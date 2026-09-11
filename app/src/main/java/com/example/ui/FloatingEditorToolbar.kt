@@ -50,6 +50,9 @@ import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatStrikethrough
 import androidx.compose.material.icons.filled.FormatUnderlined
+import androidx.compose.material.icons.filled.Subscript
+import androidx.compose.material.icons.filled.Superscript
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -72,6 +75,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +83,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 
 // Enum para controlar la vista activa de la barra flotante (Clean State)
 enum class EditorToolbarMode {
@@ -245,7 +250,7 @@ private fun FloatingEditorToolbar(
             if (aiEnabled) {
                 ToolbarIconButton(
                     icon = Icons.Default.AutoAwesome,
-                    contentDescription = "Asistente IA",
+                    contentDescription = stringResource(R.string.asistente_ia),
                     tint = MaterialTheme.colorScheme.primary,
                     onClick = onOpenAi
                 )
@@ -254,65 +259,65 @@ private fun FloatingEditorToolbar(
 
             ToolbarIconButton(
                 icon = Icons.Default.Add,
-                contentDescription = "Bloques",
+                contentDescription = stringResource(R.string.bloques),
                 onClick = onOpenMoreFormatting
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.FormatShapes,
-                contentDescription = "Opciones de texto",
+                contentDescription = stringResource(R.string.opciones_de_texto),
                 onClick = onTexto
             )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.Undo,
-                contentDescription = "Deshacer",
+                contentDescription = stringResource(R.string.deshacer),
                 enabled = canUndo,
                 onClick = onUndo
             )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.Redo,
-                contentDescription = "Rehacer",
+                contentDescription = stringResource(R.string.rehacer),
                 enabled = canRedo,
                 onClick = onRedo
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.FormatClear,
-                contentDescription = "Limpiar formato",
+                contentDescription = stringResource(R.string.limpiar_formato),
                 onClick = onClearFormatting
             )
             ToolbarIconButton(
                 icon = Icons.Default.SwapHoriz,
-                contentDescription = "convertir bloque",
+                contentDescription = stringResource(R.string.convertir_bloque),
                 onClick = onConvertBlock
             )
             ToolbarIconButton(
                 icon = Icons.Default.Delete,
-                contentDescription = "eliminar bloque",
+                contentDescription = stringResource(R.string.eliminar_bloque),
                 onClick = onDeleteBlock
             )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
-                contentDescription = "Aumentar sangría",
+                contentDescription = stringResource(R.string.aumentar_sangria),
                 onClick = { onToggleTag("indent")}
             )
 
             ToolbarIconButton(
                 icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
-                contentDescription = "Disminuir sangría",
+                contentDescription = stringResource(R.string.disminuir_sangria),
                 onClick = { decreaseIndent()}
             )
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDropUp,
-                contentDescription = "Subir bloque",
+                contentDescription = stringResource(R.string.subir_bloque),
                 onClick = onMoveBlockUp
             )
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDropDown,
-                contentDescription = "Bajar bloque",
+                contentDescription = stringResource(R.string.bajar_bloque),
                 onClick = onMoveBlockDown
             )
 
@@ -320,28 +325,28 @@ private fun FloatingEditorToolbar(
 
             ToolbarIconButton(
                 icon = Icons.Default.Palette,
-                contentDescription = "Estilo de la nota",
+                contentDescription = stringResource(R.string.estilo_de_la_nota),
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onOpenPalette
             )
 
             ToolbarIconButton(
                 icon = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                contentDescription = if (isSpeaking) "Detener lectura" else "Leer en voz alta",
+                contentDescription = if (isSpeaking) stringResource(R.string.detener_lectura) else stringResource(R.string.leer_en_voz_alta),
                 tint = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 onClick = onTtsToggle
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.Gesture,
-                contentDescription = "Añadir dibujo",
+                contentDescription = stringResource(R.string.anadir_dibujo),
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onOpenDrawing
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.AttachFile,
-                contentDescription = "Adjuntar archivo",
+                contentDescription = stringResource(R.string.adjuntar_archivo),
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onOpenAttachments
             )
@@ -349,7 +354,7 @@ private fun FloatingEditorToolbar(
             if (aiEnabled) {
                 ToolbarIconButton(
                     icon = if (showAiPanel) Icons.Default.Close else Icons.Default.RateReview,
-                    contentDescription = "Panel IA",
+                    contentDescription = stringResource(R.string.panel_ia),
                     tint = MaterialTheme.colorScheme.primary,
                     onClick = onToggleAiPanel
                 )
@@ -359,19 +364,19 @@ private fun FloatingEditorToolbar(
 
             ToolbarIconButton(
                 icon = Icons.Default.Search,
-                contentDescription = "Buscar",
+                contentDescription = stringResource(R.string.buscar),
                 onClick = onOpenSearch
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.ContentPaste,
-                contentDescription = "Pegar con formato",
+                contentDescription = stringResource(R.string.pegar_con_formato),
                 onClick = { pasteFromClipboard() }
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.Today,
-                contentDescription = "Insertar fecha",
+                contentDescription = stringResource(R.string.insertar_fecha),
                 onClick = { insertCurrentDate() }
             )
         }
@@ -380,7 +385,7 @@ private fun FloatingEditorToolbar(
 
         ToolbarIconButton(
             icon = Icons.Default.Keyboard,
-            contentDescription = "Alternar teclado",
+            contentDescription = stringResource(R.string.alternar_teclado),
             tint = MaterialTheme.colorScheme.primary,
             onClick = onToggleKeyboard
         )
@@ -408,14 +413,14 @@ private fun TextoToolbar(
     ) {
         ToolbarIconButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Volver",
+            contentDescription = stringResource(R.string.volver),
             tint = MaterialTheme.colorScheme.primary,
             onClick = onBack
         )
 
         ToolbarIconButton(
             icon = Icons.Default.FormatPaint,
-            contentDescription = "Color de texto y fondo",
+            contentDescription = stringResource(R.string.color_de_texto_y_fondo),
             onClick = onOpenbgFontColor
         )
 
@@ -423,30 +428,30 @@ private fun TextoToolbar(
           checked = "b" in activeTextStyles,
           onCheckedChange = { onToggleTag("b") }
         ) {
-          Icon(Icons.Default.FormatBold, contentDescription = "Negrita")
+          Icon(Icons.Default.FormatBold, contentDescription = stringResource(R.string.negrita))
         }
                 FormattingToggleButton(
                     checked = "i" in activeTextStyles,
                     onCheckedChange = { onToggleTag("i") }
                 ) {
-                    Icon(Icons.Default.FormatItalic, contentDescription = "Itálica")
+                    Icon(Icons.Default.FormatItalic, contentDescription = stringResource(R.string.italica))
                 }
                 FormattingToggleButton(
                     checked = "u" in activeTextStyles,
                     onCheckedChange = { onToggleTag("u") }
                 ) {
-                    Icon(Icons.Default.FormatUnderlined, contentDescription = "Subrayado")
+                    Icon(Icons.Default.FormatUnderlined, contentDescription = stringResource(R.string.subrayado))
                 }
                 FormattingToggleButton(
                     checked = "s" in activeTextStyles,
                     onCheckedChange = { onToggleTag("s") }
                 ) {
-                    Icon(Icons.Default.FormatStrikethrough, contentDescription = "Tachado")
+                    Icon(Icons.Default.FormatStrikethrough, contentDescription = stringResource(R.string.tachado))
                 }
 
         ToolbarIconButton(
             icon = Icons.Default.Link, 
-            contentDescription = "Enlace", 
+            contentDescription = stringResource(R.string.enlace), 
             onClick = onOpenInlineLink
         )
         FormattingToggleButton(
@@ -455,13 +460,13 @@ private fun TextoToolbar(
         ) {
             Icon(
                 imageVector = Icons.Default.Code,
-                contentDescription = "Código inline",
+                contentDescription = stringResource(R.string.codigo_inline),
                 modifier = Modifier.size(18.dp)
             )
         }
         ToolbarIconButton(
             icon = Icons.Default.Functions, 
-            contentDescription = "Ecuaciones", 
+            contentDescription = stringResource(R.string.ecuaciones), 
             onClick = onOpenEquation
         )
         FilledTonalIconToggleButton(
@@ -469,7 +474,7 @@ private fun TextoToolbar(
             onCheckedChange = { onToggleTag("sub") },
             modifier = Modifier.size(36.dp)
         ) {
-            Text("x₂", fontSize = 14.sp)
+            Icon(Icons.Default.Subscript, contentDescription = "")
         }
 
         FilledTonalIconToggleButton(
@@ -477,7 +482,7 @@ private fun TextoToolbar(
             onCheckedChange = { onToggleTag("sup") },
             modifier = Modifier.size(36.dp)
         ) {
-            Text("x²", fontSize = 14.sp)
+            Icon(Icons.Default.Superscript, contentDescription = "")
         }
 
         ToolbarDivider()
@@ -487,7 +492,7 @@ private fun TextoToolbar(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             modifier = Modifier.height(36.dp)
         ) {
-            Text("Aa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.TextFields, contentDescription = "")
             Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
         }
     }
@@ -527,7 +532,7 @@ private fun InlineSearchBar(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                placeholder = { Text("Buscar...", fontSize = 14.sp) },
+                placeholder = { Text(stringResource(R.string.label_search), fontSize = 14.sp) },
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
@@ -539,34 +544,34 @@ private fun InlineSearchBar(
             )
 
             Text(
-                text = if (matchCount == 0) "0/0" else "${currentMatchIndex + 1}/$matchCount",
+                text = stringResource(R.string.search_match_counter, if (matchCount == 0) 0 else currentMatchIndex + 1, matchCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.ArrowUpward,
-                contentDescription = "Anterior",
+                contentDescription = stringResource(R.string.anterior),
                 enabled = searchQuery.isNotEmpty() && matchCount > 0,
                 onClick = onPrevious
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.ArrowDownward,
-                contentDescription = "Siguiente",
+                contentDescription = stringResource(R.string.siguiente),
                 enabled = searchQuery.isNotEmpty() && matchCount > 0,
                 onClick = onNext
             )
 
             ToolbarIconButton(
                 icon = if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = "Más opciones",
+                contentDescription = stringResource(R.string.mas_opciones),
                 onClick = { showMoreOptions = !showMoreOptions }
             )
 
             ToolbarIconButton(
                 icon = Icons.Default.Close,
-                contentDescription = "Cerrar búsqueda",
+                contentDescription = stringResource(R.string.cerrar_busqueda),
                 onClick = onClose
             )
         }
@@ -599,13 +604,13 @@ private fun SearchMoreOptions(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = caseSensitive, onCheckedChange = onCaseSensitiveChange)
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Coincidir mayúsculas", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.coincidir_mayusculas), style = MaterialTheme.typography.bodySmall)
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = fullWord, onCheckedChange = onFullWordChange)
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Palabra completa", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.palabra_completa), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

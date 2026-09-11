@@ -2,6 +2,7 @@ package com.example.data.ai
 
 import android.content.Context
 import android.util.Log
+import com.example.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,7 +90,7 @@ class ModelDownloader(private val context: Context) {
             val response = currentCall!!.execute()
 
             if (!response.isSuccessful) {
-                _state.value = DownloadState.Failed("HTTP ${response.code}: ${response.message}")
+                _state.value = DownloadState.Failed(context.getString(R.string.ai_err_http_status, response.code, response.message))
                 return@withContext
             }
 
@@ -127,13 +128,13 @@ class ModelDownloader(private val context: Context) {
                 Log.i(TAG, "Model downloaded: ${file.absolutePath} (${file.length() / (1024*1024)}MB)")
             } else if (file.exists() && file.length() > 0) {
                 file.delete()
-                _state.value = DownloadState.Failed("El archivo descargado no es un modelo GGUF válido")
+                _state.value = DownloadState.Failed(context.getString(R.string.ai_err_download_invalid_gguf))
             } else {
-                _state.value = DownloadState.Failed("Downloaded file is empty")
+                _state.value = DownloadState.Failed(context.getString(R.string.ai_err_download_empty))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Download failed", e)
-            _state.value = DownloadState.Failed(e.message ?: "Download failed")
+                _state.value = DownloadState.Failed(e.message ?: context.getString(R.string.ai_err_download_failed))
         } finally {
             currentCall = null
         }

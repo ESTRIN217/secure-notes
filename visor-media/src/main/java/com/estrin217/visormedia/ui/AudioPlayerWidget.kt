@@ -130,16 +130,16 @@ fun AudioPlayerWidget(
                 val msg = when {
                     cause is HttpDataSource.InvalidResponseCodeException -> {
                         if (cause.responseCode == 403) {
-                            "Acceso restringido (HTTP 403): El servidor no permite reproducir este audio."
+                            context.getString(R.string.audio_error_403)
                         } else {
-                            "Error del servidor de audio (Código HTTP ${cause.responseCode})."
+                            context.getString(R.string.audio_error_http, cause.responseCode)
                         }
                     }
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> {
-                        "Error de conexión a internet al cargar el audio."
+                        context.getString(R.string.audio_error_network)
                     }
-                    else -> "No se pudo reproducir este audio web o local."
+                    else -> context.getString(R.string.audio_error_generic)
                 }
                 errorMessage = msg
             }
@@ -224,7 +224,7 @@ fun AudioPlayerWidget(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,
-                        contentDescription = "Alerta",
+                        contentDescription = stringResource(R.string.cd_alert),
                         tint = MaterialTheme.colorScheme.error
                     )
                     Text(
@@ -243,7 +243,7 @@ fun AudioPlayerWidget(
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        Text("Reintentar", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.retry_action), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -330,7 +330,7 @@ fun AudioPlayerWidget(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Cargando audio...",
+                        text = context.getString(R.string.loading_audio),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -363,7 +363,7 @@ fun AudioPlayerWidget(
             ) {
                 Icon(
                     imageVector = Icons.Default.Replay10,
-                    contentDescription = "Retroceder 10s",
+                    contentDescription = stringResource(R.string.cd_rewind_10s),
                     tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -410,7 +410,7 @@ fun AudioPlayerWidget(
             ) {
                 Icon(
                     imageVector = Icons.Default.Forward10,
-                    contentDescription = "Adelantar 10s",
+                    contentDescription = stringResource(R.string.cd_forward_10s),
                     tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.size(24.dp)
                 )

@@ -1,6 +1,8 @@
 package com.example.data.ai
 
+import android.content.Context
 import android.util.Log
+import com.example.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
 
 class OllamaService(
+    private val context: Context,
     private var endpointUrl: String = "http://localhost:11434",
     private var modelName: String = "llama3.2"
 ) : AIService {
@@ -50,7 +53,7 @@ class OllamaService(
             val body = response.body.string()
 
             if (!response.isSuccessful) {
-                return@withContext Result.failure(IOException("HTTP ${response.code}: ${response.message}"))
+                return@withContext Result.failure(IOException(context.getString(R.string.ai_err_http_status, response.code, response.message)))
             }
 
             val json = JSONObject(body)
@@ -62,9 +65,7 @@ class OllamaService(
             }
             Result.success(modelNames)
         } catch (e: SSLHandshakeException) {
-            Result.failure(SSLHandshakeException(
-                "Error de conexión SSL. Para servidores locales usa 'http://' en lugar de 'https://', o instala un certificado válido."
-            ))
+            Result.failure(SSLHandshakeException(context.getString(R.string.ai_err_ollama_ssl)))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -91,7 +92,7 @@ class OllamaService(
             val text = message?.optString("content", "") ?: ""
             val toolCalls = parseToolCalls(message)
             if (text.isBlank() && toolCalls.isEmpty()) {
-                return@withContext Result.failure(IOException("Respuesta vacía del modelo"))
+                return@withContext Result.failure(IOException(context.getString(R.string.ai_err_ollama_empty)))
             }
 
             val resultText = if (toolCalls.isNotEmpty()) {
@@ -103,23 +104,21 @@ class OllamaService(
             Result.success(resultText)
         } catch (e: SSLHandshakeException) {
             Log.e(TAG, "SSL handshake failed", e)
-            Result.failure(SSLHandshakeException(
-                "Error de conexión SSL. Para servidores locales usa 'http://' en lugar de 'https://', o instala un certificado válido."
-            ))
+            Result.failure(SSLHandshakeException(context.getString(R.string.ai_err_ollama_ssl)))
         } catch (e: ConnectException) {
             Log.e(TAG, "Connection refused", e)
             Result.failure(ConnectException(
-                "No se puede conectar al servidor. ¿Está Ollama ejecutándose y accesible en $endpointUrl?"
+                context.getString(R.string.ai_err_ollama_connect, endpointUrl)
             ))
         } catch (e: SocketTimeoutException) {
             Log.e(TAG, "Connection timed out", e)
             Result.failure(SocketTimeoutException(
-                "La conexión expiró. Verifica la URL y la conectividad de red."
+                context.getString(R.string.ai_err_ollama_timeout)
             ))
         } catch (e: UnknownHostException) {
             Log.e(TAG, "Unknown host", e)
             Result.failure(UnknownHostException(
-                "No se puede resolver el host. Verifica que la URL sea correcta."
+                context.getString(R.string.ai_err_ollama_host)
             ))
         } catch (e: Exception) {
             Log.e(TAG, "Ollama request failed", e)

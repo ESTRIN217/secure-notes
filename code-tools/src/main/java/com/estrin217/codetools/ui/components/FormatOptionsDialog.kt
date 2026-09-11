@@ -39,6 +39,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.estrin217.codetools.R
 import com.estrin217.codetools.formatter.FormatOptions
 import com.estrin217.codetools.syntax.SupportedLanguage
 
@@ -72,7 +74,7 @@ fun FormatOptionsDialog(
         },
         title = {
             Text(
-                text = "Formateador de Código",
+                text = stringResource(R.string.format_title),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -85,7 +87,7 @@ fun FormatOptionsDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Ajusta la sangría y reglas de estilo para ${currentLanguage.displayName}:",
+                    text = stringResource(R.string.format_subtitle, currentLanguage.displayName),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -108,7 +110,7 @@ fun FormatOptionsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Espaciado de sangría",
+                                text = stringResource(R.string.format_indent_section),
                                 fontWeight = FontWeight.SemiBold,
                                 style = MaterialTheme.typography.labelLarge
                             )
@@ -138,8 +140,8 @@ fun FormatOptionsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("2 espacios", fontWeight = FontWeight.Medium)
-                                Text("Recomendado para JSON, Web, CSS", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.format_indent_2), fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.format_indent_2_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -165,8 +167,8 @@ fun FormatOptionsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("4 espacios", fontWeight = FontWeight.Medium)
-                                Text("Estándar Kotlin, Java, Python, C++", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.format_indent_4), fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.format_indent_4_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -186,8 +188,8 @@ fun FormatOptionsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Tabulaciones (\\t)", fontWeight = FontWeight.Medium)
-                                Text("Usa caracteres de tabulador reales", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.format_indent_tab), fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.format_indent_tab_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -203,7 +205,7 @@ fun FormatOptionsDialog(
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = "Reglas de limpieza",
+                            text = stringResource(R.string.format_cleanup_title),
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -215,8 +217,8 @@ fun FormatOptionsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Recortar espacios finales", fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                                Text("Quita espacios en blanco al final de cada línea", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.format_trim_title), fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                Text(stringResource(R.string.format_trim_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Switch(
                                 checked = trimWhitespace,
@@ -232,8 +234,8 @@ fun FormatOptionsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Salto de línea final (EOF)", fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                                Text("Garantiza que el archivo termine con un renglón limpio", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.format_eof_title), fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                Text(stringResource(R.string.format_eof_desc), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Switch(
                                 checked = insertFinalNewline,
@@ -267,7 +269,7 @@ fun FormatOptionsDialog(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Formatear ahora")
+                Text(stringResource(R.string.format_apply))
             }
         },
         dismissButton = {
@@ -275,7 +277,7 @@ fun FormatOptionsDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("format_cancel_btn")
             ) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

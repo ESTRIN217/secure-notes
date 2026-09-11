@@ -2192,16 +2192,17 @@ fun NoteEditorScreen(
 
                 // Insert Table Dialog
                 if (showInsertTableDialog) {
+                    val tableHeaderCellLabel = stringResource(R.string.table_header_cell)
                     AlertDialog(
                         onDismissRequest = { showInsertTableDialog = false },
-                        title = { Text("Insert Table") },
+                        title = { Text(stringResource(R.string.insert_table)) },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Rows:", style = MaterialTheme.typography.bodyMedium)
+                                    Text(stringResource(R.string.rows_label), style = MaterialTheme.typography.bodyMedium)
                                     Slider(
                                         value = tableRows.toFloat(),
                                         onValueChange = { tableRows = it.toInt() },
@@ -2215,7 +2216,7 @@ fun NoteEditorScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Cols:", style = MaterialTheme.typography.bodyMedium)
+                                    Text(stringResource(R.string.cols_label), style = MaterialTheme.typography.bodyMedium)
                                     Slider(
                                         value = tableCols.toFloat(),
                                         onValueChange = { tableCols = it.toInt() },
@@ -2230,7 +2231,7 @@ fun NoteEditorScreen(
                                         checked = tableHasHeader,
                                         onCheckedChange = { tableHasHeader = it }
                                     )
-                                    Text("Include header row", style = MaterialTheme.typography.bodyMedium)
+                                    Text(stringResource(R.string.include_header_row), style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                         },
@@ -2238,7 +2239,7 @@ fun NoteEditorScreen(
                             Button(
                                 onClick = {
                                     val headers = if (tableHasHeader) {
-                                        (1..tableCols).map { "Header $it" }
+                                        (1..tableCols).map { String.format(tableHeaderCellLabel, it) }
                                     } else {
                                         List(tableCols) { "" }
                                     }

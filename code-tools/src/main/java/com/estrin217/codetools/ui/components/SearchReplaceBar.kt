@@ -43,6 +43,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.estrin217.codetools.R
 import com.estrin217.codetools.syntax.SyntaxTheme
 import com.estrin217.codetools.ui.theme.JetBrainsMono
 
@@ -110,7 +112,7 @@ fun SearchReplaceBar(
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
                                     Text(
-                                        text = "Buscar en código...",
+                                        text = stringResource(R.string.search_hint),
                                         color = theme.lineNumber,
                                         fontSize = 13.sp
                                     )
@@ -143,7 +145,7 @@ fun SearchReplaceBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowUpward,
-                            contentDescription = "Coincidencia anterior",
+                            contentDescription = stringResource(R.string.cd_match_prev),
                             tint = if (matchCount > 0) theme.text else theme.lineNumber
                         )
                     }
@@ -155,7 +157,7 @@ fun SearchReplaceBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = "Siguiente coincidencia",
+                            contentDescription = stringResource(R.string.cd_match_next),
                             tint = if (matchCount > 0) theme.text else theme.lineNumber
                         )
                     }
@@ -166,7 +168,7 @@ fun SearchReplaceBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.FindReplace,
-                            contentDescription = "Alternar Reemplazar",
+                            contentDescription = stringResource(R.string.cd_toggle_replace),
                             tint = if (showReplaceRow) theme.function else theme.lineNumber
                         )
                     }
@@ -177,7 +179,7 @@ fun SearchReplaceBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar búsqueda",
+                            contentDescription = stringResource(R.string.cd_close_search),
                             tint = theme.text
                         )
                     }
@@ -209,7 +211,7 @@ fun SearchReplaceBar(
                                 decorationBox = { innerTextField ->
                                     if (replaceQuery.isEmpty()) {
                                         Text(
-                                            text = "Reemplazar con...",
+                                            text = stringResource(R.string.replace_hint),
                                             color = theme.lineNumber,
                                             fontSize = 13.sp
                                         )
@@ -228,7 +230,7 @@ fun SearchReplaceBar(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = theme.function),
                             modifier = Modifier.height(36.dp).testTag("replace_single_btn")
                         ) {
-                            Text("Reemplazar", fontSize = 12.sp)
+                            Text(stringResource(R.string.replace_one), fontSize = 12.sp)
                         }
 
                         Spacer(modifier = Modifier.width(4.dp))
@@ -240,7 +242,7 @@ fun SearchReplaceBar(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = theme.keyword),
                             modifier = Modifier.height(36.dp).testTag("replace_all_btn")
                         ) {
-                            Text("Todo", fontSize = 12.sp)
+                            Text(stringResource(R.string.replace_all), fontSize = 12.sp)
                         }
                     }
                 }

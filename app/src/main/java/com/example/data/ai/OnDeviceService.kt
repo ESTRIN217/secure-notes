@@ -1,6 +1,8 @@
 package com.example.data.ai
 
+import android.content.Context
 import android.util.Log
+import com.example.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +30,8 @@ interface InferenceEngine : AIService {
 }
 
 class OnDeviceService(
-    private val engine: InferenceEngine
+    private val engine: InferenceEngine,
+    private val context: Context
 ) : AIService {
 
     private val _modelState = MutableStateFlow(ModelState.NOT_LOADED)
@@ -63,7 +66,7 @@ class OnDeviceService(
     override suspend fun execute(request: AiRequest): Result<String> =
         withContext(Dispatchers.IO) {
             if (_modelState.value != ModelState.READY) {
-                return@withContext Result.failure(Exception("No hay modelo cargado. Carga un modelo local primero."))
+                return@withContext Result.failure(Exception(context.getString(R.string.ai_err_no_model)))
             }
             try {
                 val systemPrompt = AiPromptBuilder.resolveSystemPrompt(request.action, request.customSystemPrompt)

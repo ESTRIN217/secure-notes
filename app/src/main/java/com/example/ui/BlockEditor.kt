@@ -873,7 +873,7 @@ private fun BlockRow(
                 )
                 if (showBlockOptions) {
                     BlockOptionsSheet(
-                        title = block.type.displayName,
+                        title = stringResource(block.type.displayNameRes),
                         onDismiss = { showBlockOptions = false },
                         actions = listOf(
                             BlockSheetAction(
@@ -917,31 +917,31 @@ private fun BlockRow(
     }
 }
 
-private val BlockType.displayName: String
+private val BlockType.displayNameRes: Int
     get() = when (this) {
-        BlockType.TEXT -> "Text"
-        BlockType.HEADING1 -> "Heading 1"
-        BlockType.HEADING2 -> "Heading 2"
-        BlockType.HEADING3 -> "Heading 3"
-        BlockType.HEADING4 -> "Heading 4"
-        BlockType.BULLET_LIST -> "Bulleted List"
-        BlockType.NUMBERED_LIST -> "Numbered List"
-        BlockType.CHECKLIST_ITEM -> "Checklist"
-        BlockType.QUOTE -> "Quote"
-        BlockType.CODE_BLOCK -> "Code Block"
-        BlockType.CALLOUT -> "Highlight"
-        BlockType.PAGE -> "Page"
-        BlockType.PAGE_LINK -> "Page Link"
-        BlockType.HORIZONTAL_RULE -> "Divider"
-        BlockType.IMAGE -> "Image"
-        BlockType.VIDEO -> "Video"
-        BlockType.AUDIO -> "Audio"
-        BlockType.DRAWING -> "Drawing"
-        BlockType.VOICE -> "Voice Note"
-        BlockType.FILE -> "File"
-        BlockType.BOOKMARK -> "Bookmark"
-        BlockType.TABLE -> "Table"
-        BlockType.COLLAPSIBLE -> "Collapsible"
+        BlockType.TEXT -> R.string.text
+        BlockType.HEADING1 -> R.string.heading_1
+        BlockType.HEADING2 -> R.string.heading_2
+        BlockType.HEADING3 -> R.string.heading_3
+        BlockType.HEADING4 -> R.string.heading_4
+        BlockType.BULLET_LIST -> R.string.bulleted_list
+        BlockType.NUMBERED_LIST -> R.string.numbered_list
+        BlockType.CHECKLIST_ITEM -> R.string.checklist
+        BlockType.QUOTE -> R.string.quote
+        BlockType.CODE_BLOCK -> R.string.code_block
+        BlockType.CALLOUT -> R.string.highlight
+        BlockType.PAGE -> R.string.page
+        BlockType.PAGE_LINK -> R.string.page_link
+        BlockType.HORIZONTAL_RULE -> R.string.divider
+        BlockType.IMAGE -> R.string.image
+        BlockType.VIDEO -> R.string.video
+        BlockType.AUDIO -> R.string.audio
+        BlockType.DRAWING -> R.string.drawing
+        BlockType.VOICE -> R.string.voice_note
+        BlockType.FILE -> R.string.file
+        BlockType.BOOKMARK -> R.string.bookmark
+        BlockType.TABLE -> R.string.table
+        BlockType.COLLAPSIBLE -> R.string.collapsible
     }
 
 @Composable
@@ -952,7 +952,7 @@ private fun BlockAddButton(onAdd: () -> Unit) {
     ) {
         Icon(
             Icons.Default.Add,
-            contentDescription = "Add block",
+            contentDescription = stringResource(R.string.add_block),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
         )
     }

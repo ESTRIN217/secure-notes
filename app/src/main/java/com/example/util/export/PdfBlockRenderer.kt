@@ -23,6 +23,8 @@ import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
 import android.text.style.URLSpan
 import android.util.Log
+import android.content.Context
+import com.example.R
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.TableData
@@ -44,8 +46,8 @@ class PdfBlockRenderer {
         lastMedia = null
     }
 
-    fun measureBlock(block: DataBlock, embedder: HtmlMediaEmbedder, maxWidth: Int, maxHeight: Int = Int.MAX_VALUE): Float =
-        renderBlock(null, block, embedder, 0f, 0f, maxWidth, maxHeight)
+    fun measureBlock(block: DataBlock, embedder: HtmlMediaEmbedder, maxWidth: Int, maxHeight: Int = Int.MAX_VALUE, context: Context): Float =
+        renderBlock(null, block, embedder, 0f, 0f, maxWidth, maxHeight, context)
 
     fun drawBlock(
         canvas: Canvas,
@@ -54,8 +56,9 @@ class PdfBlockRenderer {
         x: Float,
         y: Float,
         maxWidth: Int,
-        maxHeight: Int = Int.MAX_VALUE
-    ): Float = renderBlock(canvas, block, embedder, x, y, maxWidth, maxHeight)
+        maxHeight: Int = Int.MAX_VALUE,
+        context: Context
+    ): Float = renderBlock(canvas, block, embedder, x, y, maxWidth, maxHeight, context)
 
     private fun renderBlock(
         canvas: Canvas?,
@@ -64,7 +67,8 @@ class PdfBlockRenderer {
         x: Float,
         y: Float,
         maxWidth: Int,
-        maxHeight: Int = Int.MAX_VALUE
+        maxHeight: Int = Int.MAX_VALUE,
+        context: Context
     ): Float {
         return when (block.type) {
             BlockType.TEXT -> drawTextBlock(canvas, block, x, y, maxWidth, textPaint(TEXT_SIZE), TEXT_SIZE, 6f)
@@ -90,7 +94,7 @@ class PdfBlockRenderer {
             BlockType.TABLE -> drawTable(canvas, block, x, y, maxWidth)
             BlockType.PAGE, BlockType.PAGE_LINK ->
                 drawTextBlock(canvas, block, x, y, maxWidth, textPaint(TEXT_SIZE, color = Color.parseColor("#1565C0")), TEXT_SIZE, 4f)
-            BlockType.IMAGE, BlockType.DRAWING -> drawMedia(canvas, block, embedder, x, y, maxWidth, maxHeight)
+            BlockType.IMAGE, BlockType.DRAWING -> drawMedia(canvas, block, embedder, x, y, maxWidth, maxHeight, context)
             else -> 0f
         }
     }
@@ -333,9 +337,9 @@ class PdfBlockRenderer {
         }
     }
 
-    private fun drawMedia(canvas: Canvas?, block: DataBlock, embedder: HtmlMediaEmbedder, x: Float, y: Float, maxWidth: Int, maxHeight: Int): Float {
+    private fun drawMedia(canvas: Canvas?, block: DataBlock, embedder: HtmlMediaEmbedder, x: Float, y: Float, maxWidth: Int, maxHeight: Int, context: Context): Float {
         if (block.content.isBlank()) return 0f
-        val label = if (block.type == BlockType.IMAGE) "Image" else "Drawing"
+        val label = if (block.type == BlockType.IMAGE) context.getString(R.string.export_media_image) else context.getString(R.string.export_media_drawing)
         val bitmap = decodeMedia(block, embedder)
         if (bitmap == null) return drawMediaFallback(canvas, block, x, y, maxWidth, label)
 

@@ -649,7 +649,7 @@ class RichTextParser {
 
         fun isJson(text: String) = JsonColorizer.isJson(text)
         fun isSecureNotesJson(text: String) = JsonColorizer.isSecureNotesJson(text)
-        fun parseSecureNotesJson(text: String, defaultTitle: String = "Imported Note") = JsonColorizer.parseSecureNotesJson(text, defaultTitle)
+        fun parseSecureNotesJson(text: String, defaultTitle: String) = JsonColorizer.parseSecureNotesJson(text, defaultTitle)
         fun stripTags(raw: String) = MarkdownConverter.stripTags(raw)
         fun convertToMarkdown(raw: String) = MarkdownConverter.convertToMarkdown(raw)
 

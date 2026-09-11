@@ -242,7 +242,7 @@ private fun HeaderCard(
                 ) {
                     SettingsBadge(text = platformLabel)
                     if (version != null) {
-                        SettingsBadge(text = "v$version")
+                        SettingsBadge(text = stringResource(R.string.update_current_version_label, version))
                     }
                     SettingsBadge(text = archLabel)
                 }

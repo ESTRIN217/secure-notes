@@ -662,7 +662,7 @@ private fun DetailRow(
             color = color
         )
         Text(
-            text = "${StorageAnalyzer.formatSize(size)} (${StorageAnalyzer.formatPercentage(size, total)})",
+            text = stringResource(R.string.storage_item_percentage, StorageAnalyzer.formatSize(size), StorageAnalyzer.formatPercentage(size, total)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

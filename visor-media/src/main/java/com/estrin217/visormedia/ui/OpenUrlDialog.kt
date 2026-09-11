@@ -27,6 +27,13 @@ fun OpenUrlDialog(
     var urlText by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("image") }
     var titleText by remember { mutableStateOf("") }
+    val sampleOceans = stringResource(R.string.sample_oceans)
+    val sampleHls = stringResource(R.string.sample_hls)
+    val sampleYoutube = stringResource(R.string.sample_youtube)
+    val sampleAudio = stringResource(R.string.sample_audio)
+    val defaultWebPhoto = stringResource(R.string.default_web_photo)
+    val defaultWebAudio = stringResource(R.string.default_web_audio)
+    val defaultWebVideo = stringResource(R.string.default_web_video)
 
     // Auto-detect media type when URL changes
     LaunchedEffect(urlText) {
@@ -65,7 +72,7 @@ fun OpenUrlDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Tipo de archivo:",
+                    text = stringResource(R.string.url_type_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -78,7 +85,7 @@ fun OpenUrlDialog(
                     FilterChip(
                         selected = selectedType == "image",
                         onClick = { selectedType = "image" },
-                        label = { Text("Foto") },
+                        label = { Text(stringResource(R.string.type_photo)) },
                         leadingIcon = {
                             Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
@@ -87,7 +94,7 @@ fun OpenUrlDialog(
                     FilterChip(
                         selected = selectedType == "audio",
                         onClick = { selectedType = "audio" },
-                        label = { Text("Audio") },
+                        label = { Text(stringResource(R.string.attachment_audio)) },
                         leadingIcon = {
                             Icon(Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
@@ -96,7 +103,7 @@ fun OpenUrlDialog(
                     FilterChip(
                         selected = selectedType == "video",
                         onClick = { selectedType = "video" },
-                        label = { Text("Video") },
+                        label = { Text(stringResource(R.string.attachment_video)) },
                         leadingIcon = {
                             Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
@@ -110,7 +117,7 @@ fun OpenUrlDialog(
                     value = urlText,
                     onValueChange = { urlText = it },
                     label = { Text(stringResource(R.string.url_dialog_hint)) },
-                    placeholder = { Text("https://...") },
+                    placeholder = { Text(stringResource(R.string.url_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -120,8 +127,8 @@ fun OpenUrlDialog(
                 OutlinedTextField(
                     value = titleText,
                     onValueChange = { titleText = it },
-                    label = { Text("Título descriptivo (opcional)") },
-                    placeholder = { Text("Mi medio web") },
+                    label = { Text(stringResource(R.string.url_title_label)) },
+                    placeholder = { Text(stringResource(R.string.url_title_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -145,18 +152,18 @@ fun OpenUrlDialog(
                         AssistChip(
                             onClick = {
                                 urlText = "https://vjs.zencdn.net/v/oceans.mp4"
-                                titleText = "Océanos HD"
+                                titleText = sampleOceans
                                 selectedType = "video"
                             },
-                            label = { Text("ExoPlayer MP4", style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(stringResource(R.string.chip_exoplayer_mp4), style = MaterialTheme.typography.labelSmall) }
                         )
                         AssistChip(
                             onClick = {
                                 urlText = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-                                titleText = "HLS Stream M3U8"
+                                titleText = sampleHls
                                 selectedType = "video"
                             },
-                            label = { Text("ExoPlayer HLS", style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(stringResource(R.string.chip_exoplayer_hls), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                     Row(
@@ -166,18 +173,18 @@ fun OpenUrlDialog(
                         AssistChip(
                             onClick = {
                                 urlText = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                                titleText = "YouTube En App"
+                                titleText = sampleYoutube
                                 selectedType = "video"
                             },
-                            label = { Text("YouTube", style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(stringResource(R.string.chip_youtube), style = MaterialTheme.typography.labelSmall) }
                         )
                         AssistChip(
                             onClick = {
                                 urlText = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
-                                titleText = "Pista Instrumental"
+                                titleText = sampleAudio
                                 selectedType = "audio"
                             },
-                            label = { Text("Audio MP3", style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(stringResource(R.string.chip_audio_mp3), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -189,9 +196,9 @@ fun OpenUrlDialog(
                     if (urlText.isNotBlank()) {
                         val finalTitle = titleText.ifBlank {
                             when (selectedType) {
-                                "image" -> "Foto Web"
-                                "audio" -> "Pista de Audio Web"
-                                else -> "Video Web"
+                                "image" -> defaultWebPhoto
+                                "audio" -> defaultWebAudio
+                                else -> defaultWebVideo
                             }
                         }
                         onOpen(selectedType, urlText.trim(), finalTitle)
