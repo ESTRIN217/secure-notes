@@ -64,7 +64,7 @@ class NotesListWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = context.getString(com.example.R.string.widget_list_title),
+                    text = context.getString(com.example.R.string.app_name),
                     style = TextStyle(fontWeight = FontWeight.Bold, color = GlanceTheme.colors.onSurface),
                     maxLines = 1
                 )

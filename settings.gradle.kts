@@ -28,6 +28,6 @@ rootProject.name = "secure-notes"
 include(":app")
 include(":lib")
 include(":visor-pdf")
-include(":code-tools")
+include(":editor-de-codigo")
 include(":visor-media")
-project(":lib").projectDir = file("/data/user/0/com.nullij.androidcodestudio/files/home/AndroidCSProjects/llama.cpp/examples/llama.android/lib")
+project(":lib").projectDir = file("/root/llama.cpp/examples/llama.android/lib")

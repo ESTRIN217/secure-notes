@@ -928,7 +928,7 @@ private val BlockType.displayNameRes: Int
         BlockType.NUMBERED_LIST -> R.string.numbered_list
         BlockType.CHECKLIST_ITEM -> R.string.checklist
         BlockType.QUOTE -> R.string.quote
-        BlockType.CODE_BLOCK -> R.string.code_block
+        BlockType.CODE_BLOCK -> R.string.block_code
         BlockType.CALLOUT -> R.string.highlight
         BlockType.PAGE -> R.string.page
         BlockType.PAGE_LINK -> R.string.page_link

@@ -428,13 +428,13 @@ private fun TextoToolbar(
           checked = "b" in activeTextStyles,
           onCheckedChange = { onToggleTag("b") }
         ) {
-          Icon(Icons.Default.FormatBold, contentDescription = stringResource(R.string.negrita))
+          Icon(Icons.Default.FormatBold, contentDescription = stringResource(R.string.rich_bold))
         }
                 FormattingToggleButton(
                     checked = "i" in activeTextStyles,
                     onCheckedChange = { onToggleTag("i") }
                 ) {
-                    Icon(Icons.Default.FormatItalic, contentDescription = stringResource(R.string.italica))
+                    Icon(Icons.Default.FormatItalic, contentDescription = stringResource(R.string.rich_italic))
                 }
                 FormattingToggleButton(
                     checked = "u" in activeTextStyles,
@@ -460,7 +460,7 @@ private fun TextoToolbar(
         ) {
             Icon(
                 imageVector = Icons.Default.Code,
-                contentDescription = stringResource(R.string.codigo_inline),
+                contentDescription = stringResource(R.string.rich_inline_code),
                 modifier = Modifier.size(18.dp)
             )
         }

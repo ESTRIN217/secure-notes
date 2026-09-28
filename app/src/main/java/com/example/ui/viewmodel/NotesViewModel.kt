@@ -1154,7 +1154,7 @@ class NotesViewModel(
 
                     val timeStr = SimpleDateFormat("dd/MM/yy hh:mm a", Locale.getDefault()).format(Date())
                     sharedPrefs.edit().putString(AppConstants.LAST_SYNC_TIME_KEY, timeStr).apply()
-                    syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = timeStr, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_success)) }
+                    syncState.update { it.copy(syncStage = SyncStage.IDLE, lastSyncTime = timeStr, syncStatusMessage = getApplication<Application>().getString(R.string.sync_success)) }
                 } else {
                     syncState.update { it.copy(syncStage = SyncStage.IDLE, syncStatusMessage = getApplication<Application>().getString(R.string.toast_sync_auth_expired)) }
                     unlinkGoogleDrive()
