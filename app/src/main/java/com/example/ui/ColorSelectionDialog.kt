@@ -111,6 +111,7 @@ fun ColorSelectionDialog(
                             )
                         )
                 ) {
+                    @Suppress("DEPRECATION")
                     Slider(
                         value = hueValue,
                         onValueChange = {

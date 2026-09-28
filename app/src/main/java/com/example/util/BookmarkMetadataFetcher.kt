@@ -35,10 +35,10 @@ object BookmarkMetadataFetcher {
                 if (!response.isSuccessful) {
                     return@withContext fallbackMeta(normalized)
                 }
-                val html = response.body?.byteStream()?.use { stream ->
+                val html = response.body.byteStream().use { stream ->
                     val bytes = stream.readBytes()
                     String(bytes, 0, minOf(bytes.size, MAX_HTML_BYTES), Charsets.UTF_8)
-                } ?: ""
+                }
                 parseMetadata(html, normalized)
             }
         } catch (e: Exception) {

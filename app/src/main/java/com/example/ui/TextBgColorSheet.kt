@@ -214,6 +214,7 @@ private fun HsvSliderRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(16.dp)
         )
+        @Suppress("DEPRECATION")
         Slider(
             value = value,
             onValueChange = onValueChange,

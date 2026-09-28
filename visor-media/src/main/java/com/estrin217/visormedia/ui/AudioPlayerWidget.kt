@@ -40,6 +40,7 @@ import java.util.Locale
 
 @OptIn(UnstableApi::class)
 @Composable
+@Suppress("DEPRECATION")
 fun AudioPlayerWidget(
     path: String,
     modifier: Modifier = Modifier,

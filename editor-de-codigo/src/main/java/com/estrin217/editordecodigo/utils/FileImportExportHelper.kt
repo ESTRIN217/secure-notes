@@ -153,7 +153,7 @@ object FileImportExportHelper {
                 val sizeIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
 
                 while (cursor.moveToNext()) {
-                    val docId = if (idIndex >= 0) cursor.getString(idIndex) else null ?: continue
+                    val docId = (if (idIndex >= 0) cursor.getString(idIndex) else null) ?: continue
                     val name = if (nameIndex >= 0) cursor.getString(nameIndex) else "archivo"
                     val mime = if (mimeIndex >= 0) cursor.getString(mimeIndex) else ""
                     val size = if (sizeIndex >= 0) cursor.getLong(sizeIndex) else 0L

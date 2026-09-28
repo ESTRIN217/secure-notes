@@ -1,5 +1,6 @@
 package com.example.ui.floating
 
+import android.content.ClipData
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
@@ -20,14 +22,17 @@ import androidx.compose.material.icons.filled.FormatStrikethrough
 import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -225,7 +230,7 @@ private fun FloatingCardHeader(
             Icon(Icons.Default.Minimize, contentDescription = stringResource(R.string.floating_mode_minimize), modifier = Modifier.size(18.dp))
                 }
         IconButton(onClick = onOpenApp, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.OpenInNew, contentDescription = stringResource(R.string.floating_mode_open_app), modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = stringResource(R.string.floating_mode_open_app), modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.floating_mode_close), modifier = Modifier.size(18.dp))
@@ -302,7 +307,8 @@ private fun FloatingQuickNoteTab(
     onResetLayout: () -> Unit
 ) {
     var showSavedBanner by remember { mutableStateOf(false) }
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val plainText = remember(segments) { RichTextConverter.segmentsToPlainText(segments) }
 
     LaunchedEffect(showSavedBanner) {
@@ -335,7 +341,7 @@ private fun FloatingQuickNoteTab(
                 onClear()
                 showSavedBanner = true
             },
-            onCopy = { clipboard.setText(AnnotatedString(plainText)) },
+            onCopy = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("plain_text", plainText))) } },
             onClear = onClear,
             activeTextStyles = activeTextStyles,
             onToggleTag = onToggleTag,

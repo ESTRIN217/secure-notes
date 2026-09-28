@@ -493,6 +493,7 @@ private fun DrawingBlockToolbar(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                @Suppress("DEPRECATION")
                 Slider(
                     value = selectedWidth,
                     onValueChange = onWidthSelected,

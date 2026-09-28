@@ -1,5 +1,6 @@
 package com.example.service
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -23,7 +24,11 @@ class FloatingNoteTileService : TileService() {
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            startActivityAndCollapse(intent)
+            val pendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            startActivityAndCollapse(pendingIntent)
             return
         }
 

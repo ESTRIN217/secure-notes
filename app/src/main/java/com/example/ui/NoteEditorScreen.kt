@@ -2203,6 +2203,7 @@ fun NoteEditorScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(stringResource(R.string.rows_label), style = MaterialTheme.typography.bodyMedium)
+                                    @Suppress("DEPRECATION")
                                     Slider(
                                         value = tableRows.toFloat(),
                                         onValueChange = { tableRows = it.toInt() },
@@ -2217,6 +2218,7 @@ fun NoteEditorScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(stringResource(R.string.cols_label), style = MaterialTheme.typography.bodyMedium)
+                                    @Suppress("DEPRECATION")
                                     Slider(
                                         value = tableCols.toFloat(),
                                         onValueChange = { tableCols = it.toInt() },

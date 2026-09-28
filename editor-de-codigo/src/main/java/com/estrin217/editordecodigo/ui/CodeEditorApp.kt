@@ -200,6 +200,7 @@ fun CodeEditorApp(
     var showFormatOptionsDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
 
+    @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Handle toast messages

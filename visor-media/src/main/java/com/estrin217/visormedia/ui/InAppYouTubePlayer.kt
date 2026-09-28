@@ -31,6 +31,7 @@ import com.estrin217.visormedia.util.VideoUrlHelper
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
+@Suppress("DEPRECATION")
 fun InAppYouTubePlayer(
     videoUrl: String,
     modifier: Modifier = Modifier,

@@ -20,7 +20,6 @@ object AiPromptBuilder {
             AiAction.GENERATE -> com.example.R.string.ai_prompt_generate
             AiAction.SUMMARIZE -> com.example.R.string.ai_prompt_summarize
             AiAction.FIX_GRAMMAR -> com.example.R.string.ai_prompt_fix_grammar
-            else -> return ""
         }
         return context.getString(resId)
     }

@@ -377,7 +377,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             navigator.onNavigateTo(Screen.NoteEditor(noteId))
         } else if (activity?.intent?.getBooleanExtra("new_note", false) == true) {
             navigator.onNavigateTo(Screen.NoteEditor(0))
-            activity?.intent?.removeExtra("new_note")
+            activity.intent.removeExtra("new_note")
         }
     }
 

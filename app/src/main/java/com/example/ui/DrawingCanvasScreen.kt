@@ -380,6 +380,7 @@ fun DrawingCanvasScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = context.getString(R.string.drawing_size_label, selectedWidth.toInt()), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.width(16.dp))
+                        @Suppress("DEPRECATION")
                         Slider(
                             value = selectedWidth,
                             onValueChange = { selectedWidth = it },

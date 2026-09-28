@@ -406,7 +406,7 @@ class PdfBlockRenderer {
                 .header("User-Agent", "Mozilla/5.0 (Linux; Android) SecureNotes")
                 .build()
             webClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) response.body?.bytes() else null
+                if (response.isSuccessful) response.body.bytes() else null
             }
         } catch (e: Exception) {
             Log.e("PdfBlockRenderer", "Error downloading web image: $url", e)

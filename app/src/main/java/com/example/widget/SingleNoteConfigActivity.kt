@@ -79,11 +79,11 @@ class SingleNoteConfigActivity : ComponentActivity() {
             LazyColumn {
                 items(notes, key = { it.id }) { note ->
                     ListItem(
-                        headlineContent = { Text(widgetTitle(this@SingleNoteConfigActivity, note)) },
-                        supportingContent = { Text(widgetSummary(note.content, this@SingleNoteConfigActivity), maxLines = 2) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(note) }
+                            .clickable { onSelect(note) },
+                        supportingContent = { Text(widgetSummary(note.content, this@SingleNoteConfigActivity), maxLines = 2) },
+                        content = { Text(widgetTitle(this@SingleNoteConfigActivity, note)) }
                     )
                 }
             }

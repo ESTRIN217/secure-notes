@@ -1131,21 +1131,16 @@ class NotesViewModel(
                 }
 
                 var backupSize = 0L
-                val success = if (attachmentTempDir != null) {
-                    syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
-                    try {
-                        val zipFile = File(attachmentTempDir, "backup.zip")
-                        BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, File(attachmentTempDir, "attachments"), zipFile)
-                        val zipBytes = zipFile.readBytes()
-                        backupSize = zipFile.length()
-                        performSyncWithTokenBytes(token, zipBytes)
-                    } finally {
-                        attachmentTempDir.deleteRecursively()
-                    }
-                } else {
-                    syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
-                    backupSize = finalPayload.toByteArray().size.toLong()
-                    performSyncWithToken(token, finalPayload)
+                val attachmentDir = attachmentTempDir
+                syncState.update { it.copy(syncStage = SyncStage.UPLOADING) }
+                val success = try {
+                    val zipFile = File(attachmentDir, "backup.zip")
+                    BackupAttachmentHelper.buildBackupZip(finalPayload, allPathMaps, File(attachmentDir, "attachments"), zipFile)
+                    val zipBytes = zipFile.readBytes()
+                    backupSize = zipFile.length()
+                    performSyncWithTokenBytes(token, zipBytes)
+                } finally {
+                    attachmentDir.deleteRecursively()
                 }
 
                 if (success) {

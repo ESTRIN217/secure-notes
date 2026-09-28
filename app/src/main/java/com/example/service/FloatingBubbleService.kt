@@ -282,7 +282,6 @@ class FloatingBubbleService : Service() {
             gravity = Gravity.TOP or Gravity.START
             x = cardX ?: ((metrics.widthPixels - widthPx) / 2)
             y = cardY ?: ((metrics.heightPixels - heightPx) / 2)
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
     }
 

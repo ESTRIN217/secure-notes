@@ -754,7 +754,6 @@ object RichTextConverter {
                         .append(blocksToMarkdown(listOf(block.copy(type = BlockType.TEXT)), media, context))
                         .append("</details>")
                 }
-                else -> {}
             }
             sb.append('\n')
         }
@@ -813,10 +812,9 @@ object RichTextConverter {
                     sb.append(mediaBlockToHtml(block, media, context))
                 }
                 BlockType.PAGE, BlockType.PAGE_LINK -> {
-                  val label = block.content.ifBlank { context?.getString(R.string.export_page_fallback) ?: "Page" }
-                  sb.append("<p><span style=\"font-weight:600;color:#1565c0;\">🔗 ").append(htmlEscape(label)).append("</span></p>")
+                    val label = block.content.ifBlank { context?.getString(R.string.export_page_fallback) ?: "Page" }
+                    sb.append("<p><span style=\"font-weight:600;color:#1565c0;\">🔗 ").append(htmlEscape(label)).append("</span></p>")
                 }
-                else -> {}
             }
             sb.append('\n')
         }

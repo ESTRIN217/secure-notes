@@ -19,12 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -131,7 +131,7 @@ fun VSCodeWelcomeScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         VSCodeActionButton(
-                            icon = Icons.Default.NoteAdd,
+                            icon = Icons.AutoMirrored.Filled.NoteAdd,
                             title = stringResource(R.string.welcome_new_file),
                             theme = theme,
                             tag = "welcome_new_file_btn",

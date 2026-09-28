@@ -268,6 +268,7 @@ fun EditableAudioBlock(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    @Suppress("DEPRECATION")
                     Slider(
                         value = sliderValue,
                         onValueChange = { newValue ->

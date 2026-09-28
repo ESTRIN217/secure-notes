@@ -220,11 +220,7 @@ fun MainListScreen(
             } else {
                 context
             }
-            val recorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                MediaRecorder(recorderContext)
-            } else {
-                MediaRecorder()
-            }.apply {
+            val recorder = MediaRecorder(recorderContext).apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)

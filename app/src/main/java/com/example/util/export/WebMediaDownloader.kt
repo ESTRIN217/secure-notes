@@ -28,9 +28,9 @@ object WebMediaDownloader {
             val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
-                val mime = response.body?.contentType()?.toString()
+                val mime = response.body.contentType()?.toString()
                     ?: mimeFor(url, type)
-                val bytes = response.body?.bytes() ?: return@withContext null
+                val bytes = response.body.bytes()
                 "data:$mime;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
             }
         } catch (e: Exception) {

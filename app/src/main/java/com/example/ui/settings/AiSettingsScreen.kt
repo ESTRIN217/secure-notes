@@ -887,6 +887,7 @@ private fun ParamSlider(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        @Suppress("DEPRECATION")
         Slider(
             value = value,
             onValueChange = onValueChange,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -155,7 +156,7 @@ fun MediaViewerScreen(
                             rotationAngle = (rotationAngle + 90f) % 360f
                         }) {
                             Icon(
-                                imageVector = Icons.Default.RotateRight,
+                                imageVector = Icons.AutoMirrored.Filled.RotateRight,
                                 contentDescription = stringResource(R.string.rotate_image),
                                 tint = Color.White
                             )

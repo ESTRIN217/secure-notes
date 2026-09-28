@@ -474,6 +474,7 @@ fun PdfViewerScreen(
 }
 
 @Composable
+@Suppress("DEPRECATION")
 private fun PdfPagesViewer(
     viewModel: PdfViewerViewModel,
     loadedState: PdfViewerUiState.Loaded,
@@ -729,6 +730,7 @@ private fun BottomViewerControls(
 }
 
 @Composable
+@Suppress("DEPRECATION")
 private fun JumpToPageDialog(
     currentPage: Int,
     pageCount: Int,
