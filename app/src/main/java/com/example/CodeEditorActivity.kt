@@ -15,15 +15,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.estrin217.codetools.CodeTools
-import com.estrin217.codetools.ui.CodeEditorViewModel
-import com.estrin217.codetools.ui.CodeToolsApp
+import com.estrin217.editordecodigo.CodeEditor
+import com.estrin217.editordecodigo.ui.CodeEditorApp
+import com.estrin217.editordecodigo.ui.CodeEditorViewModel
 import com.example.data.SharedPreferencesRepository
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.ThemeViewModel
 
 /**
- * Thin host for the :code-tools library. Owns the Activity concerns —
+ * Thin host for the :editor-de-codigo library. Owns the Activity concerns —
  * locale, FLAG_SECURE, app theme and SEND/VIEW intent-filters — and
  * delegates all editor state to the library's [CodeEditorViewModel].
  * Lives outside the MainActivity lock flow; content is transient user
@@ -32,7 +32,7 @@ import com.example.ui.viewmodel.ThemeViewModel
 class CodeEditorActivity : ComponentActivity() {
 
     private val codeViewModel: CodeEditorViewModel by viewModels {
-        CodeTools.viewModelFactory(applicationContext)
+        CodeEditor.viewModelFactory(applicationContext)
     }
 
     override fun attachBaseContext(newBase: Context) {
@@ -85,7 +85,7 @@ class CodeEditorActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CodeToolsApp(viewModel = codeViewModel)
+                    CodeEditorApp(viewModel = codeViewModel)
                 }
             }
         }

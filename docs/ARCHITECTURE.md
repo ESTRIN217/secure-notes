@@ -38,7 +38,7 @@ flowchart TB
 ```
 
 Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
-`:visor-media` (audio/vídeo, Media3), `:code-tools` (editor de código) y `:lib`
+`:visor-media` (audio/vídeo, Media3), `:editor-de-codigo` (editor de código) y `:lib`
 (binding `llama.android`, compilado desde fuente, solo `arm64-v8a`).
 
 ## 2. Flujo de datos
@@ -88,6 +88,4 @@ Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
 
 * Room usa `.fallbackToDestructiveMigration()`: un cambio de esquema destruye datos.
   Ver roadmap para migraciones reales.
-* El build de `:code-tools` está roto (`R` sin resolver en `CodeEditorView`); bloquea
-  la compilación completa hasta su estabilización.
 * El binding `llama.android` impone semántica singleton (ver `GUIDELINES.md` §10).

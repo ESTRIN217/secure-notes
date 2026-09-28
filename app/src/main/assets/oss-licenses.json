@@ -188,7 +188,7 @@
       "use": "OAuth 2.0 y Drive"
     },
     {
-      "name": "Modulos internos (:visor-pdf, :visor-media, :code-tools)",
+      "name": "Modulos internos (:visor-pdf, :visor-media, :editor-de-codigo)",
       "version": "repo",
       "license": "MIT",
       "copyright": "ESTRIN217",

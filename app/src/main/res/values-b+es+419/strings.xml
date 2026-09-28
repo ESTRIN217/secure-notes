@@ -294,7 +294,6 @@
     <string name="no_results_icon">Sin resultados</string>
     <string name="remove_recent_search">Eliminar búsqueda reciente</string>
     <string name="search_icon_placeholder">Buscar</string>
-    <string name="dark_mode">Modo oscuro</string>
     <string name="e2ee_active">Cifrado de extremo a extremo activo</string>
     <string name="security_active">Seguridad activa</string>
     <string name="setup_credentials">Configurar credenciales</string>
@@ -313,7 +312,6 @@
     <string name="toast_drive_disconnected">Google Drive desconectado.</string>
     <string name="toast_drive_auth_first">¡Autoriza Google Drive primero!</string>
     <string name="toast_syncing">Sincronizando con Google Drive…</string>
-    <string name="toast_sync_success">¡Sincronizado con Google Drive exitosamente!</string>
     <string name="toast_sync_auth_expired">Autenticación expirada. Desconectando Drive.</string>
     <string name="toast_sync_error">Error de sincronización: %1$s</string>
     <string name="toast_searching_backup">Buscando archivo de respaldo…</string>
@@ -366,7 +364,6 @@ Diferencia: %3$s
     <string name="settings_appearance">Apariencia</string>
     <string name="settings_dynamic_colors">Colores Dinámicos</string>
     <string name="settings_dynamic_colors_desc">Usar esquema de colores dinámicos Material You (Android 12+)</string>
-    <string name="settings_dark_mode">Modo Oscuro</string>
     <string name="settings_dark_mode_system">Sistema</string>
     <string name="settings_dark_mode_on">Encendido</string>
     <string name="settings_dark_mode_off">Apagado</string>
@@ -580,17 +577,8 @@ Diferencia: %3$s
     <string name="about_licenses_desc">Bibliotecas de terceros</string>
     <string name="ai_section">Asistente IA</string>
     <string name="block_code_line_numbers">Números de línea</string>
-    <string name="code_tools">Herramientas de Código</string>
-    <string name="code_tools_desc">Abre y edita archivos de código o configuración con resaltado de sintaxis</string>
-    <string name="code_tools_save">Guardar</string>
-    <string name="code_tools_open_file">Abrir archivo</string>
-    <string name="code_tools_new_document">Nuevo documento</string>
-    <string name="code_tools_share">Compartir</string>
-    <string name="code_tools_copied">Copiado</string>
-    <string name="code_tools_saved">Archivo guardado</string>
-    <string name="code_tools_save_failed">Error al guardar</string>
-    <string name="code_tools_load_failed">No se pudo leer este archivo</string>
-    <string name="code_tools_empty">Nada que guardar</string>
+    <string name="code_editor">Editor de código</string>
+    <string name="code_editor_desc">Abre y edita archivos de código o configuración con resaltado de sintaxis</string>
     <string name="settings_tools">Herramientas</string>
     <string name="ai_assistant">Asistente IA</string>
     <string name="ai_enabled">Activar Asistente IA</string>
@@ -643,7 +631,6 @@ Diferencia: %3$s
     <string name="ai_style_professional">Profesional</string>
     <string name="ai_language_target">Idioma Destino</string>
     <string name="ai_settings_title">Configuración de IA</string>
-    <string name="ai_settings">Configuración de IA</string>
     <string name="ai_settings_desc">Configurar motor, conexión y prompt del sistema</string>
     <string name="ai_system_prompt">Prompt del Sistema</string>
     <string name="ai_system_prompt_desc">Instrucciones personalizadas enviadas al modelo antes de cada solicitud. Reemplaza los prompts por defecto.</string>
@@ -887,12 +874,9 @@ Diferencia: %3$s
     <string name="alternar_teclado">Alternar teclado</string>
     <string name="volver">Volver</string>
     <string name="color_de_texto_y_fondo">Color de texto y fondo</string>
-    <string name="negrita">Negrita</string>
-    <string name="italica">Itálica</string>
     <string name="subrayado">Subrayado</string>
     <string name="tachado">Tachado</string>
     <string name="enlace">Enlace</string>
-    <string name="codigo_inline">Código inline</string>
     <string name="ecuaciones">Ecuaciones</string>
     <string name="anterior">Anterior</string>
     <string name="siguiente">Siguiente</string>
@@ -935,7 +919,6 @@ Diferencia: %3$s
     <string name="chat_title_at_time">Chat %1$s</string>
     <string name="chat_title_with_note">Chat - %1$s</string>
     <string name="checklist">Lista de tareas</string>
-    <string name="code_block">Bloque de código</string>
     <string name="code_lang_plain">Texto plano</string>
     <string name="code_lang_shell">Shell</string>
     <string name="collapsible">Desplegable</string>
@@ -1174,7 +1157,6 @@ Diferencia: %3$s
     <string name="tabs_file_load_error">No se pudo abrir \"%1$s\"</string>
     <string name="widget_single_title">Nota segura</string>
     <string name="widget_single_desc">Muestra una sola nota en tu pantalla de inicio</string>
-    <string name="widget_list_title">Notas seguras</string>
     <string name="widget_list_desc">Muestra notas recientes en tu pantalla de inicio</string>
     <string name="widget_quick_title">Nota rápida</string>
     <string name="widget_quick_desc">Crea una nota nueva con un toque</string>

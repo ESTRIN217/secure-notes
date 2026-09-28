@@ -294,7 +294,6 @@
     <string name="no_results_icon">Aucun résultat</string>
     <string name="remove_recent_search">Supprimer la recherche récente</string>
     <string name="search_icon_placeholder">Rechercher</string>
-    <string name="dark_mode">Mode sombre</string>
     <string name="e2ee_active">Chiffrement de bout en bout actif</string>
     <string name="security_active">Sécurité active</string>
     <string name="setup_credentials">Configurer les identifiants</string>
@@ -313,7 +312,6 @@
     <string name="toast_drive_disconnected">Google Drive déconnecté.</string>
     <string name="toast_drive_auth_first">Autorisez d\'abord Google Drive !</string>
     <string name="toast_syncing">Synchronisation avec Google Drive…</string>
-    <string name="toast_sync_success">Synchronisé avec Google Drive avec succès !</string>
     <string name="toast_sync_auth_expired">Authentification expirée. Déconnexion de Drive.</string>
     <string name="toast_sync_error">Erreur de synchronisation : %1$s</string>
     <string name="toast_searching_backup">Recherche du fichier de sauvegarde…</string>
@@ -366,7 +364,6 @@ Que souhaitez-vous faire ?</string>
     <string name="settings_appearance">Apparence</string>
     <string name="settings_dynamic_colors">Couleurs dynamiques</string>
     <string name="settings_dynamic_colors_desc">Utiliser le schéma de couleurs dynamiques Material You (Android 12+)</string>
-    <string name="settings_dark_mode">Mode sombre</string>
     <string name="settings_dark_mode_system">Système</string>
     <string name="settings_dark_mode_on">Activé</string>
     <string name="settings_dark_mode_off">Désactivé</string>
@@ -415,15 +412,16 @@ Que souhaitez-vous faire ?</string>
     <string name="update_show_changelog">Voir les notes de version</string>
     <string name="update_hide_changelog">Masquer les notes de version</string>
     <string name="update_error">Échec de la vérification des mises à jour</string>
-    <string name="update_download_title">Download &amp; Install</string>
-    <string name="update_download_install">Download &amp; Install APK</string>
-    <string name="update_download_subtitle">From %s GitHub releases</string>
-    <string name="update_downloading">Downloading… tap to cancel</string>
-    <string name="update_preparing_install">Preparing install…</string>
-    <string name="update_download_failed">Download failed</string>
-    <string name="update_check_failed">Check failed — tap to retry</string>
-    <string name="update_install_permission_title">Allow installing apps from this source</string>
-    <string name="update_install_permission_subtitle">Grant the "install unknown apps" permission to install the update</string>
+    <string name="update_download_title">Télécharger et installer</string>
+    <string name="update_download_install">Télécharger et installer l\'APK</string>
+    <string name="update_download_subtitle">Depuis les versions GitHub de %s</string>
+    <string name="update_downloading">Téléchargement… appuyez pour annuler</string>
+    <string name="update_preparing_install">Préparation de l\'installation…</string>
+    <string name="update_download_failed">Échec du téléchargement</string>
+    <string name="update_check_failed">Échec de la vérification — appuyez pour réessayer</string>
+    <string name="update_install_permission_title">Autoriser l\'installation d\'applications depuis cette source</string>
+    <string name="update_install_permission_subtitle">Accordez l\'autorisation « Installer des applications inconnues » pour installer la mise à jour</string>
+
     <string name="update_channel_name">App updates</string>
     <string name="update_channel_description">Notifications for new versions of Secure Notes</string>
     <string name="update_notification_title">Secure Notes %s is available</string>
@@ -580,17 +578,8 @@ Que souhaitez-vous faire ?</string>
     <string name="about_licenses_desc">Bibliothèques tierces</string>
     <string name="ai_section">Assistant IA</string>
     <string name="block_code_line_numbers">Numéros de ligne</string>
-    <string name="code_tools">Outils de code</string>
-    <string name="code_tools_desc">Ouvrir et éditer des fichiers de code ou de configuration avec coloration syntaxique</string>
-    <string name="code_tools_save">Enregistrer</string>
-    <string name="code_tools_open_file">Ouvrir le fichier</string>
-    <string name="code_tools_new_document">Nouveau document</string>
-    <string name="code_tools_share">Partager</string>
-    <string name="code_tools_copied">Copié</string>
-    <string name="code_tools_saved">Fichier enregistré</string>
-    <string name="code_tools_save_failed">Échec de l\'enregistrement</string>
-    <string name="code_tools_load_failed">Impossible de lire ce fichier</string>
-    <string name="code_tools_empty">Rien à enregistrer</string>
+    <string name="code_editor">Éditeur de code</string>
+    <string name="code_editor_desc">Ouvrir et éditer des fichiers de code ou de configuration avec coloration syntaxique</string>
     <string name="settings_tools">Outils</string>
     <string name="ai_assistant">Assistant IA</string>
     <string name="ai_enabled">Activer l\'Assistant IA</string>
@@ -627,7 +616,6 @@ Que souhaitez-vous faire ?</string>
     <string name="ai_suggestion_poem">Écrire un poème</string>
     <string name="ai_suggestion_ideas">Générer des idées</string>
     <string name="ai_settings_title">Paramètres IA</string>
-    <string name="ai_settings">Paramètres IA</string>
     <string name="ai_settings_desc">Configurer le moteur, la connexion et le prompt système</string>
     <string name="ai_system_prompt">Prompt Système</string>
     <string name="ai_system_prompt_desc">Instructions personnalisées envoyées au modèle avant chaque requête. Remplace les prompts par défaut.</string>
@@ -1046,7 +1034,6 @@ Que souhaitez-vous faire ?</string>
     <string name="tabs_file_load_error">Impossible d\'ouvrir « %1$s »</string>
     <string name="widget_single_title">Note sécurisée</string>
     <string name="widget_single_desc">Afficher une seule note sur votre écran d\'accueil</string>
-    <string name="widget_list_title">Notes sécurisées</string>
     <string name="widget_list_desc">Afficher les notes récentes sur votre écran d\'accueil</string>
     <string name="widget_quick_title">Note rapide</string>
     <string name="widget_quick_desc">Créer une note d\'un seul toucher</string>
@@ -1068,7 +1055,6 @@ Que souhaitez-vous faire ?</string>
     <string name="numbered_list">Liste numérotée</string>
     <string name="checklist">Liste de tâches</string>
     <string name="quote">Citation</string>
-    <string name="code_block">Bloc de code</string>
     <string name="highlight">Surlignage</string>
     <string name="page">Page</string>
     <string name="page_link">Lien vers la page</string>
@@ -1132,12 +1118,9 @@ Que souhaitez-vous faire ?</string>
     <string name="buscar">Rechercher</string>
     <string name="volver">Retour</string>
     <string name="color_de_texto_y_fondo">Couleur du texte et de l\'arrière-plan</string>
-    <string name="negrita">Gras</string>
-    <string name="italica">Italique</string>
     <string name="subrayado">Souligné</string>
     <string name="tachado">Barré</string>
     <string name="enlace">Lien</string>
-    <string name="codigo_inline">Code en ligne</string>
     <string name="ecuaciones">Équations</string>
     <string name="anterior">Précédent</string>
     <string name="siguiente">Suivant</string>

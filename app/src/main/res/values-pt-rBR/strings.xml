@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Secure Notes</string>
-    <string name="search_placeholder">Buscar notas…</string>
+    <string name="search_placeholder">Pesquisar notas…</string>
     <string name="btn_new_note">Nova Nota</string>
     <string name="btn_save">Salvar</string>
     <string name="btn_edit">Editar</string>
@@ -60,19 +60,20 @@
     <string name="action_move_down">Mover para baixo</string>
     <string name="welcome_note_title">Boas-vindas ao Secure Notes! 🚀</string>
     <string name="welcome_note_content">Este é o seu espaço protegido para armazenar ideias, credenciais e notas criptografadas.\n\n🔒 **Criptografia Local**: Tudo o que você escreve pode ser criptografado na sua máquina com **AES-256 GCM** através de uma Senha Mestra.\n\n☁️ **Backup no Google Drive**: Conecte sua conta via Sincronização em Nuvem para salvar suas notas em segurança, protegidas de ponta a ponta.\n\n⚡ **Visualizações e Filtros Interativos**: Classifique suas anotações por tags como Trabalho, Pessoal e Privado, além de organizá-las na ordem que preferir!\n\nBoas anotações!</string>
-    
-    <string name="workout_note_title">Rutina Maestra: Força e Resistência</string>
-    <string name="workout_note_content">**Objetivo: Hipertrofia, potência e capacidade cardiovascular.**\n\n**Programação Semanal: S, T, Q, S**\n\n### Bloco 1: Agilidade e Potência\n- **Flexões Russas**: 3 séries de 3 a 5 repetições.\n- **Flexões com Palma**: 3 séries de 4 a 6 repetições.\n- **Dominadas (Barras)**: 3 séries de 5 a 6 repetições (explosivas).\n- **Flexões em Pica**: 3 séries de 5 repetições.\n\n### Bloco 2: Resistência de Empurrão\n- **Flexões de arco**: 10 repetições (5 por braço).\n- **Dominadas Australianas**: 3 séries de 10 a 12 repetições.\n- **Flexões de Punhos**: 20 repetições.\n- **Flexões Normais**: 3 séries de 10 repetições.\n- **Deltóides Frontais**: 15 repetições.\n\n### Bloco 3: Pernas\n- **Agachamentos**: 30 repetições.\n- **Agachamentos Explosivos**: 3 séries de 15 repetições.\n- **Afundos Búlgaros**: 3 séries de 10 repetições por perna.\n- **Afundos Frontais**: 40 repetições (20 por perna).\n- **Ponte de Glúteo**: 30 repetições.\n- **Perna dentro e fora**: 30 repetições.\n\n### Bloco 4: Core e Cardio\n- **Elevações de Perna**: 25 repetições.\n- **Escaladores**: 100 repetições.\n- **Pranchas**: 3 séries de 1 minuto.\n\n### Bloco 5: Alongamento\n- **Gato-Vaca**: 10 ciclos.\n- **Postura da Criança**: 20-30 segundos.\n- **Alongamento de Peitoral na parede**: 20-30 segundos.\n- **Alongamento de Tríceps**: 20-30 segundos.\n- **Cachorro Olhando para Baixo**: 20-30 segundos.\n- **Alongamento de Flexores do Quadril**: 20-30 segundos.\n- **Alongamento de Punhos**: 20-30 segundos.\n\nConsistência é a chave! Tente manter esta ordem por pelo menos 4 semanas antes de aumentar repetições.</string>
+
+    <string name="workout_note_title">Rotina Mestra: Força e Resistência</string>
+    <string name="workout_note_content">**Objetivo: Hipertrofia, potência e capacidade cardiovascular.**\n\n**Programação Semanal: S, T, Q, S**\n\n### Bloco 1: Agilidade e Potência\n- **Flexões Russas**: 3 séries de 3 a 5 repetições.\n- **Flexões com Palma**: 3 séries de 4 a 6 repetições.\n- **Barra Fixa (Dominadas)**: 3 séries de 5 a 6 repetições (explosivas).\n- **Flexões Pique**: 3 séries de 5 repetições.\n\n### Bloco 2: Resistência de Empurrão\n- **Flexões em Arco**: 10 repetições (5 por braço).\n- **Remada Australiana**: 3 séries de 10 a 12 repetições.\n- **Flexões sobre Punhos Fechados**: 20 repetições.\n- **Flexões Tradicionais**: 3 séries de 10 repetições.\n- **Deltoides Frontais**: 15 repetições.\n\n### Bloco 3: Pernas\n- **Agachamentos**: 30 repetições.\n- **Agachamentos Explosivos**: 3 séries de 15 repetições.\n- **Agachamento Búlgaro**: 3 séries de 10 repetições por perna.\n- **Afundos Frontais**: 40 repetições (20 por perna).\n- **Elevação Pélvica**: 30 repetições.\n- **Abdução de Pernas (Entra e Sai)**: 30 repetições.\n\n### Bloco 4: Core e Cardio\n- **Elevação de Pernas**: 25 repetições.\n- **Escaladores (Mountain Climbers)**: 100 repetições.\n- **Prancha**: 3 séries de 1 minuto.\n\n### Bloco 5: Alongamento\n- **Gato-Vaca**: 10 ciclos.\n- **Postura da Criança**: 20-30 segundos.\n- **Alongamento de Peitoral na Parede**: 20-30 segundos.\n- **Alongamento de Tríceps**: 20-30 segundos.\n- **Cão Olhando para Baixo**: 20-30 segundos.\n- **Alongamento de Flexores do Quadril**: 20-30 segundos.\n- **Alongamento de Punhos**: 20-30 segundos.\n\nA consistência é a chave! Mantenha esta ordem por pelo menos 4 semanas antes de aumentar as repetições.</string>
+
     <string name="nav_home">Início</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_archived">Arquivados</string>
     <string name="nav_trash">Lixeira</string>
     <string name="nav_settings">Configurações</string>
-    
+
     <string name="nav_favorites_title">Favoritos</string>
     <string name="nav_archived_title">Notas Arquivadas</string>
     <string name="nav_trash_title">Lixeira</string>
-    
+
     <string name="action_restore">Restaurar</string>
     <string name="action_delete_perm">Excluir permanentemente</string>
     <string name="action_empty_trash">Esvaziar lixeira</string>
@@ -80,7 +81,7 @@
     <string name="toast_moved_trash">Movido para a lixeira</string>
     <string name="toast_restored">Nota restaurada</string>
     <string name="toast_deleted_perm">Excluído permanentemente</string>
-    
+
     <string name="menu_batch_pin">Fixar</string>
     <string name="menu_batch_unpin">Desafixar</string>
     <string name="menu_batch_favorite">Favorito</string>
@@ -88,7 +89,7 @@
     <string name="menu_batch_unarchive">Desarquivar</string>
     <string name="menu_batch_tag">Etiquetar</string>
     <string name="menu_batch_share">Compartilhar</string>
-    
+
     <string name="share_sheet_title">Formato de Compartilhamento</string>
     <string name="share_format_txt">Texto simples (.txt)</string>
     <string name="share_format_md">Markdown (.md)</string>
@@ -171,7 +172,7 @@
     <string name="dialog_insert_video_title">Inserir Vídeo</string>
     <string name="label_media_url">URL da Mídia (Link web ou caminho local)</string>
     <string name="btn_insert">Inserir</string>
-    
+
     <string name="rich_numbered_list">Lista Numerada</string>
     <string name="rich_bulleted_list">Lista com Marcadores</string>
     <string name="rich_checklist">Lista de Tarefas</string>
@@ -308,7 +309,6 @@
     <string name="no_results_icon">Sem resultados</string>
     <string name="remove_recent_search">Remover pesquisa recente</string>
     <string name="search_icon_placeholder">Pesquisar</string>
-    <string name="dark_mode">Modo escuro</string>
     <string name="e2ee_active">Criptografia de ponta a ponta ativa</string>
     <string name="security_active">Segurança ativa</string>
     <string name="setup_credentials">Configurar credenciais</string>
@@ -329,7 +329,6 @@
     <string name="toast_drive_disconnected">Google Drive desconectado.</string>
     <string name="toast_drive_auth_first">Autorize o Google Drive primeiro!</string>
     <string name="toast_syncing">Sincronizando com Google Drive…</string>
-    <string name="toast_sync_success">Sincronizado com Google Drive com sucesso!</string>
     <string name="toast_sync_auth_expired">Autenticação expirada. Desconectando Drive.</string>
     <string name="toast_sync_error">Erro de sincronização: %1$s</string>
     <string name="toast_searching_backup">Procurando arquivo de backup…</string>
@@ -355,7 +354,6 @@ Diferença: %3$s
 O que deseja fazer?</string>
     <string name="version_conflict_download">Baixar da nuvem</string>
     <string name="version_conflict_overwrite">Sobrescrever com a local</string>
-
 
     <string name="password_hint">Senha</string>
     <string name="restore_password_required">Este backup está criptografado. Digite a senha mestra para restaurar.</string>
@@ -390,7 +388,6 @@ O que deseja fazer?</string>
     <string name="settings_appearance">Aparência</string>
     <string name="settings_dynamic_colors">Cores Dinâmicas</string>
     <string name="settings_dynamic_colors_desc">Usar esquema de cores dinâmicas Material You (Android 12+)</string>
-    <string name="settings_dark_mode">Modo Escuro</string>
     <string name="settings_dark_mode_system">Sistema</string>
     <string name="settings_dark_mode_on">Ligado</string>
     <string name="settings_dark_mode_off">Desligado</string>
@@ -400,7 +397,7 @@ O que deseja fazer?</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_en_gb">Inglês (Reino Unido)</string>
     <string name="settings_lang_es_419">Espanhol (América Latina)</string>
-    <string name="settings_lang_es">Español (Venezuela)</string>
+    <string name="settings_lang_es">Espanhol (Venezuela)</string>
     <string name="settings_lang_pt">Português (Brasil)</string>
     <string name="settings_lang_es_es">Español (España)</string>
     <string name="settings_lang_pt_pt">Português (Portugal)</string>
@@ -439,19 +436,19 @@ O que deseja fazer?</string>
     <string name="update_show_changelog">Ver registro de alterações</string>
     <string name="update_hide_changelog">Ocultar registro de alterações</string>
     <string name="update_error">Falha ao verificar atualizações</string>
-    <string name="update_download_title">Download &amp; Install</string>
-    <string name="update_download_install">Download &amp; Install APK</string>
-    <string name="update_download_subtitle">From %s GitHub releases</string>
-    <string name="update_downloading">Downloading… tap to cancel</string>
-    <string name="update_preparing_install">Preparing install…</string>
-    <string name="update_download_failed">Download failed</string>
-    <string name="update_check_failed">Check failed — tap to retry</string>
-    <string name="update_install_permission_title">Allow installing apps from this source</string>
-    <string name="update_install_permission_subtitle">Grant the "install unknown apps" permission to install the update</string>
-    <string name="update_channel_name">App updates</string>
-    <string name="update_channel_description">Notifications for new versions of Secure Notes</string>
-    <string name="update_notification_title">Secure Notes %s is available</string>
-    <string name="update_notification_text">Tap to review and update</string>
+    <string name="update_download_title">Baixar e Instalar</string>
+    <string name="update_download_install">Baixar e Instalar APK</string>
+    <string name="update_download_subtitle">Das versões do GitHub de %s</string>
+    <string name="update_downloading">Baixando… toque para cancelar</string>
+    <string name="update_preparing_install">Preparando instalação…</string>
+    <string name="update_download_failed">Falha no download</string>
+    <string name="update_check_failed">Falha ao verificar — toque para tentar novamente</string>
+    <string name="update_install_permission_title">Permitir instalação de apps desta fonte</string>
+    <string name="update_install_permission_subtitle">Conceda a permissão para "instalar apps desconhecidos" para instalar a atualização</string>
+    <string name="update_channel_name">Atualizações do aplicativo</string>
+    <string name="update_channel_description">Notificações de novas versões do Secure Notes</string>
+    <string name="update_notification_title">Secure Notes %s está disponível</string>
+    <string name="update_notification_text">Toque para revisar e atualizar</string>
     <string name="about_title">Sobre</string>
     <string name="about_desc">Seu Cofre Privado Offline-First</string>
     <string name="about_encryption">Protocolo de Criptografia E2EE AES-256</string>
@@ -638,17 +635,8 @@ O que deseja fazer?</string>
     <!-- AI Assistant -->
     <string name="ai_section">Assistente IA</string>
     <string name="block_code_line_numbers">Números de linha</string>
-    <string name="code_tools">Ferramentas de Código</string>
-    <string name="code_tools_desc">Abra e edite arquivos de código ou configuração com destaque de sintaxe</string>
-    <string name="code_tools_save">Salvar</string>
-    <string name="code_tools_open_file">Abrir arquivo</string>
-    <string name="code_tools_new_document">Novo documento</string>
-    <string name="code_tools_share">Compartilhar</string>
-    <string name="code_tools_copied">Copiado</string>
-    <string name="code_tools_saved">Arquivo salvo</string>
-    <string name="code_tools_save_failed">Falha ao salvar</string>
-    <string name="code_tools_load_failed">Não foi possível ler este arquivo</string>
-    <string name="code_tools_empty">Nada para salvar</string>
+    <string name="code_editor">Editor de código</string>
+    <string name="code_editor_desc">Abra e edite arquivos de código ou configuração com destaque de sintaxe</string>
     <string name="settings_tools">Ferramentas</string>
     <string name="ai_assistant">Assistente IA</string>
     <string name="ai_enabled">Ativar Assistente IA</string>
@@ -687,7 +675,6 @@ O que deseja fazer?</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">Configurações de IA</string>
-    <string name="ai_settings">Configurações de IA</string>
     <string name="ai_settings_desc">Configurar motor, conexão e prompt do sistema</string>
     <string name="ai_system_prompt">Prompt do Sistema</string>
     <string name="ai_system_prompt_desc">Instruções personalizadas enviadas ao modelo antes de cada solicitação. Substitui os prompts padrão.</string>
@@ -1110,7 +1097,6 @@ O que deseja fazer?</string>
     <string name="tabs_file_load_error">Não foi possível abrir \"%1$s\"</string>
     <string name="widget_single_title">Nota segura</string>
     <string name="widget_single_desc">Mostre uma única nota na tela inicial</string>
-    <string name="widget_list_title">Notas seguras</string>
     <string name="widget_list_desc">Mostre notas recentes na tela inicial</string>
     <string name="widget_quick_title">Nota rápida</string>
     <string name="widget_quick_desc">Crie uma nota nova com um toque</string>
@@ -1132,7 +1118,6 @@ O que deseja fazer?</string>
     <string name="numbered_list">Lista numerada</string>
     <string name="checklist">Lista de tarefas</string>
     <string name="quote">Citação</string>
-    <string name="code_block">Bloco de código</string>
     <string name="highlight">Destaque</string>
     <string name="page">Página</string>
     <string name="page_link">Link para a página</string>
@@ -1196,18 +1181,15 @@ O que deseja fazer?</string>
     <string name="buscar">Buscar</string>
     <string name="volver">Voltar</string>
     <string name="color_de_texto_y_fondo">Cor do texto e do fundo</string>
-    <string name="negrita">Negrito</string>
-    <string name="italica">Itálico</string>
     <string name="subrayado">Sublinhado</string>
     <string name="tachado">Tachado</string>
     <string name="enlace">Link</string>
-    <string name="codigo_inline">Código embutido</string>
     <string name="ecuaciones">Equações</string>
     <string name="anterior">Anterior</string>
-    <string name="siguiente">Seguinte</string>
+    <string name="siguiente">Próximo</string>
     <string name="mas_opciones">Mais opções</string>
     <string name="cerrar_busqueda">Fechar pesquisa</string>
-    <string name="coincidir_mayusculas">Diferenciar maiúsculas</string>
+    <string name="coincidir_mayusculas">Diferenciar maiúsculas/minúsculas</string>
     <string name="palabra_completa">Palavra inteira</string>
     <string name="redimensionar">Redimensionar</string>
     <string name="restablecer_tamano">Restaurar tamanho</string>

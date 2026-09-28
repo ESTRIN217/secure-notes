@@ -72,7 +72,7 @@ flowchart LR
     VM --> AI["AIService<br/>(Ollama / On-Device)"]
 ```
 
-MVVM de un solo módulo (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:code-tools` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
+MVVM de un solo módulo (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:editor-de-codigo` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
 
 ---
 
@@ -111,7 +111,7 @@ secure-notes/
 │   └── src/main/{java/com/example/{ui,data,util},res,assets}
 ├── visor-pdf/           # :visor-pdf — visor PDF (PdfRenderer + androidx.pdf)
 ├── visor-media/         # :visor-media — galería audio/vídeo (Media3 + Coil3)
-├── code-tools/          # :code-tools — editor de código con resaltado
+├── editor-de-codigo/    # :editor-de-codigo — editor de código con resaltado
 ├── docs/                # EDITOR, EDITOR_DEV, GUIDELINES, ARCHITECTURE, ROADMAP, adr/
 ├── .github/             # CI + plantillas de issues/PRs
 ├── CHANGELOG.md         # historial por versión (Keep a Changelog)

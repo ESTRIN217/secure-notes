@@ -46,8 +46,13 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
 | Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `OssLicenses.kt` (lee `assets/oss-licenses.json`), `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
+| Library `:editor-de-codigo` | `com.estrin217.editordecodigo` | `CodeEditor.kt` (facade), `ui/CodeEditorApp.kt`, `ui/CodeEditorViewModel.kt`, `ui/components/` (VS Code-style tabs, welcome screen, search/replace, quick-symbol bar), `syntax/`, `formatter/`, `utils/FileStorageManager.kt` |
+| Library `:visor-pdf` | `com.estrin217.pdfviewer` | `PdfViewerScreen.kt`, `PdfViewerViewModel.kt` |
+| Library `:visor-media` | `com.estrin217.visormedia` | `MediaViewerScreen.kt`, `Media3VideoPlayer.kt` |
 
 **Entrypoint**: `com.example.MainActivity` (package `com.example`, applicationId `com.estrin217.securenotes`).
+
+El editor de código es un módulo librería (`:editor-de-codigo`, paquete `com.estrin217.editordecodigo`, ~134 strings en 8 locales) invocado desde `com.example.CodeEditorActivity` y desde la pestaña `OpenTab.TextFile` de `NoteEditorTabsHost` (`CodeEditorApp(viewModel, topTabs)`). Su contenido vive en disco (`filesDir/code_files`, SAF opcional) y Room (`code_tools_db`, v2) solo guarda metadatos — el bump de versión usa arranque limpio (`fallbackToDestructiveMigration`).
 
 ## Key Conventions
 

@@ -23,9 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.estrin217.codetools.CodeTools
-import com.estrin217.codetools.ui.CodeEditorViewModel
-import com.estrin217.codetools.ui.CodeToolsApp
+import com.estrin217.editordecodigo.CodeEditor
+import com.estrin217.editordecodigo.ui.CodeEditorApp
+import com.estrin217.editordecodigo.ui.CodeEditorViewModel
 import com.estrin217.pdfviewer.ui.PdfViewerScreen
 import com.estrin217.pdfviewer.ui.PdfViewerViewModel
 import com.example.R
@@ -192,7 +192,7 @@ private fun TextTabContent(
     val appContext = context.applicationContext
     val codeViewModel: CodeEditorViewModel = viewModel(
         key = "tab-${tab.key}",
-        factory = CodeTools.viewModelFactory(appContext)
+        factory = CodeEditor.viewModelFactory(appContext)
     )
     val uri = remember(tab.uri) { runCatching { Uri.parse(tab.uri) }.getOrNull() }
     BackHandler { onClose() }
@@ -205,7 +205,7 @@ private fun TextTabContent(
         TabLoadError(tab.label, onClose)
         return
     }
-    CodeToolsApp(viewModel = codeViewModel, topTabs = tabBar)
+    CodeEditorApp(viewModel = codeViewModel, topTabs = tabBar)
 }
 
 @Composable

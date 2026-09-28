@@ -1,0 +1,149 @@
+<resources>
+    <!-- CodeToolsApp -->
+    <string name="file_too_large">El archivo es demasiado grande (máx. 2 MB)</string>
+    <string name="file_read_error">No se pudo leer el archivo seleccionado</string>
+    <string name="cd_view_files">Ver archivos</string>
+    <string name="mode_edit">Editar</string>
+    <string name="mode_view">Ver</string>
+    <string name="cd_search_replace">Buscar y reemplazar</string>
+    <string name="format_code">Formatear código</string>
+    <string name="save">Guardar</string>
+    <string name="more_options">Más opciones</string>
+    <string name="menu_open_external">Abrir archivo externo...</string>
+    <string name="menu_new_file">Nuevo archivo...</string>
+    <string name="menu_jump_line">Ir a la línea...</string>
+    <string name="menu_syntax">Resaltado de sintaxis</string>
+    <string name="menu_theme">Tema del editor</string>
+    <string name="menu_hide_lines">Ocultar número de líneas</string>
+    <string name="menu_show_lines">Mostrar número de líneas</string>
+    <string name="menu_wrap_off">Desactivar ajuste de línea</string>
+    <string name="menu_wrap_on">Ajuste de línea (Word Wrap)</string>
+    <string name="menu_format_options">Opciones de formateo...</string>
+    <string name="menu_minify">Compactar JSON (Minify)</string>
+    <string name="copy_code">Copiar código</string>
+    <string name="copied_clipboard">Código copiado al portapapeles</string>
+    <string name="share_script">Compartir script</string>
+    <string name="share_subject_default">script</string>
+    <string name="share_chooser">Compartir código</string>
+    <string name="close">Cerrar</string>
+    <string name="status_cursor">Lín %1$d, Col %2$d</string>
+    <string name="status_lines">%1$d líneas</string>
+    <string name="zoom_out">Reducir tamaño</string>
+    <string name="zoom_in">Aumentar tamaño</string>
+    <!-- SearchReplaceBar -->
+    <string name="search_hint">Buscar en código...</string>
+    <string name="editor_placeholder">// Escribe o pega tu script o configuración aquí...</string>
+    <string name="cd_match_prev">Coincidencia anterior</string>
+    <string name="cd_match_next">Siguiente coincidencia</string>
+    <string name="cd_toggle_replace">Alternar Reemplazar</string>
+    <string name="cd_close_search">Cerrar búsqueda</string>
+    <string name="replace_hint">Reemplazar con...</string>
+    <string name="replace_one">Reemplazar</string>
+    <string name="replace_all">Todo</string>
+    <!-- EditorDialogs -->
+    <string name="jump_line_hint">Introduce el número de línea (1 - %1$d):</string>
+    <string name="jump_line_invalid">Línea inválida (1 - %1$d)</string>
+    <string name="go">Ir</string>
+    <string name="cancel">Cancelar</string>
+    <string name="new_file_name_label">Nombre del archivo</string>
+    <string name="new_file_name_hint">ej. script.sh, config.yaml</string>
+    <string name="create">Crear</string>
+    <string name="syntax_title">Resaltado de sintaxis</string>
+    <string name="syntax_search_hint">Buscar lenguaje (ej. Rust, SQL)...</string>
+    <string name="selected_cd">Seleccionado</string>
+    <string name="theme_title">Tema del editor</string>
+    <string name="active_cd">Activo</string>
+    <!-- FormatOptionsDialog -->
+    <string name="format_title">Formateador de código</string>
+    <string name="format_subtitle">Ajusta la sangría y reglas de estilo para %1$s:</string>
+    <string name="format_indent_section">Espaciado de sangría</string>
+    <string name="format_indent_2">2 espacios</string>
+    <string name="format_indent_2_desc">Recomendado para JSON, Web, CSS</string>
+    <string name="format_indent_4">4 espacios</string>
+    <string name="format_indent_4_desc">Estándar Kotlin, Java, Python, C++</string>
+    <string name="format_indent_tab">Tabulaciones (\t)</string>
+    <string name="format_indent_tab_desc">Usa caracteres de tabulador reales</string>
+    <string name="format_cleanup_title">Reglas de limpieza</string>
+    <string name="format_trim_title">Recortar espacios finales</string>
+    <string name="format_trim_desc">Quita espacios en blanco al final de cada línea</string>
+    <string name="format_eof_title">Salto de línea final (EOF)</string>
+    <string name="format_eof_desc">Garantiza que el archivo termine con un renglón limpio</string>
+    <string name="format_apply">Formatear ahora</string>
+    <!-- FilesDrawerSheet -->
+    <string name="files_title">Archivos</string>
+    <string name="open">Abrir</string>
+    <string name="file_new">Nuevo</string>
+    <string name="files_filter_hint">Filtrar archivos por nombre...</string>
+    <string name="files_my_files">MIS ARCHIVOS (%1$d)</string>
+    <string name="delete">Eliminar</string>
+    <!-- Editor app bar -->
+    <string name="cd_search_or_replace">Buscar o reemplazar</string>
+    <string name="topbar_search_command">Buscar o comando...</string>
+    <string name="topbar_search_file">%1$s — Buscar...</string>
+    <string name="topbar_search_query">Buscar: %1$s</string>
+    <string name="cd_undo">Deshacer</string>
+    <string name="cd_redo">Rehacer</string>
+    <string name="menu_undo">Deshacer</string>
+    <string name="menu_redo">Rehacer</string>
+    <string name="menu_open_folder">Abrir carpeta...</string>
+    <string name="menu_welcome_page">Página de bienvenida</string>
+    <string name="snackbar_folder_no_code">No se encontraron archivos de código compatibles en la carpeta</string>
+    <string name="status_font_size">%1$dpt</string>
+    <!-- EditorTabsBar -->
+    <string name="tabs_welcome">Bienvenida</string>
+    <string name="cd_open_welcome">Abrir bienvenida</string>
+    <string name="cd_new_file">Nuevo archivo</string>
+    <string name="cd_close_tab">Cerrar pestaña</string>
+    <string name="cd_close_welcome_tab">Cerrar pestaña de bienvenida</string>
+    <string name="menu_tab_close">Cerrar pestaña</string>
+    <string name="menu_tab_close_others">Cerrar otras pestañas</string>
+    <string name="menu_tab_close_all">Cerrar todas las pestañas</string>
+    <!-- VSCodeWelcomeScreen -->
+    <string name="welcome_app_title">Editor de código</string>
+    <string name="welcome_home">Inicio</string>
+    <string name="welcome_new_file">Nuevo archivo...</string>
+    <string name="welcome_open_file">Abrir archivo...</string>
+    <string name="welcome_open_folder">Abrir carpeta...</string>
+    <string name="welcome_recent">Recientes</string>
+    <string name="welcome_no_recent">Aún no hay archivos recientes. Crea o abre un archivo para empezar.</string>
+    <!-- Empty workspace -->
+    <string name="empty_workspace_title">Sin pestañas abiertas</string>
+    <string name="empty_workspace_desc">No tienes ningún archivo abierto por ahora. Abre la bienvenida o empieza uno nuevo.</string>
+    <string name="empty_open_welcome">Bienvenida</string>
+    <string name="empty_new_file">Nuevo archivo</string>
+    <!-- EditorDialogs extra -->
+    <string name="cd_clear">Limpiar</string>
+    <string name="new_file_invalid_name">El nombre no puede tener caracteres como / \ : * ?  &quot; &lt; &gt; |</string>
+    <string name="new_file_name_helper">Introduce el nombre del archivo con su extensión (ej. script.py, app.js, index.html, estilos.css).</string>
+    <string name="new_file_detected_type">Tipo: %1$s (.%2$s)</string>
+    <string name="new_file_extension_tip">Tip: si no colocas extensión, se guardará como texto plano (.txt).</string>
+    <!-- QuickSymbolBar -->
+    <string name="qsb_undo">↩ Deshacer</string>
+    <string name="qsb_redo">↪ Rehacer</string>
+    <string name="qsb_tab">TAB</string>
+    <string name="qsb_format">✨ Formatear</string>
+    <string name="qsb_comment"># Comentar</string>
+    <string name="qsb_duplicate">+ Duplicar</string>
+    <string name="qsb_delete_line">- Borrar línea</string>
+    <!-- FilesDrawerSheet extra -->
+    <string name="files_welcome">Inicio</string>
+    <string name="storage_label_sample">Ejemplo</string>
+    <string name="storage_label_external">SAF</string>
+    <string name="storage_label_internal">Almacenamiento</string>
+    <!-- ViewModel toasts -->
+    <string name="toast_file_created">Archivo creado: %1$s</string>
+    <string name="toast_file_opened">Archivo abierto: %1$s</string>
+    <string name="toast_file_too_large">El archivo es demasiado grande (máx. 2 MB)</string>
+    <string name="toast_file_read_error">No se pudo leer el archivo</string>
+    <string name="toast_file_saved">Guardado: %1$s</string>
+    <string name="toast_file_deleted">Archivo eliminado</string>
+    <string name="toast_line_duplicated">Línea duplicada</string>
+    <string name="toast_line_deleted">Línea eliminada</string>
+    <string name="toast_go_to_line">Ir a la línea %1$d</string>
+    <string name="toast_nothing_to_format">No hay código para formatear</string>
+    <string name="toast_code_formatted">Código formateado correctamente (%1$s)</string>
+    <string name="toast_json_minified">JSON compactado correctamente</string>
+    <string name="toast_replaced">Reemplazadas %1$d coincidencias</string>
+    <string name="toast_import_empty">No se encontraron archivos de texto para importar</string>
+    <string name="toast_folder_imported">%1$s: %2$d archivos cargados</string>
+</resources>

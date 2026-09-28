@@ -60,7 +60,7 @@ sealed class Screen {
                   context.chatHistoryViewModel.createSession(backend = context.aiViewModel.backend.value)
                   context.navigator.onNavigateTo(Screen.AiChatStandalone)
                 },
-                onNavigateToCodeTools = { launchCodeEditor(androidAppContext) },
+                onNavigateToCodeEditor = { launchCodeEditor(androidAppContext) },
                 onNavigateToNewDrawing = {
                     scope.launch {
                         val noteId = context.viewModel.saveNoteAndGetId(id = 0, title = "", content = "", isEncrypted = false, tagsList = emptyList())
@@ -157,7 +157,7 @@ sealed class Screen {
                 onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
                 onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) },
                 onNavigateToAiSettings = { context.navigator.onNavigateTo(Screen.AiSettings) },
-                onNavigateToCodeTools = { launchCodeEditor(androidAppContext) }
+                onNavigateToCodeEditor = { launchCodeEditor(androidAppContext) }
             )
         }
     }

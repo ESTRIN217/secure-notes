@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -113,7 +115,7 @@ fun MainListScreen(
     onNavigateToChatHistory: () -> Unit = {},
     onLaunchNewAiChat: () -> Unit = {},
     onNavigateToNewDrawing: () -> Unit = {},
-    onNavigateToCodeTools: () -> Unit = {},
+    onNavigateToCodeEditor: () -> Unit = {},
     onImportFile: () -> Unit = {},
 ) {
     val currentSection by viewModel.currentSection.collectAsState()
@@ -658,125 +660,92 @@ fun MainListScreen(
                     },
                     floatingActionButton = {
                         if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                AnimatedVisibility(
-                                    visible = isFabExpanded,
-                                    enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        if (aiEnabled) {
-                                            SmallFloatingActionButton(
-                                                onClick = {
-                                                    isFabExpanded = false
-                                                    onLaunchNewAiChat()
-                                                },
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.testTag("fab_ai")
-                                            ) {
-                                                Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant))
-                                            }
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                showImageOptionsDialog = true
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_image")
-                                        ) {
-                                            Icon(Icons.Default.Image, contentDescription = stringResource(R.string.fab_image))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                onNavigateToNewDrawing()
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_drawing")
-                                        ) {
-                                            Icon(Icons.Default.Gesture, contentDescription = stringResource(R.string.fab_drawing))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                showAudioRecorderSheet = true
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_audio")
-                                        ) {
-                                            Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.fab_audio))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                onNavigateToEditor(0)
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_text")
-                                        ) {
-                                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.fab_text))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                onNavigateToCodeTools()
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_code_tools")
-                                        ) {
-                                            Icon(Icons.Default.Code, contentDescription = stringResource(R.string.code_tools))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                onImportFile()
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_import_file")
-                                        ) {
-                                            Icon(Icons.Default.UploadFile, contentDescription = stringResource(R.string.fab_import_file))
-                                        }
-                                        SmallFloatingActionButton(
-                                            onClick = {
-                                                isFabExpanded = false
-                                                if (com.example.util.FloatingBubbleManager.isOverlayPermissionGranted(context)) {
-                                                    com.example.util.FloatingBubbleManager.startService(context)
-                                                    Toast.makeText(context, context.getString(R.string.floating_mode_started), Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    showFloatingPermissionDialog = true
-                                                }
-                                            },
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.testTag("fab_floating_mode")
-                                        ) {
-                                            Icon(Icons.Default.Layers, contentDescription = stringResource(R.string.fab_floating_mode))
-                                        }
-                                    }
-                                }
-                                FloatingActionButton(
-                                    onClick = { isFabExpanded = !isFabExpanded },
-                                    modifier = Modifier.testTag("fab_main"),
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ) {
-                                    Icon(
-                                        imageVector = if (isFabExpanded) Icons.Default.Close else Icons.Default.Add,
-                                        contentDescription = stringResource(R.string.create_note)
-                                    )
-                                }
+                          FloatingActionButtonMenu(
+                            expanded = isFabExpanded,
+                            button = {
+                              ToggleFloatingActionButton(
+                                checked = isFabExpanded,
+                                onCheckedChange = { isFabExpanded = !isFabExpanded }
+                              ) {
+                                Icon(
+                                  if (isFabExpanded) Icons.Default.Close else Icons.Default.Add,
+                                  contentDescription = stringResource(R.string.create_note)
+                                )
+                              }
                             }
+                          ) {
+                            if (aiEnabled) {
+                              FloatingActionButtonMenuItem(
+                                onClick = {
+                                  isFabExpanded = false
+                                  onLaunchNewAiChat()
+                                },
+                                icon = { Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.ai_assistant)) },
+                                text = { Text(stringResource(R.string.ai_assistant)) }
+                              )
+                            }
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          showImageOptionsDialog = true
+                        },
+                        icon = { Icon(Icons.Default.Image, contentDescription = stringResource(R.string.fab_image)) },
+                        text = { Text(stringResource(R.string.fab_image)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          onNavigateToNewDrawing()
+                        },
+                        icon = { Icon(Icons.Default.Gesture, contentDescription = stringResource(R.string.fab_drawing)) },
+                        text = { Text(stringResource(R.string.fab_drawing)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          showAudioRecorderSheet = true
+                        },
+                        icon = { Icon(Icons.Default.Mic, contentDescription = stringResource(R.string.fab_audio)) },
+                        text = { Text(stringResource(R.string.fab_audio)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          onNavigateToEditor(0)
+                        },
+                        icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.fab_text)) },
+                        text = { Text(stringResource(R.string.fab_text)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          onNavigateToCodeEditor()
+                        },
+                        icon = { Icon(Icons.Default.Code, contentDescription = stringResource(R.string.code_editor)) },
+                        text = { Text(stringResource(R.string.code_editor)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          onImportFile()
+                        },
+                        icon = { Icon(Icons.Default.UploadFile, contentDescription = stringResource(R.string.fab_import_file)) },
+                        text = { Text(stringResource(R.string.fab_import_file)) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                          isFabExpanded = false
+                          if (com.example.util.FloatingBubbleManager.isOverlayPermissionGranted(context)) {
+                            com.example.util.FloatingBubbleManager.startService(context)
+                            Toast.makeText(context, context.getString(R.string.floating_mode_started), Toast.LENGTH_SHORT).show()
+                          } else {
+                            showFloatingPermissionDialog = true
+                          }
+                        },
+                        icon = { Icon(Icons.Default.Layers, contentDescription = stringResource(R.string.fab_floating_mode)) },
+                        text = { Text(stringResource(R.string.fab_floating_mode)) }
+                    )
+                          }
                         }
                     }
                 ) { innerPadding ->

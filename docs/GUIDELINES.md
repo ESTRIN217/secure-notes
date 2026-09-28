@@ -53,7 +53,7 @@
 ## 5. KISS (simple antes que inteligente)
 
 * App de un solo módulo (`:app` más módulos propios `:visor-pdf`, `:visor-media`,
-  `:code-tools` y el binding `:lib`); DI manual, sin framework.
+  `:editor-de-codigo` y el binding `:lib`); DI manual, sin framework.
 * `StateFlow` + `collectAsStateWithLifecycle()`; Room como única persistencia
   (sin caché separada ni ORM adicional).
 * Navegación con la jerarquía sellada `Screen` + `Navigator` y transiciones

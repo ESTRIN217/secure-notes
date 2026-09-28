@@ -47,7 +47,7 @@ fun SettingsScreen(
     onNavigateToLegalInfo: () -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
     onNavigateToAiSettings: () -> Unit = {},
-    onNavigateToCodeTools: () -> Unit = {}
+    onNavigateToCodeEditor: () -> Unit = {}
 ) {
     BackHandler(onBack = onBack)
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
@@ -118,7 +118,7 @@ fun SettingsScreen(
                     }
                     SettingsListTile(
                         leadingIcon = Icons.Default.DarkMode,
-                        title = stringResource(R.string.settings_dark_mode),
+                        title = stringResource(R.string.toggle_dark_theme),
                         subtitle = currentThemeLabel,
                         trailingIcon = Icons.Default.ChevronRight,
                         onClick = { showThemeDialog = true }
@@ -225,7 +225,7 @@ fun SettingsScreen(
                         )
                         SettingsListTile(
                             leadingIcon = Icons.Default.Tune,
-                            title = stringResource(R.string.ai_settings),
+                            title = stringResource(R.string.ai_settings_title),
                             subtitle = stringResource(R.string.ai_settings_desc),
                             trailingIcon = Icons.Default.ChevronRight,
                             onClick = onNavigateToAiSettings
@@ -266,10 +266,10 @@ fun SettingsScreen(
 
                     SettingsListTile(
                         leadingIcon = Icons.Default.Code,
-                        title = stringResource(R.string.code_tools),
-                        subtitle = stringResource(R.string.code_tools_desc),
+                        title = stringResource(R.string.code_editor),
+                        subtitle = stringResource(R.string.code_editor_desc),
                         trailingIcon = Icons.Default.ChevronRight,
-                        onClick = onNavigateToCodeTools
+                        onClick = onNavigateToCodeEditor
                     )
                 }
             }
@@ -408,7 +408,7 @@ fun ThemeDialog(
                 .padding(top = 8.dp, bottom = 48.dp)
         ) {
             Text(
-                text = stringResource(R.string.settings_dark_mode),
+                text = stringResource(R.string.toggle_dark_theme),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -560,7 +560,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flagRes = R.drawable.flag_es,
+                    flagRes = R.drawable.spanish_flag,
                     label = stringResource(R.string.settings_lang_es_es),
                     isSelected = currentLanguage == "es-ES",
                     onClick = { onLocaleSelected("es-ES"); onDismiss() }
@@ -570,7 +570,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flagRes = R.drawable.flag_br,
+                    flagRes = R.drawable.brazil_flag,
                     label = stringResource(R.string.settings_lang_pt),
                     isSelected = currentLanguage == "pt-BR",
                     onClick = { onLocaleSelected("pt-BR"); onDismiss() }
@@ -580,7 +580,7 @@ fun LanguageBottomSheet(
                     color = dividerColor
                 )
                 LanguageOption(
-                    flagRes = R.drawable.flag_pt,
+                    flagRes = R.drawable.portugal_flag,
                     label = stringResource(R.string.settings_lang_pt_pt),
                     isSelected = currentLanguage == "pt-PT",
                     onClick = { onLocaleSelected("pt-PT"); onDismiss() }

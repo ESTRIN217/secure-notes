@@ -366,17 +366,8 @@
     <string name="block_code_adjust">Adjust code</string>
     <string name="block_code_line_numbers">Line numbers</string>
     <string name="block_options">Block options</string>
-    <string name="code_tools">Code Tools</string>
-    <string name="code_tools_desc">Open and edit code or config files with syntax highlighting</string>
-    <string name="code_tools_save">Save</string>
-    <string name="code_tools_open_file">Open file</string>
-    <string name="code_tools_new_document">New document</string>
-    <string name="code_tools_share">Share</string>
-    <string name="code_tools_copied">Copied</string>
-    <string name="code_tools_saved">File saved</string>
-    <string name="code_tools_save_failed">Save failed</string>
-    <string name="code_tools_load_failed">Couldn\'t read this file</string>
-    <string name="code_tools_empty">Nothing to save</string>
+    <string name="code_editor">Code Editor</string>
+    <string name="code_editor_desc">Open and edit code or config files with syntax highlighting</string>
     <string name="settings_tools">Tools</string>
     <string name="block_file">File</string>
     <string name="block_file_desc">Attach a file</string>
@@ -457,7 +448,6 @@
     <string name="no_results_icon">No results</string>
     <string name="remove_recent_search">Remove recent search</string>
     <string name="search_icon_placeholder">Search</string>
-    <string name="dark_mode">Dark Mode</string>
     <string name="e2ee_active">End-to-End Encryption Active</string>
     <string name="security_active">Security Active</string>
     <string name="setup_credentials">Setup Credentials</string>
@@ -489,7 +479,6 @@
     <string name="sync_downloading">Downloading from Drive…</string>
     <string name="sync_restoring">Restoring notes…</string>
     <string name="toast_syncing">Syncing with Google Drive…</string>
-    <string name="toast_sync_success">Successfully synced to Google Drive!</string>
     <string name="toast_sync_auth_expired">Authentication expired. Disconnecting Drive.</string>
     <string name="toast_sync_error">Sync error: %1$s</string>
     <string name="toast_searching_backup">Searching backup file…</string>
@@ -533,7 +522,6 @@
     <string name="settings_appearance">Appearance</string>
     <string name="settings_dynamic_colors">Dynamic Colors</string>
     <string name="settings_dynamic_colors_desc">Use Material You dynamic color scheme (Android 12+)</string>
-    <string name="settings_dark_mode">Dark Mode</string>
     <string name="settings_dark_mode_system">System</string>
     <string name="settings_dark_mode_on">On</string>
     <string name="settings_dark_mode_off">Off</string>
@@ -875,7 +863,6 @@
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>
-    <string name="ai_settings">AI Settings</string>
     <string name="ai_settings_desc">Configure backend, connection, and system prompt</string>
     <string name="ai_system_prompt">System Prompt</string>
     <string name="ai_system_prompt_desc">Custom instructions sent to the AI model before each request. Overrides default prompts.</string>
@@ -1121,7 +1108,6 @@
     <!-- v4.0 Home Screen Widgets -->
     <string name="widget_single_title">Secure Note</string>
     <string name="widget_single_desc">Show a single note on your home screen</string>
-    <string name="widget_list_title">Secure Notes</string>
     <string name="widget_list_desc">Show recent notes on your home screen</string>
     <string name="widget_quick_title">Quick Note</string>
     <string name="widget_quick_desc">Create a new note with one tap</string>
@@ -1143,7 +1129,6 @@
     <string name="numbered_list">Numbered List</string>
     <string name="checklist">Checklist</string>
     <string name="quote">Quote</string>
-    <string name="code_block">Code Block</string>
     <string name="highlight">Highlight</string>
     <string name="page">Page</string>
     <string name="page_link">Page Link</string>
@@ -1227,12 +1212,9 @@
     <string name="buscar">Search</string>
     <string name="volver">Back</string>
     <string name="color_de_texto_y_fondo">Text and background color</string>
-    <string name="negrita">Bold</string>
-    <string name="italica">Italic</string>
     <string name="subrayado">Underline</string>
     <string name="tachado">Strikethrough</string>
     <string name="enlace">Link</string>
-    <string name="codigo_inline">Inline code</string>
     <string name="ecuaciones">Equations</string>
     <string name="anterior">Previous</string>
     <string name="siguiente">Next</string>
