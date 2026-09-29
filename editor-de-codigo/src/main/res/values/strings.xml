@@ -5,7 +5,6 @@
     <string name="cd_view_files">View files</string>
     <string name="mode_edit">Edit</string>
     <string name="mode_view">View</string>
-    <string name="cd_search_replace">Find and replace</string>
     <string name="format_code">Format code</string>
     <string name="save">Save</string>
     <string name="more_options">More options</string>
@@ -83,15 +82,11 @@
     <string name="topbar_search_query">Search: %1$s</string>
     <string name="cd_undo">Undo</string>
     <string name="cd_redo">Redo</string>
-    <string name="menu_undo">Undo</string>
-    <string name="menu_redo">Redo</string>
     <string name="menu_open_folder">Open folder...</string>
-    <string name="menu_welcome_page">Welcome page</string>
     <string name="snackbar_folder_no_code">No compatible code files found in the folder</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
     <string name="tabs_welcome">Welcome</string>
-    <string name="cd_open_welcome">Open welcome</string>
     <string name="cd_new_file">New file</string>
     <string name="cd_close_tab">Close tab</string>
     <string name="cd_close_welcome_tab">Close welcome tab</string>
@@ -109,7 +104,6 @@
     <!-- Empty workspace -->
     <string name="empty_workspace_title">No open tabs</string>
     <string name="empty_workspace_desc">You don\'t have any file open yet. Open the welcome page or start a new one.</string>
-    <string name="empty_open_welcome">Welcome</string>
     <string name="empty_new_file">New file</string>
     <!-- EditorDialogs extra -->
     <string name="cd_clear">Clear</string>
@@ -118,15 +112,11 @@
     <string name="new_file_detected_type">Type: %1$s (.%2$s)</string>
     <string name="new_file_extension_tip">Tip: if you don\'t add an extension, it will be saved as plain text (.txt).</string>
     <!-- QuickSymbolBar -->
-    <string name="qsb_undo">↩ Undo</string>
-    <string name="qsb_redo">↪ Redo</string>
     <string name="qsb_tab">TAB</string>
-    <string name="qsb_format">✨ Format</string>
     <string name="qsb_comment"># Comment</string>
     <string name="qsb_duplicate">+ Duplicate</string>
     <string name="qsb_delete_line">- Delete line</string>
     <!-- FilesDrawerSheet extra -->
-    <string name="files_welcome">Home</string>
     <string name="storage_label_sample">Sample</string>
     <string name="storage_label_external">SAF</string>
     <string name="storage_label_internal">Storage</string>

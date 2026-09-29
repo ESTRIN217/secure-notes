@@ -5,7 +5,6 @@
     <string name="cd_view_files">Vedi file</string>
     <string name="mode_edit">Modifica</string>
     <string name="mode_view">Vedi</string>
-    <string name="cd_search_replace">Trova e sostituisci</string>
     <string name="format_code">Formatta codice</string>
     <string name="save">Salva</string>
     <string name="more_options">Altre opzioni</string>
@@ -83,15 +82,11 @@
     <string name="topbar_search_query">Cerca: %1$s</string>
     <string name="cd_undo">Annulla</string>
     <string name="cd_redo">Ripeti</string>
-    <string name="menu_undo">Annulla</string>
-    <string name="menu_redo">Ripeti</string>
     <string name="menu_open_folder">Apri cartella...</string>
-    <string name="menu_welcome_page">Pagina iniziale</string>
     <string name="snackbar_folder_no_code">Nessun file di codice compatibile trovato nella cartella</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
     <string name="tabs_welcome">Benvenuto</string>
-    <string name="cd_open_welcome">Apri benvenuto</string>
     <string name="cd_new_file">Nuovo file</string>
     <string name="cd_close_tab">Chiudi scheda</string>
     <string name="cd_close_welcome_tab">Chiudi scheda di benvenuto</string>
@@ -109,7 +104,6 @@
     <!-- Empty workspace -->
     <string name="empty_workspace_title">Nessuna scheda aperta</string>
     <string name="empty_workspace_desc">Non hai ancora nessun file aperto. Apri la pagina iniziale o creane uno nuovo.</string>
-    <string name="empty_open_welcome">Benvenuto</string>
     <string name="empty_new_file">Nuovo file</string>
     <!-- EditorDialogs extra -->
     <string name="cd_clear">Cancella</string>
@@ -118,15 +112,11 @@
     <string name="new_file_detected_type">Tipo: %1$s (.%2$s)</string>
     <string name="new_file_extension_tip">Suggerimento: se non aggiungi un\'estensione, verrà salvato come testo semplice (.txt).</string>
     <!-- QuickSymbolBar -->
-    <string name="qsb_undo">↩ Annulla</string>
-    <string name="qsb_redo">↪ Ripeti</string>
     <string name="qsb_tab">TAB</string>
-    <string name="qsb_format">✨ Formatta</string>
     <string name="qsb_comment"># Commenta</string>
     <string name="qsb_duplicate">+ Duplica</string>
     <string name="qsb_delete_line">- Elimina riga</string>
     <!-- FilesDrawerSheet extra -->
-    <string name="files_welcome">Home</string>
     <string name="storage_label_sample">Esempio</string>
     <string name="storage_label_external">SAF</string>
     <string name="storage_label_internal">Archivio</string>

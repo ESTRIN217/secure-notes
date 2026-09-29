@@ -76,7 +76,6 @@ fun EditorTabsBar(
     onNewTab: () -> Unit,
     onSelectWelcomeTab: (() -> Unit)? = null,
     onCloseWelcomeTab: (() -> Unit)? = null,
-    onOpenWelcomeTab: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -108,7 +107,7 @@ fun EditorTabsBar(
                 VSCodeWelcomeTabItem(
                     isSelected = isWelcomeSelected,
                     theme = theme,
-                    onSelect = { onSelectWelcomeTab?.invoke() ?: onOpenWelcomeTab?.invoke() },
+                    onSelect = { onSelectWelcomeTab?.invoke() },
                     onClose = { onCloseWelcomeTab?.invoke() }
                 )
             }

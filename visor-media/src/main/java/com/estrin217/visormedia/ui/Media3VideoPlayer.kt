@@ -28,7 +28,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -56,8 +55,6 @@ fun Media3VideoPlayer(
     var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     var isPlaying by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
-    var showSpeedMenu by remember { mutableStateOf(false) }
 
     // Initialize ExoPlayer
     val exoPlayer = remember(videoUri) {

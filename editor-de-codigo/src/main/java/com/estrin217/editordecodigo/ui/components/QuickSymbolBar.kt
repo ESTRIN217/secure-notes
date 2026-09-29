@@ -44,11 +44,6 @@ fun QuickSymbolBar(
     onToggleComment: () -> Unit,
     onDuplicateLine: () -> Unit,
     onDeleteLine: () -> Unit,
-    onFormatCode: (() -> Unit)? = null,
-    onUndo: (() -> Unit)? = null,
-    onRedo: (() -> Unit)? = null,
-    canUndo: Boolean = false,
-    canRedo: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val symbols = listOf(

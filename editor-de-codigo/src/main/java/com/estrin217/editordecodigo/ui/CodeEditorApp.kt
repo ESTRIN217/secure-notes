@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Save
@@ -64,7 +63,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -546,8 +544,7 @@ fun CodeEditorApp(
                     onCloseAllTabs = { viewModel.closeAllTabs() },
                     onNewTab = { showNewFileDialog = true },
                     onSelectWelcomeTab = { viewModel.openWelcomeTab() },
-                    onCloseWelcomeTab = { viewModel.closeWelcomeTab() },
-                    onOpenWelcomeTab = { viewModel.openWelcomeTab() }
+                    onCloseWelcomeTab = { viewModel.closeWelcomeTab() }
                 )
             }
         },
@@ -641,7 +638,6 @@ fun CodeEditorApp(
                 } else {
                     EmptyWorkspaceView(
                         theme = theme,
-                        onOpenWelcome = { viewModel.openWelcomeTab() },
                         onNewFile = { showNewFileDialog = true },
                         onOpenFile = { openDocumentLauncher.launch(arrayOf("*/*")) }
                     )
@@ -656,12 +652,7 @@ fun CodeEditorApp(
                     onInsertIndent = { viewModel.insertIndentation(formatOptions.indentSize) },
                     onToggleComment = { viewModel.toggleCommentOnCurrentLine() },
                     onDuplicateLine = { viewModel.duplicateCurrentLine() },
-                    onDeleteLine = { viewModel.deleteCurrentLine() },
-                    onFormatCode = { viewModel.formatCode() },
-                    onUndo = { viewModel.undo() },
-                    onRedo = { viewModel.redo() },
-                    canUndo = canUndo,
-                    canRedo = canRedo
+                    onDeleteLine = { viewModel.deleteCurrentLine() }
                 )
             }
 
@@ -776,8 +767,7 @@ fun CodeEditorApp(
             onOpenNewFileDialog = { showNewFileDialog = true },
             onOpenFilePicker = {
                 openDocumentLauncher.launch(arrayOf("*/*"))
-            },
-            onOpenWelcomeTab = { viewModel.openWelcomeTab() }
+            }
         )
     }
 
@@ -830,7 +820,6 @@ fun CodeEditorApp(
 @Composable
 private fun EmptyWorkspaceView(
     theme: SyntaxTheme,
-    onOpenWelcome: () -> Unit,
     onNewFile: () -> Unit,
     onOpenFile: () -> Unit,
     modifier: Modifier = Modifier

@@ -69,8 +69,7 @@ fun FilesDrawerSheet(
     onSelectFile: (CodeFile) -> Unit,
     onDeleteFile: (CodeFile) -> Unit,
     onOpenNewFileDialog: () -> Unit,
-    onOpenFilePicker: () -> Unit,
-    onOpenWelcomeTab: (() -> Unit)? = null
+    onOpenFilePicker: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
 

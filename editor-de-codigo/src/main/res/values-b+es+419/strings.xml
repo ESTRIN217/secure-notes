@@ -5,7 +5,6 @@
     <string name="cd_view_files">Ver archivos</string>
     <string name="mode_edit">Editar</string>
     <string name="mode_view">Ver</string>
-    <string name="cd_search_replace">Buscar y reemplazar</string>
     <string name="format_code">Formatear código</string>
     <string name="save">Guardar</string>
     <string name="more_options">Más opciones</string>
@@ -83,15 +82,11 @@
     <string name="topbar_search_query">Buscar: %1$s</string>
     <string name="cd_undo">Deshacer</string>
     <string name="cd_redo">Rehacer</string>
-    <string name="menu_undo">Deshacer</string>
-    <string name="menu_redo">Rehacer</string>
     <string name="menu_open_folder">Abrir carpeta...</string>
-    <string name="menu_welcome_page">Página de bienvenida</string>
     <string name="snackbar_folder_no_code">No se encontraron archivos de código compatibles en la carpeta</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
     <string name="tabs_welcome">Bienvenida</string>
-    <string name="cd_open_welcome">Abrir bienvenida</string>
     <string name="cd_new_file">Nuevo archivo</string>
     <string name="cd_close_tab">Cerrar pestaña</string>
     <string name="cd_close_welcome_tab">Cerrar pestaña de bienvenida</string>
@@ -109,7 +104,6 @@
     <!-- Empty workspace -->
     <string name="empty_workspace_title">Sin pestañas abiertas</string>
     <string name="empty_workspace_desc">No tienes ningún archivo abierto por ahora. Abre la bienvenida o empieza uno nuevo.</string>
-    <string name="empty_open_welcome">Bienvenida</string>
     <string name="empty_new_file">Nuevo archivo</string>
     <!-- EditorDialogs extra -->
     <string name="cd_clear">Limpiar</string>
@@ -118,15 +112,11 @@
     <string name="new_file_detected_type">Tipo: %1$s (.%2$s)</string>
     <string name="new_file_extension_tip">Tip: si no colocas extensión, se guardará como texto plano (.txt).</string>
     <!-- QuickSymbolBar -->
-    <string name="qsb_undo">↩ Deshacer</string>
-    <string name="qsb_redo">↪ Rehacer</string>
     <string name="qsb_tab">TAB</string>
-    <string name="qsb_format">✨ Formatear</string>
     <string name="qsb_comment"># Comentar</string>
     <string name="qsb_duplicate">+ Duplicar</string>
     <string name="qsb_delete_line">- Borrar línea</string>
     <!-- FilesDrawerSheet extra -->
-    <string name="files_welcome">Inicio</string>
     <string name="storage_label_sample">Ejemplo</string>
     <string name="storage_label_external">SAF</string>
     <string name="storage_label_internal">Almacenamiento</string>
