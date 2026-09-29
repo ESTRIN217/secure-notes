@@ -26,8 +26,12 @@ dependencyResolutionManagement {
 rootProject.name = "secure-notes"
 
 include(":app")
-include(":lib")
 include(":visor-pdf")
 include(":editor-de-codigo")
 include(":visor-media")
-project(":lib").projectDir = file("/root/llama.cpp/examples/llama.android/lib")
+
+val llamaLibDir = file("/root/llama.cpp/examples/llama.android/lib")
+if (llamaLibDir.exists()) {
+    include(":lib")
+    project(":lib").projectDir = llamaLibDir
+}
