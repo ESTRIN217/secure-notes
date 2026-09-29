@@ -367,30 +367,6 @@ fun CodeEditorApp(
                             )
                         }
 
-                        // Search toggle button
-                        IconButton(
-                            onClick = { viewModel.toggleSearch() },
-                            modifier = Modifier.testTag("appbar_search_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = stringResource(R.string.cd_search_replace),
-                                tint = if (isSearchVisible) MaterialTheme.colorScheme.primary else theme.text
-                            )
-                        }
-
-                        // Format Code button
-                        IconButton(
-                            onClick = { viewModel.formatCode() },
-                            modifier = Modifier.testTag("appbar_format_code_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoFixHigh,
-                                contentDescription = stringResource(R.string.format_code),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-
                         // Save button with unsaved modifications indicator
                         val isCurrentModified = currentFile != null && dirtyFileIds.contains(currentFile?.id)
                         IconButton(
@@ -431,27 +407,6 @@ fun CodeEditorApp(
                                 onDismissRequest = { showOverflowMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_undo)) },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null) },
-                                    enabled = canUndo,
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        viewModel.undo()
-                                    },
-                                    modifier = Modifier.testTag("menu_undo")
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_redo)) },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = null) },
-                                    enabled = canRedo,
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        viewModel.redo()
-                                    },
-                                    modifier = Modifier.testTag("menu_redo")
-                                )
-                                HorizontalDivider()
-                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.menu_open_external)) },
                                     leadingIcon = { Icon(Icons.Default.FileOpen, contentDescription = null) },
                                     onClick = {
@@ -468,15 +423,6 @@ fun CodeEditorApp(
                                         openDirectoryLauncher.launch(null)
                                     },
                                     modifier = Modifier.testTag("menu_open_folder")
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_new_file)) },
-                                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        showNewFileDialog = true
-                                    },
-                                    modifier = Modifier.testTag("menu_new_file")
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.menu_jump_line)) },
@@ -575,16 +521,6 @@ fun CodeEditorApp(
                                         }
                                         context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_chooser)))
                                     }
-                                )
-                                 HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_welcome_page)) },
-                                    leadingIcon = { Icon(Icons.Default.Home, contentDescription = null) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        viewModel.openWelcomeTab()
-                                    },
-                                    modifier = Modifier.testTag("menu_open_welcome")
                                 )
                             }
                         }
@@ -946,15 +882,6 @@ private fun EmptyWorkspaceView(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
-                    onClick = onOpenWelcome,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.testTag("empty_open_welcome_btn")
-                ) {
-                    Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.empty_open_welcome), fontSize = 12.sp)
-                }
 
                 Button(
                     onClick = onNewFile,

@@ -304,47 +304,6 @@ fun Media3VideoPlayer(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-
-                // Playback speed button
-                Box {
-                    FilledTonalIconButton(
-                        onClick = { showSpeedMenu = !showSpeedMenu },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Color.Black.copy(alpha = 0.6f),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.size(38.dp)
-                    ) {
-                        Text(
-                            text = "${playbackSpeed}x",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showSpeedMenu,
-                        onDismissRequest = { showSpeedMenu = false }
-                    ) {
-                        listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = "${speed}x",
-                                        fontWeight = if (playbackSpeed == speed) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (playbackSpeed == speed) MaterialTheme.colorScheme.primary else Color.Unspecified
-                                    )
-                                },
-                                onClick = {
-                                    playbackSpeed = speed
-                                    exoPlayer.setPlaybackSpeed(speed)
-                                    showSpeedMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
             }
         }
     }

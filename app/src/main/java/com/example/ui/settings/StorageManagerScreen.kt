@@ -121,19 +121,6 @@ fun StorageManagerScreen(
                     }
                 }
 
-                if (audioFiles.isNotEmpty()) {
-                    item {
-                        SettingsSectionTitle(title = stringResource(R.string.storage_audio_files))
-                    }
-                    item {
-                        AudioFilesSection(
-                            files = audioFiles,
-                            onDelete = { files -> viewModel.deleteAudioFiles(files) },
-                            onDeleteOrphans = { viewModel.deleteOrphanAudioFiles() }
-                        )
-                    }
-                }
-
                 if (largeFiles.isNotEmpty()) {
                     item {
                         SettingsSectionTitle(

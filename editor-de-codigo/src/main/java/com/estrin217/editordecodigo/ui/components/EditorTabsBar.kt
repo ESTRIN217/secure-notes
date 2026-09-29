@@ -129,23 +129,6 @@ fun EditorTabsBar(
                 )
             }
 
-            // Quick button to reopen welcome tab if closed
-            if (!isWelcomeTabOpen && onOpenWelcomeTab != null) {
-                IconButton(
-                    onClick = onOpenWelcomeTab,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .testTag("tabs_reopen_welcome_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = stringResource(R.string.cd_open_welcome),
-                        tint = theme.lineNumber,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
             // Quick add new tab button (+) like in VS Code
             IconButton(
                 onClick = onNewTab,

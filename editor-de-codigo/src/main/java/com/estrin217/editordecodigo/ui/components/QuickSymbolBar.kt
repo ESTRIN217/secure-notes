@@ -72,27 +72,6 @@ fun QuickSymbolBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Undo button (Deshacer)
-            if (onUndo != null) {
-                SymbolActionChip(
-                    label = stringResource(R.string.qsb_undo),
-                    backgroundColor = theme.background,
-                    textColor = if (canUndo) theme.type else theme.comment.copy(alpha = 0.5f),
-                    onClick = { if (canUndo) onUndo() },
-                    testTag = "action_undo"
-                )
-            }
-
-            // Redo button (Rehacer)
-            if (onRedo != null) {
-                SymbolActionChip(
-                    label = stringResource(R.string.qsb_redo),
-                    backgroundColor = theme.background,
-                    textColor = if (canRedo) theme.type else theme.comment.copy(alpha = 0.5f),
-                    onClick = { if (canRedo) onRedo() },
-                    testTag = "action_redo"
-                )
-            }
 
             // Indent Tab button
             SymbolActionChip(
@@ -102,17 +81,6 @@ fun QuickSymbolBar(
                 onClick = onInsertIndent,
                 testTag = "symbol_tab"
             )
-
-            // Format Code button
-            if (onFormatCode != null) {
-                SymbolActionChip(
-                    label = stringResource(R.string.qsb_format),
-                    backgroundColor = theme.background,
-                    textColor = theme.type,
-                    onClick = onFormatCode,
-                    testTag = "action_format_code"
-                )
-            }
 
             // Comment line toggle
             SymbolActionChip(
