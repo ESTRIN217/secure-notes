@@ -780,7 +780,6 @@ What would you like to do?</string>
     <string name="ai_max_tokens">Max Tokens</string>
     <string name="ai_max_tokens_desc">Maximum length of generated response</string>
     <string name="ai_model_not_available">Model not available. Check your AI configuration in Settings.</string>
-    <string name="ai_ondevice_all_models">All Compatible Models</string>
     <string name="ai_ondevice_architecture">Architecture</string>
     <string name="ai_ondevice_class">Device Class</string>
     <string name="ai_ondevice_engine_note">Engine: llama.cpp via the ARM AI Chat library</string>
@@ -795,7 +794,16 @@ What would you like to do?</string>
     <string name="ai_ondevice_not_downloaded">Model not downloaded yet</string>
     <string name="ai_ondevice_oom_warning">May exceed available RAM</string>
     <string name="ai_ondevice_ram">RAM</string>
-    <string name="ai_ondevice_recommended">Recommended Model</string>
+        <string name="ai_ondevice_recommended">Recommended</string>
+    <string name="ai_ondevice_models">Models</string>
+    <string name="ai_ondevice_delete">Delete</string>
+    <string name="ai_model_source">Source</string>
+    <string name="ai_model_format">Format: %1$s</string>
+    <string name="ai_ondevice_source_note">Models are downloaded as GGUF files from huggingface.co and stored in the app\'s private folder.</string>
+    <string name="ai_ondevice_open_source">Open model page</string>
+    <string name="ai_ondevice_copy_source">Copy model link</string>
+    <string name="ai_ondevice_source_copied">Model link copied</string>
+    <string name="ai_ondevice_loaded_other">Currently loaded: %1$s</string>
     <string name="ai_ondevice_retry">Retry</string>
     <string name="ai_ondevice_status_error">Error loading model</string>
     <string name="ai_ondevice_status_ready">Model loaded and ready</string>

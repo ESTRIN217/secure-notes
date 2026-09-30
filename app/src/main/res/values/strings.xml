@@ -886,8 +886,16 @@
     <string name="ai_ondevice_loading">Loading…</string>
     <string name="ai_ondevice_retry">Retry</string>
     <string name="ai_ondevice_device_info">Device Info</string>
-    <string name="ai_ondevice_recommended">Recommended Model</string>
-    <string name="ai_ondevice_all_models">All Compatible Models</string>
+    <string name="ai_ondevice_recommended">Recommended</string>
+    <string name="ai_ondevice_models">Models</string>
+    <string name="ai_ondevice_delete">Delete</string>
+    <string name="ai_model_source">Source</string>
+    <string name="ai_model_format">Format: %1$s</string>
+    <string name="ai_ondevice_source_note">Models are downloaded as GGUF files from huggingface.co and stored in the app\'s private folder.</string>
+    <string name="ai_ondevice_open_source">Open model page</string>
+    <string name="ai_ondevice_copy_source">Copy model link</string>
+    <string name="ai_ondevice_source_copied">Model link copied</string>
+    <string name="ai_ondevice_loaded_other">Currently loaded: %1$s</string>
     <string name="ai_ondevice_ram">RAM</string>
     <string name="ai_ondevice_architecture">Architecture</string>
     <string name="ai_ondevice_class">Device Class</string>
@@ -1265,7 +1273,6 @@
     <string name="ai_download_speed_mb">%.1f MB/s</string>
     <string name="ai_download_speed_kb">%.0f KB/s</string>
     <string name="ai_download_progress">%1$sMB / %2$sMB (%3$d%%) · %4$s</string>
-    <string name="ai_model_needs_ram">%1$sMB · Needs %2$sMB RAM</string>
     <string name="ai_model_min_ram">%1$sMB · Min %2$sMB RAM</string>
 
     <!-- Licenses -->

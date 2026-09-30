@@ -820,7 +820,6 @@ Diferencia: %3$s
     <string name="ai_max_tokens">Máx. tokens</string>
     <string name="ai_max_tokens_desc">Longitud máxima de la respuesta generada</string>
     <string name="ai_model_not_available">Modelo no disponible. Verifica tu configuración de IA en Configuración.</string>
-    <string name="ai_ondevice_all_models">Todos los modelos compatibles</string>
     <string name="ai_ondevice_architecture">Arquitectura</string>
     <string name="ai_ondevice_class">Clase de dispositivo</string>
     <string name="ai_ondevice_engine_note">Motor: llama.cpp mediante la librería ARM AI Chat</string>
@@ -835,7 +834,16 @@ Diferencia: %3$s
     <string name="ai_ondevice_not_downloaded">Modelo aún no descargado</string>
     <string name="ai_ondevice_oom_warning">Puede exceder la RAM disponible</string>
     <string name="ai_ondevice_ram">RAM</string>
-    <string name="ai_ondevice_recommended">Modelo recomendado</string>
+        <string name="ai_ondevice_recommended">Recomendado</string>
+    <string name="ai_ondevice_models">Modelos</string>
+    <string name="ai_ondevice_delete">Eliminar</string>
+    <string name="ai_model_source">Fuente</string>
+    <string name="ai_model_format">Formato: %1$s</string>
+    <string name="ai_ondevice_source_note">Los modelos se descargan desde huggingface.co en formato GGUF y se guardan en la carpeta privada de la app.</string>
+    <string name="ai_ondevice_open_source">Abrir la página del modelo</string>
+    <string name="ai_ondevice_copy_source">Copiar enlace del modelo</string>
+    <string name="ai_ondevice_source_copied">Enlace del modelo copiado</string>
+    <string name="ai_ondevice_loaded_other">Cargado actualmente: %1$s</string>
     <string name="ai_ondevice_retry">Reintentar</string>
     <string name="ai_ondevice_status_error">Error al cargar modelo</string>
     <string name="ai_ondevice_status_ready">Modelo cargado y listo</string>
@@ -1011,7 +1019,6 @@ Diferencia: %3$s
     <string name="ai_err_ollama_timeout">Se agotó el tiempo de conexión. Verifica la URL y la conectividad de red.</string>
     <string name="ai_model_meta">%1$sMB · Mín %2$sMB RAM · Rec %3$sMB RAM</string>
     <string name="ai_model_min_ram">%1$sMB · Mín %2$sMB RAM</string>
-    <string name="ai_model_needs_ram">%1$sMB · Requiere %2$sMB RAM</string>
     <string name="audio">Audio</string>
     <string name="backup_err_encryption">Falló el cifrado</string>
     <string name="bookmark">Marcador</string>

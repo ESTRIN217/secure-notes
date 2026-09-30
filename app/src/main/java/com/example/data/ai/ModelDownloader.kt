@@ -75,7 +75,7 @@ class ModelDownloader(private val context: Context) {
             return@withContext
         }
 
-        val downloadUrl = "https://huggingface.co/${model.huggingFaceRepo}/resolve/main/${model.ggufFileName}"
+        val downloadUrl = model.downloadUrl
 
         try {
             _state.value = DownloadState.Downloading(0f, 0, model.fileSizeMb.toLong(), 0L)

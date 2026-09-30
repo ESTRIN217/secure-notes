@@ -779,7 +779,6 @@ O que deseja fazer?</string>
     <string name="ai_max_tokens">Máx. de tokens</string>
     <string name="ai_max_tokens_desc">Comprimento máximo da resposta gerada</string>
     <string name="ai_model_not_available">Modelo indisponível. Verifique a sua configuração de IA nas Definições.</string>
-    <string name="ai_ondevice_all_models">Todos os modelos compatíveis</string>
     <string name="ai_ondevice_architecture">Arquitetura</string>
     <string name="ai_ondevice_class">Classe do dispositivo</string>
     <string name="ai_ondevice_engine_note">Motor: llama.cpp via biblioteca ARM AI Chat</string>
@@ -794,7 +793,16 @@ O que deseja fazer?</string>
     <string name="ai_ondevice_not_downloaded">Modelo ainda não transferido</string>
     <string name="ai_ondevice_oom_warning">Pode exceder a RAM disponível</string>
     <string name="ai_ondevice_ram">RAM</string>
-    <string name="ai_ondevice_recommended">Modelo recomendado</string>
+        <string name="ai_ondevice_recommended">Recomendado</string>
+    <string name="ai_ondevice_models">Modelos</string>
+    <string name="ai_ondevice_delete">Eliminar</string>
+    <string name="ai_model_source">Origem</string>
+    <string name="ai_model_format">Formato: %1$s</string>
+    <string name="ai_ondevice_source_note">Os modelos são transferidos do huggingface.co no formato GGUF e guardados na pasta privada da app.</string>
+    <string name="ai_ondevice_open_source">Abrir a página do modelo</string>
+    <string name="ai_ondevice_copy_source">Copiar ligação do modelo</string>
+    <string name="ai_ondevice_source_copied">Ligação do modelo copiada</string>
+    <string name="ai_ondevice_loaded_other">Carregado atualmente: %1$s</string>
     <string name="ai_ondevice_retry">Tentar novamente</string>
     <string name="ai_ondevice_status_error">Erro ao carregar o modelo</string>
     <string name="ai_ondevice_status_ready">Modelo carregado e pronto</string>
@@ -1216,7 +1224,6 @@ O que deseja fazer?</string>
     <string name="ai_download_speed_mb">%.1f MB/s</string>
     <string name="ai_download_speed_kb">%.0f KB/s</string>
     <string name="ai_download_progress">%1$sMB / %2$sMB (%3$d%%) · %4$s</string>
-    <string name="ai_model_needs_ram">%1$sMB · Precisa de %2$sMB RAM</string>
     <string name="ai_model_min_ram">%1$sMB · Mín. %2$sMB RAM</string>
     <string name="license_mit_estrin">MIT — ESTRIN217</string>
     <plurals name="storage_deleted_orphans">

@@ -12,12 +12,11 @@
 - Release signing: copy `key.properties.template` → `key.properties`. Debug builds also sign with release config.
 - `app/google-services.json` required for Firebase (Google services plugin).
 - **Native AI (llama.cpp)**: uses the official Android binding from llama.cpp's `examples/llama.android/lib`
-  (`com.arm.aichat.AiChat` facade), consumed as Gradle module `:lib`. `settings.gradle.kts` points at an
-  app-private checkout: `/data/user/0/com.nullij.androidcodestudio/files/home/AndroidCSProjects/llama.cpp`
-  (commit `3dc7285b4`, locally patched: NDK 30.0.14904198, CMake 4.3.0). A second checkout exists at
-  `/storage/emulated/0/AndroidCSProjects/llama.cpp` but is NOT used by the build. Native code is built from
-  source by `:lib`'s CMake during Gradle sync — no `CMakeLists.txt` or prebuilt `.so` in this repo.
-  Build only supports `arm64-v8a`.
+  (`com.arm.aichat.AiChat` facade), consumed as Gradle module `:lib`. `settings.gradle.kts` points at
+  `/root/llama.cpp/examples/llama.android/lib` and **conditionally** does `include(":lib")` only if that
+  directory exists (`if (llamaLibDir.exists())`) — if the checkout is missing the module is silently dropped
+  and the build proceeds without native AI. Native code is compiled from source by `:lib`'s CMake during
+  Gradle sync — no `CMakeLists.txt` or prebuilt `.so` in this repo. Build only supports `arm64-v8a`.
 
 ## Tests
 
@@ -29,6 +28,11 @@
 - **Screenshot tests** (Roborazzi) output to `app/src/test/screenshots/` and require `@GraphicsMode(GraphicsMode.Mode.NATIVE)` + `@Config(sdk = [36])` (sdk = targetSdk, not compileSdk).
 - Room + Moshi use KSP — annotation processing changes require a clean build.
 - No instrumented tests (`connectedCheck`) usable without a device/emulator.
+- ⚠️ **`compileDebugUnitTestKotlin` is currently BROKEN** (as of 2026-09-30, pre-existing, unrelated to the
+  AI settings work): `PdfExporterTest.kt` calls `PdfExporter` without the now-required `context` param, and
+  `WidgetNotesTest.kt` passes args in the old `Note`→`Context` order. Kotlin compiles the whole test source
+  set at once, so **no** unit test runs until those two files are fixed. Verify with `:app:assembleDebug`
+  plus targeted checks instead.
 
 ## Architecture
 
@@ -42,7 +46,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | Data (Room) | `com.example.data.local` | `NoteDatabase.kt`, `NoteDao.kt`, `TagDao.kt` |
 | Model | `com.example.data.model` | `Note.kt` (incluye `Tag`), `DecryptedNote.kt`, `NoteContentBlock.kt`, `DataBlock.kt`, `UiState.kt`, `Attachment.kt`, `NavigationSection.kt` |
 | Encryption | `com.example.data.security` | `CipherService.kt` (interface), `EncryptionServiceImpl.kt` (AES-256/GCM), `KeyDerivation.kt` (PBKDF2, 200K iterations) |
-| AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, official llama.cpp `llama.android` binding), `ModelDownloader.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
+| AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, official llama.cpp `llama.android` binding), `OnDeviceModel.kt` (hardcoded `MODEL_CATALOG` + `filterForDevice`/`bestForDevice` + Hugging Face `sourceLabel`/`downloadUrl`/`sourcePageUrl`/`quantLabel`), `ModelDownloader.kt`, `DeviceInfo.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
 | Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `OssLicenses.kt` (lee `assets/oss-licenses.json`), `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
@@ -114,6 +118,29 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
   - Known limitation (documented-only): `maxTokens` can overshoot by up to ~user-prompt-length tokens —
     stop position double-counts user tokens (`ai_chat.cpp:447`).
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.
+- **MD3 Expressive opt-ins** (material3 `1.5.0-alpha28`):
+  - `LoadingIndicator` requires `@OptIn(ExperimentalMaterial3ExpressiveApi::class)` — `@ExperimentalMaterial3Api` alone is NOT enough.
+  - Its signature is `LoadingIndicator(modifier, color, polygons)` — there is **no `strokeWidth` param** (that is `CircularProgressIndicator`'s).
+  - `LinearWavyProgressIndicator(progress = { f }, modifier = …)` works for determinate download progress.
+  - `Surface(onClick = …)` and `ElevatedCard`/`CardDefaults.elevatedCardColors()` are `ExperimentalMaterial3Api`.
+- **AAPT2 rejects raw apostrophes** in `strings.xml` with `Invalid unicode escape sequence`. Always write `\'`
+  (e.g. `l\'application`). This fails at `mergeDebugResources`, i.e. *after* Kotlin compiles cleanly — don't
+  assume a green `compileDebugKotlin` means the resources are valid.
+- **New string keys must be added to all 9 locales** at once — a missing translation is not a build error, it
+  just falls back to `values/` at runtime.
 - **Localizations**: `values/` (en), `values-es-rVE/` (es-VE), `values-pt-rBR/` (pt-BR), `values-fr/` (fr), `values-it/` (it), `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
 - `compileSdk = 37`, `targetSdk = 36`, `minSdk = 33`.
 - Gradle 9.7.0, AGP 9.3.1, Kotlin 2.4.10.
+
+## Memoria 
+- Al empezar, lee `MEMORY.md` para conocer el estado del proyecto y las decisiones 
+tomadas. 
+- Al terminar una tarea, actualízalo: estado actual, decisiones importantes (con su 
+porqué) y errores a evitar. 
+- Mantenlo breve (máximo ~50 líneas): resume o elimina lo que ya no aporte. 
+- Si algo se convierte en una regla permanente, propón moverlo a `AGENTS.md` en lugar de 
+dejarlo en la memoria. 
+- No guardes nunca datos sensibles (claves, tokens, datos personales).
+
+## Limites
+- ✅ Siempre: actualizar `MEMORY.md` al terminar cada tarea.

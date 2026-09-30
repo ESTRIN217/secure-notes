@@ -1,9 +1,13 @@
 package com.example.ui.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,16 +20,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.ai.*
-import androidx.compose.material3.TopAppBar
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ConnectionState
 
@@ -42,17 +47,12 @@ fun AiSettingsScreen(
     val aiModelName by aiViewModel.modelName.collectAsStateWithLifecycle()
     val aiConnectionState by aiViewModel.connectionState.collectAsStateWithLifecycle()
     val systemPrompt by aiViewModel.systemPrompt.collectAsStateWithLifecycle()
-    val onDeviceState by aiViewModel.onDeviceModelState.collectAsStateWithLifecycle()
-    val downloadState by aiViewModel.downloadState.collectAsStateWithLifecycle()
-    val onDeviceLoadedInfo by aiViewModel.onDeviceLoadedModelInfo.collectAsStateWithLifecycle()
 
     var showAiBackendSheet by remember { mutableStateOf(false) }
-    var showAllModels by remember { mutableStateOf(true) }
     var editingUrl by remember(aiEndpointUrl) { mutableStateOf(aiEndpointUrl) }
     var editingModel by remember(aiModelName) { mutableStateOf(aiModelName) }
     var editingSystemPrompt by remember(systemPrompt) { mutableStateOf(systemPrompt) }
 
-    val selectedModel by aiViewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
     val deviceInfo = aiViewModel.deviceInfo
     val recommendedModels = aiViewModel.recommendedModels
     val bestModel = aiViewModel.bestModel
@@ -128,25 +128,11 @@ fun AiSettingsScreen(
 
                 if (aiBackend == AiBackend.ON_DEVICE) {
                     onDeviceDeviceInfoSection(deviceInfo)
-                    onDeviceRecommendedSection(bestModel)
-                    onDeviceAllModelsSection(
+                    onDeviceModelsSection(
+                        aiViewModel = aiViewModel,
                         models = recommendedModels,
-                        selectedModel = selectedModel,
-                        deviceInfo = deviceInfo,
-                        onSelectModel = { aiViewModel.selectOnDeviceModel(it) },
-                        isExpanded = showAllModels,
-                        onToggle = { showAllModels = !showAllModels }
-                    )
-                    onDeviceActionsSection(
-                        selectedModel = selectedModel,
-                        downloadState = downloadState,
-                        onDeviceState = onDeviceState,
-                        onDownload = { aiViewModel.downloadSelectedModel() },
-                        onCancelDownload = { aiViewModel.cancelDownload() },
-                        onDeleteModel = { aiViewModel.deleteDownloadedModel() },
-                        onLoadModel = { aiViewModel.loadSelectedModel() },
-                        onUnloadModel = { aiViewModel.unloadModel() },
-                        isModelDownloaded = { aiViewModel.isModelDownloaded(it) }
+                        bestModelId = bestModel?.id,
+                        deviceInfo = deviceInfo
                     )
                 }
 
@@ -462,290 +448,12 @@ private fun LazyListScope.onDeviceDeviceInfoSection(deviceInfo: DeviceInfo) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-    }
-}
-
-private fun LazyListScope.onDeviceRecommendedSection(bestModel: OnDeviceModel?) {
-    item {
-        SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_recommended))
-        SettingsCardGroup {
-            if (bestModel != null) {
-                RecommendedModelCard(model = bestModel)
-            } else {
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.ai_ondevice_no_compatible),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(20.dp)
+                    text = stringResource(R.string.ai_ondevice_source_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-    }
-}
-
-private fun LazyListScope.onDeviceAllModelsSection(
-    models: List<OnDeviceModel>,
-    selectedModel: OnDeviceModel?,
-    deviceInfo: DeviceInfo,
-    onSelectModel: (OnDeviceModel) -> Unit,
-    isExpanded: Boolean,
-    onToggle: () -> Unit
-) {
-    if (models.isEmpty()) return
-    item {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggle)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.ai_ondevice_all_models),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            SettingsCardGroup {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    models.forEach { model ->
-                        ModelSelectionRow(
-                            model = model,
-                            isSelected = selectedModel?.id == model.id,
-                            isCompatibleByRam = model.minRamMb <= deviceInfo.availableRamMb,
-                            onSelect = { onSelectModel(model) }
-                        )
-                        if (model != models.last()) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun LazyListScope.onDeviceActionsSection(
-    selectedModel: OnDeviceModel?,
-    downloadState: DownloadState,
-    onDeviceState: ModelState,
-    onDownload: () -> Unit,
-    onCancelDownload: () -> Unit,
-    onDeleteModel: () -> Unit,
-    onLoadModel: () -> Unit,
-    onUnloadModel: () -> Unit,
-    isModelDownloaded: (OnDeviceModel) -> Boolean
-) {
-    val selected = selectedModel ?: return
-    val downloaded = isModelDownloaded(selected)
-
-    item {
-        SettingsCardGroup {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = selected.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Storage,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(R.string.ai_model_meta, selected.fileSizeMb, selected.minRamMb, selected.recommendedRamMb),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                when (val d = downloadState) {
-                    is DownloadState.Downloading -> {
-                        LinearProgressIndicator(
-                            progress = { d.progress },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        val speedText = if (d.speedBytesPerSec >= 1_000_000) {
-                            stringResource(R.string.ai_download_speed_mb, d.speedBytesPerSec / 1_000_000.0)
-                        } else {
-                            stringResource(R.string.ai_download_speed_kb, d.speedBytesPerSec / 1_000.0)
-                        }
-                        Text(
-                            text = stringResource(R.string.ai_download_progress, d.downloadedMb, d.totalMb, (d.progress * 100).toInt(), speedText),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    is DownloadState.Completed -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ai_ondevice_download_complete),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    is DownloadState.Failed -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ai_ondevice_download_failed, d.error),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    else -> {}
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!downloaded) {
-                        Button(
-                            onClick = onDownload,
-                            enabled = downloadState !is DownloadState.Downloading,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            if (downloadState is DownloadState.Downloading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.ai_ondevice_download))
-                        }
-                        if (downloadState is DownloadState.Downloading) {
-                            OutlinedButton(onClick = onCancelDownload) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                        }
-                    } else {
-                        when (onDeviceState) {
-                            ModelState.READY -> {
-                                Button(
-                                    onClick = onUnloadModel,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    ),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.ai_ondevice_unload))
-                                }
-                            }
-                            ModelState.LOADING -> {
-                                Button(onClick = {}, enabled = false, modifier = Modifier.weight(1f)) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.ai_ondevice_loading))
-                                }
-                            }
-                            ModelState.ERROR -> {
-                                Button(onClick = onLoadModel, modifier = Modifier.weight(1f)) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.ai_ondevice_retry))
-                                }
-                            }
-                            else -> {
-                                Button(onClick = onLoadModel, modifier = Modifier.weight(1f)) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.ai_ondevice_load))
-                                }
-                            }
-                        }
-                        OutlinedButton(onClick = onDeleteModel) {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-
-                when (onDeviceState) {
-                    ModelState.READY -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ai_ondevice_status_ready),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    ModelState.ERROR -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = stringResource(R.string.ai_ondevice_status_error),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    else -> {}
-                }
             }
         }
     }
@@ -779,60 +487,432 @@ private fun DeviceInfoRow(
     }
 }
 
-@Composable
-private fun RecommendedModelCard(model: OnDeviceModel) {
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(12.dp),
-        shape = RoundedCornerShape(16.dp),
-        border = CardDefaults.outlinedCardBorder().copy(
-            width = 2.dp,
-            brush = SolidColor(MaterialTheme.colorScheme.primary)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = model.displayName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = stringResource(R.string.ai_model_needs_ram, model.fileSizeMb, model.minRamMb),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun LazyListScope.onDeviceModelsSection(
+    aiViewModel: AiViewModel,
+    models: List<OnDeviceModel>,
+    bestModelId: String?,
+    deviceInfo: DeviceInfo
+) {
+    item {
+        val selected by aiViewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
+        val downloadState by aiViewModel.downloadState.collectAsStateWithLifecycle()
+        val modelState by aiViewModel.onDeviceModelState.collectAsStateWithLifecycle()
+        val loadedInfo by aiViewModel.onDeviceLoadedModelInfo.collectAsStateWithLifecycle()
+
+        SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_models))
+        SettingsCardGroup {
+            Column(modifier = Modifier.padding(8.dp)) {
+                selected?.let { model ->
+                    SelectedModelPanel(
+                        model = model,
+                        modelState = modelState,
+                        downloadState = downloadState,
+                        loadedInfo = loadedInfo,
+                        isDownloaded = aiViewModel.isModelDownloaded(model),
+                        onDownload = { aiViewModel.downloadSelectedModel() },
+                        onCancelDownload = { aiViewModel.cancelDownload() },
+                        onDeleteModel = { aiViewModel.deleteDownloadedModel() },
+                        onLoadModel = { aiViewModel.loadSelectedModel() },
+                        onUnloadModel = { aiViewModel.unloadModel() }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+                ModelOptionsList(
+                    models = models,
+                    bestModelId = bestModelId,
+                    selectedModelId = selected?.id,
+                    availableRamMb = deviceInfo.availableRamMb,
+                    onSelect = { aiViewModel.selectOnDeviceModel(it) },
+                    isDownloaded = { aiViewModel.isModelDownloaded(it) }
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelSelectionRow(
+private fun SelectedModelPanel(
+    model: OnDeviceModel,
+    modelState: ModelState,
+    downloadState: DownloadState,
+    loadedInfo: LoadedModelInfo?,
+    isDownloaded: Boolean,
+    onDownload: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onDeleteModel: () -> Unit,
+    onLoadModel: () -> Unit,
+    onUnloadModel: () -> Unit
+) {
+    ElevatedCard(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ModelHeader(model)
+            ModelSourceRow(model)
+            DownloadStatusBlock(downloadState)
+            ModelActionButtons(
+                modelState = modelState,
+                downloadState = downloadState,
+                isDownloaded = isDownloaded,
+                onDownload = onDownload,
+                onCancelDownload = onCancelDownload,
+                onDeleteModel = onDeleteModel,
+                onLoadModel = onLoadModel,
+                onUnloadModel = onUnloadModel
+            )
+            ModelStateStatus(model = model, modelState = modelState, loadedInfo = loadedInfo)
+        }
+    }
+}
+
+@Composable
+private fun ModelHeader(model: OnDeviceModel) {
+    Column {
+        Text(
+            text = model.displayName,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Storage,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = stringResource(
+                    R.string.ai_model_meta,
+                    model.fileSizeMb,
+                    model.minRamMb,
+                    model.recommendedRamMb
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (model.quantLabel.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.ai_model_format, model.quantLabel),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelSourceRow(model: OnDeviceModel) {
+    val context = LocalContext.current
+    Surface(
+        onClick = { openExternalUrl(context, model.sourcePageUrl) },
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudDownload,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.ai_model_source),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = model.sourceLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(onClick = { copyToClipboard(context, model.sourcePageUrl) }) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = stringResource(R.string.ai_ondevice_copy_source),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.OpenInNew,
+                contentDescription = stringResource(R.string.ai_ondevice_open_source),
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DownloadStatusBlock(downloadState: DownloadState) {
+    when (downloadState) {
+        is DownloadState.Downloading -> {
+            LinearWavyProgressIndicator(
+                progress = { downloadState.progress },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = stringResource(
+                    R.string.ai_download_progress,
+                    downloadState.downloadedMb,
+                    downloadState.totalMb,
+                    (downloadState.progress * 100).toInt(),
+                    downloadSpeedLabel(downloadState.speedBytesPerSec)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        is DownloadState.Completed -> StatusHint(
+            icon = Icons.Default.CheckCircle,
+            text = stringResource(R.string.ai_ondevice_download_complete),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        is DownloadState.Failed -> StatusHint(
+            icon = Icons.Default.Error,
+            text = stringResource(R.string.ai_ondevice_download_failed, downloadState.error),
+            tint = MaterialTheme.colorScheme.error
+        )
+        DownloadState.Idle -> Unit
+    }
+}
+
+@Composable
+private fun downloadSpeedLabel(speedBytesPerSec: Long): String {
+    return if (speedBytesPerSec >= 1_000_000) {
+        stringResource(R.string.ai_download_speed_mb, speedBytesPerSec / 1_000_000.0)
+    } else {
+        stringResource(R.string.ai_download_speed_kb, speedBytesPerSec / 1_000.0)
+    }
+}
+
+@Composable
+private fun StatusHint(icon: ImageVector, text: String, tint: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = tint)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = text, style = MaterialTheme.typography.bodySmall, color = tint)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelActionButtons(
+    modelState: ModelState,
+    downloadState: DownloadState,
+    isDownloaded: Boolean,
+    onDownload: () -> Unit,
+    onCancelDownload: () -> Unit,
+    onDeleteModel: () -> Unit,
+    onLoadModel: () -> Unit,
+    onUnloadModel: () -> Unit
+) {
+    if (!isDownloaded) {
+        DownloadButtons(downloadState = downloadState, onDownload = onDownload, onCancel = onCancelDownload)
+        return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ModelLifecycleButton(
+            modelState = modelState,
+            onLoadModel = onLoadModel,
+            onUnloadModel = onUnloadModel,
+            modifier = Modifier.weight(1f)
+        )
+        FilledTonalButton(
+            onClick = onDeleteModel,
+            colors = ButtonDefaults.filledTonalButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            )
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(R.string.ai_ondevice_delete))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun DownloadButtons(downloadState: DownloadState, onDownload: () -> Unit, onCancel: () -> Unit) {
+    val downloading = downloadState is DownloadState.Downloading
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = onDownload, enabled = !downloading, modifier = Modifier.weight(1f)) {
+            if (downloading) {
+                LoadingIndicator(modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+            } else {
+                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+            Text(stringResource(R.string.ai_ondevice_download))
+        }
+        if (downloading) {
+            OutlinedButton(onClick = onCancel) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelLifecycleButton(
+    modelState: ModelState,
+    onLoadModel: () -> Unit,
+    onUnloadModel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (modelState) {
+        ModelState.READY -> UnloadButton(onUnloadModel, modifier)
+        ModelState.LOADING -> LoadingButton(modifier)
+        ModelState.ERROR -> RetryButton(onLoadModel, modifier)
+        else -> LoadButton(onLoadModel, modifier)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnloadButton(onUnloadModel: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onUnloadModel,
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+        modifier = modifier
+    ) {
+        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(stringResource(R.string.ai_ondevice_unload))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LoadingButton(modifier: Modifier = Modifier) {
+    Button(onClick = {}, enabled = false, modifier = modifier) {
+        LoadingIndicator(modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(stringResource(R.string.ai_ondevice_loading))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RetryButton(onLoadModel: () -> Unit, modifier: Modifier = Modifier) {
+    Button(onClick = onLoadModel, modifier = modifier) {
+        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(stringResource(R.string.ai_ondevice_retry))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LoadButton(onLoadModel: () -> Unit, modifier: Modifier = Modifier) {
+    Button(onClick = onLoadModel, modifier = modifier) {
+        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(stringResource(R.string.ai_ondevice_load))
+    }
+}
+
+@Composable
+private fun ModelStateStatus(model: OnDeviceModel, modelState: ModelState, loadedInfo: LoadedModelInfo?) {
+    when (modelState) {
+        ModelState.READY -> StatusHint(
+            icon = Icons.Default.CheckCircle,
+            text = stringResource(R.string.ai_ondevice_status_ready),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        ModelState.ERROR -> StatusHint(
+            icon = Icons.Default.Error,
+            text = stringResource(R.string.ai_ondevice_status_error),
+            tint = MaterialTheme.colorScheme.error
+        )
+        else -> Unit
+    }
+    val loaded = loadedInfo?.model ?: return
+    if (loaded.id == model.id) return
+    Text(
+        text = stringResource(R.string.ai_ondevice_loaded_other, loaded.displayName),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
+private fun ModelOptionsList(
+    models: List<OnDeviceModel>,
+    bestModelId: String?,
+    selectedModelId: String?,
+    availableRamMb: Long,
+    onSelect: (OnDeviceModel) -> Unit,
+    isDownloaded: (OnDeviceModel) -> Boolean
+) {
+    if (models.isEmpty()) {
+        Text(
+            text = stringResource(R.string.ai_ondevice_no_compatible),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp)
+        )
+        return
+    }
+    models.forEach { model ->
+        ModelOptionRow(
+            model = model,
+            isSelected = selectedModelId == model.id,
+            isRecommended = bestModelId == model.id,
+            isDownloaded = isDownloaded(model),
+            isRamRisk = model.minRamMb > availableRamMb,
+            onSelect = { onSelect(model) }
+        )
+        if (model != models.last()) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModelOptionRow(
     model: OnDeviceModel,
     isSelected: Boolean,
-    isCompatibleByRam: Boolean,
+    isRecommended: Boolean,
+    isDownloaded: Boolean,
+    isRamRisk: Boolean,
     onSelect: () -> Unit
 ) {
-    val statusColor = when {
-        !isCompatibleByRam -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.tertiary
-    }
+    val highlight = isSelected || isRecommended
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = isSelected, onClick = onSelect)
@@ -841,23 +921,49 @@ private fun ModelSelectionRow(
             Text(
                 text = model.displayName,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                fontWeight = if (highlight) FontWeight.SemiBold else FontWeight.Normal
             )
             Text(
                 text = stringResource(R.string.ai_model_min_ram, model.fileSizeMb, model.minRamMb),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (isRecommended) {
+                SettingsBadge(
+                    text = stringResource(R.string.ai_ondevice_recommended),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
-        if (!isCompatibleByRam) {
+        if (isDownloaded) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = stringResource(R.string.ai_ondevice_download_complete),
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+        if (isRamRisk) {
             Icon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = stringResource(R.string.ai_ondevice_oom_warning),
-                tint = statusColor,
+                tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp)
             )
         }
     }
+}
+
+private fun openExternalUrl(context: Context, url: String) {
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        .onFailure { Log.e("AiSettingsScreen", "openUrl failed: $url", it) }
+}
+
+private fun copyToClipboard(context: Context, url: String) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(ClipData.newPlainText("model_source", url))
+    Toast.makeText(context, context.getString(R.string.ai_ondevice_source_copied), Toast.LENGTH_SHORT).show()
 }
 
 @Composable

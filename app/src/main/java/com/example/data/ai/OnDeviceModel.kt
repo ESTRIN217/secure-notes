@@ -10,7 +10,29 @@ data class OnDeviceModel(
     val ggufFileName: String,
     val minApiLevel: Int = 24,
     val requiresAbi: String = "arm64-v8a"
-)
+) {
+    /** Human readable origin, e.g. `huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF`. */
+    val sourceLabel: String get() = "$HUGGING_FACE_HOST/$huggingFaceRepo"
+
+    /** Direct `.gguf` download endpoint. */
+    val downloadUrl: String get() = "$HUGGING_FACE_HOST/$huggingFaceRepo/resolve/main/$ggufFileName"
+
+    /** Model page with license / card info. */
+    val sourcePageUrl: String get() = "$HUGGING_FACE_HOST/$huggingFaceRepo/blob/main/$ggufFileName"
+
+    /** Quantization parsed out of the file name, e.g. `Q4_K_M`. */
+    val quantLabel: String get() = ggufFileName.toQuantLabel()
+}
+
+const val HUGGING_FACE_HOST = "https://huggingface.co"
+
+private val QUANT_REGEX = Regex("q(\\d(?:_[a-z0-9]+)*)\\.(?:gguf|ggml)", RegexOption.IGNORE_CASE)
+
+/** Turns `…-Q4_K_M.gguf` into `Q4_K_M`, `…-q4.gguf` into `Q4`, unknown names into an empty string. */
+private fun String.toQuantLabel(): String {
+    val suffix = QUANT_REGEX.find(this)?.groupValues?.get(1) ?: return ""
+    return "Q${suffix.uppercase()}"
+}
 
 val MODEL_CATALOG = listOf(
     // ── < 500 MB ──────────────────────────────────────

@@ -650,8 +650,16 @@ Diferencia: %3$s
     <string name="ai_ondevice_loading">Cargando…</string>
     <string name="ai_ondevice_retry">Reintentar</string>
     <string name="ai_ondevice_device_info">Información del Dispositivo</string>
-    <string name="ai_ondevice_recommended">Modelo Recomendado</string>
-    <string name="ai_ondevice_all_models">Todos los Modelos Compatibles</string>
+        <string name="ai_ondevice_recommended">Recomendado</string>
+    <string name="ai_ondevice_models">Modelos</string>
+    <string name="ai_ondevice_delete">Eliminar</string>
+    <string name="ai_model_source">Fuente</string>
+    <string name="ai_model_format">Formato: %1$s</string>
+    <string name="ai_ondevice_source_note">Los modelos se descargan desde huggingface.co en formato GGUF y se guardan en la carpeta privada de la app.</string>
+    <string name="ai_ondevice_open_source">Abrir la página del modelo</string>
+    <string name="ai_ondevice_copy_source">Copiar enlace del modelo</string>
+    <string name="ai_ondevice_source_copied">Enlace del modelo copiado</string>
+    <string name="ai_ondevice_loaded_other">Cargado actualmente: %1$s</string>
     <string name="ai_ondevice_ram">RAM</string>
     <string name="ai_ondevice_architecture">Arquitectura</string>
     <string name="ai_ondevice_class">Clase de Dispositivo</string>
@@ -906,7 +914,6 @@ Diferencia: %3$s
     <string name="ai_err_ollama_timeout">Se agotó el tiempo de conexión. Verifica la URL y la conectividad de red.</string>
     <string name="ai_model_meta">%1$sMB · Mín %2$sMB RAM · Rec %3$sMB RAM</string>
     <string name="ai_model_min_ram">%1$sMB · Mín %2$sMB RAM</string>
-    <string name="ai_model_needs_ram">%1$sMB · Requiere %2$sMB RAM</string>
     <string name="audio">Audio</string>
     <string name="backup_err_encryption">Falló el cifrado</string>
     <string name="bookmark">Marcador</string>
