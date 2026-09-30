@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.R
 import com.example.data.PreferencesRepository
 import com.example.data.ai.*
+import com.example.perf.DevicePerformanceProfile
+import com.example.util.CachedTextFormat
 import com.example.data.local.ChatSessionDao
 import com.example.data.local.ChatSessionEntity
 import com.example.data.local.ConversationDao
@@ -16,6 +18,8 @@ import com.example.data.model.Note
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,11 +54,13 @@ data class ConversationTurn(
     val id: Long = idCounter++,
     val files: List<FileAttachment> = emptyList()
 ) {
+    // Antes cada mensaje pintaba su hora con un `SimpleDateFormat` NUEVO por fila y por
+    // recomposición (y `"%.1fs".format()` allocaba un Formatter). Ahora hay cache por hilo.
     val formattedTime: String
-        get() = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
+        get() = CachedTextFormat.chatTime(timestamp)
 
     val formattedDuration: String?
-        get() = processingTimeMs?.let { "%.1fs".format(it / 1000.0) }
+        get() = processingTimeMs?.let { CachedTextFormat.seconds(it) }
 
     companion object {
         private var idCounter = 0L
@@ -97,7 +103,7 @@ class AiViewModel(
     application: Application,
     private val prefsRepository: PreferencesRepository,
     private val ollamaService: OllamaService,
-    private val onDeviceService: OnDeviceService,
+    private val aiModelHost: AiModelHost,
     private val modelDownloader: ModelDownloader,
     private val conversationDao: ConversationDao,
     private val chatSessionDao: ChatSessionDao,
@@ -233,10 +239,19 @@ class AiViewModel(
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Unknown)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    val onDeviceModelState: StateFlow<ModelState> = onDeviceService.modelState
-    val onDeviceLoadedModelInfo: StateFlow<LoadedModelInfo?> = onDeviceService.loadedModelInfo
+    val onDeviceModelState: StateFlow<ModelState> = aiModelHost.modelState
+    val onDeviceLoadedModelInfo: StateFlow<LoadedModelInfo?> = aiModelHost.loadedModelInfo
+
+    /** IDs de los modelos presentes en disco. Evita leer el sistema de archivos en la composición. */
+    private val _downloadedModelIds = MutableStateFlow<Set<String>>(emptySet())
+    val downloadedModelIds: StateFlow<Set<String>> = _downloadedModelIds.asStateFlow()
 
     val deviceInfo: DeviceInfo = DeviceInfo.detect(getApplication())
+
+    /** Perfil de hardware del proceso: define el ritmo de publicación del streaming. */
+    val performanceProfile: DevicePerformanceProfile =
+        (getApplication<Application>() as? com.example.SecureNotesApplication)?.performanceProfile
+            ?: DevicePerformanceProfile.Default
     val recommendedModels: List<OnDeviceModel> = MODEL_CATALOG.filterForDevice(deviceInfo)
     val bestModel: OnDeviceModel? = MODEL_CATALOG.bestForDevice(deviceInfo)
     val downloadState: StateFlow<DownloadState> = modelDownloader.state
@@ -263,26 +278,116 @@ class AiViewModel(
     val availableNotes: StateFlow<List<DecryptedNote>> = _availableNotes.asStateFlow()
 
     private var currentJob: Job? = null
+    private var backgroundReleaseJob: Job? = null
+    private var holdsModelRef = false
 
     init {
+        restoreSelectedOnDeviceModel()
+        aiModelHost.installLoader { service -> loadSelectedModelInto(service) }
+        refreshDownloadedModels()
+    }
+
+    /** Resuelve el modelo elegido desde prefs. NO toca el disco ni carga pesos. */
+    private fun restoreSelectedOnDeviceModel() {
         val savedPath = prefsRepository.getAiOnDeviceModelPath()
-        if (savedPath.isNotBlank()) {
-            val matching = MODEL_CATALOG.firstOrNull { model ->
-                savedPath.endsWith(model.ggufFileName)
+        if (savedPath.isBlank()) return
+        val matching = MODEL_CATALOG.firstOrNull { model -> savedPath.endsWith(model.ggufFileName) }
+        if (matching != null) _selectedOnDeviceModel.value = matching
+    }
+
+    /** Carga los pesos SOLO cuando ya se está usando la IA (nunca en el arranque de la app). */
+    private suspend fun loadSelectedModelInto(service: OnDeviceService): Result<Unit> {
+        val model = _selectedOnDeviceModel.value
+            ?: return Result.failure(IllegalStateException("no on-device model selected"))
+        val path = withContext(Dispatchers.IO) { modelDownloader.getModelPath(model) }
+            ?: return Result.failure(IllegalStateException("model file missing"))
+        return service.loadModel(path, model).onSuccess { setOnDeviceModelPath(path) }
+    }
+
+    /** Re-lee qué modelos están en disco, siempre fuera del hilo principal. */
+    fun refreshDownloadedModels() {
+        viewModelScope.launch {
+            val ids = withContext(Dispatchers.IO) {
+                MODEL_CATALOG.filter { modelDownloader.isDownloaded(it) }.map { it.id }.toSet()
             }
-            if (matching != null) {
-                _selectedOnDeviceModel.value = matching
-                if (modelDownloader.isDownloaded(matching)) {
-                    viewModelScope.launch {
-                        onDeviceService.loadModel(savedPath, matching)
-                    }
-                }
+            _downloadedModelIds.value = ids
+        }
+    }
+
+    /**
+     * Punto de entrada del modelo por parte de la UI. Se invoca al abrir el asistente o al
+     * usar una función de IA: hasta entonces no hay ni motor nativo ni pesos en memoria.
+     */
+    fun onAiSurfaceOpened() {
+        if (_backend.value != AiBackend.ON_DEVICE) return
+        // Silencioso: abrir el asistente solo precarga, no ensucia la UI con errores.
+        viewModelScope.launch { ensureOnDeviceReady(reportError = false) }
+    }
+
+    /** El usuario ya no ve el asistente: suelta la referencia (el host decide cuándo liberar). */
+    fun onAiSurfaceClosed() {
+        if (!holdsModelRef) return
+        holdsModelRef = false
+        aiModelHost.release()
+    }
+
+    /** Idempotente. Devuelve `true` si hay un modelo listo para inferir. */
+    private suspend fun ensureOnDeviceReady(reportError: Boolean = true): Boolean {
+        if (_backend.value != AiBackend.ON_DEVICE) return true
+        acquireModelRef()
+        val result = aiModelHost.ensureReady()
+        if (result.isSuccess) return true
+        val selected = _selectedOnDeviceModel.value
+        val missingOnDisk = selected != null && selected.id !in _downloadedModelIds.value
+        val message = if (missingOnDisk) {
+            getApplication<Application>().getString(R.string.ai_ondevice_not_downloaded)
+        } else {
+            result.exceptionOrNull()?.message
+                ?: getApplication<Application>().getString(R.string.ai_error_load_model)
+        }
+        if (reportError) _errorMessage.value = message
+        Log.w("AiViewModel", "on-device model not ready: $message")
+        return false
+    }
+
+    /** Referencia única al modelo: abrir el asistente 5 veces no multiplica el contador. */
+    private fun acquireModelRef() {
+        if (holdsModelRef) return
+        aiModelHost.acquire()
+        holdsModelRef = true
+    }
+
+    /** Libera los pesos cuando la app pasa a segundo plano (con rebote para no penalizar rotación). */
+    fun onAppBackgrounded() {
+        backgroundReleaseJob?.cancel()
+        backgroundReleaseJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(BACKGROUND_RELEASE_DELAY_MS)
+            val app = getApplication<Application>()
+            if (app is com.example.SecureNotesApplication && !app.hasVisibleActivity()) {
+                holdsModelRef = false
+                aiModelHost.releaseAll("background")
             }
         }
     }
 
+    fun onAppForegrounded() {
+        backgroundReleaseJob?.cancel()
+        backgroundReleaseJob = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        currentJob?.cancel()
+        backgroundReleaseJob?.cancel()
+        holdsModelRef = false
+        aiModelHost.releaseAll("viewmodel-cleared")
+    }
+
     private val currentService: AIService
-        get() = if (_backend.value == AiBackend.ON_DEVICE) onDeviceService else ollamaService
+        get() = when (_backend.value) {
+            AiBackend.ON_DEVICE -> aiModelHost.serviceOrNull() ?: NoModelService
+            AiBackend.OLLAMA -> ollamaService
+        }
 
     private fun currentModelName(): String = when (_backend.value) {
         AiBackend.OLLAMA -> _modelName.value
@@ -345,13 +450,20 @@ class AiViewModel(
         )
 
         currentJob = viewModelScope.launch {
+            if (!ensureOnDeviceReady()) {
+                _inPlaceStreamingText.value = null
+                _inPlaceProcessing.value = false
+                return@launch
+            }
             try {
                 val fullText = StringBuilder()
+                val pacer = TokenPacer(performanceProfile.frameBudgetMs)
                 currentService.executeStreaming(request).collect { token ->
                     fullText.append(token)
-                    _inPlaceStreamingText.value = fullText.toString()
+                    if (pacer.shouldPublish()) _inPlaceStreamingText.value = fullText.toString()
                 }
                 _inPlaceResult.value = fullText.toString()
+                _inPlaceStreamingText.value = null
             } catch (e: Exception) {
                 _inPlaceResult.value = null
                 _errorMessage.value = e.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_inplace)
@@ -434,6 +546,7 @@ class AiViewModel(
         val model = _selectedOnDeviceModel.value ?: return
         viewModelScope.launch {
             modelDownloader.download(model)
+            refreshDownloadedModels()
             if (modelDownloader.state.value is DownloadState.Completed) {
                 loadSelectedModel()
             }
@@ -446,35 +559,38 @@ class AiViewModel(
 
     fun deleteDownloadedModel() {
         val model = _selectedOnDeviceModel.value ?: return
-        onDeviceService.unloadModel()
+        holdsModelRef = false
+        aiModelHost.releaseAll("model-deleted")
         modelDownloader.deleteModel(model)
         modelDownloader.resetState()
+        refreshDownloadedModels()
     }
 
     fun loadSelectedModel() {
         val model = _selectedOnDeviceModel.value ?: return
-        val path = modelDownloader.getModelPath(model) ?: run {
-            _errorMessage.value = getApplication<android.app.Application>().getString(com.example.R.string.ai_ondevice_not_downloaded)
-            return
-        }
         viewModelScope.launch {
-            val result = onDeviceService.loadModel(path, model)
-            if (result.isSuccess) {
-                setOnDeviceModelPath(path)
-                _errorMessage.value = null
-            } else {
-                _errorMessage.value = result.exceptionOrNull()?.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_load_model)
+            val onDisk = withContext(Dispatchers.IO) { modelDownloader.getModelPath(model) }
+            if (onDisk == null) {
+                _errorMessage.value = getApplication<android.app.Application>().getString(com.example.R.string.ai_ondevice_not_downloaded)
+                return@launch
+            }
+            acquireModelRef()
+            val result = aiModelHost.ensureReady()
+            _errorMessage.value = if (result.isSuccess) null else {
+                result.exceptionOrNull()?.message
+                    ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_load_model)
             }
         }
     }
 
     fun unloadModel() {
-        onDeviceService.unloadModel()
+        holdsModelRef = false
+        aiModelHost.releaseAll("user-requested")
     }
 
-    fun isModelDownloaded(model: OnDeviceModel): Boolean {
-        return modelDownloader.isDownloaded(model)
-    }
+    /** Lectura desde caché reactiva: cero I/O dentro de la composición. */
+    fun isModelDownloaded(model: OnDeviceModel): Boolean =
+        _downloadedModelIds.value.contains(model.id)
 
     fun getModelPath(model: OnDeviceModel): String? {
         return modelDownloader.getModelPath(model)
@@ -752,9 +868,14 @@ class AiViewModel(
 
         val startTime = System.currentTimeMillis()
         currentJob = viewModelScope.launch {
+            if (!ensureOnDeviceReady()) {
+                _isProcessing.value = false
+                return@launch
+            }
             try {
                 var firstToken = true
                 val fullText = StringBuilder()
+                val pacer = TokenPacer(performanceProfile.frameBudgetMs)
                 currentService.executeStreaming(enrichedRequest).collect { token ->
                     if (firstToken) {
                         _conversationHistory.update { current ->
@@ -767,8 +888,10 @@ class AiViewModel(
                         firstToken = false
                     }
                     fullText.append(token)
-                    _streamingText.value = fullText.toString()
+                    if (pacer.shouldPublish()) _streamingText.value = fullText.toString()
                 }
+                // Último volcado: el throttler pudo tragarse el fragmento final.
+                _streamingText.value = fullText.toString()
                 var finalResult = fullText.toString()
                 val toolCallPrefix = "TOOL_CALLS:"
                 if (finalResult.startsWith(toolCallPrefix) && toolRegistry.isNotEmpty()) {
@@ -900,9 +1023,11 @@ class AiViewModel(
         val turns = _conversationHistory.value[sessionId] ?: return null
         if (turns.isEmpty()) return null
         val sb = StringBuilder()
-        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
         sb.appendLine("=== ${_sessionTitle.value} ===")
-        sb.appendLine(getApplication<Application>().getString(R.string.chat_export_header, dateFormat.format(java.util.Date())))
+        sb.appendLine(getApplication<Application>().getString(
+            R.string.chat_export_header,
+            com.example.util.CachedDateFormatters.exportStamp(System.currentTimeMillis())
+        ))
         sb.appendLine()
         for (turn in turns) {
             val time = turn.formattedTime
@@ -925,5 +1050,45 @@ class AiViewModel(
             Log.e("AiViewModel", "Export failed", e)
             return null
         }
+    }
+
+    private companion object {
+        /** Rebote antes de soltar los pesos: una rotación no debe tirar el modelo. */
+        const val BACKGROUND_RELEASE_DELAY_MS = 1_500L
+    }
+}
+
+/**
+ * Limita a ~1 actualización por frame las emisiones de texto del streaming.
+ *
+ * El motor puede emitir cientos de tokens por segundo; publicar cada token en un StateFlow
+ * provocaba una recomposición de la burbuja por token (texto + markdown) para pintar frames
+ * que el panel no llegó a mostrar. Ahora el ritmo lo manda el presupuesto de frame del
+ * dispositivo (16 ms a 60 Hz, 8 ms a 120 Hz).
+ */
+internal class TokenPacer(private val minIntervalMs: Long) {
+    private var lastPublishMs = 0L
+
+    fun shouldPublish(): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastPublishMs < minIntervalMs) return false
+        lastPublishMs = now
+        return true
+    }
+}
+
+/**
+ * Sustituto de OnDeviceService mientras el grafo de IA no se ha creado. Evita que una lectura
+ * accidental de `currentService` arranque el motor nativo: la creación es responsabilidad
+ * exclusiva de AiModelHost.acquire() / AiModelHost.ensureReady().
+ */
+private object NoModelService : AIService {
+    override val isAvailable: Boolean = false
+
+    override suspend fun execute(request: AiRequest): Result<String> =
+        Result.failure(IllegalStateException("on-device model not initialised"))
+
+    override suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
+        throw IllegalStateException("on-device model not initialised")
     }
 }

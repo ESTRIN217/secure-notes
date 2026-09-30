@@ -1,6 +1,8 @@
 package com.example.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.ui.platform.LocalContext
@@ -224,6 +226,8 @@ sealed class Screen {
     data class AiChat(val noteId: Int) : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
+            // Abrir el asistente es la señal explícita para materializar el modelo on-device.
+            AiSurfaceLifecycle(context)
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -243,6 +247,7 @@ sealed class Screen {
     data class AiChatSession(val sessionId: Int) : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
+            AiSurfaceLifecycle(context)
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -259,6 +264,7 @@ sealed class Screen {
     object AiChatStandalone : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
+            AiSurfaceLifecycle(context)
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -303,6 +309,19 @@ sealed class Screen {
                 onBack = { context.navigator.onNavigateBack(Screen.ChatHistory) }
             )
         }
+    }
+}
+
+/**
+ * Mantiene el modelo de IA vivo mientras el asistente está en pantalla y suelta la referencia
+ * al salir: combinado con el temporizador de inactividad del host, los pesos no se quedan en RAM
+ * "por si acaso" cuando el usuario ya no está chateando.
+ */
+@Composable
+private fun AiSurfaceLifecycle(context: ScreenContext) {
+    LaunchedEffect(Unit) { context.aiViewModel.onAiSurfaceOpened() }
+    DisposableEffect(Unit) {
+        onDispose { context.aiViewModel.onAiSurfaceClosed() }
     }
 }
 

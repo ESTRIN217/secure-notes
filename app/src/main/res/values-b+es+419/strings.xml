@@ -1178,4 +1178,5 @@ Diferencia: %3$s
     <string name="widget_empty_note">Ninguna nota seleccionada</string>
     <string name="widget_empty_list">Aún no hay notas</string>
     <string name="widget_locked_item">Bloqueado — desbloquea la app para ver</string>
+    <string name="ai_ondevice_lazy_note">El modelo se carga la primera vez que usas una función de IA y se libera automáticamente cuando la app pasa a segundo plano.</string>
 </resources>

@@ -1179,4 +1179,5 @@ Que souhaitez-vous faire ?</string>
         <item quantity="one">1 mémoire</item>
         <item quantity="other">%1$d mémoires</item>
     </plurals>
+    <string name="ai_ondevice_lazy_note">Le modèle est chargé la première fois que vous utilisez une fonction IA et libéré automatiquement lorsque l\'application passe en arrière-plan.</string>
 </resources>

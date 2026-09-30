@@ -483,7 +483,11 @@ fun SearchScreen(
                             verticalItemSpacing = 10.dp,
                             contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
-                            staggeredItems(filteredResults) { decryptedNote ->
+                            staggeredItems(
+                                items = filteredResults,
+                                key = { it.note.id },
+                                contentType = { SEARCH_RESULT_TYPE }
+                            ) { decryptedNote ->
                                 NoteCardItem(
                                     decryptedNote = decryptedNote,
                                     selected = false,
@@ -506,7 +510,11 @@ fun SearchScreen(
                                 .weight(1f),
                             contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
-                            items(filteredResults) { decryptedNote ->
+                            items(
+                                items = filteredResults,
+                                key = { it.note.id },
+                                contentType = { SEARCH_RESULT_TYPE }
+                            ) { decryptedNote ->
                                 NoteCardItem(
                                     decryptedNote = decryptedNote,
                                     selected = false,
@@ -565,3 +573,6 @@ fun SearchSuggestionChip(
         }
     }
 }
+
+// contentType estable para reutilizar el nodo de la tarjeta entre resultados de búsqueda.
+private const val SEARCH_RESULT_TYPE = 2_000

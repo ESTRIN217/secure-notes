@@ -498,6 +498,8 @@ private fun LazyListScope.onDeviceModelsSection(
         val downloadState by aiViewModel.downloadState.collectAsStateWithLifecycle()
         val modelState by aiViewModel.onDeviceModelState.collectAsStateWithLifecycle()
         val loadedInfo by aiViewModel.onDeviceLoadedModelInfo.collectAsStateWithLifecycle()
+        // Estado descargado reactivo: evita `File.exists()` por modelo y por recomposición.
+        val downloadedIds by aiViewModel.downloadedModelIds.collectAsStateWithLifecycle()
 
         SettingsSectionTitle(title = stringResource(R.string.ai_ondevice_models))
         SettingsCardGroup {
@@ -508,7 +510,7 @@ private fun LazyListScope.onDeviceModelsSection(
                         modelState = modelState,
                         downloadState = downloadState,
                         loadedInfo = loadedInfo,
-                        isDownloaded = aiViewModel.isModelDownloaded(model),
+                        isDownloaded = model.id in downloadedIds,
                         onDownload = { aiViewModel.downloadSelectedModel() },
                         onCancelDownload = { aiViewModel.cancelDownload() },
                         onDeleteModel = { aiViewModel.deleteDownloadedModel() },
@@ -526,7 +528,7 @@ private fun LazyListScope.onDeviceModelsSection(
                     selectedModelId = selected?.id,
                     availableRamMb = deviceInfo.availableRamMb,
                     onSelect = { aiViewModel.selectOnDeviceModel(it) },
-                    isDownloaded = { aiViewModel.isModelDownloaded(it) }
+                    isDownloaded = { it.id in downloadedIds }
                 )
             }
         }
@@ -560,6 +562,11 @@ private fun SelectedModelPanel(
         ) {
             ModelHeader(model)
             ModelSourceRow(model)
+            Text(
+                text = stringResource(R.string.ai_ondevice_lazy_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             DownloadStatusBlock(downloadState)
             ModelActionButtons(
                 modelState = modelState,

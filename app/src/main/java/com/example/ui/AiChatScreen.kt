@@ -330,7 +330,10 @@ fun AiChatScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
-                                items(pendingAttachments.size) { index ->
+                                items(
+                                    count = pendingAttachments.size,
+                                    contentType = { ATTACHMENT_CHIP }
+                                ) { index ->
                                     val attachment = pendingAttachments[index]
                                     InputChip(
                                         selected = false,
@@ -1231,7 +1234,10 @@ fun ChatMessageList(
     ) {
         items(
             items = conversationHistory,
-            key = { "msg_${it.id}" }
+            key = { "msg_${it.id}" },
+            // contentType por rol: los nodos de mensaje (burbuja de usuario vs de asistente)
+            // se reutilizan entre si al recorrer la lista en vez de recomponerse enteros.
+            contentType = { if (it.role == "user") USER_TURN else ASSISTANT_TURN }
         ) { turn ->
             AnimatedVisibility(
                 visible = true,
@@ -1330,7 +1336,11 @@ fun NoteAttachmentSheet(
                 }
             } else {
                 LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                    items(notes) { decryptedNote ->
+                    items(
+                        items = notes,
+                        key = { "attach_${it.note.id}" },
+                        contentType = { ATTACHMENT_ROW }
+                    ) { decryptedNote ->
                         val note = decryptedNote.note
                         Surface(
                             onClick = { onNoteSelected(decryptedNote) },
@@ -1542,3 +1552,9 @@ fun ChatHistoryDrawerContent(
         }
     }
 }
+
+// Claves de `contentType` para los listas del chat. Ints: no asignan por item.
+private const val USER_TURN = 1
+private const val ASSISTANT_TURN = 2
+private const val ATTACHMENT_ROW = 3
+private const val ATTACHMENT_CHIP = 4

@@ -921,4 +921,5 @@ What would you like to do?</string>
     <string name="floating_mode_note_saved">Note saved successfully!</string>
     <string name="floating_mode_started">Floating bubble active</string>
     <string name="fab_floating_mode">Floating bubble</string>
+    <string name="ai_ondevice_lazy_note">The model is loaded the first time you use an AI feature and freed automatically when the app goes to the background.</string>
 </resources>

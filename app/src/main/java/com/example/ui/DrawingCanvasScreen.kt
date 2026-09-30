@@ -2,6 +2,7 @@ package com.example.ui
 
 import android.util.Log
 import android.graphics.Bitmap
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
@@ -28,12 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -43,15 +42,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.Attachment
+import com.example.data.model.DecryptedNote
 import com.example.data.model.DrawingStroke
 import com.example.data.model.DrawingStrokeCodec
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.createRawContent
 import com.example.data.model.parseTags
+import com.example.perf.LocalPerformanceProfile
+import com.example.ui.drawing.StrokeGeometryCache
 import com.example.ui.viewmodel.NotesViewModel
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,22 +72,25 @@ fun DrawingCanvasScreen(
 
     val strokes = remember { mutableStateListOf<DrawingStroke>() }
     
-    // Load existing drawing if jsonPath is provided
+    // Load existing drawing if jsonPath is provided (I/O + parseo JSON fuera del hilo principal)
     LaunchedEffect(jsonPath) {
         if (!jsonPath.isNullOrEmpty()) {
-            try {
-                val file = File(jsonPath)
-                if (file.exists()) {
-                    strokes.addAll(DrawingStrokeCodec.strokesFromJson(file.readText()))
-                }
-            } catch (e: Exception) {
-                Log.e("DrawingCanvasScreen", "load drawing failed", e)
-                Toast.makeText(context, context.getString(R.string.toast_drawing_load_error), Toast.LENGTH_SHORT).show()
+            val loaded = withContext(Dispatchers.IO) {
+                runCatching {
+                    File(jsonPath).takeIf { it.exists() }
+                        ?.let { DrawingStrokeCodec.strokesFromJson(it.readText()) }
+                }.getOrNull()
             }
+            if (loaded != null) strokes.addAll(loaded)
         }
     }
     var currentPoints = remember { mutableStateListOf<Offset>() }
-    
+
+    // Geometría reutilizada entre frames: cero `Path`/`Stroke` nuevos en el hilo de dibujo.
+    val geometry = remember { StrokeGeometryCache() }
+    val useHardwareLayer = LocalPerformanceProfile.current.useHardwareLayerForDrawing
+    val canvasShape = remember { RoundedCornerShape(16.dp) }
+
     val colors = listOf(
         Color.Black,
         Color(0xFFE53935), // Red
@@ -122,124 +129,24 @@ fun DrawingCanvasScreen(
               ) {
                 Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.drawing_clear), tint = MaterialTheme.colorScheme.error)
               }
-                        IconButton(
+              IconButton(
                             onClick = {
-                                if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+                                val size = canvasSize
+                                if (size.width <= 0 || size.height <= 0) {
                                     Toast.makeText(context, context.getString(R.string.toast_drawing_empty), Toast.LENGTH_SHORT).show()
                                     return@IconButton
                                 }
-                                try {
-                                    // Render to Bitmap
-                                    val bitmap = Bitmap.createBitmap(canvasSize.width, canvasSize.height, Bitmap.Config.ARGB_8888)
-                                    val canvas = android.graphics.Canvas(bitmap)
-                                    canvas.drawColor(android.graphics.Color.WHITE)
-
-                                    val paint = android.graphics.Paint().apply {
-                                        isAntiAlias = true
-                                        style = android.graphics.Paint.Style.STROKE
-                                        strokeCap = android.graphics.Paint.Cap.ROUND
-                                        strokeJoin = android.graphics.Paint.Join.ROUND
-                                    }
-
-                                    strokes.forEach { stroke ->
-                                        paint.color = stroke.color.toArgb()
-                                        paint.strokeWidth = stroke.width
-                                        val path = android.graphics.Path()
-                                        if (stroke.points.size > 1) {
-                                            val first = stroke.points.first()
-                                            path.moveTo(first.x, first.y)
-                                            for (i in 1 until stroke.points.size) {
-                                                val pt = stroke.points[i]
-                                                path.lineTo(pt.x, pt.y)
-                                            }
-                                            canvas.drawPath(path, paint)
-                                        } else if (stroke.points.isNotEmpty()) {
-                                            val pt = stroke.points.first()
-                                            val fillPaint = android.graphics.Paint().apply {
-                                                isAntiAlias = true
-                                                style = android.graphics.Paint.Style.FILL
-                                                color = stroke.color.toArgb()
-                                            }
-                                            canvas.drawCircle(pt.x, pt.y, stroke.width / 2, fillPaint)
-                                        }
-                                    }
-
-                                    // Save to file
-                                    val directory = context.filesDir
-                                    val match = viewModel.notesList.value.find { it.note.id == noteId }
-
-                                    val jsonFile: File
-                                    val pngFile: File
-
-                                    if (!jsonPath.isNullOrEmpty() && match != null) {
-                                        val (_, currentAttachments) = parseNoteContentAndAttachments(match.content)
-                                        val existingAttachment = currentAttachments.find { it.path == jsonPath }
-                                        jsonFile = File(jsonPath)
-                                        pngFile = if (existingAttachment != null) {
-                                            File(existingAttachment.name)
-                                        } else {
-                                            File(directory, "drawing_${noteId}_${System.currentTimeMillis()}.png")
-                                        }
-                                    } else {
-                                        val timestamp = System.currentTimeMillis()
-                                        pngFile = File(directory, "drawing_${noteId}_${timestamp}.png")
-                                        jsonFile = File(directory, "drawing_${noteId}_${timestamp}.json")
-                                    }
-
-                                    pngFile.parentFile?.mkdirs()
-                                    jsonFile.parentFile?.mkdirs()
-
-                                    // Save PNG
-                                    FileOutputStream(pngFile).use { out ->
-                                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                                    }
-
-                                    // Save JSON Path Data
-                                    val strokesJson = DrawingStrokeCodec.strokesToJson(strokes.toList())
-                                    FileOutputStream(jsonFile).use { out ->
-                                        out.write(strokesJson.toByteArray())
-                                    }
-
-                                    // Update Note attachments
-                                    if (match != null) {
-                                        val (cleanText, currentAttachments) = parseNoteContentAndAttachments(match.content)
-                                        val newAttachment = Attachment(type = "drawing", path = jsonFile.absolutePath, name = pngFile.absolutePath)
-                                        val newAttachmentsList = if (!jsonPath.isNullOrEmpty()) {
-                                            val mutableList = currentAttachments.toMutableList()
-                                            val existingIdx = mutableList.indexOfFirst { it.type == "drawing" && it.path == jsonPath }
-                                            if (existingIdx >= 0) {
-                                                mutableList[existingIdx] = newAttachment
-                                            } else {
-                                                mutableList.add(newAttachment)
-                                            }
-                                            mutableList.toList()
-                                        } else {
-                                            currentAttachments + newAttachment
-                                        }
-                                        val rawContent = createRawContent(cleanText, newAttachmentsList)
-
-                                        scope.launch {
-                                            viewModel.saveNoteAndGetId(
-                                                id = noteId,
-                                                title = match.title,
-                                                content = rawContent,
-                                                isEncrypted = match.note.isEncrypted,
-                                                tagsList = match.note.parseTags(),
-                                                backgroundColor = match.note.backgroundColor,
-                                                backgroundImagePath = match.note.backgroundImagePath,
-                                                isPinned = match.note.isPinned,
-                                                isFavorite = match.note.isFavorite,
-                                                isArchived = match.note.isArchived
-                                            )
-                                            viewModel.notifyNoteExternallyUpdated(noteId)
-                                            onBack()
-                                        }
-                                    } else {
-                                        onBack()
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("DrawingCanvasScreen", "save drawing failed", e)
-                                    Toast.makeText(context, context.getString(R.string.toast_drawing_save_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+                                val snapshot = strokes.toList()
+                                scope.launch {
+                                    persistDrawing(
+                                        context = context,
+                                        viewModel = viewModel,
+                                        noteId = noteId,
+                                        jsonPath = jsonPath,
+                                        strokes = snapshot,
+                                        size = size,
+                                        onBack = onBack
+                                    )
                                 }
                             },
                             modifier = Modifier.testTag("save_canvas_btn")
@@ -256,15 +163,27 @@ fun DrawingCanvasScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
         ) {
-            // Main Drawing Area
+            // Main Drawing Area.
+            // El recorte + el contenido del lienzo viven en UNA sola GraphicsLayer: el trazo se
+            // rasteriza a texture y el resto de la pantalla no se vuelve a dibujar al pintar.
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(2.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                    .then(
+                        if (useHardwareLayer) {
+                            Modifier.graphicsLayer {
+                                shape = canvasShape
+                                clip = true
+                            }
+                        } else {
+                            Modifier.clip(canvasShape)
+                        }
+                    )
                     .background(Color.White)
+                    .border(2.dp, MaterialTheme.colorScheme.outlineVariant, canvasShape)
+                    .onSizeChanged { canvasSize = it }
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragStart = { offset ->
@@ -292,29 +211,16 @@ fun DrawingCanvasScreen(
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
-                    if (canvasSize == IntSize.Zero) {
-                        canvasSize = IntSize(size.width.toInt(), size.height.toInt())
-                    }
-
-                    // Render existing strokes
-                    strokes.forEach { stroke ->
+                    // Lectura de estado SOLO dentro de la fase de dibujo: cada punto nuevo
+                    // invalida el draw, nunca la recomposición de la pantalla.
+                    geometry.trimTo(strokes.size)
+                    var index = 0
+                    for (stroke in strokes) {
                         if (stroke.points.size > 1) {
-                            val path = Path().apply {
-                                val first = stroke.points.first()
-                                moveTo(first.x, first.y)
-                                for (i in 1 until stroke.points.size) {
-                                    val pt = stroke.points[i]
-                                    lineTo(pt.x, pt.y)
-                                }
-                            }
                             drawPath(
-                                path = path,
+                                path = geometry.pathFor(index, stroke),
                                 color = stroke.color,
-                                style = Stroke(
-                                    width = stroke.width,
-                                    cap = StrokeCap.Round,
-                                    join = StrokeJoin.Round
-                                )
+                                style = geometry.styleFor(stroke.width)
                             )
                         } else if (stroke.points.isNotEmpty()) {
                             drawCircle(
@@ -323,32 +229,21 @@ fun DrawingCanvasScreen(
                                 center = stroke.points.first()
                             )
                         }
+                        index++
                     }
 
-                    // Render active stroke
-                    if (currentPoints.size > 1) {
-                        val path = Path().apply {
-                            val first = currentPoints.first()
-                            moveTo(first.x, first.y)
-                            for (i in 1 until currentPoints.size) {
-                                val pt = currentPoints[i]
-                                lineTo(pt.x, pt.y)
-                            }
-                        }
+                    val live = currentPoints
+                    if (live.size > 1) {
                         drawPath(
-                            path = path,
+                            path = geometry.livePath(live),
                             color = selectedColor,
-                            style = Stroke(
-                                width = selectedWidth,
-                                cap = StrokeCap.Round,
-                                join = StrokeJoin.Round
-                            )
+                            style = geometry.styleFor(selectedWidth)
                         )
-                    } else if (currentPoints.isNotEmpty()) {
+                    } else if (live.isNotEmpty()) {
                         drawCircle(
                             color = selectedColor,
                             radius = selectedWidth / 2,
-                            center = currentPoints.first()
+                            center = live.first()
                         )
                     }
                 }
@@ -423,4 +318,143 @@ fun DrawingCanvasScreen(
             }
         }
     }
+}
+
+private data class DrawingOutputFiles(val pngFile: File, val jsonFile: File)
+
+/** Decide los nombres de archivo manteniendo el comportamiento previo (reutiliza el existente). */
+private fun resolveOutputFiles(
+    context: Context,
+    match: DecryptedNote?,
+    jsonPath: String?,
+    noteId: Int
+): DrawingOutputFiles {
+    val directory = context.filesDir
+    if (!jsonPath.isNullOrEmpty() && match != null) {
+        val (_, attachments) = parseNoteContentAndAttachments(match.content)
+        val existing = attachments.firstOrNull { it.path == jsonPath }
+        val png = existing?.let { File(it.name) }
+            ?: File(directory, "drawing_${noteId}_${System.currentTimeMillis()}.png")
+        return DrawingOutputFiles(png, File(jsonPath))
+    }
+    val timestamp = System.currentTimeMillis()
+    return DrawingOutputFiles(
+        File(directory, "drawing_${noteId}_${timestamp}.png"),
+        File(directory, "drawing_${noteId}_${timestamp}.json")
+    )
+}
+
+/** Rasteriza los trazos reutilizando un único Paint y un único Path por trazo. */
+private fun renderToBitmap(strokes: List<DrawingStroke>, width: Int, height: Int): Bitmap {
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+    canvas.drawColor(android.graphics.Color.WHITE)
+    val paint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        style = android.graphics.Paint.Style.STROKE
+        strokeCap = android.graphics.Paint.Cap.ROUND
+        strokeJoin = android.graphics.Paint.Join.ROUND
+    }
+    val path = android.graphics.Path()
+    for (stroke in strokes) {
+        paint.color = stroke.color.toArgb()
+        paint.strokeWidth = stroke.width
+        if (stroke.points.size > 1) {
+            path.reset()
+            val first = stroke.points.first()
+            path.moveTo(first.x, first.y)
+            for (i in 1 until stroke.points.size) {
+                val p = stroke.points[i]
+                path.lineTo(p.x, p.y)
+            }
+            canvas.drawPath(path, paint)
+        } else if (stroke.points.isNotEmpty()) {
+            val p = stroke.points.first()
+            canvas.drawCircle(p.x, p.y, stroke.width / 2, paint)
+        }
+    }
+    return bitmap
+}
+
+/** Escritura del PNG y del JSON de trazos en Dispatchers.IO, liberando el bitmap pase lo que pase. */
+private suspend fun writeDrawingFiles(
+    bitmap: Bitmap,
+    targets: DrawingOutputFiles,
+    strokes: List<DrawingStroke>
+) {
+    try {
+        withContext(Dispatchers.IO) {
+            targets.pngFile.parentFile?.mkdirs()
+            FileOutputStream(targets.pngFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            targets.jsonFile.parentFile?.mkdirs()
+            FileOutputStream(targets.jsonFile).use { it.write(DrawingStrokeCodec.strokesToJson(strokes).toByteArray()) }
+        }
+    } finally {
+        bitmap.recycle()
+    }
+}
+
+/**
+ * Rasteriza y persiste el dibujo. El bitmap se construye en `Dispatchers.Default` y los archivos
+ * se escriben en `Dispatchers.IO`: el pulsador de "guardar" ya no bloquea el frame.
+ */
+private suspend fun persistDrawing(
+    context: Context,
+    viewModel: NotesViewModel,
+    noteId: Int,
+    jsonPath: String?,
+    strokes: List<DrawingStroke>,
+    size: IntSize,
+    onBack: () -> Unit
+) {
+    try {
+        val existing = viewModel.notesList.value.find { it.note.id == noteId }
+        val targets = resolveOutputFiles(context, existing, jsonPath, noteId)
+        val bitmap = withContext(Dispatchers.Default) { renderToBitmap(strokes, size.width, size.height) }
+        writeDrawingFiles(bitmap, targets, strokes)
+        val match = existing ?: return onBack()
+        val content = mergeDrawingAttachment(match, targets, jsonPath)
+        viewModel.saveNoteAndGetId(
+            id = noteId,
+            title = match.title,
+            content = content,
+            isEncrypted = match.note.isEncrypted,
+            tagsList = match.note.parseTags(),
+            backgroundColor = match.note.backgroundColor,
+            backgroundImagePath = match.note.backgroundImagePath,
+            isPinned = match.note.isPinned,
+            isFavorite = match.note.isFavorite,
+            isArchived = match.note.isArchived
+        )
+        viewModel.notifyNoteExternallyUpdated(noteId)
+        onBack()
+    } catch (e: Exception) {
+        Log.e("DrawingCanvasScreen", "save drawing failed", e)
+        Toast.makeText(context, context.getString(R.string.toast_drawing_save_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/** Reemplaza (o añade) el adjunto de tipo "drawing" en el contenido de la nota. */
+private fun mergeDrawingAttachment(
+    match: DecryptedNote,
+    targets: DrawingOutputFiles,
+    jsonPath: String?
+): String {
+    val (cleanText, currentAttachments) = parseNoteContentAndAttachments(match.content)
+    val newAttachment = Attachment(
+        type = "drawing",
+        path = targets.jsonFile.absolutePath,
+        name = targets.pngFile.absolutePath
+    )
+    val updated = if (jsonPath.isNullOrEmpty()) {
+        currentAttachments + newAttachment
+    } else {
+        val mutable = currentAttachments.toMutableList()
+        val index = mutable.indexOfFirst { it.type == "drawing" && it.path == jsonPath }
+        if (index >= 0) mutable[index] = newAttachment else mutable.add(newAttachment)
+        mutable.toList()
+    }
+    return createRawContent(cleanText, updated)
 }

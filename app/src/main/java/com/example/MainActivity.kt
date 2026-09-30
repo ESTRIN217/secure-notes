@@ -101,9 +101,10 @@ import com.example.ui.viewmodel.ChatHistoryViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.data.ai.OllamaService
-import com.example.data.ai.OnDeviceService
 import com.example.data.ai.ModelDownloader
-import com.example.data.ai.LlamaCppEngine
+import com.example.perf.DisplayRefreshRate
+import com.example.perf.FrameMetricsMonitor
+import com.example.perf.ProvidePerformanceProfile
 
 import com.google.android.gms.common.api.Scope
 import org.json.JSONArray
@@ -143,6 +144,9 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private var notesViewModel: NotesViewModel? = null
+    private var frameMetricsMonitor: FrameMetricsMonitor? = null
+
+    private val app: SecureNotesApplication get() = application as SecureNotesApplication
 
     companion object {
         @JvmStatic
@@ -160,8 +164,16 @@ class MainActivity : FragmentActivity() {
         intentRelay?.invoke(intent)
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Tras un cambio de Activity reapuntamos al modo de máxima tasa.
+        DisplayRefreshRate.reapplyPeak(this)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        frameMetricsMonitor?.stop()
+        frameMetricsMonitor = null
         intentRelay = null
     }
 
@@ -182,6 +194,11 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Display: pide 90/120 Hz antes de crear la jerarquía de vistas.
+        DisplayRefreshRate.requestPeak(this)
+        if (BuildConfig.DEBUG) {
+            frameMetricsMonitor = FrameMetricsMonitor(window, app.performanceProfile).also { it.start() }
+        }
         val prefs = getSharedPreferences(AppConstants.PREFS_NAME, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false)) {
             window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
@@ -212,26 +229,25 @@ class MainActivity : FragmentActivity() {
                 }
             )
             val appContext = this@MainActivity.applicationContext
-            val prefsRepo = SharedPreferencesRepository(appContext)
-            val ollamaService = OllamaService(
-                context = appContext,
-                endpointUrl = prefsRepo.getAiEndpointUrl(),
-                modelName = prefsRepo.getAiModelName()
-            )
-            val modelDownloader = ModelDownloader(appContext)
-            val llamaEngine = LlamaCppEngine(context = appContext)
-            val onDeviceService = OnDeviceService(llamaEngine, appContext)
             val aiViewModel: AiViewModel = viewModel(
                 factory = object : ViewModelProvider.Factory {
                     @Suppress("UNCHECKED_CAST")
                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        // Todo el grafo de IA se construye dentro del factory: se ejecuta UNA vez
+                        // por ViewModel y no en cada recomposición del contenido de setContent.
                         val db = NoteDatabase.getDatabase(this@MainActivity.applicationContext)
+                        val prefsRepo = SharedPreferencesRepository(appContext)
+                        val ollamaService = OllamaService(
+                            context = appContext,
+                            endpointUrl = prefsRepo.getAiEndpointUrl(),
+                            modelName = prefsRepo.getAiModelName()
+                        )
                         return AiViewModel(
                             appContext as android.app.Application,
                             prefsRepo,
                             ollamaService,
-                            onDeviceService,
-                            modelDownloader,
+                            app.aiModelHost,
+                            ModelDownloader(appContext),
                             db.conversationDao,
                             db.chatSessionDao,
                             db.noteDao,
@@ -251,11 +267,13 @@ class MainActivity : FragmentActivity() {
             }
 
             MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamicColor) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppMainContent(viewModel, themeViewModel, aiViewModel)
+                ProvidePerformanceProfile(profile = app.performanceProfile) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        AppMainContent(viewModel, themeViewModel, aiViewModel)
+                    }
                 }
             }
         }
@@ -269,8 +287,13 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) {
-                viewModel.onAppBackgrounded()
+            when (event) {
+                Lifecycle.Event.ON_START -> aiViewModel.onAppForegrounded()
+                Lifecycle.Event.ON_STOP -> {
+                    viewModel.onAppBackgrounded()
+                    aiViewModel.onAppBackgrounded()
+                }
+                else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -513,7 +536,9 @@ fun NavigationRailContent(
     val isLargeScreen = widthClass != WindowWidthSizeClass.Compact
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        // Color opaco del tema en vez de `surfaceVariant.copy(alpha = 0.25f)`: evita el
+        // blending de una capa semitransparente que se repintaba en cada frame de scroll.
+        color = MaterialTheme.colorScheme.surface,
         modifier = Modifier
             .fillMaxHeight()
             .width(if (isLargeScreen) (if (isExtended) 220.dp else 72.dp) else 280.dp),
@@ -573,24 +598,27 @@ fun NavigationRailContent(
                     val isSelected = currentSection == section
                     val label = stringResource(id = labelResId)
 
-                    Card(
+                    // Un `Card` con containerColor transparente sigue dibujando su forma (overdraw
+                    // puro en los 5 items no seleccionados). Se usa Box: solo pinta si hay algo
+                    // que pintar, y el item seleccionado conserva el aspecto original.
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else Color.Transparent
+                            )
+                            .then(
+                                if (isSelected) {
+                                    Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                                } else {
+                                    Modifier
+                                }
+                            )
                             .clickable { onSectionSelected(section) }
                             .testTag("nav_rail_item_${section.name.lowercase()}"),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            } else {
-                                Color.Transparent
-                            }
-                        ),
-                        border = if (isSelected) {
-                            BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
-                        } else {
-                            null
-                        },
-                        shape = RoundedCornerShape(12.dp)
+                        contentAlignment = if (isExtended) Alignment.CenterStart else Alignment.Center
                     ) {
                         Row(
                             modifier = Modifier
@@ -634,13 +662,13 @@ fun NavigationRailContent(
 
                     val (_, chatIcon, chatLabelRes) = chatNavItem
                     val chatLabel = stringResource(id = chatLabelRes)
-                    Card(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable { onNavigateToChatHistory() }
                             .testTag("nav_rail_item_chats"),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        shape = RoundedCornerShape(12.dp)
+                        contentAlignment = if (isExtended) Alignment.CenterStart else Alignment.Center
                     ) {
                         Row(
                             modifier = Modifier

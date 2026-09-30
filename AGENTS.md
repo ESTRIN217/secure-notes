@@ -140,7 +140,38 @@ porqué) y errores a evitar.
 - Mantenlo breve (máximo ~50 líneas): resume o elimina lo que ya no aporte. 
 - Si algo se convierte en una regla permanente, propón moverlo a `AGENTS.md` en lugar de 
 dejarlo en la memoria. 
-- No guardes nunca datos sensibles (claves, tokens, datos personales).
+- No guardes nunca datos sensibles (claves, tokens, datos personales). 
+
+## Rendimiento (reglas permanentes)
+- **El motor de IA solo se materializa a través de `AiModelHost`** (`data/ai/AiModelHost.kt`,
+  propiedad de `SecureNotesApplication`). Prohibido instanciar `LlamaCppEngine` /
+  `OnDeviceService` en otro sitio: el host crea el grafo en el primer `acquire()` y solo
+  lee los pesos en `ensureReady()`. `AiViewModel` no debe volver a llamar a `loadModel()` en su
+  `init` (eso fue el bug de arranque eager que se eliminó).
+- Puntos de entrada del modelo: `onAiSurfaceOpened()` / `onAiSurfaceClosed()` (los llama
+  `Screen.render` vía `AiSurfaceLifecycle`) y `ensureOnDeviceReady()` desde `execute` /
+  `executeInPlace`. Descarga: `releaseAll()` en background, `onCleared`, "Unload" manual.
+- `onAppBackgrounded()` usa rebote de 1,5 s + `SecureNotesApplication.hasVisibleActivity()`:
+  una rotación pasa por `onStop` y NO debe tirar los pesos.
+- **Tasa de refresco**: pedir siempre con `perf/DisplayRefreshRate.requestPeak(activity)` en
+  `onCreate` y `reapplyPeak` en `onStart`. La hora de pantalla no se comparte entre Activities.
+- **Decisiones de rendering según hardware**: leer `LocalPerformanceProfile.current` ( CompositionLocal
+  `static`, `perf/DevicePerformanceProfile.kt`). No llamar a `ActivityManager`/`DisplayManager`
+  dentro de un `@Composable`.
+- **Cero allocations en la fase de dibujo**: reutilizar `Path`/`Stroke`/`Paint` con
+  `ui/drawing/StrokeGeometryCache.kt`; no escribir estado dentro del lambda de `Canvas`
+  (medir con `onSizeChanged`); no crear `SimpleDateFormat` en composición
+  (`util/CachedDateFormatters`).
+- **Listas**: toda `LazyColumn`/`LazyRow`/grid de notas lleva `key` estable **y** `contentType`;
+  sin `key`, Compose reutiliza posiciones y el scroll reordena mal.
+- **I/O**: nunca en el hilo principal: lecturas/escrituras en `Dispatchers.IO`, rasterizado de
+  bitmaps en `Dispatchers.Default`. Estado derivado del disco → `StateFlow` en el ViewModel, no
+  lectura directa desde la composición.
+- **Imágenes**: el `ImageLoader` singleton (`SecureNotesApplication`) fija tamaño de caché de
+  memoria/disco y `Precision` según el perfil; no crear `ImageLoader` por pantalla.
+- Jank: `perf/FrameMetricsMonitor` solo registra en DEBUG; para overdraw usar
+  `adb shell setprop debug.hwui.overdraw show` + GPU Profiler.
+
 
 ## Limites
 - ✅ Siempre: actualizar `MEMORY.md` al terminar cada tarea.

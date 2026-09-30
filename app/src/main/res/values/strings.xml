@@ -1277,4 +1277,5 @@
 
     <!-- Licenses -->
     <string name="license_mit_estrin">MIT — ESTRIN217</string>
+    <string name="ai_ondevice_lazy_note">The model is loaded the first time you use an AI feature and freed automatically when the app goes to the background.</string>
 </resources>

@@ -45,7 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -57,7 +57,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -78,6 +77,7 @@ import com.example.data.model.DecryptedNote
 import com.example.data.model.NavigationSection
 import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.util.CachedDateFormatters
 import com.example.util.MoveDirection
 import com.example.util.RichTextParser
 import com.example.util.SortOption
@@ -85,11 +85,9 @@ import com.example.util.borderStrokeHelper
 import com.example.util.getNoteBackgroundColor
 import com.example.util.reorderNote
 import com.example.util.swapNotes
-import kotlin.math.roundToInt
 import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.animation.core.*
@@ -188,6 +186,14 @@ fun MainListScreen(
             }
         }
         baseSorted.sortedWith(compareByDescending { it.note.isPinned })
+    }
+
+    // Índice id->título para los sub-bloques PAGE: antes cada adjunto hacía un `find` O(n)
+    // sobre todas las notas, y la lambda se recreaba en cada recomposición de cada item.
+    val pageTitleById: (Int) -> String = remember(notes) {
+        val byId = notes.associate { it.note.id to it.title }
+        val lookup: (Int) -> String = { id -> byId[id] ?: "" }
+        lookup
     }
     
     var showCreateTagDialog by remember { mutableStateOf(false) }
@@ -967,7 +973,11 @@ fun MainListScreen(
                                     verticalItemSpacing = 10.dp,
                                     contentPadding = PaddingValues(bottom = 80.dp)
                                 ) {
-                                    staggeredItems(sortedNotes) { decryptedNote ->
+                                    staggeredItems(
+                                        items = sortedNotes,
+                                        key = { it.note.id },
+                                        contentType = { noteCardContentType(it) }
+                                    ) { decryptedNote ->
                                         val isThisDragged = draggedNoteId == decryptedNote.note.id
                                         val isCustomOrderActive = (sortOption == SortOption.CUSTOM && currentSection == com.example.data.model.NavigationSection.HOME)
                                         
@@ -1032,16 +1042,20 @@ fun MainListScreen(
                                             Modifier
                                         }
 
+                                        // Un único graphicsLayer en lugar de scale+offset+zIndex:
+                                        // una sola transformacion en GPU y, al leer el estado
+                                        // dentro del bloque, el arrastre NO recompone la lista
+                                        // (solo invalida la fase de dibujo).
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .zIndex(if (isThisDragged) 10f else 1f)
-                                                .scale(if (isThisDragged) 1.06f else 1f)
-                                                .offset {
+                                                .graphicsLayer {
                                                     if (isThisDragged) {
-                                                        IntOffset(dragOffsetX.roundToInt(), dragOffsetY.roundToInt())
-                                                    } else {
-                                                        IntOffset(0, 0)
+                                                        scaleX = 1.06f
+                                                        scaleY = 1.06f
+                                                        translationX = dragOffsetX
+                                                        translationY = dragOffsetY
                                                     }
                                                 }
                                         ) {
@@ -1054,7 +1068,7 @@ fun MainListScreen(
                                                 onNavigateToDrawing = onNavigateToDrawing,
                                                 onNavigateToMediaViewer = onNavigateToMediaViewer,
                                                 onOpenMediaTab = onOpenMediaTab,
-                                                pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
+                                                pageTitleById = pageTitleById,
                                                 onMoveUp = {
                                                     reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
                                                     customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
@@ -1107,7 +1121,11 @@ fun MainListScreen(
                                     verticalArrangement = Arrangement.spacedBy(10.dp),
                                     contentPadding = PaddingValues(bottom = 80.dp)
                                 ) {
-                                    items(sortedNotes) { decryptedNote ->
+                                    items(
+                                        items = sortedNotes,
+                                        key = { it.note.id },
+                                        contentType = { noteCardContentType(it) }
+                                    ) { decryptedNote ->
                                         NoteCardItem(
                                             decryptedNote = decryptedNote,
                                             selected = selectedNoteIds.contains(decryptedNote.note.id),
@@ -1117,7 +1135,7 @@ fun MainListScreen(
                                             onNavigateToDrawing = onNavigateToDrawing,
                                             onNavigateToMediaViewer = onNavigateToMediaViewer,
                                             onOpenMediaTab = onOpenMediaTab,
-                                            pageTitleById = { id -> notes.find { it.note.id == id }?.title ?: "" },
+                                            pageTitleById = pageTitleById,
                                             onMoveUp = {
                                                 reorderNote(decryptedNote.note.id, MoveDirection.UP, sortedNotes, context)
                                                 customOrderStr = prefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: ""
@@ -1573,6 +1591,23 @@ fun MainListScreen(
     }
 }
 
+/**
+ * `contentType` estable para LazyColumn/LazyRow: permite a Compose reutilizar el nodo de
+ * composicion y el slot de dibujado entre tarjetas con la misma forma, en vez de recrearlos.
+ * El valor es un Int (autoboxing cacheado), así que ni siquiera asigna por item.
+ */
+private fun noteCardContentType(note: com.example.data.model.DecryptedNote): Int {
+    val n = note.note
+    val flags =
+        (if (n.isPinned) 1 else 0) or
+            (if (n.isEncrypted) 2 else 0) or
+            (if (n.backgroundColor != null && n.backgroundColor != 0) 4 else 0) or
+            (if (note.content.isNotEmpty()) 8 else 0)
+    return NOTE_CARD_BASE_TYPE + flags
+}
+
+private const val NOTE_CARD_BASE_TYPE = 1_000
+
 @Composable
 fun SortOptionRow(
     label: String,
@@ -1653,7 +1688,7 @@ fun NoteCardItem(
     pageTitleById: (Int) -> String = { "" }
 ) {
     val note = decryptedNote.note
-    val cleanDateStr = SimpleDateFormat("LLL dd, yyyy HH:mm", Locale.getDefault()).format(Date(note.lastModified))
+    val cleanDateStr = remember(note.lastModified) { CachedDateFormatters.noteDate(note.lastModified) }
     val pageBlockLabel = stringResource(R.string.block_page)
     
     val tagsList = remember(note.tagsJson) { note.parseTags() }

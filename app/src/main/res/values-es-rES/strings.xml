@@ -1177,4 +1177,5 @@ Diferencia: %3$s
         <item quantity="one">1 recuerdo</item>
         <item quantity="other">%1$d recuerdos</item>
     </plurals>
+    <string name="ai_ondevice_lazy_note">El modelo se carga la primera vez que usas una función de IA y se libera automáticamente cuando la app pasa a segundo plano.</string>
 </resources>

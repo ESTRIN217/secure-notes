@@ -87,7 +87,11 @@ fun PageLinkNotePickerSheet(
                 }
             } else {
                 LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                    items(filteredNotes) { decryptedNote ->
+                    items(
+                        items = filteredNotes,
+                        key = { it.note.id },
+                        contentType = { NOTE_PICKER_ROW }
+                    ) { decryptedNote ->
                         val note = decryptedNote.note
                         Surface(
                             onClick = { onNoteSelected(note.id) },
@@ -129,3 +133,5 @@ fun PageLinkNotePickerSheet(
         }
     }
 }
+
+private const val NOTE_PICKER_ROW = 3_000
