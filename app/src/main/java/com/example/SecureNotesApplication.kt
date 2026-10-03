@@ -15,6 +15,7 @@ import coil3.svg.SvgDecoder
 import com.example.data.ai.AiModelHost
 import com.example.perf.DevicePerformanceProfile
 import java.util.concurrent.atomic.AtomicInteger
+import okio.Path.Companion.toOkioPath
 
 /**
  * Contenedor de dependencias de alcance "proceso".
@@ -54,10 +55,13 @@ class SecureNotesApplication : Application(), SingletonImageLoader.Factory {
                     .strongReferencesEnabled(true)
                     .build()
             }
-            // Directorio por defecto de Coil (cacheDir/image_cache); solo limitamos el tamaño
-            // para no dejar que la caché de disco crezca sin límite.
+            // OBLIGATORIO .directory(): DiskCache.Builder.build() hace checkNotNull(directory),
+            // y Coil solo aplica su directorio por defecto si NO le pasas una factory diskCache.
+            // Sin esto la caché se resuelve perezosamente en la primera petición y revienta con
+            // IllegalStateException("directory == null"): sin crash, pero ninguna imagen carga.
             .diskCache {
                 DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache").toOkioPath())
                     .maxSizeBytes(profile.imageDiskCacheBytes)
                     .build()
             }

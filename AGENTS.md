@@ -169,6 +169,10 @@ dejarlo en la memoria.
   lectura directa desde la composición.
 - **Imágenes**: el `ImageLoader` singleton (`SecureNotesApplication`) fija tamaño de caché de
   memoria/disco y `Precision` según el perfil; no crear `ImageLoader` por pantalla.
+  Si se le pasa una factory `diskCache` a Coil, `.directory(...)` es **obligatorio**
+  (`DiskCache.Builder.build()` hace `checkNotNull(directory)` y Coil solo aplica su directorio
+  por defecto si NO le pasas factory). Como la caché se resuelve en un `Lazy`, el fallo sale en
+  la primera petición: **no hay crash, las imágenes simplemente no cargan**.
 - Jank: `perf/FrameMetricsMonitor` solo registra en DEBUG; para overdraw usar
   `adb shell setprop debug.hwui.overdraw show` + GPU Profiler.
 
