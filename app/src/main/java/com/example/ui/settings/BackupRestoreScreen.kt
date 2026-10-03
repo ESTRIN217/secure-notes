@@ -548,7 +548,6 @@ fun EncryptionSection(
                 }
             }
 
-            if (isPasswordSet && encryptBackups) {
                 SettingsSwitchTile(
                     title = stringResource(R.string.backup_auto_title),
                     subtitle = stringResource(R.string.backup_auto_desc),
@@ -556,9 +555,8 @@ fun EncryptionSection(
                     checked = autoBackupEnabled,
                     onCheckedChange = onAutoBackupEnabledChange
                 )
-            }
 
-            if (isPasswordSet && encryptBackups && autoBackupEnabled) {
+            if (autoBackupEnabled) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

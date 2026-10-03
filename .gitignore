@@ -1,7 +1,6 @@
 *.iml
 .gradle
 .kotlin
-.opencode
 /local.properties
 /.idea/caches
 /.idea/libraries

@@ -1,5 +1,8 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,8 +13,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,14 +41,19 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -56,7 +67,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -65,6 +78,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
@@ -78,21 +92,27 @@ import kotlin.math.roundToInt
 
 private data class FocusedCell(val row: Int, val col: Int)
 
-private data class BgOption(val hex: String?, val label: String)
-
-private val BG_OPTIONS = listOf(
-    BgOption(null, "None"),
-    BgOption("FFF8E1", "Cream"),
-    BgOption("E3F2FD", "Blue"),
-    BgOption("E8F5E9", "Green"),
-    BgOption("FCE4EC", "Pink"),
-    BgOption("FFF3E0", "Orange"),
-    BgOption("EDE7F6", "Purple")
+// Solo el hex: la etiqueta no se pintaba en ninguna parte y quedaba hardcodeada
+// en inglés. El swatch ya se explica solo con el color.
+private val BG_OPTIONS = listOf<String?>(
+    null,
+    "FFF8E1",
+    "E3F2FD",
+    "E8F5E9",
+    "FCE4EC",
+    "FFF3E0",
+    "EDE7F6"
 )
 
-private val TableBorderIdle = Color(0xFFE5E7EB)
-private val TableBorderActive = Color(0xFF2563EB)
-private val TableHighlightBg = Color(0x142563EB)
+// Tokens MD3 en vez de literales: los colores fijos rompían el tema oscuro.
+private val TableHighlightBgAlpha = 0.08f
+private val TableDropAlpha = 0.12f
+private val TableHeaderAlpha = 0.25f
+private val TableRowActiveAlpha = 0.06f
+
+// Ancho del gutter de los handles de fila. No se resta al ancho de columnas: la
+// capa del gutter se superpone al borde izquierdo del Card.
+private val TableGutterWidth = 32.dp
 
 private val LINK_REGEX = Regex("(https?|note)://")
 
@@ -116,12 +136,27 @@ private fun parseHex(hex: String?): Color? {
 private fun String.hex(): String = trim().removePrefix("#")
 
 
-private fun keyMoveDirection(key: Key): Pair<Int, Int>? = when (key) {
-    Key.DirectionDown, Key.Enter -> Pair(1, 0)
-    Key.DirectionUp -> Pair(-1, 0)
-    Key.DirectionRight, Key.Tab -> Pair(0, 1)
-    Key.DirectionLeft -> Pair(0, -1)
-    else -> null
+// Colapsa una selección al nuevo largo del texto, preservando el rango.
+private fun TextRange.clampedTo(length: Int): TextRange {
+    val s = start.coerceIn(0, length)
+    return TextRange(s, end.coerceIn(s, length))
+}
+
+// Solo se cambia de celda cuando la pulsación no puede tener otro significado
+// dentro del campo: con texto seleccionado o el cursor a media celda, las
+// flechas las gestiona el propio campo (mover cursor, seleccionar con Shift).
+private fun cellMoveFor(event: KeyEvent, selection: TextRange, textLength: Int): Pair<Int, Int>? {
+    if (event.type != KeyEventType.KeyDown) return null
+    return when (event.key) {
+        // En un campo singleLine arriba/abajo no tienen uso nativo: navegación tipo hoja de cálculo.
+        Key.DirectionDown -> Pair(1, 0)
+        Key.DirectionUp -> Pair(-1, 0)
+        Key.Enter -> if (selection.collapsed) Pair(1, 0) else null
+        Key.Tab -> Pair(0, if (event.isShiftPressed) -1 else 1)
+        Key.DirectionRight -> if (selection.collapsed && selection.start >= textLength) Pair(0, 1) else null
+        Key.DirectionLeft -> if (selection.collapsed && selection.start <= 0) Pair(0, -1) else null
+        else -> null
+    }
 }
 
 // ============ 1. STATE HOLDER (SRP) ============
@@ -136,6 +171,10 @@ class TableBlockState(initialData: TableData) {
     var showHeader by mutableStateOf(initialData.showHeader)
     var showHeaderColumn by mutableStateOf(initialData.showHeaderColumn)
     private var focusedCell by mutableStateOf<FocusedCell?>(null)
+    // El foco se rastrea a nivel de tabla (no de celda): al pasar de una celda a
+    // otra, el blur de la anterior y el focus de la nueva llegan en orden
+    // indeterminado, y limpiar la celda en el blur borraba el estado de golpe.
+    private var tableFocused by mutableStateOf(false)
     var selectedRow by mutableStateOf<Int?>(null)
     var showRowMenu by mutableStateOf(false)
     var showColMenu by mutableStateOf(false)
@@ -144,6 +183,7 @@ class TableBlockState(initialData: TableData) {
     var dragCol by mutableStateOf<Int?>(null)
     var dragColTarget by mutableStateOf<Int?>(null)
     var rowHeightPx by mutableStateOf(48f)
+    var headerHeightPx by mutableStateOf(44f)
 
     val focusRequesters = mutableMapOf<Pair<Int, Int>, FocusRequester>()
 
@@ -178,11 +218,13 @@ class TableBlockState(initialData: TableData) {
     val focusedCol: Int?
         get() = focusedCell?.col
     val hasFocus: Boolean
-        get() = focusedCell != null
-    val activeCol: Int?
-        get() = focusedCol
-    val activeRow: Int?
-        get() = selectedRow ?: focusedRow
+        get() = tableFocused
+    // Con los "+" fuera, la hoja de opciones es la única vía para añadir o
+    // quitar filas y columnas: siempre cae en un destino válido.
+    val activeCol: Int
+        get() = (focusedCol ?: 0).coerceIn(0, (columnCount - 1).coerceAtLeast(0))
+    val activeRow: Int
+        get() = (selectedRow ?: focusedRow ?: 0).coerceIn(0, (rows.size - 1).coerceAtLeast(0))
 
     fun cellWeight(col: Int): Float = weights.getOrElse(col) { 1f }.coerceAtLeast(0.1f)
 
@@ -200,32 +242,29 @@ class TableBlockState(initialData: TableData) {
     }
 
     // --- Mutadores ---
+    fun setTableFocus(focused: Boolean) {
+        tableFocused = focused
+        if (!focused) selectedRow = null
+    }
+
     fun setHeader(col: Int, value: String) {
         if (col !in headers.indices) return
         headers[col] = value
         notifyChange()
     }
 
+    // focusedCell es memoria de "última celda tocada": nunca se anula al perder
+    // el foco, solo alimenta las acciones contextuales de la hoja.
     fun selectHeaderCell(col: Int, focused: Boolean) {
-        if (focused) {
-            focusedCell = FocusedCell(-1, col)
-            selectedRow = null
-        } else if (focusedCell == FocusedCell(-1, col)) {
-            focusedCell = null
-        }
+        if (focused) focusedCell = FocusedCell(-1, col)
     }
 
     fun selectCell(rowIndex: Int, col: Int, focused: Boolean) {
-        if (focused) {
-            focusedCell = FocusedCell(rowIndex, col)
-        } else if (focusedCell == FocusedCell(rowIndex, col)) {
-            focusedCell = null
-        }
+        if (focused) focusedCell = FocusedCell(rowIndex, col)
     }
 
     fun selectRow(rowIndex: Int) {
         selectedRow = rowIndex
-        focusedCell = null
     }
 
     fun setCellValue(rowIndex: Int, col: Int, value: String) {
@@ -241,14 +280,12 @@ class TableBlockState(initialData: TableData) {
     fun insertRowAbove(rowIndex: Int) {
         rows.add(rowIndex.coerceIn(0, rows.size), MutableList(columnCount) { "" })
         selectedRow = rowIndex.coerceIn(0, rows.size - 1)
-        focusedCell = null
         notifyChange()
     }
 
     fun insertRowBelow(rowIndex: Int) {
         rows.add((rowIndex + 1).coerceIn(0, rows.size), MutableList(columnCount) { "" })
         selectedRow = (rowIndex + 1).coerceIn(0, rows.size - 1)
-        focusedCell = null
         notifyChange()
     }
 
@@ -256,8 +293,6 @@ class TableBlockState(initialData: TableData) {
         if (rows.size > 1) {
             rows.removeAt(rowIndex.coerceIn(0, rows.lastIndex))
             selectedRow = null
-            focusedCell = null
-            clearFocusRequesters() // Garantiza que no existan referencias corruptas
             notifyChange()
         }
     }
@@ -266,7 +301,6 @@ class TableBlockState(initialData: TableData) {
         headers.add(colIndex.coerceIn(0, headers.size), "")
         rows.forEach { it.add(colIndex.coerceIn(0, it.size), "") }
         if (colIndex in weights.indices) weights.add(colIndex, 1f) else weights.add(1f)
-        focusedCell = null
         selectedRow = null
         notifyChange()
     }
@@ -275,7 +309,6 @@ class TableBlockState(initialData: TableData) {
         headers.add((colIndex + 1).coerceIn(0, headers.size), "")
         rows.forEach { it.add((colIndex + 1).coerceIn(0, it.size), "") }
         weights.add((colIndex + 1).coerceIn(0, weights.size), 1f)
-        focusedCell = null
         selectedRow = null
         notifyChange()
     }
@@ -285,24 +318,16 @@ class TableBlockState(initialData: TableData) {
             if (colIndex < headers.size) headers.removeAt(colIndex)
             rows.forEach { if (colIndex < it.size) it.removeAt(colIndex) }
             if (colIndex < weights.size) weights.removeAt(colIndex)
-            focusedCell = null
             selectedRow = null
-            clearFocusRequesters() // Limpia el mapa para regenerar posiciones
             notifyChange()
         }
     }
-    
 
-    private fun clearFocusRequesters() {
-        focusRequesters.clear()
-    }
-    
     fun moveRow(from: Int, to: Int) {
         if (from == to || from !in rows.indices || to !in rows.indices) return
         val item = rows.removeAt(from)
         rows.add(to, item)
         selectedRow = to
-        focusedCell = null
         notifyChange()
     }
 
@@ -313,7 +338,6 @@ class TableBlockState(initialData: TableData) {
         rows.forEach { row -> if (from < row.size) { val c = row.removeAt(from); row.add(to, c) } }
         val w = weights.removeAt(from)
         weights.add(to, w)
-        focusedCell = null
         selectedRow = null
         notifyChange()
     }
@@ -337,12 +361,6 @@ class TableBlockState(initialData: TableData) {
     fun adjustColumnWidth(col: Int, delta: Float, colUnitPx: Float) {
         if (col !in weights.indices) return
         weights[col] = (cellWeight(col) + delta / colUnitPx.coerceAtLeast(1f)).coerceIn(0.1f, 6f)
-        notifyChange()
-    }
-
-    fun adjustRowWidth(col: Int, delta: Float) {
-        if (col !in weights.indices) return
-        weights[col] = (cellWeight(col) + delta / 24f / columnCount.coerceAtLeast(1)).coerceIn(0.1f, 6f)
         notifyChange()
     }
 
@@ -379,6 +397,7 @@ class TableBlockState(initialData: TableData) {
     fun moveFocus(dRow: Int, dCol: Int) {
         val cur = focusedCell ?: return
         if (columnCount == 0) return
+        selectedRow = null
         val newRow = when {
             cur.row < 0 -> if (dRow < 0) -1 else 0
             else -> (cur.row + dRow).coerceIn(0, rows.lastIndex)
@@ -423,12 +442,10 @@ fun EditableTableBlock(
     val state = rememberTableBlockState(tableData, onChange)
     var showMoreMenu by remember { mutableStateOf(false) }
     val tableBg = parseHex(state.bgColorHex) ?: Color.Transparent
-    val outline = MaterialTheme.colorScheme.outlineVariant
     val primary = MaterialTheme.colorScheme.primary
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val handleWidth = 32.dp
-        val availableWidthForCols = (maxWidth - handleWidth).coerceAtLeast(0.dp)
+        val availableWidthForCols = maxWidth
 
         val totalWeight = remember(state.weights, state.columnCount) {
             (0 until state.columnCount)
@@ -454,102 +471,135 @@ fun EditableTableBlock(
             if (fitsOnScreen) (availableWidthForCols / totalWeight).toPx() else minUnitWidth.toPx()
         }
 
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = if (tableBg == Color.Transparent) MaterialTheme.colorScheme.surface else tableBg
-                )
+        // onFocusChanged en el contenedor: Compose notifica al ancestro cuando
+        // cualquier celda gana el foco, así el estado de tabla no depende del
+        // orden en que llegan el blur de una celda y el focus de la siguiente.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state.setTableFocus(it.isFocused) }
+        ) {
+            // La barra vive en su propia franja, fuera del Card: nunca tapa
+            // una celda ni roba ancho de columnas.
+            AnimatedVisibility(
+                visible = state.hasFocus,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                Column(
-                    modifier = Modifier
-                        .background(tableBg)
-                        .horizontalScroll(rememberScrollState())
-                ) {
-                    if (state.showHeader) {
-                        TableHeaderRow(
-                            headers = state.headers,
-                            columnCount = state.columnCount,
-                            getColumnWidth = getColumnWidth,
-                            outline = outline,
-                            primary = primary,
-                            focusedCol = state.focusedCol,
-                            showColMenu = state.showColMenu,
-                            onShowColMenuChange = { state.showColMenu = it },
-                            isDropCol = state.dragCol != null && state.dragCol != state.dragColTarget && state.dragColTarget != null,
-                            colUnitPx = colUnitPx,
-                            onHeaderValueChange = { col, value -> state.setHeader(col, value) },
-                            onHeaderSelect = { col, focused ->
-                                state.selectHeaderCell(col, focused)
-                                onFocusChange(focused)
-                            },
-                            onInsertLeft = state::insertColumnLeft,
-                            onInsertRight = state::insertColumnRight,
-                            onDeleteColumn = state::deleteColumn,
-                            canDeleteColumn = state.columnCount > 1,
-                            onResizeColumn = { col, delta -> state.adjustColumnWidth(col, delta, colUnitPx) },
-                            onDragColState = { s, t -> state.dragCol = s; state.dragColTarget = t },
-                            onCommitCol = { state.commitColumnDrag() },
-                            onCancelCol = { state.dragCol = null; state.dragColTarget = null },
-                            focusRequesters = state.focusRequesters,
-                            onMoveFocus = state::moveFocus
-                        )
-                        }
-
-                    state.rows.forEachIndexed { rowIndex, row ->
-                        TableRow(
-                            row = row,
-                            rowIndex = rowIndex,
-                            columnCount = state.columnCount,
-                            primary = primary,
-                            showHeaderColumn = state.showHeaderColumn,
-                            focusedRow = state.focusedRow,
-                            focusedCol = state.focusedCol,
-                            selectedRow = state.selectedRow,
-                            isDropRow = state.dragRow != null && state.dragRow != rowIndex && state.dragRowTarget == rowIndex,
-                            showRowMenu = state.showRowMenu && state.selectedRow == rowIndex,
-                            onShowRowMenuChange = { state.showRowMenu = it },
-                            getColumnWidth = getColumnWidth,
-                            onCellValueChange = { col, value -> state.setCellValue(rowIndex, col, value) },
-                            onCellSelect = { col, focused ->
-                                state.selectCell(rowIndex, col, focused)
-                                onFocusChange(focused)
-                            },
-                            onRowSelect = { state.selectRow(rowIndex) },
-                            onInsertAbove = { state.insertRowAbove(rowIndex) },
-                            onInsertBelow = { state.insertRowBelow(rowIndex) },
-                            onDeleteRow = { state.deleteRow(rowIndex) },
-                            canDeleteRow = state.rows.size > 1,
-                            onResize = { col, delta -> state.adjustRowWidth(col, delta) },
-                            rowHeightPx = state.rowHeightPx,
-                            rowCount = state.rows.size,
-                            onDragRowState = { s, t -> state.dragRow = s; state.dragRowTarget = t },
-                            onCommitRow = { state.commitRowDrag() },
-                            onCancelRow = { state.dragRow = null; state.dragRowTarget = null },
-                            onRowHeight = { state.rowHeightPx = it },
-                            focusRequesters = state.focusRequesters,
-                            onMoveFocus = state::moveFocus
-                        )
-                    }
-
-                    AddRowFooter(
-                        onAddBelow = { state.insertRowBelow(state.rows.lastIndex) },
-                        outline = outline,
-                        primary = primary
+                // AnimatedVisibility no es un ColumnScope: el anclaje va en un Box.
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    FloatingToolbar(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        onOpenMoreMenu = { showMoreMenu = true },
+                        onDragTableStart = onDragTableStart,
+                        onDragTableBy = onDragTableBy,
+                        onDragTableEnd = onDragTableEnd,
+                        onDragTableCancel = onDragTableCancel
                     )
                 }
             }
 
-            if (state.hasFocus) {
-                FloatingToolbar(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
-                    onOpenMoreMenu = { showMoreMenu = true },
-                    onDragTableStart = onDragTableStart,
-                    onDragTableBy = onDragTableBy,
-                    onDragTableEnd = onDragTableEnd,
-                    onDragTableCancel = onDragTableCancel
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (tableBg == Color.Transparent) MaterialTheme.colorScheme.surface else tableBg
                 )
+            ) {
+                // El gutter de los handles se superpone a la esquina izquierda en
+                // lugar de reservarse: la tabla aprovecha todo el ancho disponible.
+                // La cabecera no lleva gutter porque sus handles cuelgan del borde
+                // de cada celda.
+                Box {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = TableGutterWidth)
+                            .background(tableBg)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        if (state.showHeader) {
+                            TableHeaderRow(
+                                headers = state.headers,
+                                columnCount = state.columnCount,
+                                getColumnWidth = getColumnWidth,
+                                primary = primary,
+                                focusedCol = state.focusedCol,
+                                showColMenu = state.showColMenu,
+                                onShowColMenuChange = { state.showColMenu = it },
+                                isDropCol = state.dragCol != null && state.dragCol != state.dragColTarget && state.dragColTarget != null,
+                                colUnitPx = colUnitPx,
+                                onHeaderValueChange = { col, value -> state.setHeader(col, value) },
+                                onHeaderSelect = { col, focused ->
+                                    state.selectHeaderCell(col, focused)
+                                    onFocusChange(focused)
+                                },
+                                onInsertLeft = state::insertColumnLeft,
+                                onInsertRight = state::insertColumnRight,
+                                onDeleteColumn = state::deleteColumn,
+                                canDeleteColumn = state.columnCount > 1,
+                                onResizeColumn = { col, delta -> state.adjustColumnWidth(col, delta, colUnitPx) },
+                                onDragColState = { s, t -> state.dragCol = s; state.dragColTarget = t },
+                                onCommitCol = { state.commitColumnDrag() },
+                                onCancelCol = { state.dragCol = null; state.dragColTarget = null },
+                                focusRequesters = state.focusRequesters,
+                                onMoveFocus = state::moveFocus,
+                                onHeaderHeight = { state.headerHeightPx = it }
+                            )
+                        }
+
+                        state.rows.forEachIndexed { rowIndex, row ->
+                            key(rowIndex) {
+                                TableRow(
+                                    row = row,
+                                    rowIndex = rowIndex,
+                                    columnCount = state.columnCount,
+                                    primary = primary,
+                                    showHeaderColumn = state.showHeaderColumn,
+                                    focusedRow = state.focusedRow,
+                                    focusedCol = state.focusedCol,
+                                    selectedRow = state.selectedRow,
+                                    isDropRow = state.dragRow != null && state.dragRow != rowIndex && state.dragRowTarget == rowIndex,
+                                    getColumnWidth = getColumnWidth,
+                                    onCellValueChange = { col, value -> state.setCellValue(rowIndex, col, value) },
+                                    onCellSelect = { col, focused ->
+                                        state.selectCell(rowIndex, col, focused)
+                                        onFocusChange(focused)
+                                    },
+                                    onRowHeight = { state.rowHeightPx = it },
+                                    focusRequesters = state.focusRequesters,
+                                    onMoveFocus = state::moveFocus
+                                )
+                            }
+                        }
+                    }
+
+                    // Capa del gutter: los handles de fila se dibujan encima del
+                    // borde izquierdo, solo con la tabla activa.
+                    if (state.hasFocus) {
+                        RowGutter(
+                            rowCount = state.rows.size,
+                            headerHeight = if (state.showHeader) {
+                                with(LocalDensity.current) { state.headerHeightPx.toDp() }
+                            } else {
+                                0.dp
+                            },
+                            rowHeightPx = state.rowHeightPx,
+                            selectedRow = state.selectedRow,
+                            primary = primary,
+                            showRowMenu = state.showRowMenu,
+                            onShowRowMenuChange = { state.showRowMenu = it },
+                            onRowSelect = state::selectRow,
+                            onInsertAbove = state::insertRowAbove,
+                            onInsertBelow = state::insertRowBelow,
+                            onDeleteRow = state::deleteRow,
+                            canDeleteRow = state.rows.size > 1,
+                            onDragRowState = { s, t -> state.dragRow = s; state.dragRowTarget = t },
+                            onCommitRow = { state.commitRowDrag() },
+                            onCancelRow = { state.dragRow = null; state.dragRowTarget = null }
+                        )
+                    }
+                }
             }
 
             if (showMoreMenu) {
@@ -586,7 +636,6 @@ private fun TableHeaderRow(
     headers: List<String>,
     columnCount: Int,
     getColumnWidth: (Int) -> Dp,
-    outline: Color,
     primary: Color,
     focusedCol: Int?,
     showColMenu: Boolean,
@@ -604,95 +653,114 @@ private fun TableHeaderRow(
     onCommitCol: () -> Unit,
     onCancelCol: () -> Unit,
     focusRequesters: MutableMap<Pair<Int, Int>, FocusRequester>,
-    onMoveFocus: (Int, Int) -> Unit
+    onMoveFocus: (Int, Int) -> Unit,
+    onHeaderHeight: (Float) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isDropCol || headers.isNotEmpty())
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isDropCol) 0.4f else 0.25f)
-                else Color.Transparent
-            ),
+                when {
+                    isDropCol -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    headers.isNotEmpty() -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = TableHeaderAlpha)
+                    else -> Color.Transparent
+                }
+            )
+            // La cabecera crece al mostrar el handle de columna: se mide en vez
+            // de fijar 44.dp para que el gutter de filas no quede desalineado.
+            .onGloballyPositioned { onHeaderHeight(it.size.height.toFloat()) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AddColumnFooter(onClick = { onInsertRight(columnCount - 1) }, outline = outline)
-
         for (col in 0 until columnCount) {
-            val header = headers.getOrElse(col) { "" }
-            val selected = focusedCol == col
-            val focusRequester = remember { FocusRequester() }
-            focusRequesters[Pair(-1, col)] = focusRequester
-            val colWidth = getColumnWidth(col)
-            Box(
-                modifier = Modifier
-                    .width(colWidth)
-                    .zIndex(if (selected) 1f else 0f)
-                    .border(
-                        width = if (selected) 1.5.dp else 0.5.dp,
-                        color = if (selected) TableBorderActive else TableBorderIdle
-                    )
-                    .background(
-                        if (selected) TableHighlightBg else Color.Transparent
-                    )
-                    .clickable { onHeaderSelect(col, true) }
-            ) {
-                Column {
-                    if (selected) {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            HeaderColumnHandle(
-                                col = col,
-                                primary = primary,
-                                showMenu = showColMenu,
-                                onShowMenuChange = onShowColMenuChange,
-                                onInsertLeft = { onInsertLeft(col) },
-                                onInsertRight = { onInsertRight(col) },
-                                onDeleteColumn = { onDeleteColumn(col) },
-                                canDeleteColumn = canDeleteColumn,
-                                colUnitPx = colUnitPx,
-                                columnCount = columnCount,
-                                onDragCol = onDragColState,
-                                onCommitCol = onCommitCol,
-                                onCancelCol = onCancelCol
-                            )
-                        }
-                    }
-                    var headerText by remember { mutableStateOf(TextFieldValue(header)) }
-                    LaunchedEffect(header) {
-                        if (headerText.text != header) headerText = TextFieldValue(header)
-                    }
-                    BasicTextField(
-                        value = headerText,
-                        onValueChange = { headerText = it; onHeaderValueChange(col, it.text) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .focusRequester(focusRequester)
-                            .onFocusChanged { state -> onHeaderSelect(col, state.isFocused) }
-                            .onPreviewKeyEvent { event ->
-                                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                                val dir = keyMoveDirection(event.key) ?: return@onPreviewKeyEvent false
-                                onMoveFocus(dir.first, dir.second)
-                                true
-                            },
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        ),
-                        singleLine = true
-                    )
+            key(col) {
+                val header = headers.getOrElse(col) { "" }
+                val selected = focusedCol == col
+                val focusRequester = remember { FocusRequester() }
+                // El registro va en un efecto, no en la composición: así el mapa
+                // se poda solo cuando una celda sale del árbol.
+                DisposableEffect(focusRequester) {
+                    focusRequesters[Pair(-1, col)] = focusRequester
+                    onDispose { focusRequesters.remove(Pair(-1, col)) }
                 }
-                if (col < columnCount - 1) {
-                    ColumnResizeBar(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(6.dp)
-                            .pointerInput(col) {
-                                detectHorizontalDragGestures { _, dragAmount -> onResizeColumn(col, dragAmount) }
-                            },
-                        primary = primary,
-                        active = selected
-                    )
+                val colWidth = getColumnWidth(col)
+                Box(
+                    modifier = Modifier
+                        .width(colWidth)
+                        .zIndex(if (selected) 1f else 0f)
+                        .border(
+                            width = if (selected) 1.5.dp else 0.5.dp,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        )
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = TableHighlightBgAlpha)
+                            else Color.Transparent
+                        )
+                ) {
+                    Column {
+                        if (selected) {
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                HeaderColumnHandle(
+                                    col = col,
+                                    primary = primary,
+                                    showMenu = showColMenu,
+                                    onShowMenuChange = onShowColMenuChange,
+                                    onInsertLeft = { onInsertLeft(col) },
+                                    onInsertRight = { onInsertRight(col) },
+                                    onDeleteColumn = { onDeleteColumn(col) },
+                                    canDeleteColumn = canDeleteColumn,
+                                    colUnitPx = colUnitPx,
+                                    columnCount = columnCount,
+                                    onDragCol = onDragColState,
+                                    onCommitCol = onCommitCol,
+                                    onCancelCol = onCancelCol
+                                )
+                            }
+                        }
+                        var headerText by remember { mutableStateOf(TextFieldValue(header)) }
+                        // Recarga externa (p. ej. deshacer o edición con IA): se conserva
+                        // el rango para no teletransportar el cursor al principio ni
+                        // colapsar la selección.
+                        LaunchedEffect(header) {
+                            if (headerText.text != header) {
+                                headerText = TextFieldValue(header, headerText.selection.clampedTo(header.length))
+                            }
+                        }
+                        BasicTextField(
+                            value = headerText,
+                            onValueChange = { headerText = it; onHeaderValueChange(col, it.text) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { state -> onHeaderSelect(col, state.isFocused) }
+                                .onPreviewKeyEvent { event ->
+                                    val dir = cellMoveFor(event, headerText.selection, headerText.text.length)
+                                        ?: return@onPreviewKeyEvent false
+                                    onMoveFocus(dir.first, dir.second)
+                                    true
+                                },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            singleLine = true
+                        )
+                    }
+                    if (col < columnCount - 1) {
+                        ColumnResizeBar(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(6.dp)
+                                .fillMaxHeight()
+                                .pointerInput(col) {
+                                    detectHorizontalDragGestures { _, dragAmount -> onResizeColumn(col, dragAmount) }
+                                },
+                            primary = primary,
+                            active = selected
+                        )
+                    }
                 }
             }
         }
@@ -759,22 +827,9 @@ private fun TableRow(
     focusedCol: Int?,
     selectedRow: Int?,
     isDropRow: Boolean,
-    showRowMenu: Boolean,
-    onShowRowMenuChange: (Boolean) -> Unit,
     getColumnWidth: (Int) -> Dp,
     onCellValueChange: (Int, String) -> Unit,
     onCellSelect: (Int, Boolean) -> Unit,
-    onRowSelect: () -> Unit,
-    onInsertAbove: () -> Unit,
-    onInsertBelow: () -> Unit,
-    onDeleteRow: () -> Unit,
-    canDeleteRow: Boolean,
-    onResize: (Int, Float) -> Unit,
-    rowHeightPx: Float,
-    rowCount: Int,
-    onDragRowState: (Int, Int) -> Unit,
-    onCommitRow: () -> Unit,
-    onCancelRow: () -> Unit,
     onRowHeight: (Float) -> Unit,
     focusRequesters: MutableMap<Pair<Int, Int>, FocusRequester>,
     onMoveFocus: (Int, Int) -> Unit
@@ -785,52 +840,91 @@ private fun TableRow(
             .fillMaxWidth()
             .background(
                 when {
-                    isDropRow -> primary.copy(alpha = 0.12f)
-                    isActiveRow -> primary.copy(alpha = 0.06f)
-                    rowIndex % 2 == 1 -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                    isDropRow -> primary.copy(alpha = TableDropAlpha)
+                    isActiveRow -> primary.copy(alpha = TableRowActiveAlpha)
+                    rowIndex % 2 == 1 -> MaterialTheme.colorScheme.surfaceContainerLow
                     else -> Color.Transparent
                 }
             )
             .onGloballyPositioned { onRowHeight(it.size.height.toFloat()) },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RowHandle(
-            rowIndex = rowIndex,
-            selected = isActiveRow,
-            primary = primary,
-            showMenu = showRowMenu,
-            onShowMenuChange = onShowRowMenuChange,
-            onSelect = onRowSelect,
-            onInsertAbove = onInsertAbove,
-            onInsertBelow = onInsertBelow,
-            onDeleteRow = onDeleteRow,
-            canDeleteRow = canDeleteRow,
-            rowHeightPx = rowHeightPx,
-            rowCount = rowCount,
-            onDragRowState = onDragRowState,
-            onCommitRow = onCommitRow,
-            onCancelRow = onCancelRow
-        )
         for (col in 0 until columnCount) {
-            val cell = row.getOrElse(col) { "" }
-            val cellFocused = focusedRow == rowIndex && focusedCol == col
-            val inActiveCol = focusedCol == col
-            val focusRequester = remember { FocusRequester() }
-            focusRequesters[Pair(rowIndex, col)] = focusRequester
-            TableCell(
-                cell = cell,
-                isFocused = cellFocused,
-                inActiveCol = inActiveCol,
-                isHeaderCol = showHeaderColumn && col == 0,
-                primary = primary,
-                onValueChange = { onCellValueChange(col, it) },
-                onFocusChange = { onCellSelect(col, it) },
-                onResize = { onResize(col, it) },
-                showResize = cellFocused,
-                onMoveFocus = onMoveFocus,
-                focusRequester = focusRequester,
-                modifier = Modifier.width(getColumnWidth(col))
-            )
+            key(rowIndex, col) {
+                val cell = row.getOrElse(col) { "" }
+                val cellFocused = focusedRow == rowIndex && focusedCol == col
+                val inActiveCol = focusedCol == col
+                val focusRequester = remember { FocusRequester() }
+                DisposableEffect(focusRequester) {
+                    focusRequesters[Pair(rowIndex, col)] = focusRequester
+                    onDispose { focusRequesters.remove(Pair(rowIndex, col)) }
+                }
+                TableCell(
+                    cell = cell,
+                    isFocused = cellFocused,
+                    inActiveCol = inActiveCol,
+                    isHeaderCol = showHeaderColumn && col == 0,
+                    primary = primary,
+                    onValueChange = { onCellValueChange(col, it) },
+                    onFocusChange = { onCellSelect(col, it) },
+                    onMoveFocus = onMoveFocus,
+                    focusRequester = focusRequester,
+                    modifier = Modifier.width(getColumnWidth(col))
+                )
+            }
+        }
+    }
+}
+
+// Capa superpuesta del gutter izquierdo. Va aparte de TableRow porque los handles
+// cuelgan del borde del Card y no deben ocupar ancho de columna ni alterar el
+// alto de la fila que se mide para el arrastre.
+@Composable
+private fun RowGutter(
+    rowCount: Int,
+    headerHeight: Dp,
+    rowHeightPx: Float,
+    selectedRow: Int?,
+    primary: Color,
+    showRowMenu: Boolean,
+    onShowRowMenuChange: (Boolean) -> Unit,
+    onRowSelect: (Int) -> Unit,
+    onInsertAbove: (Int) -> Unit,
+    onInsertBelow: (Int) -> Unit,
+    onDeleteRow: (Int) -> Unit,
+    canDeleteRow: Boolean,
+    onDragRowState: (Int, Int) -> Unit,
+    onCommitRow: () -> Unit,
+    onCancelRow: () -> Unit
+) {
+    val rowHeightDp = with(LocalDensity.current) { rowHeightPx.toDp() }
+    Column(modifier = Modifier.width(TableGutterWidth)) {
+        Spacer(Modifier.height(headerHeight))
+        repeat(rowCount) { rowIndex ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(rowHeightDp),
+                contentAlignment = Alignment.Center
+            ) {
+                RowHandle(
+                    rowIndex = rowIndex,
+                    selected = selectedRow == rowIndex,
+                    primary = primary,
+                    showMenu = showRowMenu && selectedRow == rowIndex,
+                    onShowMenuChange = onShowRowMenuChange,
+                    onSelect = { onRowSelect(rowIndex) },
+                    onInsertAbove = { onInsertAbove(rowIndex) },
+                    onInsertBelow = { onInsertBelow(rowIndex) },
+                    onDeleteRow = { onDeleteRow(rowIndex) },
+                    canDeleteRow = canDeleteRow,
+                    rowHeightPx = rowHeightPx,
+                    rowCount = rowCount,
+                    onDragRowState = onDragRowState,
+                    onCommitRow = onCommitRow,
+                    onCancelRow = onCancelRow
+                )
+            }
         }
     }
 }
@@ -853,7 +947,7 @@ private fun RowHandle(
     onCommitRow: () -> Unit,
     onCancelRow: () -> Unit
 ) {
-    Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.Center) {
+    Box(contentAlignment = Alignment.Center) {
         NotionSelectionHandle(
             isVertical = true,
             primary = primary,
@@ -900,8 +994,6 @@ private fun TableCell(
     primary: Color,
     onValueChange: (String) -> Unit,
     onFocusChange: (Boolean) -> Unit,
-    onResize: (Float) -> Unit,
-    showResize: Boolean,
     onMoveFocus: (Int, Int) -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
@@ -909,26 +1001,32 @@ private fun TableCell(
     val isHighlighted = isFocused || inActiveCol
     val link = isLink(cell)
     var text by remember { mutableStateOf(TextFieldValue(cell)) }
+    // Recarga externa: se conserva el rango para no teletransportar el cursor
+    // al principio ni colapsar la selección.
     LaunchedEffect(cell) {
-        if (text.text != cell) text = TextFieldValue(cell)
+        if (text.text != cell) text = TextFieldValue(cell, text.selection.clampedTo(cell.length))
     }
     var base = modifier
         .zIndex(if (isHighlighted) 1f else 0f)
         .border(
             width = if (isHighlighted) 1.5.dp else 0.5.dp,
-            color = if (isHighlighted) TableBorderActive else TableBorderIdle
+            color = if (isHighlighted) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outlineVariant
         )
         .background(
             when {
-                isHeaderCol -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                isHighlighted -> TableHighlightBg
+                isHeaderCol -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = TableHeaderAlpha)
+                isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = TableHighlightBgAlpha)
                 else -> Color.Transparent
             }
         )
     if (link) {
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))
     }
-    Box(base.height(44.dp).padding(horizontal = 12.dp, vertical = 4.dp), contentAlignment = Alignment.CenterStart) {
+    Box(
+        base.heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
         BasicTextField(
             value = text,
             onValueChange = { text = it; onValueChange(it.text) },
@@ -937,8 +1035,8 @@ private fun TableCell(
                 .focusRequester(focusRequester)
                 .onFocusChanged { state -> onFocusChange(state.isFocused) }
                 .onPreviewKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                    val dir = keyMoveDirection(event.key) ?: return@onPreviewKeyEvent false
+                    val dir = cellMoveFor(event, text.selection, text.text.length)
+                        ?: return@onPreviewKeyEvent false
                     onMoveFocus(dir.first, dir.second)
                     true
                 },
@@ -952,17 +1050,6 @@ private fun TableCell(
             ),
             singleLine = true
         )
-        if (showResize) {
-            ResizeHandle(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 4.dp, bottom = 4.dp)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures { _, dragAmount -> onResize(dragAmount) }
-                    },
-                primary = primary
-            )
-        }
     }
 }
 
@@ -973,49 +1060,6 @@ private fun ColumnResizeBar(modifier: Modifier = Modifier, primary: Color, activ
             if (active) primary.copy(alpha = 0.6f) else Color.Transparent
         )
     )
-}
-
-@Composable
-private fun ResizeHandle(modifier: Modifier = Modifier, primary: Color) {
-    Box(
-        modifier = modifier
-            .size(14.dp)
-            .background(primary, CircleShape)
-            .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-    )
-}
-
-@Composable
-private fun AddColumnFooter(onClick: () -> Unit, outline: Color) {
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .clickable(onClick = onClick)
-            .size(28.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_column), tint = outline)
-    }
-}
-
-@Composable
-private fun AddRowFooter(
-    onAddBelow: () -> Unit,
-    outline: Color,
-    primary: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onAddBelow)
-            .padding(horizontal = 24.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_row), modifier = Modifier.size(18.dp), tint = outline)
-        }
-        Text(stringResource(R.string.add_row), style = MaterialTheme.typography.bodySmall, color = outline)
-    }
 }
 
 // ============ 3. MANEJADOR ESTILO NOTION (DRY) ============
@@ -1033,8 +1077,13 @@ fun NotionSelectionHandle(
     Box(
         modifier = modifier
             .size(if (isVertical) 16.dp else 24.dp, if (isVertical) 24.dp else 16.dp)
-            .background(Color.White, RoundedCornerShape(4.dp))
-            .border(1.dp, if (selected) TableBorderActive else Color(0xFFE5E7EB), RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(4.dp))
+            .border(
+                width = 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(4.dp)
+            )
             .clip(RoundedCornerShape(4.dp))
             .clickable(onClick = onClick)
             .then(onDragModifier),
@@ -1042,7 +1091,7 @@ fun NotionSelectionHandle(
     ) {
         Text(
             text = handleText,
-            color = if (selected) primary else Color.Gray,
+            color = if (selected) primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = if (isVertical) 10.sp else 12.sp,
             lineHeight = 10.sp,
             modifier = Modifier.offset(y = if (isVertical) (-2).dp else 0.dp)
@@ -1050,6 +1099,9 @@ fun NotionSelectionHandle(
     }
 }
 
+// MD3 Expressive. Se ubica en una franja propia sobre el Card (ver
+// EditableTableBlock), nunca superpuesta a una celda.
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FloatingToolbar(
     modifier: Modifier = Modifier,
@@ -1059,39 +1111,41 @@ private fun FloatingToolbar(
     onDragTableEnd: () -> Unit,
     onDragTableCancel: () -> Unit
 ) {
-    Surface(
+    // Sin `shape` explícito: `FloatingToolbarDefaults.containerShape` es internal
+    // en material3 1.5.0-alpha28 y el propio composable ya aplica la forma
+    // expresiva por defecto.
+    HorizontalFloatingToolbar(
+        expanded = true,
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface
+        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+        scrollBehavior = null
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .pointerInput(Unit) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { onDragTableStart() },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                onDragTableBy(dragAmount.y)
-                            },
-                            onDragEnd = { onDragTableEnd() },
-                            onDragCancel = { onDragTableCancel() }
-                        )
+        Box(
+            modifier = Modifier.pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragTableStart() },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDragTableBy(dragAmount.y)
                     },
-                contentAlignment = Alignment.Center
-            ) {
-                NotionSelectionHandle(
-                    isVertical = true,
-                    primary = MaterialTheme.colorScheme.primary,
-                    onClick = {}
+                    onDragEnd = { onDragTableEnd() },
+                    onDragCancel = { onDragTableCancel() }
                 )
-            }
-            IconButton(onClick = onOpenMoreMenu) {
-                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more), tint = MaterialTheme.colorScheme.primary)
-            }
+            },
+            contentAlignment = Alignment.Center
+        ) {
+            NotionSelectionHandle(
+                isVertical = true,
+                primary = MaterialTheme.colorScheme.primary,
+                onClick = {}
+            )
+        }
+        FilledTonalIconButton(onClick = onOpenMoreMenu) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.more),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }
@@ -1109,46 +1163,46 @@ private fun TableBlockOptionsSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val hasRow = state.activeRow != null
-    val hasColumn = state.activeCol != null
+    // Sin los "+" al pie, esta hoja es la única vía para crear o quitar filas y
+    // columnas: activeRow/activeCol nunca son null y las acciones no salen muertas.
+    val targetRow = state.activeRow
+    val targetCol = state.activeCol
     val rowActions = listOf(
         BlockSheetAction(
             label = context.getString(R.string.block_insert_row_above),
             icon = Icons.Default.Add,
-            enabled = hasRow,
-            onClick = { state.activeRow?.let { state.insertRowAbove(it) } }
+            dividerBefore = true,
+            onClick = { state.insertRowAbove(targetRow) }
         ),
         BlockSheetAction(
             label = context.getString(R.string.block_insert_row_below),
             icon = Icons.Default.Add,
-            enabled = hasRow,
-            onClick = { state.activeRow?.let { state.insertRowBelow(it) } }
+            onClick = { state.insertRowBelow(targetRow) }
         ),
         BlockSheetAction(
             label = context.getString(R.string.block_delete_row),
             icon = Icons.Default.Delete,
-            enabled = hasRow && canDeleteRow,
-            onClick = { state.activeRow?.let { state.deleteRow(it) } }
+            enabled = canDeleteRow,
+            onClick = { state.deleteRow(targetRow) }
         )
     )
     val columnActions = listOf(
         BlockSheetAction(
             label = context.getString(R.string.block_insert_column_before),
             icon = Icons.Default.Add,
-            enabled = hasColumn,
-            onClick = { state.activeCol?.let { state.insertColumnLeft(it) } }
+            dividerBefore = true,
+            onClick = { state.insertColumnLeft(targetCol) }
         ),
         BlockSheetAction(
             label = context.getString(R.string.block_insert_column_after),
             icon = Icons.Default.Add,
-            enabled = hasColumn,
-            onClick = { state.activeCol?.let { state.insertColumnRight(it) } }
+            onClick = { state.insertColumnRight(targetCol) }
         ),
         BlockSheetAction(
             label = context.getString(R.string.block_delete_column),
             icon = Icons.Default.Delete,
-            enabled = hasColumn && canDeleteColumn,
-            onClick = { state.activeCol?.let { state.deleteColumn(it) } }
+            enabled = canDeleteColumn,
+            onClick = { state.deleteColumn(targetCol) }
         )
     )
 
@@ -1170,6 +1224,7 @@ private fun TableBlockOptionsSheet(
                 label = context.getString(R.string.block_header_row),
                 icon = Icons.Default.ViewDay,
                 toggle = state.showHeader,
+                dividerBefore = true,
                 onClick = { state.toggleHeader() }
             ),
             BlockSheetAction(
@@ -1182,6 +1237,7 @@ private fun TableBlockOptionsSheet(
             BlockSheetAction(
                 label = context.getString(R.string.block_insert_below),
                 icon = Icons.Default.ArrowDownward,
+                dividerBefore = true,
                 onClick = onInsertBelow
             ),
             BlockSheetAction(
@@ -1216,40 +1272,84 @@ private fun TableBlockOptionsSheet(
 @Composable
 private fun BackgroundColorRow(onSelect: (String?) -> Unit) {
     Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-        BG_OPTIONS.forEach { option ->
-            val swatch = parseHex(option.hex) ?: Color.White
+        BG_OPTIONS.forEach { hex ->
+            val swatch = parseHex(hex) ?: MaterialTheme.colorScheme.surface
             Box(
                 modifier = Modifier
                     .padding(end = 6.dp)
                     .size(22.dp)
                     .background(swatch, CircleShape)
                     .then(
-                        if (option.hex == null) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        if (hex == null) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         else Modifier
                     )
-                    .clickable { onSelect(option.hex) }
+                    .clickable { onSelect(hex) }
             )
         }
     }
 }
 
+private val PreviewTableData = TableData(
+    headers = listOf("Encabezado 1", "Encabezado 2"),
+    rows = listOf(
+        listOf("Dato 1", "Dato 2"),
+        listOf("Dato 3", "Dato 4")
+    ),
+    columnWeights = listOf(1f, 1f),
+    bgColorHex = null,
+    showHeader = true
+)
+
 @Preview(showBackground = true)
 @Composable
-fun EditableTableBlockPreview() {
+private fun EditableTableBlockPreview() {
     MaterialTheme {
-        val sampleData = TableData(
-            headers = listOf("Encabezado 1", "Encabezado 2"),
-            rows = listOf(
-                listOf("Dato 1", "Dato 2"),
-                listOf("Dato 3", "Dato 4")
-            ),
-            columnWeights = listOf(1f, 1f),
-            bgColorHex = null,
-            showHeader = true
-        )
         EditableTableBlock(
-            tableData = sampleData,
+            tableData = PreviewTableData,
             onChange = {}
         )
+    }
+}
+
+// La tabla con la barra flotante solo se ve con el foco en una celda, que un
+// Preview no puede activar: esta variante la fuerza para poder revisarla.
+@Preview(showBackground = true)
+@Composable
+private fun EditableTableBlockGutterPreview() {
+    MaterialTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.padding(16.dp)) {
+                // Replica la franja de la barra: así se comprueba que no invade
+                // la tabla.
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        tonalElevation = 3.dp,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            NotionSelectionHandle(
+                                isVertical = true,
+                                primary = MaterialTheme.colorScheme.primary,
+                                onClick = {}
+                            )
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                EditableTableBlock(
+                    tableData = PreviewTableData,
+                    onChange = {}
+                )
+            }
+        }
     }
 }

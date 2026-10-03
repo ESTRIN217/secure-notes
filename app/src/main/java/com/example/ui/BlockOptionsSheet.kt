@@ -35,7 +35,10 @@ data class BlockSheetAction(
     val onClick: () -> Unit,
     val enabled: Boolean = true,
     val danger: Boolean = false,
-    val toggle: Boolean? = null
+    val toggle: Boolean? = null,
+    // Agrupa visualmente las acciones de una hoja larga (p. ej. tabla: tamaño /
+    // cabecera / filas / columnas / bloque) sin partir la lista en varias hojas.
+    val dividerBefore: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +75,7 @@ fun BlockOptionsSheet(
             Spacer(Modifier.height(4.dp))
 
             actions.forEach { action ->
+                if (action.dividerBefore) BlockOptionsSheetDivider()
                 BlockSheetActionRow(action)
             }
 

@@ -36,7 +36,7 @@ object CachedDateFormatters {
         val current = Locale.getDefault()
         if (current != localeRef.get()) {
             localeRef.set(current)
-            cache.get().clear()
+            cache.get()!!.clear()
         }
         // `withInitial` garantiza que nunca es null.
         return cache.get()!!.getOrPut(pattern) { SimpleDateFormat(pattern, current) }

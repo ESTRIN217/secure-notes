@@ -175,3 +175,6 @@ dejarlo en la memoria.
 
 ## Limites
 - ✅ Siempre: actualizar `MEMORY.md` al terminar cada tarea.
+
+## Reglas 
+- Lee `docs/constitution.md` y la spec activa (`specs/NNN-*/`) antes de tocar código.

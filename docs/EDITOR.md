@@ -62,7 +62,7 @@ Todas las opciones se aplican a la **selección** actual. Si no hay selección, 
 | **Página** | Crea y abre una página nueva enlazada |
 | **Destacado** | Bloque *callout* resaltado para llamadas de atención |
 | **Cita** | Bloque de cita con barra lateral (`▎`) |
-| **Tabla** | Tabla editable con filas, columnas y encabezado |
+| **Tabla** | Tabla editable con filas, columnas y encabezado. Al tocar una celda aparece arriba una barra flotante (MD3 Expressive) para arrastrar el bloque y abrir el menú; añadir o quitar filas y columnas se hace desde ese menú |
 | **Divisor** | Regla horizontal que separa secciones |
 | **Enlace a página** | Enlaza una nota existente del bloc dentro del documento |
 

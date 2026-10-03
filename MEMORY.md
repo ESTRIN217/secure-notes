@@ -2,6 +2,21 @@
 Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no 
 aporte. 
 ## Estado actual 
+- **Bloque tabla rediseñado** (2026-09-30, `:app:assembleDebug` OK, sin verificación visual) —
+  casi todo en `ui/EditableTableBlock.kt`:
+  - Fuera los `+` de fila/columna. Esas acciones viven en la hoja `⋮`, y ahora `activeRow`/`activeCol`
+    caen a 0: con los `+` fuera, la hoja es la única vía y sus acciones no salen muertas.
+  - Barra flotante en su **propia franja** (`Column { AnimatedVisibility { HorizontalFloatingToolbar }; Card }`),
+    ya no `align(TopEnd)` sobre el `Card`. MD3 Expressive.
+  - Gutter de 32.dp **superpuesto** al borde izquierdo (`RowGutter`) en vez de reservado: la tabla
+    usa todo el ancho. Solo con la tabla activa.
+  - **Selección (7 defectos)**: `cellMoveFor` no se traga `←`/`→` ni `Shift+←/→`; `Tab` respeta
+    `isShiftPressed`; `key(col)` + `DisposableEffect` para los `FocusRequester` (sin `key()` todas
+    las celdas de un bucle compartían requester); foco a nivel de **tabla** con `onFocusChanged` en el
+    contenedor (la carrera blur(A)/focus(B) borraba el estado); el reload externo conserva `selection`;
+    fuera el `ResizeHandle` intra-celda y el `clickable` de cabecera que competían con el cursor.
+  - Tokens MD3 en vez de literales fijos (`Color(0xFFE5E7EB)`, `Color.White`) que rompían tema oscuro.
+  - `BlockSheetAction` gana `dividerBefore: Boolean = false` (retrocompatible) para agrupar la hoja.
 - **Optimización de rendimiento implementada** (2026-09-30, `:app:assembleDebug` OK, sin 
   verificación visual en dispositivo):
   - `data/ai/AiModelHost.kt`: el motor on-device es *lazy* y *ref-counted*. El `init` de 
@@ -32,6 +47,12 @@ aporte.
   la *forma* (fijada/imagen/fondo/has content), no del contenido.
 - Overdraw del rail: `Card(containerColor = Transparent)` → `Box` (6 formas redondeadas que se 
   dibujaban sin aportar nada) y superficie del rail opaca en vez de `alpha = 0.25f`.
+- Barra de la tabla en su **propia franja** (`Column` + `AnimatedVisibility`) y no flotando con 
+  `align(TopEnd)` sobre el `Card`: una superficie superpuesta tapa celdas y roba ancho.
+- Foco de un grupo (tabla, lista…) con `Modifier.onFocusChanged` en el **contenedor**, no con 
+  "última celda enfocada": al saltar de A a B el orden blur/focus es indeterminado.
+- `remember` dentro de un `for` **exige `key()`**: sin él todas las iteraciones comparten el 
+  mismo slot de memoria (FocusRequester compartido, estado corrupto al reordenar).
 
 ## Aprendizajes y errores a evitar 
 - **`compileDebugUnitTestKotlin` sigue ROTO** (preexistente): `PdfExporterTest.kt` y 
@@ -47,8 +68,31 @@ aporte.
   **no tiene `strokeWidth`**.
 - `settings.gradle.kts` apunta a `/root/llama.cpp/...` y hace `include(":lib")` **solo si 
   existe**: si el checkout falta, el build sigue sin IA nativa.
+- material3 1.5.0-alpha28: `FloatingToolbarDefaults.containerShape` es **internal** (no se puede
+  pasar a `HorizontalFloatingToolbar`, hay que usar su `shape` por defecto) y el `DragHandle`
+  horizontal **no es público** (solo `VerticalDragHandle`). Sí existen `HorizontalFloatingToolbar`,
+  `ButtonGroup` y `standardFloatingToolbarColors()`.
+- `TextRange` vive en `androidx.compose.ui.text`, **no** en `androidx.compose.ui.text.input`.
+- `AnimatedVisibility` **no** es un `ColumnScope`: `Modifier.align` dentro no compila, hay que
+  envolver en un `Box(contentAlignment = …)`.
+- Ojo al auditar keys de recursos: `R.string.add_row` / `add_column` quedan **sin uso** tras sacar
+  los `+`. No son error de build, pero no volver a buscarlos esperando encontrarlos en el código.
 
 ## Próximos pasos 
+- **Verificar en dispositivo la tabla** (única tarea sin comprobación visual):
+  - `HorizontalFloatingToolbar` impone `containerSize = 56dp` mínimo. Si la franja queda demasiado 
+    alta, degradar a `Surface(shape = FloatingToolbarDefaults…` no sirve (es internal) → usar 
+    `RoundedCornerShape(20.dp)` + `secondaryContainer`, como en `EditableTableBlockGutterPreview`.
+  - El `RowGutter` superpuesto depende de `headerHeightPx` / `rowHeightPx` medidos con 
+    `onGloballyPositioned`. Comprobar alineación con `fit_to_content`, con la cabecera seleccionada 
+    (crece al mostrar el handle `⋯`) y con tipografía del sistema grande.
+  - Probar `Shift+←/→` dentro de una celda y `Tab` en la última celda: debe entrar en la celda, 
+    no crear fila (la hoja `⋮` es la única vía para añadir).
+- **Bug conocido, fuera del alcance de la tabla**: `BlockEditor.toRenderingBlock` (`BlockEditor.kt:1011`)
+  tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y
+  previsualización. Son ~4 líneas. La selección de `EditableTextBlock` también tiene defectos
+  aparte (`pendingSelection` compartido entre bloques en `BlockEditor.kt:92`, checklist con
+  `onSelectionChange = {}`): otra pasada.
 - Verificar en dispositivo: 90/120 Hz (`adb shell dumpsys display | grep -i fps`), jank en logcat 
   con `FrameMetrics`, y que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).
 - Arreglar `PdfExporterTest.kt` / `WidgetNotesTest.kt` para desbloquear `./gradlew test`.
