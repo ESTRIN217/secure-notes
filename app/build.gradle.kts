@@ -97,7 +97,6 @@ secrets {
 // This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
   implementation(project(":lib"))
   implementation(project(":visor-pdf"))
@@ -128,8 +127,6 @@ dependencies {
   implementation(libs.coil.network.okhttp)
   implementation(libs.coil.svg)
   implementation(libs.converter.moshi)
-  // implementation(libs.firebase.ai)
-  implementation(libs.firebase.analytics)
   implementation(libs.compose.markdown)
   implementation(libs.latex.base)
   implementation(libs.latex.parser)

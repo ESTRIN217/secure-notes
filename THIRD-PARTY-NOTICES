@@ -14,8 +14,8 @@
 | Librería | Versión | Licencia (SPDX) | Titular | URL de la licencia | Uso en la app |
 |---|---|---|---|---|---|
 | Kotlin (stdlib, plugin Compose) | 2.4.10 | Apache-2.0 | JetBrains | https://github.com/JetBrains/kotlin/blob/master/license/LICENSE | Lenguaje base |
-| Jetpack Compose BOM (ui, ui-graphics, runtime, activity-compose, lifecycle-runtime-compose, lifecycle-viewmodel-compose, navigation-compose) | BOM 2026.06.01 · activity 1.13.0 · lifecycle 2.11.0 · navigation 2.9.8 | Apache-2.0 | Google / AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | UI declarativa, navegación |
-| Material 3 + Material Icons (core, extended) + window-size-class | 1.5.0-alpha25 | Apache-2.0 | Google | https://github.com/material-components/material-components-android/blob/master/LICENSE | Material Design 3 Expressive |
+| Jetpack Compose BOM (ui, ui-graphics, runtime, activity-compose, lifecycle-runtime-compose, lifecycle-viewmodel-compose, navigation-compose) | BOM 2026.09.00 · activity 1.13.0 · lifecycle 2.11.0 · navigation 2.9.8 | Apache-2.0 | Google / AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | UI declarativa, navegación |
+| Material 3 + Material Icons (core, extended) + window-size-class | 1.5.0-alpha28 | Apache-2.0 | Google | https://github.com/material-components/material-components-android/blob/master/LICENSE | Material Design 3 Expressive |
 | AndroidX base (core-ktx 1.19.0, lifecycle-runtime-ktx 2.11.0, fragment-compose 1.8.6) | ver tabla | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | Base, ciclo de vida |
 | Glance (appwidget, material3) | 1.3.0-alpha02 | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt | Widget de inicio |
 
@@ -36,7 +36,7 @@
 | OkHttp (+ logging-interceptor) | 5.4.0 | Apache-2.0 | Square | https://github.com/square/okhttp/blob/master/LICENSE.txt | Backend Ollama/LM Studio, red de Coil |
 | Retrofit (+ converter-moshi) | 3.0.0 | Apache-2.0 | Square | https://github.com/square/retrofit/blob/master/LICENSE.txt | Cliente HTTP Google Drive |
 | Moshi (moshi-kotlin) | 1.15.2 | Apache-2.0 | Square | https://github.com/square/moshi/blob/master/LICENSE.txt | JSON de bloques `DataBlock` |
-| Coil 3 (compose, video, network-okhttp, svg) | 3.5.0 | Apache-2.0 | Coil Contributors | https://github.com/coil-kt/coil/blob/main/LICENSE.txt | Avatares, adjuntos, miniaturas |
+| Coil 3 (compose, video, network-okhttp, svg) | 3.6.3 | Apache-2.0 | Coil Contributors | https://github.com/coil-kt/coil/blob/main/LICENSE.txt | Avatares, adjuntos, miniaturas |
 
 ### Multimedia y renderizado
 
@@ -58,7 +58,6 @@
 
 | Librería | Versión | Licencia | Titular | URL de términos | Uso en la app |
 |---|---|---|---|---|---|
-| Firebase Analytics (BOM) | BOM 34.16.0 | Términos de Firebase / Android SDK License (propietaria) | Google | https://firebase.google.com/terms |
 | Play Services Auth + GoogleId + credentials-play-services-auth (+ androidx.credentials base Apache-2.0) | auth 21.6.0 · googleid 1.2.0 · creds-psa 1.6.0 | Android SDK License (propietaria) | Google | https://developer.android.com/studio/terms.html | OAuth 2.0, Credential Manager, Drive |
 
 ### Módulos internos (código propio)

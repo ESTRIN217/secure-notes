@@ -13,7 +13,7 @@
     },
     {
       "name": "Jetpack Compose (BOM: ui, runtime, activity-compose, lifecycle, navigation)",
-      "version": "BOM 2026.06.01, activity 1.13.0, lifecycle 2.11.0, navigation 2.9.8",
+      "version": "BOM 2026.09.00, activity 1.13.0, lifecycle 2.11.0, navigation 2.9.8",
       "license": "Apache-2.0",
       "copyright": "Google / AOSP",
       "url": "https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt",
@@ -21,7 +21,7 @@
     },
     {
       "name": "Material 3 + Material Icons + window-size-class",
-      "version": "1.5.0-alpha25",
+      "version": "1.5.0-alpha28",
       "license": "Apache-2.0",
       "copyright": "Google",
       "url": "https://github.com/material-components/material-components-android/blob/master/LICENSE",
@@ -117,7 +117,7 @@
     },
     {
       "name": "Coil 3 (compose, video, network-okhttp, svg)",
-      "version": "3.5.0",
+      "version": "3.6.3",
       "license": "Apache-2.0",
       "copyright": "Coil Contributors",
       "url": "https://github.com/coil-kt/coil/blob/main/LICENSE.txt",
@@ -170,14 +170,6 @@
       "copyright": "ARM / ggml-org (sample)",
       "url": "https://github.com/ggml-org/llama.cpp/tree/master/examples/llama.android",
       "use": "OnDeviceService / LlamaCppEngine"
-    },
-    {
-      "name": "Firebase Analytics (BOM)",
-      "version": "BOM 34.16.0",
-      "license": "Propietaria (Terminos Firebase)",
-      "copyright": "Google",
-      "url": "https://firebase.google.com/terms",
-      "use": "Analitica"
     },
     {
       "name": "Play Services Auth + GoogleId + credentials-play-services-auth",
