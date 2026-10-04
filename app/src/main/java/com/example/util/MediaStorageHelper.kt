@@ -2,7 +2,6 @@ package com.example.util
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import android.webkit.MimeTypeMap
 import java.io.File
 import java.io.FileOutputStream
@@ -17,6 +16,10 @@ object MediaStorageHelper {
     /**
      * Copia el contenido de [uri] a `filesDir/media/<kind>_<noteId>_<ts>.<ext>`
      * y devuelve la ruta absoluta, o `null` si falla.
+     *
+     * En el registro del sistema se anota la categoría `kind` —el tipo de bloque, nunca la ruta
+     * del medio— con un identificador opaco. `noteId` no se registra: correlacionaría la traza
+     * con el material de la persona.
      */
     fun importMedia(context: Context, uri: Uri, noteId: Int, kind: String): String? {
         return try {
@@ -28,12 +31,12 @@ object MediaStorageHelper {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(destFile).use { output -> input.copyTo(output) }
             } ?: run {
-                Log.e(TAG, "openInputStream failed for $uri")
+                OpaqueTrace.registrarFallo(TAG, "openInputStream", kind, OpaqueTrace.isolatedNext(), null)
                 return null
             }
             destFile.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "importMedia failed for $uri", e)
+            OpaqueTrace.registrarFallo(TAG, "importMedia", kind, OpaqueTrace.isolatedNext(), e)
             null
         }
     }

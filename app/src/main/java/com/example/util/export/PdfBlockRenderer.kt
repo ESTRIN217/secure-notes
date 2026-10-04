@@ -22,7 +22,6 @@ import android.text.style.SuperscriptSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
 import android.text.style.URLSpan
-import android.util.Log
 import android.content.Context
 import com.example.R
 import com.example.data.model.BlockType
@@ -30,6 +29,7 @@ import com.example.data.model.DataBlock
 import com.example.data.model.TableData
 import com.example.data.model.TextBaseline
 import com.example.data.model.TextSegment
+import com.example.util.OpaqueTrace
 import com.example.util.RichTextConverter
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -409,7 +409,10 @@ class PdfBlockRenderer {
                 if (response.isSuccessful) response.body.bytes() else null
             }
         } catch (e: Exception) {
-            Log.e("PdfBlockRenderer", "Error downloading web image: $url", e)
+            // La URL puede apuntar a una red interna o privada, así que no se registra
+            // (RF-5). La categoría es el tipo de medio de esta función, que no hay que
+            // deducir de la dirección (RF-10).
+            OpaqueTrace.registrarFallo("PdfBlockRenderer", "download web image", "webImage", OpaqueTrace.isolatedNext(), e)
             null
         }
     }

@@ -13,6 +13,7 @@ import com.example.data.model.DecryptedNote
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.util.BackupAttachmentHelper
 import com.example.util.Exporter
+import com.example.util.OpaqueTrace
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -220,7 +221,7 @@ class JsonExporter : Exporter {
 
             relativePath
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to copy attachment: $path", e)
+            Log.w(TAG, OpaqueTrace.failureMessage("copy attachment to export", "attachment", OpaqueTrace.isolatedNext(), e.javaClass))
             null
         }
     }

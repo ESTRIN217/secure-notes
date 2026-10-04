@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -42,6 +41,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.estrin217.visormedia.R
 import com.estrin217.visormedia.model.MediaItem
+import com.estrin217.visormedia.util.OpaqueTrace
 import com.estrin217.visormedia.util.VideoUrlHelper
 import kotlinx.coroutines.launch
 import java.io.File
@@ -208,7 +208,12 @@ fun MediaViewerScreen(
                                 context.startActivity(Intent.createChooser(shareIntent, null))
                             }
                         } catch (e: Exception) {
-                            Log.e("MediaViewer", "Share failed", e)
+                            // La excepción de compartir por `FileProvider` lleva la URI del medio,
+                            // que es una referencia del material de la persona (RF-8, RF-11).
+                            OpaqueTrace.registrarFallo(
+                                "MediaViewer", "share media", "media",
+                                OpaqueTrace.isolatedNext(), e
+                            )
                             Toast.makeText(context, context.getString(R.string.toast_share_error), Toast.LENGTH_SHORT).show()
                         }
                     }) {
@@ -274,7 +279,12 @@ fun MediaViewerScreen(
                                     Toast.makeText(context, context.getString(R.string.toast_saved_to_gallery), Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
-                                Log.e("MediaViewer", "Save to gallery failed", e)
+                                // Copiar a la galería abre y escribe la URI del medio; la excepción
+                                // incluye la ruta del archivo (RF-8, RF-11).
+                                OpaqueTrace.registrarFallo(
+                                    "MediaViewer", "save media to gallery", "media",
+                                    OpaqueTrace.isolatedNext(), e
+                                )
                                 Toast.makeText(context, context.getString(R.string.toast_save_error), Toast.LENGTH_SHORT).show()
                             }
                         }) {

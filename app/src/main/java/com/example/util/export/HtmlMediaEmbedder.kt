@@ -8,6 +8,7 @@ import android.webkit.MimeTypeMap
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.DrawingStrokeCodec
+import com.example.util.OpaqueTrace
 import com.example.util.RichTextConverter
 import com.estrin217.visormedia.util.VideoUrlHelper
 import java.io.File
@@ -35,7 +36,7 @@ class HtmlMediaEmbedder(
             BlockType.IMAGE, BlockType.VIDEO, BlockType.AUDIO, BlockType.VOICE, BlockType.FILE -> {
                 val src = block.content
                 if (src.isBlank() || src.startsWith("http://") || src.startsWith("https://")) null
-                else readBytes(src)
+                else readBytes(src, block.type.name)
             }
             else -> null
         }
@@ -59,7 +60,7 @@ class HtmlMediaEmbedder(
                 }
                 else -> {
                     val preview = block.meta["previewPath"]?.takeIf { it.isNotBlank() } ?: return null
-                    readBytes(preview)
+                    readBytes(preview, block.type.name)
                 }
             }
         } catch (e: Exception) {
@@ -74,12 +75,12 @@ class HtmlMediaEmbedder(
             if (type == BlockType.VIDEO && VideoUrlHelper.isYouTubeUrl(src)) return null
             return webMedia[src] ?: src
         }
-        val bytes = readBytes(src) ?: return null
+        val bytes = readBytes(src, type.name) ?: return null
         val mime = mimeFor(src, type)
         return "data:$mime;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
-    private fun readBytes(src: String): ByteArray? {
+    private fun readBytes(src: String, kind: String): ByteArray? {
         return try {
             val uri = Uri.parse(src)
             if (uri.scheme == "content") {
@@ -89,7 +90,10 @@ class HtmlMediaEmbedder(
                 if (file.exists() && file.isFile) FileInputStream(file).use { it.readBytes() } else null
             }
         } catch (e: Exception) {
-            Log.e("HtmlMediaEmbedder", "Error reading media: $src", e)
+            // La referencia (ruta o URL) no se registra: es dato de la persona (RF-5). La
+            // categoría la pasa el llamante, que ya sabe el tipo de medio sin deducirlo de la
+            // ruta o de la extensión (RF-10, D-7).
+            OpaqueTrace.registrarFallo("HtmlMediaEmbedder", "read media", kind, OpaqueTrace.isolatedNext(), e)
             null
         }
     }

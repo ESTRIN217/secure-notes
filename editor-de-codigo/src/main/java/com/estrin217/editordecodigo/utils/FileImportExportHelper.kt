@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
-import android.util.Log
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import java.io.File
 
@@ -65,7 +64,14 @@ object FileImportExportHelper {
                 out.toString()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "readCappedText failed", e)
+            // La excepción de E/S lleva la ruta del archivo: solo se registra su clase.
+            OpaqueTrace.registrarFallo(
+                TAG,
+                "read capped text",
+                "textFile",
+                OpaqueTrace.isolatedNext(),
+                e
+            )
             null
         }
     }
@@ -111,7 +117,14 @@ object FileImportExportHelper {
                 filePath = null
             )
         } catch (e: Exception) {
-            Log.e(TAG, "readExternalFile failed", e)
+            // La excepción de E/S lleva la ruta del archivo: solo se registra su clase.
+            OpaqueTrace.registrarFallo(
+                TAG,
+                "read external file",
+                "externalFile",
+                OpaqueTrace.isolatedNext(),
+                e
+            )
             null
         }
     }
@@ -175,7 +188,14 @@ object FileImportExportHelper {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "readExternalFolder failed", e)
+            // La excepción de E/S lleva la ruta o la URI del archivo: solo se registra su clase.
+            OpaqueTrace.registrarFallo(
+                TAG,
+                "read external folder",
+                "externalFile",
+                OpaqueTrace.isolatedNext(),
+                e
+            )
         }
         return loadedFiles
     }

@@ -34,6 +34,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.estrin217.visormedia.R
+import com.estrin217.visormedia.util.OpaqueTrace
 import kotlinx.coroutines.delay
 import java.io.File
 import java.util.Locale
@@ -124,7 +125,12 @@ fun AudioPlayerWidget(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                Log.e("AudioPlayerWidget", "ExoPlayer error: ${error.message}", error)
+                // `PlaybackException.getMessage()` incluye la URI del medio, que es una referencia
+                // del material de la persona: al registro solo va su clase (RF-8, RF-11).
+                OpaqueTrace.registrarFallo(
+                    "AudioPlayerWidget", "play audio", "audio",
+                    OpaqueTrace.isolatedNext(), error
+                )
                 isBuffering = false
                 isPlayingAudio = false
                 val cause = error.cause

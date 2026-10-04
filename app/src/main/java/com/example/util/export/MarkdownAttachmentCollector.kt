@@ -2,9 +2,9 @@ package com.example.util.export
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
+import com.example.util.OpaqueTrace
 import com.example.util.RichTextConverter
 import java.io.File
 
@@ -44,7 +44,10 @@ class MarkdownAttachmentCollector(
         try {
             target.writeBytes(bytes)
         } catch (e: Exception) {
-            Log.e("MarkdownAttachmentCollector", "Error copying media to export folder: ${block.content}", e)
+            // La ruta o URL del medio no se registra (RF-5): puede ser un archivo privado o
+            // una dirección interna. La categoría es el tipo de bloque, que el bloque ya
+            // trae, y el identificador opaco correlaciona sin identificar (RF-10).
+            OpaqueTrace.registrarFallo("MarkdownAttachmentCollector", "copy media to export folder", block.type.name, OpaqueTrace.isolatedNext(), e)
             return null
         }
         mediaFiles.add(target)

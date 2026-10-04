@@ -6,6 +6,7 @@ import android.util.Log
 import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
 import com.example.util.BackupAttachmentHelper
+import com.example.util.OpaqueTrace
 import org.json.JSONArray
 import java.io.File
 
@@ -81,7 +82,12 @@ object StorageAnalyzer {
                     if (name.isNotEmpty() && name != path) paths.add(name)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error parsing attachments JSON", e)
+                // La cadena analizada es la sección de adjuntos de `note.content`:
+                // `JSONException` devuelve un fragmento de ella, así que solo va su clase
+                // al registro (RF-8, RF-11).
+                OpaqueTrace.registrarFallo(
+                    TAG, "parse attachments JSON", "attachment", OpaqueTrace.isolatedNext(), e
+                )
             }
         }
 
@@ -225,7 +231,7 @@ object StorageAnalyzer {
 
     fun clearCache(context: Context): Long {
         val cacheDir = context.cacheDir
-        return deleteDirectoryContents(cacheDir)
+        return deleteDirectoryContents(cacheDir, OpaqueTrace.begin())
     }
 
     /** Audios (`voice_*`, `audio_*`) presentes en disco, con su estado de adjunto. */
@@ -296,12 +302,13 @@ object StorageAnalyzer {
     }
 
     fun deleteFiles(files: List<StorageItem>): Int {
+        val op = OpaqueTrace.begin()
         var deleted = 0
         for (file in files) {
             try {
                 if (File(file.path).delete()) deleted++
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to delete ${file.path}", e)
+                Log.w(TAG, OpaqueTrace.failureMessage("delete file", "storageItem", op.next(), e.javaClass))
             }
         }
         return deleted
@@ -321,20 +328,20 @@ object StorageAnalyzer {
         return String.format("%d%%", (part * 100 / total))
     }
 
-    private fun deleteDirectoryContents(dir: File): Long {
+    private fun deleteDirectoryContents(dir: File, op: OpaqueTrace.Op): Long {
         var freed = 0L
         val files = dir.listFiles() ?: return 0L
         for (file in files) {
             try {
                 if (file.isDirectory) {
-                    freed += deleteDirectoryContents(file)
+                    freed += deleteDirectoryContents(file, op)
                     file.delete()
                 } else {
                     freed += file.length()
                     file.delete()
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to delete ${file.path}", e)
+                Log.w(TAG, OpaqueTrace.failureMessage("delete file", "storageItem", op.next(), e.javaClass))
             }
         }
         return freed

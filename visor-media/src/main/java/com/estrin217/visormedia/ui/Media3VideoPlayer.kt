@@ -2,7 +2,6 @@ package com.estrin217.visormedia.ui
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.Toast
@@ -39,6 +38,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.estrin217.visormedia.R
+import com.estrin217.visormedia.util.OpaqueTrace
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -101,7 +101,12 @@ fun Media3VideoPlayer(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                Log.e("Media3VideoPlayer", "ExoPlayer error: ${error.message}", error)
+                // `PlaybackException.getMessage()` incluye la URI del medio, que es una referencia
+                // del material de la persona: al registro solo va su clase (RF-8, RF-11).
+                OpaqueTrace.registrarFallo(
+                    "Media3VideoPlayer", "play video", "video",
+                    OpaqueTrace.isolatedNext(), error
+                )
                 val cause = error.cause
                 val userMsg = when {
                     cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException -> {

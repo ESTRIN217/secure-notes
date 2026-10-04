@@ -1,5 +1,6 @@
 package com.example.data.model
 
+import com.example.util.OpaqueTrace
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -21,7 +22,13 @@ fun parseNoteContentAndAttachments(rawContent: String): Pair<String, List<Attach
                 ))
             }
         } catch (e: Exception) {
-            android.util.Log.e("NoteContentUtils", "parseNoteContentAndAttachments failed", e)
+            // `rawContent` lleva la sección de adjuntos de la nota y `JSONException` incluye un
+            // fragmento de la cadena que falló: solo se registra su clase, nunca el objeto ni su
+            // texto (RF-8, RF-11).
+            OpaqueTrace.registrarFallo(
+                "NoteContentUtils", "parse note content and attachments", "noteContent",
+                OpaqueTrace.isolatedNext(), e
+            )
         }
         return Pair(text, list)
     }

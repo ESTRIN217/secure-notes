@@ -64,6 +64,11 @@ fun rememberEquationInlineMap(
 ): Map<String, InlineTextContent> {
     val measurer = rememberLatexMeasurer()
     return remember(latexList, config) {
+        // Una sola operación para toda la pasada: las N ecuaciones comparten `opN` y solo
+        // se diferencian en el índice, así que la traza dice cuántas fallaron sin decir
+        // cuáles (RF-7). Es un local del bloque `remember`, no estado: la clave de
+        // memoización sigue siendo `latexList, config` (función pura en cuanto a estado).
+        val op = OpaqueTrace.begin()
         buildMap {
             latexList.forEachIndexed { index, latex ->
                 try {
@@ -71,7 +76,9 @@ fun rememberEquationInlineMap(
                         put(LatexEquationRenderer.inlineId(index), it)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "inlineContent failed for: $latex", e)
+                    // El texto de la fórmula es contenido de nota y no se registra (RF-5);
+                    // la categoría `equation` dice qué falló sin decir qué fórmula era.
+                    Log.e(TAG, OpaqueTrace.failureMessage("measure inline equation", "equation", op.next(), e.javaClass))
                 }
             }
         }

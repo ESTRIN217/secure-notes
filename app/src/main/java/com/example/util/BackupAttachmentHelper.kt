@@ -78,7 +78,12 @@ object BackupAttachmentHelper {
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error parsing attachments section", e)
+                // La sección de adjuntos forma parte de `note.content`: `JSONException` incluye
+                // un fragmento de la cadena que falló, así que solo se registra su clase, nunca
+                // el objeto ni su texto (RF-8, RF-11).
+                OpaqueTrace.registrarFallo(
+                    TAG, "parse attachments section", "attachment", OpaqueTrace.isolatedNext(), e
+                )
             }
         }
 
@@ -148,14 +153,14 @@ object BackupAttachmentHelper {
                         }
                     }
                 } else {
-                    Log.w(TAG, "File not found: $uriStr")
+                    Log.w(TAG, OpaqueTrace.failureMessage("copy attachment to backup", "attachment", OpaqueTrace.isolatedNext(), null))
                     warnings?.add("File not found: $uriStr")
                     return null
                 }
             }
             relativePath
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to copy attachment: $uriStr", e)
+            Log.w(TAG, OpaqueTrace.failureMessage("copy attachment to backup", "attachment", OpaqueTrace.isolatedNext(), e.javaClass))
             warnings?.add("Failed to copy: $uriStr (${e.localizedMessage})")
             null
         }
@@ -305,7 +310,7 @@ object BackupAttachmentHelper {
                 }
                 result = result.replace(uriStr, destFile.absolutePath)
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to copy URI to local: $uriStr", e)
+                Log.w(TAG, OpaqueTrace.failureMessage("copy URI to local storage", "attachment", OpaqueTrace.isolatedNext(), e.javaClass))
             }
         }
         return result

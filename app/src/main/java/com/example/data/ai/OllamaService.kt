@@ -3,6 +3,7 @@ package com.example.data.ai
 import android.content.Context
 import android.util.Log
 import com.example.R
+import com.example.util.OpaqueTrace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -78,7 +79,12 @@ class OllamaService(
             val responseBody = response.body.string()
 
             if (!response.isSuccessful) {
-                Log.e(TAG, "Ollama API error: ${response.code} $responseBody")
+                // El cuerpo de la respuesta no se registra (RF-5): el servicio de inferencia
+                // acaba de recibir el prompt de la persona y lo devuelve dentro del error. El
+                // código HTTP sí es dato no sensible y es lo único que permite diagnosticar,
+                // así que va en la acción; `responseBody` sigue leyéndose abajo para extraer
+                // `errorDetail`, que es lo que se le muestra a la persona.
+                Log.e(TAG, OpaqueTrace.failureMessage("ollama API error: http=${response.code}", "ollamaResponse", OpaqueTrace.isolatedNext(), null))
                 val errorDetail = try {
                     JSONObject(responseBody).optString("error", response.message)
                 } catch (_: Exception) {
