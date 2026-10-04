@@ -1,99 +1,49 @@
-# MEMORY.md — secure-notes 
-Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no 
-aporte. 
-## Estado actual 
-- **Bloque tabla rediseñado** (2026-09-30, `:app:assembleDebug` OK, sin verificación visual) —
-  casi todo en `ui/EditableTableBlock.kt`:
-  - Fuera los `+` de fila/columna. Esas acciones viven en la hoja `⋮`, y ahora `activeRow`/`activeCol`
-    caen a 0: con los `+` fuera, la hoja es la única vía y sus acciones no salen muertas.
-  - Barra flotante en su **propia franja** (`Column { AnimatedVisibility { HorizontalFloatingToolbar }; Card }`),
-    ya no `align(TopEnd)` sobre el `Card`. MD3 Expressive.
-  - Gutter de 32.dp **superpuesto** al borde izquierdo (`RowGutter`) en vez de reservado: la tabla
-    usa todo el ancho. Solo con la tabla activa.
-  - **Selección (7 defectos)**: `cellMoveFor` no se traga `←`/`→` ni `Shift+←/→`; `Tab` respeta
-    `isShiftPressed`; `key(col)` + `DisposableEffect` para los `FocusRequester` (sin `key()` todas
-    las celdas de un bucle compartían requester); foco a nivel de **tabla** con `onFocusChanged` en el
-    contenedor (la carrera blur(A)/focus(B) borraba el estado); el reload externo conserva `selection`;
-    fuera el `ResizeHandle` intra-celda y el `clickable` de cabecera que competían con el cursor.
-  - Tokens MD3 en vez de literales fijos (`Color(0xFFE5E7EB)`, `Color.White`) que rompían tema oscuro.
-  - `BlockSheetAction` gana `dividerBefore: Boolean = false` (retrocompatible) para agrupar la hoja.
-- **Optimización de rendimiento implementada** (2026-09-30, `:app:assembleDebug` OK, sin 
-  verificación visual en dispositivo):
-  - `data/ai/AiModelHost.kt`: el motor on-device es *lazy* y *ref-counted*. El `init` de 
-    `AiViewModel` ya **no** carga el modelo; se materializa en `onAiSurfaceOpened()` (3 
-    pantallas de chat vía `Screen.AiSurfaceLifecycle`), `execute()`, `executeInPlace()` o el 
-    botón "Load". Se libera al salir del asistente + 2 min de inactividad, en background 
-    (rebote 1,5 s + `hasVisibleActivity()`), en `onCleared`, al borrar el modelo y con "Unload".
-  - `perf/`: `DevicePerformanceProfile` (RAM/lowRam/refresh → tier, caché de Coil, `frameBudgetMs`),
-    `DisplayRefreshRate` (`preferredDisplayModeId`), `FrameMetricsMonitor` (jank, solo DEBUG).
-  - `ui/drawing/StrokeGeometryCache.kt`: `Path`/`Stroke` reutilizados en el lienzo; 
-    `canvasSize` pasa a `onSizeChanged`; el lienzo va en una sola `graphicsLayer` con clip.
-  - Listas con `key` + `contentType`; `SimpleDateFormat` cacheado (`util/CachedDateFormatters`); 
-    `TokenPacer` limita el streaming a ~1 actualización por frame; Coil con cachés dimensionadas.
-  - String nuevo `ai_ondevice_lazy_note` en los 9 locales.
-- Sección "Rendimiento (reglas permanentes)" añadida a `AGENTS.md`: resumen de lo anterior.
+# MEMORY.md — secure-notes
+Memoria entre sesiones: qué está a medias, qué se decidió y por qué, qué no hay que repetir.
+Lo que ya es regla permanente va en `AGENTS.md` o en `docs/adr/`.
 
-## Decisiones (y por qué) 
-- El host de IA vive en la `Application`, no en el ViewModel: `AiViewModel` se destruye al salir 
-  de la Activity y el host debe sobrevivir; `onCleared` solo hace `releaseAll`, nunca "close".
-- `NoModelService` como `currentService` de reserva: leer `currentService` nunca puede crear el 
-  motor nativo por accidente.
-- Descarga por **referencias + temporizador de inactividad (2 min)** en vez de al salir de la 
-  pantalla: recargar pesos re-lee el GGUF del disco y el binding solo permite `setSystemPrompt` 
-  una vez por carga.
-- `AiSurfaceLifecycle` (LaunchedEffect + DisposableEffect) en vez de hooks dentro de 
-  `AiChatScreen`: cubre las 3 rutas de entrada al asistente con un solo sitio.
-- `contentType` como `Int` calculado a partir de la nota: el slot de reutilización solo depende de 
-  la *forma* (fijada/imagen/fondo/has content), no del contenido.
-- Overdraw del rail: `Card(containerColor = Transparent)` → `Box` (6 formas redondeadas que se 
-  dibujaban sin aportar nada) y superficie del rail opaca en vez de `alpha = 0.25f`.
-- Barra de la tabla en su **propia franja** (`Column` + `AnimatedVisibility`) y no flotando con 
-  `align(TopEnd)` sobre el `Card`: una superficie superpuesta tapa celdas y roba ancho.
-- Foco de un grupo (tabla, lista…) con `Modifier.onFocusChanged` en el **contenedor**, no con 
-  "última celda enfocada": al saltar de A a B el orden blur/focus es indeterminado.
-- `remember` dentro de un `for` **exige `key()`**: sin él todas las iteraciones comparten el 
-  mismo slot de memoria (FocusRequester compartido, estado corrupto al reordenar).
+## Estado actual (2026-10-04)
 
-## Aprendizajes y errores a evitar 
-- **`compileDebugUnitTestKotlin` sigue ROTO** (preexistente): `PdfExporterTest.kt` y 
-  `WidgetNotesTest.kt` usan firmas viejas de `PdfExporter` → ningún test unitario corre. 
-  Arreglarlos es lo siguiente de mayor valor.
-- Coil 3.6.3: `MemoryCache.Builder()` **no** lleva `Context`; el tamaño se fija con 
-  `maxSizeBytes(...)` + `.build()`, y `Precision` solo tiene `EXACT`/`INEXACT` (no `AUTOMATIC`).
-- `Window.OnFrameMetricsAvailableListener` es un SAM de **3** parámetros (window, metrics, dropCount).
-- `ThreadLocal.get()` es platform type: usar `!!` o el compilador avisa.
-- AAPT2 **rechaza apóstrofos crudos** en `strings.xml` (`Invalid unicode escape sequence`) → 
-  escribir `\'`. Falla en `mergeDebugResources`, después de que Kotlin ya compiló bien.
-- `LoadingIndicator` (material3 1.5.0-alpha28) necesita `ExperimentalMaterial3ExpressiveApi` y 
-  **no tiene `strokeWidth`**.
-- `settings.gradle.kts` apunta a `/root/llama.cpp/...` y hace `include(":lib")` **solo si 
-  existe**: si el checkout falta, el build sigue sin IA nativa.
-- material3 1.5.0-alpha28: `FloatingToolbarDefaults.containerShape` es **internal** (no se puede
-  pasar a `HorizontalFloatingToolbar`, hay que usar su `shape` por defecto) y el `DragHandle`
-  horizontal **no es público** (solo `VerticalDragHandle`). Sí existen `HorizontalFloatingToolbar`,
-  `ButtonGroup` y `standardFloatingToolbarColors()`.
-- `TextRange` vive en `androidx.compose.ui.text`, **no** en `androidx.compose.ui.text.input`.
-- `AnimatedVisibility` **no** es un `ColumnScope`: `Modifier.align` dentro no compila, hay que
-  envolver en un `Box(contentAlignment = …)`.
-- Ojo al auditar keys de recursos: `R.string.add_row` / `add_column` quedan **sin uso** tras sacar
-  los `+`. No son error de build, pero no volver a buscarlos esperando encontrarlos en el código.
+- **004 `registro-del-sistema`**: T1-T7 hechas; los 23 sitios cerrados con `OpaqueTrace`
+  (`:app`, `:visor-media`, `:editor-de-codigo`). Queda la puerta de cierre: `./gradlew test` en un
+  host x86_64 y el recuento de `releaseRuntimeClasspath`.
+- **003 `dependencias-inventarios`**: completa, 8/8 criterios verificados.
+- **002 `desbloqueo-tests`**: T1-T3 hechas → `compileDebugUnitTestKotlin` ya compila (la nota de
+  `AGENTS.md` que lo da por roto está caduca). Pendientes T4 (goldens `equation_inline.png` /
+  `equation_fallback.png` + fijar `roborazzi.test.verify`) y T5 (suite verde), bloqueadas por la
+  plataforma.
+- **Bloque tabla**: rediseño implementado en `ui/EditableTableBlock.kt`, `assembleDebug` en verde,
+  **sin verificación visual**. Bug aparte: `BlockEditor.toRenderingBlock` (`BlockEditor.kt:1011`)
+  stub de `BlockType.TABLE` que ignora `meta["table"]` → tabla vacía en TTS (~4 líneas).
+- **Pendientes de decisión**: (a) `android.enableResourceOptimizations=false` en
+  `gradle.properties` desactiva el pase `OptimizeResourcesTask` de AGP; sin él el APK release se
+  empaqueta sin manifest ni recursos — no pertenece a esta entrega, no tocar a ciegas. (b) La
+  última frase de la Decisión 22 de la spec 001 contradice su propio sentido (`plan.md` 004 §14).
 
-## Próximos pasos 
-- **Verificar en dispositivo la tabla** (única tarea sin comprobación visual):
-  - `HorizontalFloatingToolbar` impone `containerSize = 56dp` mínimo. Si la franja queda demasiado 
-    alta, degradar a `Surface(shape = FloatingToolbarDefaults…` no sirve (es internal) → usar 
-    `RoundedCornerShape(20.dp)` + `secondaryContainer`, como en `EditableTableBlockGutterPreview`.
-  - El `RowGutter` superpuesto depende de `headerHeightPx` / `rowHeightPx` medidos con 
-    `onGloballyPositioned`. Comprobar alineación con `fit_to_content`, con la cabecera seleccionada 
-    (crece al mostrar el handle `⋯`) y con tipografía del sistema grande.
-  - Probar `Shift+←/→` dentro de una celda y `Tab` en la última celda: debe entrar en la celda, 
-    no crear fila (la hoja `⋮` es la única vía para añadir).
-- **Bug conocido, fuera del alcance de la tabla**: `BlockEditor.toRenderingBlock` (`BlockEditor.kt:1011`)
-  tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y
-  previsualización. Son ~4 líneas. La selección de `EditableTextBlock` también tiene defectos
-  aparte (`pendingSelection` compartido entre bloques en `BlockEditor.kt:92`, checklist con
-  `onSelectionChange = {}`): otra pasada.
-- Verificar en dispositivo: 90/120 Hz (`adb shell dumpsys display | grep -i fps`), jank en logcat 
-  con `FrameMetrics`, y que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).
-- Arreglar `PdfExporterTest.kt` / `WidgetNotesTest.kt` para desbloquear `./gradlew test`.
-- Opcional: `FrameMetricsMonitor` → estado visible en Settings (requiere strings en 9 locales).
+## Decisiones (y por qué)
+
+- **Constitución** (`docs/constitution.md`, 2026-10-03): 6 principios innegociables, cada uno con su
+  comprobación ejecutable; la cabecera que ya imponían `AGENTS.md`, `GUIDELINES.md` y la skill `sdd`.
+- **Registro del sistema sin contenido de la persona**: identificador opaco = contador por
+  operación (no hash) y sin `noteId`; `failureMessage` pura que recibe la clase, nunca la
+  excepción; helper replicado por módulo en vez de un módulo Gradle nuevo. Motivos y alternativas
+  descartadas: `docs/adr/0004-limites-de-constitucion.md`.
+- **Spec 001 dividida** en `002` (desbloqueo de tests, va primera), `003` (inventarios) y `004`
+  (registro); `001/plan.md` y `001/tasks.md` llevan banner de "SUPERADO". Motivo: la 001 era la
+  puerta que destapó las 143 llamadas `Log.*` y no cabía en una entrega.
+- **RF-19 tiene excepción acotada** (Decisión 22 de 001): casos de prueba **solo** para
+  `failureMessage`. Ningún otro sitio del registro admite tests nuevos sin tocar la spec.
+
+## Errores a evitar
+
+- **Esta máquina es aarch64 y Robolectric 4.17 no tiene runtime nativo para `linux/aarch64`**: toda
+  suite falla en `beforeTest` con «Robolectric native runtime is not supported on Linux (aarch64)»,
+  tenga o no `@GraphicsMode(NATIVE)`. Solo se puede **compilar**: aquí la comprobación útil es
+  `./gradlew :app:compileDebugUnitTestKotlin` y `:compileDebugKotlin`.
+- **`grep -rn "firebase"` miente**: el plugin `google-services` **sí** está aplicado
+  (`app/build.gradle.kts:12`) y `app/google-services.json` es obligatorio; está gitignored, por eso
+  `git ls-files` no lo ve. La analítica se retiró (003); el plugin se conserva por el sync de Drive.
+- **Buscar solo interpolaciones no encuentra toda fuga**: `org.json.JSONException` imprime un
+  fragmento de la cadena analizada → `Log.e(tag, msg, e)` sobre `note.content` filtra sin interpolar.
+- **Auditar con parser, no con `grep -n`**: las llamadas al registro se reparten en varias líneas;
+  por líneas salen otras cifras (las reales: 143 `Log.*`, 35 interpolan, 114 con excepción).
