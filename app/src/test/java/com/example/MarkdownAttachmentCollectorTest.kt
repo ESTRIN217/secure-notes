@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@Config(sdk = [36])
 class MarkdownAttachmentCollectorTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

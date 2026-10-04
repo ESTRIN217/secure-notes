@@ -56,7 +56,7 @@ class PdfExporterTest {
         val embedder = HtmlMediaEmbedder(context)
         var y = 50f
         for (b in blocks) {
-            y += renderer.drawBlock(page.canvas, b, embedder, 50f, y, 495)
+            y += renderer.drawBlock(page.canvas, b, embedder, 50f, y, 495, context = context)
         }
         doc.finishPage(page)
         val out = ByteArrayOutputStream()
@@ -118,7 +118,7 @@ class PdfExporterTest {
         val png = createPng()
         val block = block(BlockType.IMAGE, content = png.absolutePath)
 
-        val height = PdfBlockRenderer().measureBlock(block, HtmlMediaEmbedder(context), 495)
+        val height = PdfBlockRenderer().measureBlock(block, HtmlMediaEmbedder(context), 495, context = context)
 
         assertTrue("expected embedded image height, got $height", height > 200f)
         png.delete()
@@ -139,7 +139,7 @@ class PdfExporterTest {
             meta = mapOf("wysiwyg" to "true")
         )
 
-        val height = PdfBlockRenderer().measureBlock(block, HtmlMediaEmbedder(context), 495)
+        val height = PdfBlockRenderer().measureBlock(block, HtmlMediaEmbedder(context), 495, context = context)
 
         assertTrue("expected drawing height, got $height", height > 300f)
     }
@@ -162,10 +162,10 @@ class PdfExporterTest {
         val voice = block(BlockType.VOICE, content = "/data/v.3gp")
         val file = block(BlockType.FILE, content = "/data/doc.pdf", meta = mapOf("name" to "doc.pdf"))
 
-        assertEquals(0f, renderer.measureBlock(video, embedder, 495))
-        assertEquals(0f, renderer.measureBlock(audio, embedder, 495))
-        assertEquals(0f, renderer.measureBlock(voice, embedder, 495))
-        assertEquals(0f, renderer.measureBlock(file, embedder, 495))
+        assertEquals(0f, renderer.measureBlock(video, embedder, 495, context = context))
+        assertEquals(0f, renderer.measureBlock(audio, embedder, 495, context = context))
+        assertEquals(0f, renderer.measureBlock(voice, embedder, 495, context = context))
+        assertEquals(0f, renderer.measureBlock(file, embedder, 495, context = context))
     }
 
     @Test
@@ -192,7 +192,7 @@ class PdfExporterTest {
         val embedder = HtmlMediaEmbedder(context)
         var y = 50f
         for (b in blocks) {
-            val needed = renderer.measureBlock(b, embedder, 495)
+            val needed = renderer.measureBlock(b, embedder, 495, context = context)
             if (needed > 0f && y + needed > 792f) {
                 doc.finishPage(page)
                 pageNumber++
@@ -200,7 +200,7 @@ class PdfExporterTest {
                 canvas = page.canvas
                 y = 50f
             }
-            y += renderer.drawBlock(canvas, b, embedder, 50f, y, 495)
+            y += renderer.drawBlock(canvas, b, embedder, 50f, y, 495, context = context)
         }
         doc.finishPage(page)
         doc.close()

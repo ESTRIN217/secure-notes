@@ -1,11 +1,23 @@
 package com.example.widget
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.example.R
 import com.example.data.model.Note
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class WidgetNotesTest {
+
+    // `widgetTitle` y `widgetSummary` leen recursos vía `RichTextConverter`: sin contexto de
+    // aplicación no hay forma de ejercitarlas.
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     private fun note(
         id: Int,
@@ -46,13 +58,17 @@ class WidgetNotesTest {
 
     @Test
     fun `title falls back when blank`() {
-        assertEquals("Untitled", widgetTitle(note(1, title = "   ")))
-        assertEquals("Hola", widgetTitle(note(1, title = "  Hola  ")))
+        // El valor esperado sale del recurso, no de un literal: un literal ataría la suite a un
+        // idioma y rompería en cuanto el texto se traduzca (RF-18, principio 6).
+        val untitled = context.getString(R.string.widget_note_untitled)
+
+        assertEquals(untitled, widgetTitle(context, note(1, title = "   ")))
+        assertEquals("Hola", widgetTitle(context, note(1, title = "  Hola  ")))
     }
 
     @Test
     fun `summary strips markup and caps length`() {
-        val summary = widgetSummary("**Hola** mundo " + "x".repeat(500))
+        val summary = widgetSummary("**Hola** mundo " + "x".repeat(500), context)
 
         assertTrue(summary.contains("Hola"))
         assertTrue(!summary.contains("**"))
