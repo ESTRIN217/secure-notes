@@ -1,8 +1,5 @@
 package com.example.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,6 +70,8 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -83,11 +82,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.example.R
 import com.example.data.model.TableData
+import com.example.ui.table.CellKey
+import com.example.ui.table.HEADER_ROW
+import com.example.ui.table.SelectionState
+import com.example.ui.table.TableMetrics
+import com.example.ui.table.TableSelectionOverlay
+import com.example.ui.table.columnHandleLeft
+import com.example.ui.table.nextFocusSet
+import com.example.ui.table.rowHandleCenters
 import kotlin.math.roundToInt
 
 private data class FocusedCell(val row: Int, val col: Int)
@@ -110,9 +118,27 @@ private val TableDropAlpha = 0.12f
 private val TableHeaderAlpha = 0.25f
 private val TableRowActiveAlpha = 0.06f
 
-// Ancho del gutter de los handles de fila. No se resta al ancho de columnas: la
-// capa del gutter se superpone al borde izquierdo del Card.
-private val TableGutterWidth = 32.dp
+/**
+ * Alto del margen que aloja la barra. Es constante: la tabla debe estar en el mismo
+ * sitio tenga la barra o no la tenga, que es lo que impide que salte al enfocarla.
+ *
+ * Mide más que el mínimo de 56 dp de la barra expresiva más el hueco: por eso no son los
+ * 44 dp que se habían estimado, porque la barra de Material 3 expresivo no baja de ese alto.
+ */
+private val TableToolbarMargin = 60.dp
+
+/** Separación entre el borde inferior de la barra y el borde superior de la tabla. */
+private val TableToolbarGap = 4.dp
+
+/** Respiro bajo la tabla, para que no quede pegada al bloque de abajo. */
+private val TableBottomMargin = 12.dp
+
+/** Alto de la ranura donde se coloca un manejador de fila. */
+private val RowHandleSlot = 24f
+
+/** Tamaño del manejador de columna, que va horizontal. */
+private val ColumnHandleWidth = 24f
+private val ColumnHandleHeight = 16f
 
 private val LINK_REGEX = Regex("(https?|note)://")
 
@@ -170,11 +196,13 @@ class TableBlockState(initialData: TableData) {
     var bgColorHex by mutableStateOf(initialData.bgColorHex?.hex())
     var showHeader by mutableStateOf(initialData.showHeader)
     var showHeaderColumn by mutableStateOf(initialData.showHeaderColumn)
-    private var focusedCell by mutableStateOf<FocusedCell?>(null)
-    // El foco se rastrea a nivel de tabla (no de celda): al pasar de una celda a
-    // otra, el blur de la anterior y el focus de la nueva llegan en orden
-    // indeterminado, y limpiar la celda en el blur borraba el estado de golpe.
-    private var tableFocused by mutableStateOf(false)
+    // Conjunto de celdas con foco, no una celda: el desenfoque de una puede llegar
+    // después del foco de la siguiente y con un solo valor se borrarían entre ellas.
+    var focusedCells by mutableStateOf(emptySet<CellKey>())
+    // Última celda tocada. No se limpia nunca: alimenta las acciones contextuales de
+    // la hoja, que es la única vía para añadir o quitar filas y columnas.
+    private var lastFocused by mutableStateOf<CellKey?>(null)
+    var hovered by mutableStateOf(false)
     var selectedRow by mutableStateOf<Int?>(null)
     var showRowMenu by mutableStateOf(false)
     var showColMenu by mutableStateOf(false)
@@ -214,11 +242,25 @@ class TableBlockState(initialData: TableData) {
     val columnCount: Int
         get() = headers.size.coerceAtLeast(rows.maxOfOrNull { it.size } ?: 0)
     val focusedRow: Int?
-        get() = focusedCell?.takeIf { it.row >= 0 }?.row
+        get() = lastFocused?.takeIf { it.row >= 0 }?.row
     val focusedCol: Int?
-        get() = focusedCell?.col
+        get() = lastFocused?.col
+    /** Celda enfocada para el contorno, o null si ya no existe la fila o la columna. */
+    val focusedCellForOutline: CellKey?
+        get() = lastFocused?.takeIf { it.col in 0 until columnCount }
+            ?.takeIf { it.row == HEADER_ROW || it.row in rows.indices }
     val hasFocus: Boolean
-        get() = tableFocused
+        get() = focusedCells.isNotEmpty()
+    /** La tabla está señalada con el foco o con un puntero encima. */
+    val isSignaled: Boolean
+        get() = com.example.ui.table.isSignaled(
+            SelectionState(
+                focused = lastFocused,
+                selectedRow = selectedRow,
+                hovered = hovered,
+                active = hasFocus,
+            )
+        )
     // Con los "+" fuera, la hoja de opciones es la única vía para añadir o
     // quitar filas y columnas: siempre cae en un destino válido.
     val activeCol: Int
@@ -242,25 +284,29 @@ class TableBlockState(initialData: TableData) {
     }
 
     // --- Mutadores ---
-    fun setTableFocus(focused: Boolean) {
-        tableFocused = focused
-        if (!focused) selectedRow = null
-    }
-
     fun setHeader(col: Int, value: String) {
         if (col !in headers.indices) return
         headers[col] = value
         notifyChange()
     }
 
-    // focusedCell es memoria de "última celda tocada": nunca se anula al perder
-    // el foco, solo alimenta las acciones contextuales de la hoja.
-    fun selectHeaderCell(col: Int, focused: Boolean) {
-        if (focused) focusedCell = FocusedCell(-1, col)
+    fun onHover(inside: Boolean) {
+        hovered = inside
+        if (!isSignaled) selectedRow = null
     }
 
-    fun selectCell(rowIndex: Int, col: Int, focused: Boolean) {
-        if (focused) focusedCell = FocusedCell(rowIndex, col)
+    // El conjunto es lo que decide si la tabla está activa; lastFocused solo
+    // recuerda dónde estaba el cursor para las acciones de la hoja.
+    fun selectHeaderCell(col: Int, focused: Boolean) =
+        setCellFocus(CellKey(HEADER_ROW, col), focused)
+
+    fun selectCell(rowIndex: Int, col: Int, focused: Boolean) =
+        setCellFocus(CellKey(rowIndex, col), focused)
+
+    private fun setCellFocus(cell: CellKey, focused: Boolean) {
+        focusedCells = nextFocusSet(focusedCells, cell, focused)
+        if (focused) lastFocused = cell
+        if (!isSignaled) selectedRow = null
     }
 
     fun selectRow(rowIndex: Int) {
@@ -395,7 +441,7 @@ class TableBlockState(initialData: TableData) {
     }
 
     fun moveFocus(dRow: Int, dCol: Int) {
-        val cur = focusedCell ?: return
+        val cur = lastFocused ?: return
         if (columnCount == 0) return
         selectedRow = null
         val newRow = when {
@@ -424,6 +470,31 @@ fun rememberTableBlockState(
 }
 
 // ============ 2. COMPONENTE ORQUESTADOR (LA TABLA) ============
+/**
+ * Avisa de si hay un puntero sobre el bloque.
+ *
+ * Se cubren puntero flotante y contacto porque no son lo mismo: `Enter` y `Exit` solo los produce un
+ * dispositivo que flota, y en una pantalla táctil el dedo únicamente da `Press` y `Release`. Con solo
+ * los primeros, tocar la tabla con el dedo no la marcaría, que es justo como se usa en la práctica.
+ *
+ * El `Release` solo desmarca si el contacto es del dedo. Un clic de ratón también produce `Release`,
+ * y sin esa comprobación la barra se apagaría con el cursor todavía dentro de la tabla.
+ */
+private fun Modifier.hoverSignal(onHover: (Boolean) -> Unit): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            val event = awaitPointerEvent()
+            val fromTouch = event.changes.any { it.type == PointerType.Touch }
+            when (event.type) {
+                PointerEventType.Enter -> onHover(true)
+                PointerEventType.Press -> onHover(true)
+                PointerEventType.Exit -> onHover(false)
+                PointerEventType.Release -> if (fromTouch) onHover(false)
+                else -> Unit
+            }
+        }
+    }
+}
 @Composable
 fun EditableTableBlock(
     tableData: TableData,
@@ -471,33 +542,54 @@ fun EditableTableBlock(
             if (fitsOnScreen) (availableWidthForCols / totalWeight).toPx() else minUnitWidth.toPx()
         }
 
-        // onFocusChanged en el contenedor: Compose notifica al ancestro cuando
-        // cualquier celda gana el foco, así el estado de tabla no depende del
-        // orden en que llegan el blur de una celda y el focus de la siguiente.
+        // Una sola medida compartida por el contorno y por los manejadores: si la
+        // calcularan por separado, cualquier diferencia entre las dos los desincronizaría
+        // y el contorno caería donde no es la celda.
+        val tableMetrics = with(LocalDensity.current) {
+            TableMetrics(
+                columnWidths = (0 until state.columnCount).map { getColumnWidth(it).toPx() },
+                rowHeights = List(state.rows.size) { state.rowHeightPx },
+                headerHeight = state.headerHeightPx,
+                showHeader = state.showHeader,
+            )
+        }
+
+        // El contenedor NO pregunta por el foco: onFocusChanged solo se lo avisa al
+        // elemento al que está aplicado, y un contenedor que solo agrupa celdas no es
+        // destino de foco, así que nunca se entera. El foco se lleva celda a celda,
+        // que sí son destinos legítimos, y se agrega en un conjunto.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged { state.setTableFocus(it.isFocused) }
+                .hoverSignal(state::onHover)
         ) {
-            // La barra vive en su propia franja, fuera del Card: nunca tapa
-            // una celda ni roba ancho de columnas.
-            AnimatedVisibility(
-                visible = state.hasFocus,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                // AnimatedVisibility no es un ColumnScope: el anclaje va en un Box.
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                    FloatingToolbar(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        onOpenMoreMenu = { showMoreMenu = true },
-                        onDragTableStart = onDragTableStart,
-                        onDragTableBy = onDragTableBy,
-                        onDragTableEnd = onDragTableEnd,
-                        onDragTableCancel = onDragTableCancel
-                    )
-                }
+            // Margen que la tabla tiene siempre por encima, para alojar la barra. El
+        // editor no pone espacio entre bloques, así que si no lo reservara la barra
+        // tendría que tapar el bloque de arriba. Como el alto es constante y solo
+        // cambia la visibilidad de la barra dentro, la tabla no se mueve nunca.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(TableToolbarMargin)
+                .padding(bottom = TableToolbarGap)
+        ) {
+            // Sin AnimatedVisibility: dentro de un Box su sobrecarga se resuelve a la
+            // de ColumnScope y no compila. La aparición y desaparición no cambian la
+            // altura del margen, así que la tabla no se mueve igual.
+            if (state.isSignaled) {
+                FloatingToolbar(
+                    // Abajo a la derecha y pegada a la tabla: si la barra llegara a
+                    // ser más alta que el margen, el desborde cae hacia arriba y nunca
+                    // encima de la primera fila.
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                    onOpenMoreMenu = { showMoreMenu = true },
+                    onDragTableStart = onDragTableStart,
+                    onDragTableBy = onDragTableBy,
+                    onDragTableEnd = onDragTableEnd,
+                    onDragTableCancel = onDragTableCancel
+                )
             }
+        }
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -514,7 +606,6 @@ fun EditableTableBlock(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = TableGutterWidth)
                             .background(tableBg)
                             .horizontalScroll(rememberScrollState())
                     ) {
@@ -574,33 +665,55 @@ fun EditableTableBlock(
                         }
                     }
 
-                    // Capa del gutter: los handles de fila se dibujan encima del
-                    // borde izquierdo, solo con la tabla activa.
-                    if (state.hasFocus) {
-                        RowGutter(
-                            rowCount = state.rows.size,
-                            headerHeight = if (state.showHeader) {
-                                with(LocalDensity.current) { state.headerHeightPx.toDp() }
-                            } else {
-                                0.dp
-                            },
-                            rowHeightPx = state.rowHeightPx,
+                    // Manejadores superpuestos al borde izquierdo: uno por fila contando la de
+                    // cabecera, colocados con la geometría ya comprobada. No reservan
+                    // ancho y no cambian el alto de nada, así que no mueven la tabla.
+                    if (state.isSignaled) {
+                        TableHandleOverlay(
+                            metrics = tableMetrics,
+                            focused = state.focusedCellForOutline,
                             selectedRow = state.selectedRow,
-                            primary = primary,
+                            showColMenu = state.showColMenu,
                             showRowMenu = state.showRowMenu,
+                            onShowColMenuChange = { state.showColMenu = it },
                             onShowRowMenuChange = { state.showRowMenu = it },
                             onRowSelect = state::selectRow,
-                            onInsertAbove = state::insertRowAbove,
-                            onInsertBelow = state::insertRowBelow,
+                            onColumnSelect = { col -> state.selectHeaderCell(col, true) },
+                            onInsertRowAbove = state::insertRowAbove,
+                            onInsertRowBelow = state::insertRowBelow,
                             onDeleteRow = state::deleteRow,
                             canDeleteRow = state.rows.size > 1,
+                            onInsertColumnLeft = state::insertColumnLeft,
+                            onInsertColumnRight = state::insertColumnRight,
+                            onDeleteColumn = state::deleteColumn,
+                            canDeleteColumn = state.columnCount > 1,
                             onDragRowState = { s, t -> state.dragRow = s; state.dragRowTarget = t },
                             onCommitRow = { state.commitRowDrag() },
-                            onCancelRow = { state.dragRow = null; state.dragRowTarget = null }
+                            onCancelRow = { state.dragRow = null; state.dragRowTarget = null },
+                            onDragColState = { s, t -> state.dragCol = s; state.dragColTarget = t },
+                            onCommitCol = { state.commitColumnDrag() },
+                            onCancelCol = { state.dragCol = null; state.dragColTarget = null },
+                            modifier = Modifier.matchParentSize()
                         )
                     }
+
+                    // Contorno de selección: una sola región por encima de las
+                    // celdas. Las medidas salen de lo ya medido, así que no hay
+                    // una segunda medición que pueda desincronizarse.
+                    TableSelectionOverlay(
+                        metrics = tableMetrics,
+                        state = SelectionState(
+                            focused = state.focusedCellForOutline,
+                            selectedRow = state.selectedRow,
+                            hovered = state.hovered,
+                            active = state.hasFocus,
+                        ),
+                        modifier = Modifier.matchParentSize()
+                    )
                 }
             }
+
+            Spacer(Modifier.height(TableBottomMargin))
 
             if (showMoreMenu) {
                 TableBlockOptionsSheet(
@@ -685,59 +798,35 @@ private fun TableHeaderRow(
                 }
                 val colWidth = getColumnWidth(col)
                 Box(
+                    // Sin borde de acento ni cambio de orden de dibujo: el contorno lo
+                    // pinta la capa superpuesta. Aquí solo queda la rejilla.
                     modifier = Modifier
                         .width(colWidth)
-                        .zIndex(if (selected) 1f else 0f)
-                        .border(
-                            width = if (selected) 1.5.dp else 0.5.dp,
-                            color = if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant
-                        )
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = TableHighlightBgAlpha)
-                            else Color.Transparent
-                        )
+                        .border(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Column {
-                        if (selected) {
-                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                HeaderColumnHandle(
-                                    col = col,
-                                    primary = primary,
-                                    showMenu = showColMenu,
-                                    onShowMenuChange = onShowColMenuChange,
-                                    onInsertLeft = { onInsertLeft(col) },
-                                    onInsertRight = { onInsertRight(col) },
-                                    onDeleteColumn = { onDeleteColumn(col) },
-                                    canDeleteColumn = canDeleteColumn,
-                                    colUnitPx = colUnitPx,
-                                    columnCount = columnCount,
-                                    onDragCol = onDragColState,
-                                    onCommitCol = onCommitCol,
-                                    onCancelCol = onCancelCol
-                                )
-                            }
+                    // El manejador de columna ya no vive aquí: lo dibuja la capa
+                    // superpuesta. Dentro de la celda empujaba el texto y obligaba a
+                    // medir la cabecera para compensarlo, y eso la hacía saltar.
+                    var headerText by remember { mutableStateOf(TextFieldValue(header)) }
+                    // Recarga externa (p. ej. deshacer o edición con IA): se conserva
+                    // el rango para no teletransportar el cursor al principio ni
+                    // colapsar la selección.
+                    LaunchedEffect(header) {
+                        if (headerText.text != header) {
+                            headerText = TextFieldValue(header, headerText.selection.clampedTo(header.length))
                         }
-                        var headerText by remember { mutableStateOf(TextFieldValue(header)) }
-                        // Recarga externa (p. ej. deshacer o edición con IA): se conserva
-                        // el rango para no teletransportar el cursor al principio ni
-                        // colapsar la selección.
-                        LaunchedEffect(header) {
-                            if (headerText.text != header) {
-                                headerText = TextFieldValue(header, headerText.selection.clampedTo(header.length))
-                            }
-                        }
-                        BasicTextField(
-                            value = headerText,
-                            onValueChange = { headerText = it; onHeaderValueChange(col, it.text) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { state -> onHeaderSelect(col, state.isFocused) }
-                                .onPreviewKeyEvent { event ->
-                                    val dir = cellMoveFor(event, headerText.selection, headerText.text.length)
-                                        ?: return@onPreviewKeyEvent false
+                    }
+                    BasicTextField(
+                        value = headerText,
+                        onValueChange = { headerText = it; onHeaderValueChange(col, it.text) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { state -> onHeaderSelect(col, state.isFocused) }
+                            .onPreviewKeyEvent { event ->
+                                val dir = cellMoveFor(event, headerText.selection, headerText.text.length)
+                                    ?: return@onPreviewKeyEvent false
                                     onMoveFocus(dir.first, dir.second)
                                     true
                                 },
@@ -746,8 +835,7 @@ private fun TableHeaderRow(
                                 color = MaterialTheme.colorScheme.onSurface
                             ),
                             singleLine = true
-                        )
-                    }
+                    )
                     if (col < columnCount - 1) {
                         ColumnResizeBar(
                             modifier = Modifier
@@ -852,8 +940,6 @@ private fun TableRow(
         for (col in 0 until columnCount) {
             key(rowIndex, col) {
                 val cell = row.getOrElse(col) { "" }
-                val cellFocused = focusedRow == rowIndex && focusedCol == col
-                val inActiveCol = focusedCol == col
                 val focusRequester = remember { FocusRequester() }
                 DisposableEffect(focusRequester) {
                     focusRequesters[Pair(rowIndex, col)] = focusRequester
@@ -861,8 +947,6 @@ private fun TableRow(
                 }
                 TableCell(
                     cell = cell,
-                    isFocused = cellFocused,
-                    inActiveCol = inActiveCol,
                     isHeaderCol = showHeaderColumn && col == 0,
                     primary = primary,
                     onValueChange = { onCellValueChange(col, it) },
@@ -876,36 +960,52 @@ private fun TableRow(
     }
 }
 
-// Capa superpuesta del gutter izquierdo. Va aparte de TableRow porque los handles
-// cuelgan del borde del Card y no deben ocupar ancho de columna ni alterar el
-// alto de la fila que se mide para el arrastre.
+// Capa superpuesta de los manejadores. Va aparte de las filas porque cuelgan del
+// borde del Card: no deben ocupar ancho de columna ni alterar el alto de la fila, y
+// por eso aparecer y desaparecer no mueve la tabla.
+//
+// Las posiciones salen de la geometría comprobada, no de sumar alturas aquí, que es
+// lo que garantiza que un manejador siga en su fila cuando las filas cambian de alto.
 @Composable
-private fun RowGutter(
-    rowCount: Int,
-    headerHeight: Dp,
-    rowHeightPx: Float,
+private fun TableHandleOverlay(
+    metrics: TableMetrics,
+    focused: CellKey?,
     selectedRow: Int?,
-    primary: Color,
+    showColMenu: Boolean,
     showRowMenu: Boolean,
+    onShowColMenuChange: (Boolean) -> Unit,
     onShowRowMenuChange: (Boolean) -> Unit,
     onRowSelect: (Int) -> Unit,
-    onInsertAbove: (Int) -> Unit,
-    onInsertBelow: (Int) -> Unit,
+    onColumnSelect: (Int) -> Unit,
+    onInsertRowAbove: (Int) -> Unit,
+    onInsertRowBelow: (Int) -> Unit,
     onDeleteRow: (Int) -> Unit,
     canDeleteRow: Boolean,
+    onInsertColumnLeft: (Int) -> Unit,
+    onInsertColumnRight: (Int) -> Unit,
+    onDeleteColumn: (Int) -> Unit,
+    canDeleteColumn: Boolean,
     onDragRowState: (Int, Int) -> Unit,
     onCommitRow: () -> Unit,
-    onCancelRow: () -> Unit
+    onCancelRow: () -> Unit,
+    onDragColState: (Int, Int) -> Unit,
+    onCommitCol: () -> Unit,
+    onCancelCol: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val rowHeightDp = with(LocalDensity.current) { rowHeightPx.toDp() }
-    Column(modifier = Modifier.width(TableGutterWidth)) {
-        Spacer(Modifier.height(headerHeight))
-        repeat(rowCount) { rowIndex ->
+    val primary = MaterialTheme.colorScheme.primary
+    val centers = rowHandleCenters(metrics)
+    // Con cabecera, el centro 0 es el suyo y las filas de datos empiezan en el 1.
+    val headerSlot = if (metrics.showHeader) 1 else 0
+    val dataRowCount = centers.size - headerSlot
+    Box(modifier = modifier) {
+        centers.forEachIndexed { slot, centerY ->
+            val rowIndex = slot - headerSlot
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(rowHeightDp),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.TopStart)
+                    .zIndex(2f)
+                    .offset { IntOffset(0, (centerY - RowHandleSlot / 2f).roundToInt()) }
             ) {
                 RowHandle(
                     rowIndex = rowIndex,
@@ -914,16 +1014,54 @@ private fun RowGutter(
                     showMenu = showRowMenu && selectedRow == rowIndex,
                     onShowMenuChange = onShowRowMenuChange,
                     onSelect = { onRowSelect(rowIndex) },
-                    onInsertAbove = { onInsertAbove(rowIndex) },
-                    onInsertBelow = { onInsertBelow(rowIndex) },
+                    onInsertAbove = { onInsertRowAbove(rowIndex) },
+                    onInsertBelow = { onInsertRowBelow(rowIndex) },
                     onDeleteRow = { onDeleteRow(rowIndex) },
-                    canDeleteRow = canDeleteRow,
-                    rowHeightPx = rowHeightPx,
-                    rowCount = rowCount,
+                    // La cabecera no tiene fila que borrar: el índice -1 recortaría
+                    // al 0 y se comería la primera fila de datos.
+                    canDeleteRow = canDeleteRow && rowIndex != HEADER_ROW,
+                    rowHeightPx = metrics.rowHeights.getOrElse(rowIndex) { 0f },
+                    rowCount = dataRowCount,
                     onDragRowState = onDragRowState,
                     onCommitRow = onCommitRow,
                     onCancelRow = onCancelRow
                 )
+            }
+        }
+
+        // Manejador de la columna enfocada, centrado sobre el borde superior de la
+        // columna. Superpuesto, así que no empuja la cabecera.
+        val col = focused?.col
+        if (focused?.row == HEADER_ROW && col != null && metrics.showHeader) {
+            val leftPx = columnHandleLeft(metrics, col, ColumnHandleWidth)
+            if (leftPx != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .zIndex(3f)
+                        .offset {
+                            IntOffset(
+                                leftPx.roundToInt(),
+                                (-ColumnHandleHeight / 2f).roundToInt()
+                            )
+                        }
+                ) {
+                    HeaderColumnHandle(
+                        col = col,
+                        primary = primary,
+                        showMenu = showColMenu,
+                        onShowMenuChange = onShowColMenuChange,
+                        onInsertLeft = { onInsertColumnLeft(col) },
+                        onInsertRight = { onInsertColumnRight(col) },
+                        onDeleteColumn = { onDeleteColumn(col) },
+                        canDeleteColumn = canDeleteColumn,
+                        colUnitPx = metrics.columnWidths.getOrElse(col) { 1f },
+                        columnCount = metrics.columnWidths.size,
+                        onDragCol = onDragColState,
+                        onCommitCol = onCommitCol,
+                        onCancelCol = onCancelCol
+                    )
+                }
             }
         }
     }
@@ -988,8 +1126,6 @@ private fun RowHandle(
 @Composable
 private fun TableCell(
     cell: String,
-    isFocused: Boolean,
-    inActiveCol: Boolean,
     isHeaderCol: Boolean,
     primary: Color,
     onValueChange: (String) -> Unit,
@@ -998,7 +1134,6 @@ private fun TableCell(
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
-    val isHighlighted = isFocused || inActiveCol
     val link = isLink(cell)
     var text by remember { mutableStateOf(TextFieldValue(cell)) }
     // Recarga externa: se conserva el rango para no teletransportar el cursor
@@ -1006,19 +1141,14 @@ private fun TableCell(
     LaunchedEffect(cell) {
         if (text.text != cell) text = TextFieldValue(cell, text.selection.clampedTo(cell.length))
     }
+    // La celda solo lleva la línea de la rejilla. El estado activo no la pinta: lo
+    // pinta el contorno de la capa superpuesta, y así una fila o columna resaltada se
+    // lee como una región y no como una tira de cajas.
     var base = modifier
-        .zIndex(if (isHighlighted) 1f else 0f)
-        .border(
-            width = if (isHighlighted) 1.5.dp else 0.5.dp,
-            color = if (isHighlighted) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant
-        )
+        .border(width = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
         .background(
-            when {
-                isHeaderCol -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = TableHeaderAlpha)
-                isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = TableHighlightBgAlpha)
-                else -> Color.Transparent
-            }
+            if (isHeaderCol) MaterialTheme.colorScheme.primaryContainer.copy(alpha = TableHeaderAlpha)
+            else Color.Transparent
         )
     if (link) {
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))

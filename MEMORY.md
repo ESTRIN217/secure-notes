@@ -1,49 +1,25 @@
-# MEMORY.md — secure-notes
-Memoria entre sesiones: qué está a medias, qué se decidió y por qué, qué no hay que repetir.
-Lo que ya es regla permanente va en `AGENTS.md` o en `docs/adr/`.
+# MEMORY.md — secure-notes 
+Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
+## Estado actual 
+- **Spec 005 implementada** (`specs/005-tabla-seleccion/`): selección y foco del bloque de tabla. Arregla la barra que no aparecía y quita la escalera del resaltado. 34 pruebas puras en verde, `assembleDebug` correcto, datos intactos. **Sin verificación visual.**
+- **Tests del módulo principal compilan** (spec 002, T1-T3). La **suite completa sigue bloqueada por la plataforma**: Robolectric no tiene runtime nativo para `linux/aarch64`. Los tests **puros sí se ejecutan** aquí (`RichTextParserTest`, 35 casos, 0 fallos).
+- **Rendimiento implementado** (`assembleDebug` OK, sin verificar en dispositivo): `AiModelHost` lazy y ref-counted, `perf/`, `StrokeGeometryCache`, listas con `key`+`contentType`, cachés de Coil, `SimpleDateFormat` cacheado.
 
-## Estado actual (2026-10-04)
+## Decisiones (y por qué) 
+- El host de IA vive en la `Application`, no en el ViewModel: el ViewModel se destruye al salir de la Activity y el host debe sobrevivir. Descarga por **referencias + inactividad**: recargar re-lee el GGUF.
+- La barra de la tabla va en un **margen constante propio**. El salto que hacía bajar la tabla al enfocar venía de que `AnimatedVisibility` **cambiaba el alto**, no de reservar sitio. Y no se puede superponer en «el hueco» porque **el editor no pone espacio entre bloques**: taparía el bloque de arriba.
+- Foco de un grupo con un **conjunto** de elementos enfocados, no con «el elemento enfocado»: el desenfoque de A puede llegar tras el foco de B y con un solo valor se borrarían. Queda vacío un instante en un orden, pero las escrituras se agrupan: lo que no puede pasar es que el estado **final** dependa del orden.
+- Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`. Mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
 
-- **004 `registro-del-sistema`**: T1-T7 hechas; los 23 sitios cerrados con `OpaqueTrace`
-  (`:app`, `:visor-media`, `:editor-de-codigo`). Queda la puerta de cierre: `./gradlew test` en un
-  host x86_64 y el recuento de `releaseRuntimeClasspath`.
-- **003 `dependencias-inventarios`**: completa, 8/8 criterios verificados.
-- **002 `desbloqueo-tests`**: T1-T3 hechas → `compileDebugUnitTestKotlin` ya compila (la nota de
-  `AGENTS.md` que lo da por roto está caduca). Pendientes T4 (goldens `equation_inline.png` /
-  `equation_fallback.png` + fijar `roborazzi.test.verify`) y T5 (suite verde), bloqueadas por la
-  plataforma.
-- **Bloque tabla**: rediseño implementado en `ui/EditableTableBlock.kt`, `assembleDebug` en verde,
-  **sin verificación visual**. Bug aparte: `BlockEditor.toRenderingBlock` (`BlockEditor.kt:1011`)
-  stub de `BlockType.TABLE` que ignora `meta["table"]` → tabla vacía en TTS (~4 líneas).
-- **Pendientes de decisión**: (a) `android.enableResourceOptimizations=false` en
-  `gradle.properties` desactiva el pase `OptimizeResourcesTask` de AGP; sin él el APK release se
-  empaqueta sin manifest ni recursos — no pertenece a esta entrega, no tocar a ciegas. (b) La
-  última frase de la Decisión 22 de la spec 001 contradice su propio sentido (`plan.md` 004 §14).
+## Aprendizajes y errores a evitar 
+- **`Modifier.onFocusChanged` no observa el foco de los descendientes** si el elemento al que se aplicado no es destino de foco. No da error: no se monta nada. No volver a asumirlo.
+- Si Coil recibe una factoría `diskCache`, `.directory(...)` es **obligatorio**. No hay crash: las imágenes **no cargan** y no se ve por qué. `remember` en un `for` **exige `key()`**: sin él las iteraciones comparten el slot de memoria.
+- material3 1.5.0-alpha28: `FloatingToolbarDefaults.containerShape` es **internal** y el `DragHandle` horizontal no es público. `TextRange` vive en `...ui.text`. `AnimatedVisibility` dentro de un `Box` resuelve a la sobrecarga de `ColumnScope` y no compila.
+- AAPT2 **rechaza apóstrofos crudos** en `strings.xml` → escribir `\'`. Falla en `mergeDebugResources`, cuando Kotlin ya compiló bien.
+- Una prueba que no se ha visto fallar no está probada: mutar el código y comprobar que el caso se pone rojo. Cuesta una vuelta de Gradle y evita capturas verdes que no comprueban nada. La geometría de la selección va **sin imports de Compose** a propósito, para poder ejercitarla sin el entorno de pruebas; criterio de cierre: `grep -c '^import androidx.compose'` → 0.
 
-## Decisiones (y por qué)
-
-- **Constitución** (`docs/constitution.md`, 2026-10-03): 6 principios innegociables, cada uno con su
-  comprobación ejecutable; la cabecera que ya imponían `AGENTS.md`, `GUIDELINES.md` y la skill `sdd`.
-- **Registro del sistema sin contenido de la persona**: identificador opaco = contador por
-  operación (no hash) y sin `noteId`; `failureMessage` pura que recibe la clase, nunca la
-  excepción; helper replicado por módulo en vez de un módulo Gradle nuevo. Motivos y alternativas
-  descartadas: `docs/adr/0004-limites-de-constitucion.md`.
-- **Spec 001 dividida** en `002` (desbloqueo de tests, va primera), `003` (inventarios) y `004`
-  (registro); `001/plan.md` y `001/tasks.md` llevan banner de "SUPERADO". Motivo: la 001 era la
-  puerta que destapó las 143 llamadas `Log.*` y no cabía en una entrega.
-- **RF-19 tiene excepción acotada** (Decisión 22 de 001): casos de prueba **solo** para
-  `failureMessage`. Ningún otro sitio del registro admite tests nuevos sin tocar la spec.
-
-## Errores a evitar
-
-- **Esta máquina es aarch64 y Robolectric 4.17 no tiene runtime nativo para `linux/aarch64`**: toda
-  suite falla en `beforeTest` con «Robolectric native runtime is not supported on Linux (aarch64)»,
-  tenga o no `@GraphicsMode(NATIVE)`. Solo se puede **compilar**: aquí la comprobación útil es
-  `./gradlew :app:compileDebugUnitTestKotlin` y `:compileDebugKotlin`.
-- **`grep -rn "firebase"` miente**: el plugin `google-services` **sí** está aplicado
-  (`app/build.gradle.kts:12`) y `app/google-services.json` es obligatorio; está gitignored, por eso
-  `git ls-files` no lo ve. La analítica se retiró (003); el plugin se conserva por el sync de Drive.
-- **Buscar solo interpolaciones no encuentra toda fuga**: `org.json.JSONException` imprime un
-  fragmento de la cadena analizada → `Log.e(tag, msg, e)` sobre `note.content` filtra sin interpolar.
-- **Auditar con parser, no con `grep -n`**: las llamadas al registro se reparten en varias líneas;
-  por líneas salen otras cifras (las reales: 143 `Log.*`, 35 interpolan, 114 con excepción).
+## Próximos pasos 
+- **Verificar en dispositivo**: el margen de 60dp por tabla puede resultar excesivo, y una tabla como primer bloque (nada de la spec 005 se ha visto); 90/120 Hz y jank con `FrameMetrics`; que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).
+- **Defecto conocido, sin spec**: `BlockEditor.kt:1011` tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y previsualización. Son ~4 líneas.
+- **Defecto conocido, sin spec**: `BlockEditor.kt:92` comparte un único `pendingSelection` entre todos los bloques y `EditableChecklistBlock` no informa de su selección.
+- Spec 002, T4-T5: generar los dos goldens que faltan y fijar `roborazzi.test.verify`.
