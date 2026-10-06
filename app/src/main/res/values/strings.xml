@@ -840,6 +840,15 @@
     <string name="ai_stop">Stop</string>
     <string name="ai_suggestion_poem">Write a poem</string>
     <string name="ai_suggestion_ideas">Generate ideas</string>
+
+    <!-- T6 (spec 006): etiqueta de la cuarta sugerencia, saludo rotatorio y subtitulos de la hoja de adjuntos -->
+    <string name="ai_suggestion_explain_concept">Explain a concept</string>
+    <string name="ai_chat_greeting_1">Ready when you are</string>
+    <string name="ai_chat_greeting_2">What shall we write today?</string>
+    <string name="ai_chat_greeting_3">Let\'s put something on paper</string>
+    <string name="attach_note_subtitle">Pick a note from your library</string>
+    <string name="attach_file_subtitle">Pick a text, JSON or XML file</string>
+
     <string name="ai_chat_empty_title">Start a conversation with AI</string>
     <string name="ai_chat_empty_desc">Ask questions, generate content, or get help with your notes.</string>
     <string name="ai_style_label">Style</string>

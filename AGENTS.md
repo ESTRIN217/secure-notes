@@ -28,11 +28,17 @@
 - **Screenshot tests** (Roborazzi) output to `app/src/test/screenshots/` and require `@GraphicsMode(GraphicsMode.Mode.NATIVE)` + `@Config(sdk = [36])` (sdk = targetSdk, not compileSdk).
 - Room + Moshi use KSP — annotation processing changes require a clean build.
 - No instrumented tests (`connectedCheck`) usable without a device/emulator.
-- ⚠️ **`compileDebugUnitTestKotlin` is currently BROKEN** (as of 2026-09-30, pre-existing, unrelated to the
-  AI settings work): `PdfExporterTest.kt` calls `PdfExporter` without the now-required `context` param, and
-  `WidgetNotesTest.kt` passes args in the old `Note`→`Context` order. Kotlin compiles the whole test source
-  set at once, so **no** unit test runs until those two files are fixed. Verify with `:app:assembleDebug`
-  plus targeted checks instead.
+- La tarea de pruebas **compila y ejecuta**: `:app:compileDebugUnitTestKotlin --rerun` → `BUILD SUCCESSFUL`
+  (la nota que la daba por rota, por `PdfExporterTest` y `WidgetNotesTest`, era falsa: sus llamadas
+  coinciden con las firmas reales). ⚠️ La suite **con entorno de pruebas no se ejecuta en esta plataforma**:
+  `./gradlew test` falla con `355 tests completed, 41 failed` en `:app` (`16 completed, 2 failed` en
+  `:editor-de-codigo`), y **40** de ellos son de plataforma —
+  `java.lang.AssertionError at DefaultNativeRuntimeLoader.java:212`, porque **Robolectric no tiene runtime
+  nativo para `linux/aarch64`**. Los **3** restantes son aserciones preexistentes y ajenas:
+  `HtmlExportMediaTest.kt:117`, `OnDeviceModelSourceTest.kt:63` y una comparación `huggingface.co` vs
+  `https://huggingface.co`. Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
+  Robolectric): sí corren aquí. Los dos únicos avisos del compilador en `src/test` son preexistentes y
+  ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22` (`createComposeRule` v1→v2).
 
 ## Architecture
 
@@ -164,6 +170,12 @@ dejarlo en la memoria.
   (`util/CachedDateFormatters`).
 - **Listas**: toda `LazyColumn`/`LazyRow`/grid de notas lleva `key` estable **y** `contentType`;
   sin `key`, Compose reutiliza posiciones y el scroll reordena mal.
+  - Única **excepción consciente** a esa regla: la fila de fichas de adjuntos del chat
+    (`FloatingChatInputField.kt`) usa `chipKey(index, name)` —clave **posicional + nombre**— porque
+    `FileAttachment` no tiene id estable y `removePendingAttachment` borra por índice; con dos adjuntos
+    homónimos una clave por nombre lanzaría `IllegalArgumentException: Key was already used`. ⚠️ El
+    mecanismo se suele decir al revés: **al cambiar la clave, Compose destruye y recompone el nodo, no lo
+    reutiliza**; aquí no se pierde nada porque las fichas no tienen estado interno.
 - **I/O**: nunca en el hilo principal: lecturas/escrituras en `Dispatchers.IO`, rasterizado de
   bitmaps en `Dispatchers.Default`. Estado derivado del disco → `StateFlow` en el ViewModel, no
   lectura directa desde la composición.

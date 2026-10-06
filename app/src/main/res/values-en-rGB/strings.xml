@@ -674,6 +674,14 @@ What would you like to do?</string>
     <string name="ai_suggestion_poem">Write a poem</string>
     <string name="ai_suggestion_ideas">Generate ideas</string>
 
+    <!-- T6 (spec 006): etiqueta de la cuarta sugerencia, saludo rotatorio y subtitulos de la hoja de adjuntos -->
+    <string name="ai_suggestion_explain_concept">Explain a concept</string>
+    <string name="ai_chat_greeting_1">Ready when you are</string>
+    <string name="ai_chat_greeting_2">What shall we write today?</string>
+    <string name="ai_chat_greeting_3">Let\'s put something on paper</string>
+    <string name="attach_note_subtitle">Pick a note from your library</string>
+    <string name="attach_file_subtitle">Pick a text, JSON or XML file</string>
+
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>
     <string name="ai_settings_desc">Configure backend, connection, and system prompt</string>
@@ -851,6 +859,12 @@ What would you like to do?</string>
     <string name="ai_user_msg_summarize">Summarise: %1$s</string>
     <string name="ai_user_msg_translate">Traduzir para %1$s: %2$s</string>
     <string name="attach">Attach</string>
+
+    <!-- T6 (spec 006): relleno del ingles britanico, hoy ausente en este archivo -->
+    <string name="attach_note">Attach note</string>
+    <string name="attach_file">Attach file</string>
+    <string name="remove">Remove</string>
+
     <string name="chat_delete">Delete</string>
     <string name="chat_delete_confirm">Delete this chat?</string>
     <string name="chat_empty_desc">Start a conversation with AI</string>

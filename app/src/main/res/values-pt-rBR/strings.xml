@@ -673,6 +673,14 @@ O que deseja fazer?</string>
     <string name="ai_suggestion_poem">Escreva um poema</string>
     <string name="ai_suggestion_ideas">Gere ideias</string>
 
+    <!-- T6 (spec 006): etiqueta de la cuarta sugerencia, saludo rotatorio y subtitulos de la hoja de adjuntos -->
+    <string name="ai_suggestion_explain_concept">Explicar um conceito</string>
+    <string name="ai_chat_greeting_1">Pronto quando você quiser</string>
+    <string name="ai_chat_greeting_2">O que vamos escrever hoje?</string>
+    <string name="ai_chat_greeting_3">Vamos colocar algo no papel</string>
+    <string name="attach_note_subtitle">Escolha uma nota da sua biblioteca</string>
+    <string name="attach_file_subtitle">Escolha um arquivo de texto, JSON ou XML</string>
+
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">Configurações de IA</string>
     <string name="ai_settings_desc">Configurar motor, conexão e prompt do sistema</string>

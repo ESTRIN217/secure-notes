@@ -607,6 +607,14 @@ Diferencia: %3$s
     <string name="ai_stop">Detener</string>
     <string name="ai_suggestion_poem">Escribe un poema</string>
     <string name="ai_suggestion_ideas">Genera ideas</string>
+
+    <!-- T6 (spec 006): etiqueta de la cuarta sugerencia, saludo rotatorio y subtitulos de la hoja de adjuntos -->
+    <string name="ai_suggestion_explain_concept">Explicar un concepto</string>
+    <string name="ai_chat_greeting_1">Listo cuando quieras</string>
+    <string name="ai_chat_greeting_2">¿Qué escribimos hoy?</string>
+    <string name="ai_chat_greeting_3">Pongamos algo en papel</string>
+    <string name="attach_note_subtitle">Elige una nota de tu biblioteca</string>
+    <string name="attach_file_subtitle">Elige un archivo de texto, JSON o XML</string>
     <string name="ai_style_label">Estilo</string>
     <string name="ai_style_formal">Formal</string>
     <string name="ai_style_casual">Informal</string>

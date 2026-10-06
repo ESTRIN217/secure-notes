@@ -7,7 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -22,7 +21,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.Clipboard
@@ -47,7 +44,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -57,6 +53,17 @@ import com.example.R
 import com.example.data.ai.*
 import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
+import com.example.ui.chat.adoptPendingEditing
+import com.example.ui.chat.canSend
+import com.example.ui.chat.effectiveText
+import com.example.ui.chat.greetingIndexFor
+import com.example.ui.chat.hintFor
+import com.example.ui.chat.requestFor
+import com.example.ui.chat.shouldClearInput
+import com.example.ui.chat.shouldSend
+import com.example.ui.chat.visibleSuggestions
+import com.example.ui.chat.writeTarget
+import com.example.ui.chat.WriteTarget
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import com.example.ui.viewmodel.ConversationTurn
@@ -65,6 +72,7 @@ import com.example.util.RichTextParser
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
@@ -92,7 +100,7 @@ fun AiChatScreen(
     var editingMessage by remember { mutableStateOf<String?>(null) }
     var showNotePicker by remember { mutableStateOf(false) }
     var notePickerSearchQuery by remember { mutableStateOf("") }
-    var showAttachmentMenu by remember { mutableStateOf(false) }
+    var showAttachmentSheet by remember { mutableStateOf(false) }
 
     val pendingAttachments by viewModel.pendingAttachments.collectAsStateWithLifecycle()
 
@@ -152,7 +160,15 @@ fun AiChatScreen(
         } else if (sessionId <= 0 && viewModel.currentSessionId.value <= 0) {
             viewModel.createAndStartSession()
         }
-        editingMessage?.let { inputText = it; editingMessage = null }
+        // L6 decide qué se hace con la edición recién cargada; la guarda es imprescindible porque
+        // la lógica pura devuelve el texto vacío y `null` de edición cuando **no** hay edición
+        // pendiente, y sin la guarda se borraría `inputText` en cada carga de sesión
+        // (RNF-11, RF-33 e, caso límite 7).
+        if (editingMessage != null) {
+            val (adoptedText, adoptedEditing) = adoptPendingEditing(editingMessage)
+            inputText = adoptedText
+            editingMessage = adoptedEditing
+        }
     }
 
     val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
@@ -319,174 +335,69 @@ fun AiChatScreen(
                 )
             },
             bottomBar = {
-                Surface(
-                    tonalElevation = 3.dp,
-                    shadowElevation = 8.dp
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        if (pendingAttachments.isNotEmpty()) {
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
-                            ) {
-                                items(
-                                    count = pendingAttachments.size,
-                                    contentType = { ATTACHMENT_CHIP }
-                                ) { index ->
-                                    val attachment = pendingAttachments[index]
-                                    InputChip(
-                                        selected = false,
-                                        onClick = { viewModel.removePendingAttachment(index) },
-                                        label = { Text(attachment.name.take(20), style = MaterialTheme.typography.labelSmall) },
-                                        leadingIcon = {
-                                            if (attachment.source.startsWith("note")) {
-                                                Icon(
-                                                    Icons.Default.Description,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                            }
-                                        },
-                                        trailingIcon = {
-                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp))
-                                        },
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
+                // El campo solo pinta y lanza eventos (RF-33): el texto que muestra y el estado al
+                // que escribe los decide L6, y si se puede enviar y el texto de ayuda, L4.
+                FloatingChatInputField(
+                    attachments = pendingAttachments,
+                    text = effectiveText(inputText, editingMessage),
+                    onTextChange = { newText ->
+                        // L6: la escritura va al mismo estado del que lee el campo (RF-33 e).
+                        when (writeTarget(editingMessage != null)) {
+                            WriteTarget.EDITING -> editingMessage = newText
+                            WriteTarget.DRAFT -> inputText = newText
                         }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box {
-                                IconButton(
-                                    onClick = { showAttachmentMenu = true },
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.AttachFile,
-                                        contentDescription = stringResource(R.string.attach),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = showAttachmentMenu,
-                                    onDismissRequest = { showAttachmentMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.attach_note)) },
-                                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                                        onClick = {
-                                            showAttachmentMenu = false
-                                            showNotePicker = true
-                                            notePickerSearchQuery = ""
-                                            viewModel.loadAvailableNotes()
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.attach_file)) },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.InsertDriveFile, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                                        onClick = {
-                                            showAttachmentMenu = false
-                                            filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
-                                        }
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            OutlinedTextField(
-                                value = if (editingMessage != null) editingMessage!! else inputText,
-                                onValueChange = {
-                                    if (editingMessage != null) editingMessage = it
-                                    else inputText = it
-                                },
-                                placeholder = {
-                                    Text(
-                                        when {
-                                            conversationHistory.isNotEmpty() -> stringResource(R.string.ai_chat_hint_followup)
-                                            else -> when (currentAction) {
-                                                AiAction.GENERATE -> stringResource(R.string.ai_chat_hint_generate)
-                                                AiAction.SUMMARIZE -> stringResource(R.string.ai_chat_hint_summarize)
-                                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_chat_hint_fix_grammar)                                        }
-                                        }
-                                    )
-                                },
-                                modifier = Modifier.weight(1f),
-                                minLines = 1,
-                                maxLines = 5,
-                                shape = RoundedCornerShape(24.dp),
-                                enabled = !isProcessing
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            val sendEnabled = (if (editingMessage != null) editingMessage!! else inputText).isNotBlank()
-                            val sendButtonColor by animateColorAsState(
-                                targetValue = if (sendEnabled) MaterialTheme.colorScheme.primary
-                                              else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                                animationSpec = tween(200)
-                            )
-                            var buttonScale by remember { mutableStateOf(1f) }
-                            FilledIconButton(
-                                onClick = {
-                                    if (isProcessing) {
-                                        viewModel.cancelGeneration()
-                                    } else {
-                                        val text = editingMessage ?: inputText
-                                        if (text.isBlank() && pendingAttachments.isEmpty()) return@FilledIconButton
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        buttonScale = 0.95f
-                                        if (editingMessage != null) {
-                                            viewModel.execute(
-                                                AiRequest(action = AiAction.GENERATE, prompt = text, selectedText = selectedText, context = fullContent),
-                                                effectiveSessionId
-                                            )
-                                            editingMessage = null
-                                        } else {
-                                            val prompt = when (currentAction) {
-                                                AiAction.GENERATE -> text
-                                                AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
-                                              AiAction.FIX_GRAMMAR -> context.getString(R.string.ai_chat_prompt_fix_grammar)
-                                            }
-                                            val request = AiRequest(
-                                                action = currentAction,
-                                                prompt = prompt,
-                                                selectedText = selectedText,
-                                                context = fullContent,
-                                              targetLanguage = targetLanguage
-                                            )
-                                            viewModel.execute(request, effectiveSessionId)
-                                            if (currentAction == AiAction.GENERATE) {
-                                                inputText = ""
-                                            }
-                                        }
-                                    }
-                                },
-                                enabled = sendEnabled || isProcessing || pendingAttachments.isNotEmpty(),
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .graphicsLayer(scaleX = buttonScale, scaleY = buttonScale),
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = if (isProcessing) MaterialTheme.colorScheme.errorContainer
-                                                     else sendButtonColor
-                                )
-                            ) {
-                                if (isProcessing) {
-                                    Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.ai_stop))
-                                } else {
-                                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.ai_send))
-                                }
-                            }
-                            LaunchedEffect(buttonScale) {
-                                if (buttonScale < 1f) {
-                                    kotlinx.coroutines.delay(100)
-                                    buttonScale = 1f
-                                }
-                            }
+                    },
+                    onSend = {
+                        if (isProcessing) {
+                            viewModel.cancelGeneration()
+                            return@FloatingChatInputField
                         }
-                    }
-                }
+                        val text = effectiveText(inputText, editingMessage)
+                        // L4: el envío vacío se descarta aquí y no dentro del componente (RF-33 a).
+                        if (!shouldSend(text, pendingAttachments.isNotEmpty())) {
+                            return@FloatingChatInputField
+                        }
+                        // Editar un mensaje ya enviado vuelve a preguntar con GENERATE (RF-33 d).
+                        if (editingMessage != null) {
+                            viewModel.execute(
+                                AiRequest(
+                                    action = AiAction.GENERATE,
+                                    prompt = text,
+                                    selectedText = selectedText,
+                                    context = fullContent
+                                ),
+                                effectiveSessionId
+                            )
+                            editingMessage = null
+                            return@FloatingChatInputField
+                        }
+                        // Decisión 11 de la spec: el mapeo acción → petición sigue en el Composable.
+                        val prompt = when (currentAction) {
+                            AiAction.GENERATE -> text
+                            AiAction.SUMMARIZE -> context.getString(R.string.ai_chat_prompt_summarize)
+                            AiAction.FIX_GRAMMAR -> context.getString(R.string.ai_chat_prompt_fix_grammar)
+                        }
+                        val request = AiRequest(
+                            action = currentAction,
+                            prompt = prompt,
+                            selectedText = selectedText,
+                            context = fullContent,
+                            targetLanguage = targetLanguage
+                        )
+                        viewModel.execute(request, effectiveSessionId)
+                        // L7: solo la acción de generación deja el campo limpio (RF-33 f).
+                        if (shouldClearInput(currentAction)) inputText = ""
+                    },
+                    canSend = canSend(
+                        effectiveText(inputText, editingMessage),
+                        pendingAttachments.isNotEmpty(),
+                        isProcessing
+                    ),
+                    isProcessing = isProcessing,
+                    hint = hintFor(conversationHistory.isNotEmpty(), currentAction),
+                    onRemoveAttachment = viewModel::removePendingAttachment,
+                    onAttachClick = { showAttachmentSheet = true }
+                )
             }
         ) { paddingValues ->
             Box(
@@ -497,19 +408,35 @@ fun AiChatScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
+                            // Día local: días desde época en la zona horaria del dispositivo. Se calcula
+                            // una sola vez, con `remember` sin claves (decisión D-3), y no va al
+                            // ViewModel (RNF-14 lo prohíbe).
+                            val todayEpochDay = remember { LocalDate.now().toEpochDay() }
                             EmptyChatWelcome(
-                                selectedText = selectedText,
-                                fullContent = fullContent,
-                                hasAttachments = pendingAttachments.isNotEmpty(),
-                                onSuggestion = { prompt ->
+                                greeting = stringResource(
+                                    when (greetingIndexFor(todayEpochDay, 3)) {
+                                        0 -> R.string.ai_chat_greeting_1
+                                        1 -> R.string.ai_chat_greeting_2
+                                        else -> R.string.ai_chat_greeting_3
+                                    }
+                                ),
+                                // L1 decide cuáles se ven; aquí no se añade ni se quita ninguna.
+                                suggestions = visibleSuggestions(
+                                    hasSelectedText = selectedText.isNotBlank(),
+                                    hasNoteContent = fullContent.isNotBlank(),
+                                    hasAttachments = pendingAttachments.isNotEmpty()
+                                ),
+                                onSuggestion = { suggestion ->
+                                    // L2 decide la petición. La etiqueta llega ya resuelta, porque
+                                    // `EmptyChatWelcome` rellena la copia que entrega (RF-37).
                                     viewModel.execute(
-                                        AiRequest(action = AiAction.GENERATE, prompt = prompt, selectedText = selectedText, context = fullContent),
-                                        effectiveSessionId
-                                    )
-                                },
-                                onSummarize = {
-                                    viewModel.execute(
-                                        AiRequest(action = AiAction.SUMMARIZE, prompt = context.getString(R.string.ai_chat_prompt_summarize), selectedText = selectedText, context = fullContent),
+                                        requestFor(
+                                            suggestion = suggestion,
+                                            selectedText = selectedText,
+                                            noteContent = fullContent,
+                                            summarizePrompt = context.getString(R.string.ai_chat_prompt_summarize),
+                                            targetLanguage = targetLanguage
+                                        ),
                                         effectiveSessionId
                                     )
                                 }
@@ -653,6 +580,22 @@ fun AiChatScreen(
                 viewModel.attachNoteById(note.note.id)
                 showNotePicker = false
             }
+        )
+    }
+
+    // La hoja de adjuntos es dueña de su `ModalBottomSheet` (decisión D-6): aquí solo se le pasan
+    // los tres callbacks. El cierre antes de abrir cada selector ya lo hace ella (RF-35).
+    if (showAttachmentSheet) {
+        AttachmentAiSheet(
+            onPickNote = {
+                showNotePicker = true
+                notePickerSearchQuery = ""
+                viewModel.loadAvailableNotes()
+            },
+            onPickFile = {
+                filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
+            },
+            onDismiss = { showAttachmentSheet = false }
         )
     }
 }
@@ -1064,72 +1007,6 @@ fun StreamingBubble(text: String, modelName: String) {
                             maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyChatWelcome(
-    selectedText: String,
-    fullContent: String,
-    hasAttachments: Boolean = false,
-    onSuggestion: (String) -> Unit,
-    onSummarize: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.ai),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.ai_chat_welcome),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 24.dp)
-            ) {
-                val poemSuggestion = stringResource(R.string.ai_suggestion_poem)
-                val ideasSuggestion = stringResource(R.string.ai_suggestion_ideas)
-                FilterChip(
-                    selected = false,
-                    onClick = { onSuggestion(poemSuggestion) },
-                    label = { Text(poemSuggestion, style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { onSuggestion(ideasSuggestion) },
-                    label = { Text(ideasSuggestion, style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.Lightbulb, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                )
-                if (selectedText.isNotBlank() || fullContent.isNotBlank() || hasAttachments) {
-                    FilterChip(
-                        selected = false,
-                        onClick = onSummarize,
-                        label = { Text(stringResource(R.string.ai_summarize), style = MaterialTheme.typography.labelSmall) },
-                        leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                    )
                 }
             }
         }
@@ -1554,7 +1431,7 @@ fun ChatHistoryDrawerContent(
 }
 
 // Claves de `contentType` para los listas del chat. Ints: no asignan por item.
+// T4: ATTACHMENT_CHIP vive ya en `ui/chat/ChatInputState.kt`, su única declaración (RF-39).
 private const val USER_TURN = 1
 private const val ASSISTANT_TURN = 2
 private const val ATTACHMENT_ROW = 3
-private const val ATTACHMENT_CHIP = 4
