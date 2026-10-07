@@ -1,6 +1,5 @@
 ---
-description: SDD - revisa la spec como QA (clarificación) y valida la implementación RF 
-por RF, sin modificar nada 
+description: SDD - revisa la spec como QA (clarificación) y valida la implementación RF por RF, sin modificar nada 
 mode: subagent 
 permissions: 
  - action: edit 

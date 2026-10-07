@@ -1,6 +1,5 @@
 --- 
-description: SDD - redacta la spec, el plan y las tareas de una petición, sin tocar 
-código
+description: SDD - redacta la spec, el plan y las tareas de una petición, sin tocar código
 mode: subagent 
 permissions: 
  - action: edit 
