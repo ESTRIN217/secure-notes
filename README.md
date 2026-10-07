@@ -1,13 +1,15 @@
 # Secure Notes
 
-Bloc de notas Android con **cifrado real en el dispositivo**, **editor por bloques estilo Notion** e **IA 100 % local opcional**. Tus notas nunca salen sin cifrar y tus prompts jamás tocan la nube.
+Bloc de notas Android con **cifrado real en el dispositivo**, **editor por bloques estilo Notion** e **IA 100 % local opcional**. El cifrado es por nota y viene activo por defecto, y tus prompts jamás tocan la nube.
 
 [![Latest release](https://img.shields.io/github/v/release/ESTRIN217/secure-notes?style=for-the-badge&labelColor=0d1117)](https://github.com/ESTRIN217/secure-notes/releases)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![minSdk](https://img.shields.io/badge/minSdk-33-blue.svg)
 ![targetSdk](https://img.shields.io/badge/targetSdk-36-blue.svg)
-![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-7F52FF.svg)
+![Kotlin](https://img.shields.io/badge/kotlin-2.4.20-7F52FF.svg)
 ![Tests](https://img.shields.io/badge/tests-JUnit4%20%2B%20Robolectric%20%2B%20Roborazzi-green.svg)
+
+<img src="assets/banner.png" width="720" alt="Secure Notes: Bloc de notas para Android con cifrado real"/>
 
 ## Por qué existe
 
@@ -15,7 +17,7 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 
 | Necesidad | Secure Notes |
 |---|---|
-| **Privacidad real** | AES-256-GCM + PBKDF2 (200 000 iteraciones). Salt e IV aleatorios por nota. Sin la contraseña maestra es matemáticamente imposible descifrar, ni siquiera para el desarrollador o Google. |
+| **Privacidad real** | AES-256-GCM + PBKDF2 (200 000 iteraciones). Salt e IV aleatorios por nota. Cifrado por nota, activo por defecto y con interruptor en el propio editor. Sin la contraseña maestra es matemáticamente imposible descifrar, ni siquiera para el desarrollador o Google. |
 | **Editor a la altura** | WYSIWYG por bloques: títulos H1–H4, listas, checklists, tablas, citas, código con resaltado, LaTeX, imágenes, audio, dibujo, pestañas múltiples y menú `/`. |
 | **IA sin nube** | Chat opcional (desactivado por defecto): llama.cpp on-device o Ollama/LM Studio en tu LAN. Cero APIs externas, cero entrenamiento con tus datos. |
 
@@ -24,16 +26,18 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 <table align="center">
   <tr>
     <td align="center">
-      <img src="assets/vista-principal.png" width="220" alt="Vista Principal (Material 3)"/>
-      <br><b>Vista Principal</b>
+      <img src="assets/vista-principal.png" width="220" alt="Tu biblioteca de notas"/>
     </td>
     <td align="center">
-      <img src="assets/editor.png" width="220" alt="Editor Enriquecido"/>
-      <br><b>Editor</b>
+      <img src="assets/editor.png" width="220" alt="Editor con texto enriquecido"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/busqueda-y-filtro.png" width="220" alt="Busca y filtra tus notas"/>
     </td>
     <td align="center">
-      <img src="assets/búsqueda-y-filtro.png" width="220" alt="Búsqueda Dinámica"/>
-      <br><b>Búsqueda y Filtros</b>
+      <img src="assets/asistente-ia.png" width="220" alt="Asistente IA sin nube"/>
     </td>
   </tr>
 </table>
@@ -81,10 +85,10 @@ MVVM de un solo módulo (`:app` + módulos propios `:visor-pdf`, `:visor-media`,
 | Herramienta | Versión |
 |---|---|
 | JDK | 17 |
-| Gradle / AGP / Kotlin | 9.5.1 / 9.3.1 / 2.4.10 |
+| Gradle / AGP / Kotlin | 9.7.1 / 9.4.1 / 2.4.20 |
 | Android SDK | `compileSdk 37`, `targetSdk 36`, `minSdk 33` |
-| NDK / CMake (solo IA on-device) | 30.0.14904198 / 4.3.0 |
-| llama.cpp checkout | commit `3dc7285b4` en la ruta que indica `settings.gradle.kts` (`:lib`), o ajusta `projectDir` |
+| NDK / CMake (solo IA on-device) | 30.0.14904198 / la que resuelva el SDK |
+| llama.cpp checkout | el directorio que indica `settings.gradle.kts` (`/root/llama.cpp/examples/llama.android/lib`); si no existe, el módulo `:lib` se omite en silencio y el build sigue sin IA nativa |
 | Firma | `key.properties` (copia desde `key.properties.template`) |
 | Google (solo sync/Drive) | `app/google-services.json` |
 
@@ -97,11 +101,11 @@ git clone https://github.com/ESTRIN217/secure-notes.git
 cd secure-notes
 cp key.properties.template key.properties   # completa tus datos de firma
 # (opcional, solo Drive) coloca tu app/google-services.json
-sh gradlew assembleDebug                     # APK en app/build/outputs/
-sh gradlew test                              # unitarios + Robolectric + Roborazzi
+./gradlew assembleDebug                    # APK en app/build/outputs/
+./gradlew test                             # unitarios + Robolectric + Roborazzi
 ```
 
-Si el build se comporta raro (caché de configuración o KSP), `sh gradlew clean --no-configuration-cache`.
+Si el build se comporta raro (caché de configuración o KSP), `./gradlew clean --no-configuration-cache`.
 
 ## 🗂️ Estructura del proyecto
 
