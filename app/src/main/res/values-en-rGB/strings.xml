@@ -898,6 +898,12 @@ What would you like to do?</string>
     <string name="toast_note_created_with_image">Note created with image</string>
     <string name="note_image_load_error">Could not load image</string>
 
+    <!-- Spec 007: tiradores del bloque de tabla. El britanico coincide con el
+         ingles base en las tres, pero se declaran para que el locale no dependa. -->
+    <string name="table_row_actions">Row actions</string>
+    <string name="table_column_actions">Column actions</string>
+    <string name="table_move_handle">Move table</string>
+
     <!-- v4.0 File Manager -->
     <string name="fab_import_file">Import file</string>
     <string name="file_open_dialog_title">Open file: %1$s</string>

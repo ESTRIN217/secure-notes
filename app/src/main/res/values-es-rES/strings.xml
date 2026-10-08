@@ -1096,6 +1096,9 @@ Diferencia: %3$s
     <string name="ai">IA</string>
     <string name="insert_table">Insertar tabla</string>
     <string name="include_header_row">Incluir fila de encabezado</string>
+    <string name="table_row_actions">Acciones de la fila</string>
+    <string name="table_column_actions">Acciones de la columna</string>
+    <string name="table_move_handle">Mover tabla</string>
     <string name="note_placeholder_encrypted">[Cifrada]</string>
     <string name="note_placeholder_locked">[Desbloquea la app para consultar las notas]</string>
     <string name="note_placeholder_corrupted">[Nota dañada / Contraseña incorrecta]</string>

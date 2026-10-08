@@ -98,8 +98,7 @@ class HtmlExportMediaTest {
     @Test
     fun `table cells are html escaped`() {
         val data = TableData(
-            headers = listOf("A <b>H</b>"),
-            rows = listOf(listOf("x & y", "<script>"))
+            rows = listOf(listOf("A <b>H</b>"), listOf("x & y", "<script>"))
         )
         val block = DataBlock(type = BlockType.TABLE, content = "", meta = mapOf("table" to data.toJson()))
 

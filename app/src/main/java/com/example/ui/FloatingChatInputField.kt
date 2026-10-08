@@ -56,17 +56,13 @@ fun FloatingChatInputField(
     onAttachClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        // Píldora mientras el campo cabe en una línea y rectángulo redondeado cuando crece: con
-        // `CircleShape` el contenido se recortaría por las esquinas al pasar a varias líneas o al
-        // añadirse las fichas de adjuntos.
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 3.dp,
-        shadowElevation = 8.dp
+    HorizontalFloatingToolbar(
+      expanded = true,
+      modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp, vertical = 8.dp),
+      colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+      scrollBehavior = null
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             if (attachments.isNotEmpty()) {

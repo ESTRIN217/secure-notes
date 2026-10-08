@@ -13,14 +13,11 @@ package com.example.ui.table
 /**
  * Celda del bloque de tabla.
  *
- * [row] con valor [HEADER_ROW] identifica la fila de cabecera, que no está entre las filas de
- * datos. Un valor mayor o igual que el número de filas ya no corresponde a ninguna celda: quien
- * llama tiene que tolerarlo, porque al quitar filas las celdas que las Apuntaban ya no existen.
+ * La fila de cabecera es la fila 0, así que [row] siempre es el índice de una fila de verdad. Un
+ * valor mayor o igual que el número de filas ya no corresponde a ninguna celda: quien llama tiene que
+ * tolerarlo, porque al quitar filas las celdas que las apuntaban ya no existen.
  */
 data class CellKey(val row: Int, val col: Int)
-
-/** Fila de cabecera dentro de [CellKey.row]. */
-const val HEADER_ROW: Int = -1
 
 /**
  * Situación de la tabla en la que se decide qué se dibuja.
@@ -68,9 +65,9 @@ data class OutlineRect(val left: Float, val top: Float, val right: Float, val bo
 /**
  * Medidas de la tabla en píxeles.
  *
- * El origen de las coordenadas es el **borde superior de la tabla**, no el de la primera fila de
- * datos: por eso [headerHeight] entra en el cálculo aunque la región sea una celda de datos, y por
- * eso una tabla sin cabecera tiene la fila 0 empezando en cero.
+ * El origen de las coordenadas es el **borde superior de la tabla**, que es el de la primera fila:
+ * la cabecera es esa primera fila (spec 008), así que no hay ni un alto aparte ni una fila que se
+ * mida por separado. Por eso [rowHeights] tiene una entrada por fila, la primera incluida.
  *
  * [columnWidths] no incluye ningún margen para los manejadores: estos se superponen al borde de la
  * tabla, así que no reservan ancho y no aparecen en estas medidas.
@@ -78,41 +75,44 @@ data class OutlineRect(val left: Float, val top: Float, val right: Float, val bo
 data class TableMetrics(
     val columnWidths: List<Float>,
     val rowHeights: List<Float>,
-    val headerHeight: Float = 0f,
-    val showHeader: Boolean = false,
+    /**
+     * Ancho del carril de los manejadores de fila, a la izquierda de la primera
+     * columna. Las coordenadas van desde el borde de la tabla, así que sin esta
+     * resta el contorno se dibujaría sobre el carril y no sobre las celdas.
+     */
+    val gutterWidth: Float = 0f,
 )
 
 /** Borde izquierdo de la columna [col]. */
 private fun TableMetrics.columnLeft(col: Int): Float {
-    var x = 0f
+    var x = gutterWidth
     for (i in 0 until col.coerceAtMost(columnWidths.size)) x += columnWidths[i]
     return x
 }
 
-/** Borde superior de la fila de datos [row], contando desde el borde superior de la tabla. */
+/** Borde superior de la fila [row], contando desde el borde superior de la tabla. */
 private fun TableMetrics.rowTop(row: Int): Float {
-    var y = if (showHeader) headerHeight else 0f
+    var y = 0f
     for (i in 0 until row.coerceAtMost(rowHeights.size)) y += rowHeights[i]
     return y
 }
 
 private fun TableMetrics.cellRect(cell: CellKey): OutlineRect? {
     if (cell.col !in columnWidths.indices) return null
-    val left = columnLeft(cell.col)
-    val right = left + columnWidths[cell.col]
-    if (cell.row == HEADER_ROW) {
-        if (!showHeader) return null
-        return OutlineRect(left, 0f, right, headerHeight)
-    }
     if (cell.row !in rowHeights.indices) return null
+    val left = columnLeft(cell.col)
     val top = rowTop(cell.row)
-    return OutlineRect(left, top, right, top + rowHeights[cell.row])
+    return OutlineRect(left, top, left + columnWidths[cell.col], top + rowHeights[cell.row])
 }
 
 private fun TableMetrics.dataRowRect(row: Int): OutlineRect? {
     if (row !in rowHeights.indices || columnWidths.isEmpty()) return null
     val top = rowTop(row)
-    return OutlineRect(columnLeft(0), top, columnWidths.sum(), top + rowHeights[row])
+    // El borde derecho se toma de columnLeft con el total de columnas y no de la
+    // suma de anchos: así el carril de la izquierda cuenta y la fila conserva su
+    // ancho con o sin él.
+    val right = columnLeft(columnWidths.size)
+    return OutlineRect(columnLeft(0), top, right, top + rowHeights[row])
 }
 
 /**
@@ -136,19 +136,15 @@ fun selectionOutline(metrics: TableMetrics, state: SelectionState): OutlineRect?
 }
 
 /**
- * Centro vertical de un manejador por fila, contando la de cabecera si la hay.
+ * Centro vertical de un manejador por fila.
  *
  * El orden es el mismo en que se recorren las filas, así que el manejador número `i` es siempre el
  * de la fila `i` y quien lo dibuja no necesita saber qué fila es. Que el total se derive de las
  * medidas y no de un contador guardado es lo que recoloca los manejadores solos cuando se añaden,
  * se quitan o se reordenan filas: no hay posición que pueda quedarse desfasada.
- *
- * Con la cabecera desactivada no deja hueco por encima: el primer centro es la mitad de la primera
- * fila, no la primera fila más el hueco de una cabecera que no está.
  */
 fun rowHandleCenters(metrics: TableMetrics): List<Float> {
-    val centers = ArrayList<Float>(metrics.rowHeights.size + 1)
-    if (metrics.showHeader) centers.add(metrics.headerHeight / 2f)
+    val centers = ArrayList<Float>(metrics.rowHeights.size)
     metrics.rowHeights.forEachIndexed { row, height ->
         centers.add(metrics.rowTop(row) + height / 2f)
     }

@@ -267,30 +267,22 @@ class PdfBlockRenderer {
         val headerPaint = textPaint(9.5f, bold = true)
         val rowCap = 140f
 
+        // Todas las filas se dibujan, la primera incluida: la cabecera es una fila más. Solo
+        // cambia el pintado de esa primera fila cuando la opción está activa (RF-51).
         var cursorY = y
-        if (data.showHeader && data.headers.isNotEmpty()) {
-            val cells = data.headers
-            val rowH = cells.mapIndexed { i, h ->
-                minOf(cellHeight(h, cellPaint, colWidths[i].toInt(), cellPad), rowCap)
-            }.maxOrNull() ?: cellPad * 2
-            if (canvas != null) {
-                canvas.drawRect(x, cursorY, x + tableWidth, cursorY + rowH, fillPaint(Color.parseColor("#F2F2F2")))
-                cells.forEachIndexed { i, h ->
-                    drawCell(canvas, h, x + colWidths.take(i).sum(), cursorY, colWidths[i], rowH, cellPad, headerPaint)
-                }
-                drawTableBorders(canvas, x, cursorY, colWidths, rowH)
-            }
-            cursorY += rowH
-        }
-
-        data.rows.forEach { row ->
+        data.rows.forEachIndexed { rowIndex, row ->
             val cells = List(colCount) { i -> row.getOrNull(i).orEmpty() }
+            val isHeader = rowIndex == 0 && data.showHeader
+            val paint = if (isHeader) headerPaint else cellPaint
             val rowH = cells.mapIndexed { i, c ->
-                minOf(cellHeight(c, cellPaint, colWidths[i].toInt(), cellPad), rowCap)
+                minOf(cellHeight(c, paint, colWidths[i].toInt(), cellPad), rowCap)
             }.maxOrNull() ?: cellPad * 2
             if (canvas != null) {
+                if (isHeader) {
+                    canvas.drawRect(x, cursorY, x + tableWidth, cursorY + rowH, fillPaint(Color.parseColor("#F2F2F2")))
+                }
                 cells.forEachIndexed { i, c ->
-                    drawCell(canvas, c, x + colWidths.take(i).sum(), cursorY, colWidths[i], rowH, cellPad, cellPaint)
+                    drawCell(canvas, c, x + colWidths.take(i).sum(), cursorY, colWidths[i], rowH, cellPad, paint)
                 }
                 drawTableBorders(canvas, x, cursorY, colWidths, rowH)
             }

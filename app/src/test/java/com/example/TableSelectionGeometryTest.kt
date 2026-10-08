@@ -20,6 +20,9 @@ import org.junit.Test
  *
  * Son pruebas puras a propósito: sin entorno de pruebas ni superficie de dibujo, para que se
  * ejecuten en la plataforma de desarrollo, donde la suite que sí lo necesita está bloqueada.
+ *
+ * La fila de cabecera es la fila 0 (spec 008), así que aquí no hay ninguna geometría especial para
+ * ella: se mide y se coloca como cualquier otra.
  */
 class TableSelectionGeometryTest {
 
@@ -102,42 +105,59 @@ class TableSelectionGeometryTest {
         assertTrue(isSignaled(SelectionState(focused = a, hovered = true, active = true)))
     }
 
-    // RF-26, RF-27, RF-28, RF-32: una sola región, continua, con la celda enfocada por delante.
+    // RF-26, RF-27, RF-32: una sola región, continua, con la celda enfocada por delante.
 
     /**
-     * Columnas de 100, 150 y 80 px. Cabecera de 40 px. Filas de 44, 60 y 44 px.
+     * Columnas de 100, 150 y 80 px. Filas de 44, 60 y 44 px.
      *
-     * Bordes de columna: 0, 100, 250 y 330. Bordes de fila: 40, 84, 144 y 188.
+     * Bordes de columna: 0, 100, 250 y 330. Bordes de fila: 0, 44, 104 y 148.
      */
     private val metrics = TableMetrics(
         columnWidths = listOf(100f, 150f, 80f),
         rowHeights = listOf(44f, 60f, 44f),
-        headerHeight = 40f,
-        showHeader = true,
     )
 
     @Test
     fun `focused cell outlines only itself`() {
         val outline = selectionOutline(metrics, SelectionState(focused = CellKey(1, 1)))
-        assertEquals(OutlineRect(100f, 84f, 250f, 144f), outline)
+        assertEquals(OutlineRect(100f, 44f, 250f, 104f), outline)
     }
 
     @Test
-    fun `focused cell in the first column starts at the left edge`() {
-        val outline = selectionOutline(metrics, SelectionState(focused = CellKey(0, 0)))
-        assertEquals(OutlineRect(0f, 40f, 100f, 84f), outline)
+    fun `the first row is outlined like any other and starts at the top edge`() {
+        val outline = selectionOutline(metrics, SelectionState(focused = a))
+        assertEquals(OutlineRect(0f, 0f, 100f, 44f), outline)
+    }
+
+    @Test
+    fun `every row of the first column has its own outline`() {
+        assertEquals(OutlineRect(0f, 0f, 100f, 44f), selectionOutline(metrics, SelectionState(focused = a)))
+        assertEquals(
+            OutlineRect(0f, 44f, 100f, 104f),
+            selectionOutline(metrics, SelectionState(focused = b)),
+        )
+        assertEquals(
+            OutlineRect(0f, 104f, 100f, 148f),
+            selectionOutline(metrics, SelectionState(focused = CellKey(2, 0))),
+        )
     }
 
     @Test
     fun `selected row outlines the whole row in one region`() {
         val outline = selectionOutline(metrics, SelectionState(selectedRow = 1))
-        assertEquals(OutlineRect(0f, 84f, 330f, 144f), outline)
+        assertEquals(OutlineRect(0f, 44f, 330f, 104f), outline)
+    }
+
+    @Test
+    fun `the first row can be selected like any other`() {
+        val outline = selectionOutline(metrics, SelectionState(selectedRow = 0))
+        assertEquals(OutlineRect(0f, 0f, 330f, 44f), outline)
     }
 
     @Test
     fun `selected row spans every column and only its own height`() {
         val outline = selectionOutline(metrics, SelectionState(selectedRow = 2))
-        assertEquals(OutlineRect(0f, 144f, 330f, 188f), outline)
+        assertEquals(OutlineRect(0f, 104f, 330f, 148f), outline)
         assertEquals(metrics.columnWidths.sum(), outline?.width)
         assertEquals(metrics.rowHeights[2], outline?.height)
     }
@@ -148,13 +168,7 @@ class TableSelectionGeometryTest {
             metrics,
             SelectionState(focused = CellKey(1, 1), selectedRow = 2),
         )
-        assertEquals(OutlineRect(100f, 84f, 250f, 144f), outline)
-    }
-
-    @Test
-    fun `header cell outlines the title with the header height as origin`() {
-        val outline = selectionOutline(metrics, SelectionState(focused = CellKey(-1, 2)))
-        assertEquals(OutlineRect(250f, 0f, 330f, 40f), outline)
+        assertEquals(OutlineRect(100f, 44f, 250f, 104f), outline)
     }
 
     @Test
@@ -173,6 +187,12 @@ class TableSelectionGeometryTest {
     }
 
     @Test
+    fun `a negative row has no outline because there is no row before the first`() {
+        // La cabecera es la fila 0, así que un índice negativo no puede señalar ninguna celda.
+        assertNull(selectionOutline(metrics, SelectionState(focused = CellKey(-1, 0))))
+    }
+
+    @Test
     fun `a stale focused cell does not fall back to the selected row`() {
         assertNull(
             selectionOutline(metrics, SelectionState(focused = CellKey(9, 0), selectedRow = 1))
@@ -185,49 +205,78 @@ class TableSelectionGeometryTest {
     }
 
     @Test
-    fun `a header cell gives no outline when the header is hidden`() {
-        val noHeader = metrics.copy(showHeader = false)
-        assertNull(selectionOutline(noHeader, SelectionState(focused = CellKey(-1, 0))))
+    fun `a selected row below the last one gives no outline`() {
+        assertNull(selectionOutline(metrics, SelectionState(selectedRow = 3)))
+    }
+
+    // El carril de los manejadores desplaza las celdas, y el contorno con ellas.
+
+    private val gutter = 24f
+    private val withGutter = metrics.copy(gutterWidth = gutter)
+
+    @Test
+    fun `the gutter shifts the focused cell outline`() {
+        val outline = selectionOutline(withGutter, SelectionState(focused = CellKey(1, 1)))
+        assertEquals(OutlineRect(124f, 44f, 274f, 104f), outline)
     }
 
     @Test
-    fun `the first row starts at zero when the header is hidden`() {
-        val noHeader = metrics.copy(showHeader = false)
-        val outline = selectionOutline(noHeader, SelectionState(focused = CellKey(0, 0)))
-        assertEquals(OutlineRect(0f, 0f, 100f, 44f), outline)
+    fun `the gutter shifts the first column outline`() {
+        val outline = selectionOutline(withGutter, SelectionState(focused = a))
+        assertEquals(OutlineRect(gutter, 0f, gutter + 100f, 44f), outline)
     }
 
-    // RF-28, RF-29: un manejador por fila, con la cabecera, y centrado en su fila.
+    @Test
+    fun `the gutter does not move the rows vertically`() {
+        val plain = selectionOutline(metrics, SelectionState(focused = a))!!
+        val shifted = selectionOutline(withGutter, SelectionState(focused = a))!!
+        assertEquals(plain.top, shifted.top)
+    }
+
+    @Test
+    fun `the row outline starts at the gutter, not at the table edge`() {
+        val outline = selectionOutline(withGutter, SelectionState(selectedRow = 1))
+        assertEquals(OutlineRect(gutter, 44f, gutter + 330f, 104f), outline)
+    }
+
+    @Test
+    fun `the row outline keeps its width with a gutter`() {
+        val plain = selectionOutline(metrics, SelectionState(selectedRow = 1))!!
+        val shifted = selectionOutline(withGutter, SelectionState(selectedRow = 1))!!
+        assertEquals(plain.width, shifted.width)
+        assertEquals(gutter, shifted.left - plain.left)
+    }
+
+    @Test
+    fun `the column handle clears the gutter`() {
+        // El manejador de columna se centra en la columna, así que también arranca
+        // desplazado por el carril y nunca cae encima de los manejadores de fila.
+        assertEquals(gutter + 38f, columnHandleLeft(withGutter, 0, handleWidth))
+        assertEquals(gutter + 163f, columnHandleLeft(withGutter, 1, handleWidth))
+    }
+
+    // RF-28, RF-29: un manejador por fila, centrado en su fila.
 
     private val handleWidth = 24f
 
     @Test
-    fun `one handle per row counting the header`() {
-        assertEquals(listOf(20f, 62f, 114f, 166f), rowHandleCenters(metrics))
-        assertEquals(metrics.rowHeights.size + 1, rowHandleCenters(metrics).size)
+    fun `one handle per row`() {
+        assertEquals(listOf(22f, 74f, 126f), rowHandleCenters(metrics))
+        assertEquals(metrics.rowHeights.size, rowHandleCenters(metrics).size)
     }
 
     @Test
-    fun `the header handle sits at half the header height`() {
-        assertEquals(metrics.headerHeight / 2f, rowHandleCenters(metrics).first())
-    }
-
-    @Test
-    fun `a hidden header leaves no gap above the first row handle`() {
-        val noHeader = metrics.copy(showHeader = false)
-        assertEquals(listOf(22f, 74f, 126f), rowHandleCenters(noHeader))
-        assertEquals(noHeader.rowHeights[0] / 2f, rowHandleCenters(noHeader).first())
+    fun `the first handle sits at half the first row with no gap above it`() {
+        assertEquals(metrics.rowHeights[0] / 2f, rowHandleCenters(metrics).first())
     }
 
     @Test
     fun `every handle center falls inside its own row when heights differ`() {
-        val uneven = metrics.copy(rowHeights = listOf(44f, 60f, 44f))
-        val centers = rowHandleCenters(uneven)
-        // centers[0] es el de la cabecera; los de datos van desde centers[1].
-        centers.drop(1).forEachIndexed { row, center ->
-            val top = center - uneven.rowHeights[row] / 2f
+        val centers = rowHandleCenters(metrics)
+        centers.forEachIndexed { row, center ->
+            val top = center - metrics.rowHeights[row] / 2f
             assertTrue("fila $row: $center", center > top)
-            assertTrue("fila $row: $center", center < top + uneven.rowHeights[row])
+            assertTrue("fila $row: $center", center < top + metrics.rowHeights[row])
         }
     }
 
@@ -235,15 +284,15 @@ class TableSelectionGeometryTest {
     fun `handles follow rows that are added`() {
         val grown = metrics.copy(rowHeights = listOf(44f, 60f, 44f, 30f))
         val centers = rowHandleCenters(grown)
-        assertEquals(grown.rowHeights.size + 1, centers.size)
+        assertEquals(grown.rowHeights.size, centers.size)
         // El borde superior de la fila nueva es el borde inferior de la anterior.
-        assertEquals(centers[3] + grown.rowHeights[2] / 2f, centers[4] - grown.rowHeights[3] / 2f)
+        assertEquals(centers[2] + grown.rowHeights[2] / 2f, centers[3] - grown.rowHeights[3] / 2f)
     }
 
     @Test
     fun `handles follow rows that are removed`() {
         val shrunk = metrics.copy(rowHeights = listOf(60f))
-        assertEquals(listOf(20f, 70f), rowHandleCenters(shrunk))
+        assertEquals(listOf(30f), rowHandleCenters(shrunk))
     }
 
     @Test

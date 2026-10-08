@@ -151,8 +151,14 @@ Nuevos, propios de esta spec:
   cabecera es la misma con el manejador visible que sin él.
 - **RF-29**: EL SISTEMA ofrece un manejador para la fila de cabecera, con las mismas acciones que el de
   una fila de datos y sin alterar la altura de la fila de cabecera. Verificable: con la tabla
-  señalada, hay exactamente un manejador por fila contando la de cabecera, y la altura de la fila de
-  cabecera no depende de si el manejador se está mostrando.
+  señalada, hay exactamente un manejador en la fila activa, y la altura de la fila de cabecera no
+  depende de si el manejador se está mostrando.
+- **RF-29-bis**: EL SISTEMA dibuja **un solo** manejador de fila, el de la fila activa (la
+  seleccionada o la que contiene la celda enfocada), y lo coloca en un **carril propio a la
+  izquierda de la primera columna** cuyo ancho iguala al del manejador de columna, de modo que
+  **ningún manejador cubre el texto de una celda**. Verificable: el carril tiene el ancho del
+  manejador de columna, el texto de la primera celda arranca donde el carril acaba, y el contorno
+  de una celda de la primera columna empieza en el ancho del carril y no en cero.
 - **RF-30**: CUANDO hay un puntero sobre la tabla y ella no está activa, EL SISTEMA la marca como
   señalada y muestra la barra flotante y los manejadores. Verificable: al entrar un puntero sobre la
   tabla sin celda enfocada, la barra aparece.
@@ -220,6 +226,9 @@ Nuevos, propios de esta spec:
     activa no cambia lo que se ve.
 12. **Desplazamiento con el dedo sobre la tabla.** Un dedo que recorre la tabla para desplazarla la
     marca como señalada y la desmarca al levantarse, sin dejar la barra pegada.
+13. **Primer carácter de la primera columna.** Con la tabla señalada, los manejadores aparecen en un
+    carril y el texto sigue leyéndose entero: sin carril, el manejador es más ancho que el relleno
+    horizontal de la celda y se come la primera letra.
 
 ## Fuera de alcance
 
@@ -283,3 +292,9 @@ Nuevos, propios de esta spec:
    y solo la visibilidad de la barra cambia dentro de él. El margen es un coste permanente de unos
    60 dp por tabla, y es el precio de que la barra no tape nada y la tabla no se mueva. Afecta **solo
    a las tablas**: no se toca el ritmo vertical del resto de bloques.
+5. **Verificación visual del 2026-10-06 corrigió RF-29.** Una grabación mostró los manejadores de
+   todas las filas **encima de la primera columna**, tapando su primera letra: con el margen se
+   confirmaron la barra, el contorno continuo, el manejador de columna y el de cabecera, y se vio el
+   defecto. El carril de 24 dp y el único manejador de la fila activa son la corrección; quedan
+   cubiertos por RF-29-bis y el caso límite 13. El margen de 60 dp, que era la duda abierta, **se
+   queda**: en pantalla la barra queda con aire y no empuja la tabla de forma incómoda.

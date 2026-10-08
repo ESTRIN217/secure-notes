@@ -6,8 +6,14 @@ import com.example.util.preprocessMarkdownBlocks
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * Tabla del bloque de tabla.
+ *
+ * **La cabecera es la primera fila.** No hay ninguna lista de títulos aparte de las filas: las dos
+ * opciones de cabecera, [showHeader] para la fila y [showHeaderColumn] para la columna, pintan una
+ * fila o una columna, igual que la otra, y ninguna de las dos guarda datos propios (spec 008).
+ */
 data class TableData(
-    val headers: List<String> = emptyList(),
     val rows: List<List<String>> = emptyList(),
     val columnWeights: List<Float> = emptyList(),
     val bgColorHex: String? = null,
@@ -20,13 +26,12 @@ data class TableData(
     }
 
     val columnCount: Int
-        get() = headers.size.coerceAtLeast(rows.maxOfOrNull { it.size } ?: 0)
+        get() = rows.maxOfOrNull { it.size } ?: 0
 
     fun withWeights(weights: List<Float>): TableData =
         copy(columnWeights = weights.take(columnCount))
 
     fun toJson(): String = JSONObject().apply {
-        put("headers", JSONArray(headers))
         put("rows", JSONArray(rows.map { JSONArray(it) }))
         if (columnWeights.isNotEmpty()) {
             put("columnWeights", JSONArray(columnWeights))
@@ -37,73 +42,121 @@ data class TableData(
     }.toString()
 
     fun toHtml(): String {
-        fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
         val sb = StringBuilder("<table>")
-        val weights = normalizedWeights()
-        if (weights.size == columnCount) {
-            sb.append("<colgroup>")
-            weights.forEach { sb.append("<col width=\"$it\"/>") }
-            sb.append("</colgroup>")
-        }
-        if (showHeader && headers.isNotEmpty()) {
-            sb.append("<th>").append(headers.joinToString("</th><th>") { esc(it) }).append("</th>")
-        }
-        rows.forEach { row ->
-            sb.append("<tr><td>").append(row.joinToString("</td><td>") { esc(it) }).append("</td></tr>")
+        appendColumnGroup(sb)
+        rows.forEachIndexed { index, row ->
+            sb.append(rowToHtml(row, if (index == 0 && showHeader) HEADER_TAG else DATA_TAG))
         }
         sb.append("</table>")
         return sb.toString()
     }
 
+    private fun appendColumnGroup(sb: StringBuilder) {
+        val weights = normalizedWeights()
+        if (weights.size != columnCount) return
+        sb.append("<colgroup>")
+        weights.forEach { sb.append("<col width=\"$it\"/>") }
+        sb.append("</colgroup>")
+    }
+
+    /**
+     * Una fila entera dentro de su `<tr>`, con la etiqueta que le toca.
+     *
+     * La cabecera se emitía antes sin la fila que la contiene, de modo que solo un parser HTML5 la
+     * salvaba y cualquier otra herramienta la perdía (spec 008, RF-50).
+     */
+    private fun rowToHtml(cells: List<String>, tag: String): String {
+        if (cells.isEmpty()) return "<tr></tr>"
+        val body = cells.joinToString("</$tag><$tag>") { escapeCell(it) }
+        return "<tr><$tag>$body</$tag></tr>"
+    }
+
+    private fun escapeCell(s: String): String =
+        s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+
     companion object {
+        private const val HEADER_TAG = "th"
+        private const val DATA_TAG = "td"
+
         fun fromJson(json: String?): TableData? {
             if (json.isNullOrBlank()) return null
             return try {
                 val obj = JSONObject(json)
-                val headers = obj.optJSONArray("headers")?.let { arr ->
-                    (0 until arr.length()).map { arr.getString(it) }
-                } ?: emptyList()
-                val rows = obj.optJSONArray("rows")?.let { arr ->
-                    (0 until arr.length()).map { idx ->
-                        val row = arr.optJSONArray(idx)
-                        if (row != null) (0 until row.length()).map { row.getString(it) } else emptyList()
-                    }
-                } ?: emptyList()
-                val weights = obj.optJSONArray("columnWeights")?.let { arr ->
-                    (0 until arr.length()).map { arr.getDouble(it).toFloat() }
-                } ?: emptyList()
-                val bg = obj.optString("bgColorHex").takeIf { it.isNotBlank() }
-                val showHeader = obj.optBoolean("showHeader", true)
-                val showHeaderColumn = obj.optBoolean("showHeaderColumn", false)
-                TableData(headers, rows, weights, bg, showHeader, showHeaderColumn)
+                TableData(
+                    rows = readRows(obj),
+                    columnWeights = readWeights(obj),
+                    bgColorHex = obj.optString("bgColorHex").takeIf { it.isNotBlank() },
+                    showHeader = obj.optBoolean("showHeader", true),
+                    showHeaderColumn = obj.optBoolean("showHeaderColumn", false)
+                )
             } catch (e: Exception) {
                 null
             }
         }
+
+        /**
+         * Lee las filas de las dos formas en que se ha escrito una tabla.
+         *
+         * La antigua guardaba los títulos de la cabecera en su propia lista, aparte de las filas, y
+         * los emitía fuera de toda fila. La nueva los guarda como la primera fila. Cuando esa lista
+         * no está vacía se antepone sin mirar [showHeader]: esos títulos eran texto del usuario y
+         * descartarlos los perdería en la siguiente escritura (spec 008, RNF-19). Una lista vacía no
+         * antepone nada, así que una tabla que nunca tuvo cabecera no gana una fila fantasma.
+         */
+        private fun readRows(obj: JSONObject): List<List<String>> {
+            val legacyTitles = obj.stringList("headers")
+            val stored = obj.stringMatrix("rows")
+            return if (legacyTitles.isEmpty()) stored else listOf(legacyTitles) + stored
+        }
+
+        private fun readWeights(obj: JSONObject): List<Float> =
+            obj.optJSONArray("columnWeights")?.let { arr ->
+                (0 until arr.length()).map { arr.getDouble(it).toFloat() }
+            } ?: emptyList()
 
         fun fromLegacyHtml(html: String?): TableData? {
             if (html.isNullOrBlank()) return null
             return try {
-                val headers = Regex("<th[^>]*>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
-                    .findAll(html).map { it.groupValues[1].trim() }.toList()
-                val rows = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
-                    .findAll(html)
-                    .map { tr ->
-                        Regex("<td[^>]*>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
-                            .findAll(tr.groupValues[1]).map { it.groupValues[1].trim() }.toList()
-                    }
-                    .filter { it.isNotEmpty() }
-                    .toList()
-                if (headers.isEmpty() && rows.isEmpty()) null else TableData(headers, rows)
+                val rows = readLegacyRows(html)
+                if (rows.isEmpty()) null else TableData(rows = rows)
             } catch (e: Exception) {
                 null
             }
         }
 
-        fun default3x3(): TableData = TableData(
-            headers = List(3) { "" },
-            rows = List(3) { List(3) { "" } }
-        )
+        /** Los `<th>` se buscan en toda la tabla porque en el HTML antiguo iban fuera de su `<tr>`. */
+        private fun readLegacyRows(html: String): List<List<String>> {
+            val titles = Regex("<th[^>]*>(.*?)</th>", RegexOption.DOT_MATCHES_ALL)
+                .findAll(html).map { it.groupValues[1].trim() }.toList()
+            val dataRows = Regex("<tr>(.*?)</tr>", RegexOption.DOT_MATCHES_ALL)
+                .findAll(html)
+                .map { tr ->
+                    Regex("<td[^>]*>(.*?)</td>", RegexOption.DOT_MATCHES_ALL)
+                        .findAll(tr.groupValues[1]).map { it.groupValues[1].trim() }.toList()
+                }
+                .filter { it.isNotEmpty() }
+                .toList()
+            return if (titles.isEmpty()) dataRows else listOf(titles) + dataRows
+        }
+
+        private fun JSONObject.stringList(key: String): List<String> =
+            optJSONArray(key)?.let { arr ->
+                (0 until arr.length()).map { arr.getString(it) }
+            } ?: emptyList()
+
+        private fun JSONObject.stringMatrix(key: String): List<List<String>> =
+            optJSONArray(key)?.let { arr ->
+                (0 until arr.length()).map { index ->
+                    val cells = arr.optJSONArray(index)
+                    if (cells == null) emptyList()
+                    else (0 until cells.length()).map { cells.getString(it) }
+                }
+            } ?: emptyList()
+
+        fun default3x3(): TableData = TableData(rows = List(4) { List(3) { "" } })
     }
 }
 

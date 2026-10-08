@@ -1173,6 +1173,9 @@
     <string name="ai">AI</string>
     <string name="insert_table">Insert Table</string>
     <string name="include_header_row">Include header row</string>
+    <string name="table_row_actions">Row actions</string>
+    <string name="table_column_actions">Column actions</string>
+    <string name="table_move_handle">Move table</string>
 
     <!-- ViewModel placeholder labels -->
     <string name="note_placeholder_encrypted">[Encrypted]</string>

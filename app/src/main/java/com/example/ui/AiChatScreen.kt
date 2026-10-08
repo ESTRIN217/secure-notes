@@ -255,22 +255,11 @@ fun AiChatScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
+              modifier = Modifier.statusBarsPadding(),
             topBar = {
                 TopAppBar(
                     title = {
                         Column {
-                            Text(
-                                text = sessionTitle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.combinedClickable(
-                                    onClick = {},
-                                    onLongClick = {
-                                        renameTitleText = sessionTitle
-                                        showRenameTitleDialog = true
-                                    }
-                                )
-                            )
                             if (displayModelName.isNotBlank()) {
                                 Text(
                                     text = displayModelName,
@@ -278,33 +267,14 @@ fun AiChatScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            if (activeMemories.isNotEmpty()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Psychology,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    )
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Text(
-                                        text = stringResource(R.plurals.chat_active_memories, activeMemories.size, activeMemories.size),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.chat_history_title))
                         }
                     },
                     actions = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.History, contentDescription = stringResource(R.string.chat_history_title))
-                        }
                         if (effectiveSessionId > 0) {
                             if (conversationHistory.isNotEmpty()) {
                                 IconButton(onClick = {
@@ -325,9 +295,6 @@ fun AiChatScreen(
                                     }
                                 }) {
                                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.chat_export))
-                                }
-                                IconButton(onClick = { viewModel.clearConversationHistory(effectiveSessionId) }) {
-                                    Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.ai_clear_history))
                                 }
                             }
                         }

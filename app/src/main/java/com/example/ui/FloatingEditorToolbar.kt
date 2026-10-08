@@ -53,7 +53,7 @@ import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material.icons.filled.Subscript
 import androidx.compose.material.icons.filled.Superscript
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material3.Card
+import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalIconToggleButton
@@ -138,14 +138,13 @@ fun EditorToolbarContainer(
 ) {
     var currentMode by remember { mutableStateOf(EditorToolbarMode.MAIN) }
 
-    OutlinedCard(
-        modifier = modifier
-            .padding(bottom = 8.dp)
-            .fillMaxWidth(0.95f),
-        shape = CircleShape,
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+    HorizontalFloatingToolbar(
+    expanded = true,
+    modifier = modifier
+      .fillMaxWidth(0.95f)
+        .padding(bottom = 8.dp),
+    colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+    scrollBehavior = null
     ) {
         when (currentMode) {
             EditorToolbarMode.MAIN -> FloatingEditorToolbar(

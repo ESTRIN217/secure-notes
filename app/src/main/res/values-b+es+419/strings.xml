@@ -964,6 +964,9 @@ Diferencia: %3$s
     <string name="hsv_v">V</string>
     <string name="image">Imagen</string>
     <string name="include_header_row">Incluir fila de encabezado</string>
+    <string name="table_row_actions">Acciones de la fila</string>
+    <string name="table_column_actions">Acciones de la columna</string>
+    <string name="table_move_handle">Mover tabla</string>
     <string name="insert_column_left">Insertar columna a la izquierda</string>
     <string name="insert_column_right">Insertar columna a la derecha</string>
     <string name="insert_row_above">Insertar fila arriba</string>

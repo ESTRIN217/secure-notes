@@ -13,8 +13,7 @@ class PlainTextExportTest {
     @Test
     fun `table block exports as plain text table`() {
         val data = TableData(
-            headers = listOf("A", "B"),
-            rows = listOf(listOf("1", "2"))
+            rows = listOf(listOf("A", "B"), listOf("1", "2"))
         )
         val block = DataBlock(type = BlockType.TABLE, content = "", meta = mapOf("table" to data.toJson()))
 

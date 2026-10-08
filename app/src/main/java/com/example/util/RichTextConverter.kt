@@ -654,15 +654,19 @@ object RichTextConverter {
 
     private fun segmentsTableToPlainText(data: TableData): String {
         val sb = StringBuilder()
-        if (data.headers.isNotEmpty()) {
-            sb.append("| ").append(data.headers.joinToString(" | ")).append(" |\n")
-            sb.append("| ").append(List(data.headers.size) { "---" }.joinToString(" | ")).append(" |")
-        }
-        data.rows.forEach { row ->
-            sb.append('\n')
+        // Todas las filas se emiten, la primera incluida: la cabecera es una fila más (spec 008).
+        // La línea de separación va siempre detrás de la primera porque el formato la exige.
+        data.rows.forEachIndexed { index, row ->
+            if (index > 0) sb.append('\n')
             sb.append("| ").append(row.joinToString(" | ")).append(" |")
+            if (index == 0) appendPlainTextSeparator(sb, row.size)
         }
         return sb.toString()
+    }
+
+    private fun appendPlainTextSeparator(sb: StringBuilder, columns: Int) {
+        if (columns == 0) return
+        sb.append("\n| ").append(List(columns) { "---" }.joinToString(" | ")).append(" |")
     }
 
     private fun mediaLabel(type: BlockType, context: Context?): String {
@@ -940,14 +944,19 @@ object RichTextConverter {
 
     private fun segmentsTableToMarkdown(data: TableData): String {
         val sb = StringBuilder()
-        val headers = data.headers
-        val rows = data.rows
-        if (headers.isNotEmpty()) {
-            sb.append("| ").append(headers.joinToString(" | ")).append(" |\n")
-            sb.append("| ").append(List(headers.size) { "---" }.joinToString(" | ")).append(" |\n")
-        }
-        rows.forEach { row ->
-            sb.append("| ").append(row.joinToString(" | ")).append(" |\n")
+        // La primera fila solo va en negrita si hace de cabecera; con la opción apagada es una fila
+        // de datos más y sale como las demás. Todas las filas se emiten (RF-48, RF-51).
+        data.rows.forEachIndexed { index, row ->
+            val cells = if (index == 0 && data.showHeader) {
+                row.map { if (it.isEmpty()) it else "**${markdownEscape(it)}**" }
+            } else {
+                row.map { markdownEscape(it) }
+            }
+            sb.append("| ").append(cells.joinToString(" | ")).append(" |")
+            if (index == 0 && row.isNotEmpty()) {
+                sb.append("\n| ").append(List(row.size) { "---" }.joinToString(" | ")).append(" |")
+            }
+            sb.append('\n')
         }
         return sb.toString()
     }

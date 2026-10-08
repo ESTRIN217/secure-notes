@@ -196,9 +196,10 @@ private fun parsePipeTableToHtml(tableLines: List<String>): String {
 
     val sb = StringBuilder("<table>")
     if (headers.isNotEmpty()) {
-        sb.append("<th>")
+        // Los títulos van dentro de su <tr>: emitirlos sueltos solo los salvaba un parser HTML5.
+        sb.append("<tr><th>")
         sb.append(headers.joinToString("</th><th>") { it })
-        sb.append("</th>")
+        sb.append("</th></tr>")
     }
     for (bodyLine in bodyLines) {
         val cells = parseRow(bodyLine)

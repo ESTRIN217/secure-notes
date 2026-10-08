@@ -1161,6 +1161,9 @@ O que deseja fazer?</string>
     <string name="ai">IA</string>
     <string name="insert_table">Inserir tabela</string>
     <string name="include_header_row">Incluir linha de cabeçalho</string>
+    <string name="table_row_actions">Ações da linha</string>
+    <string name="table_column_actions">Ações da coluna</string>
+    <string name="table_move_handle">Mover tabela</string>
     <string name="note_placeholder_encrypted">[Cifrada]</string>
     <string name="note_placeholder_locked">[Desbloqueie para ler as notas]</string>
     <string name="note_placeholder_corrupted">[Danificada / Palavra-passe incorreta]</string>

@@ -1097,6 +1097,9 @@ Cosa vuoi fare?</string>
     <string name="ai">IA</string>
     <string name="insert_table">Inserisci tabella</string>
     <string name="include_header_row">Includi riga di intestazione</string>
+    <string name="table_row_actions">Azioni della riga</string>
+    <string name="table_column_actions">Azioni della colonna</string>
+    <string name="table_move_handle">Sposta tabella</string>
     <string name="note_placeholder_encrypted">[Crittografata]</string>
     <string name="note_placeholder_locked">[Sblocca per leggere le note]</string>
     <string name="note_placeholder_corrupted">[Danneggiata / Password errata]</string>

@@ -1098,6 +1098,9 @@ Que souhaitez-vous faire ?</string>
     <string name="ai">IA</string>
     <string name="insert_table">Insérer un tableau</string>
     <string name="include_header_row">Inclure une ligne d\'en-tête</string>
+    <string name="table_row_actions">Actions de la ligne</string>
+    <string name="table_column_actions">Actions de la colonne</string>
+    <string name="table_move_handle">Déplacer le tableau</string>
     <string name="note_placeholder_encrypted">[Chiffré]</string>
     <string name="note_placeholder_locked">[Déverrouillez pour lire les notes]</string>
     <string name="note_placeholder_corrupted">[Endommagé / Mot de passe incorrect]</string>

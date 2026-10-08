@@ -105,8 +105,7 @@ class PdfExporterTest {
     @Test
     fun `table block renders`() {
         val data = TableData(
-            headers = listOf("Col A", "Col B"),
-            rows = listOf(listOf("a1", "b1"), listOf("a2", "b2"))
+            rows = listOf(listOf("Col A", "Col B"), listOf("a1", "b1"), listOf("a2", "b2"))
         )
         val block = block(BlockType.TABLE, meta = mapOf("table" to data.toJson()))
 

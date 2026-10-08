@@ -111,14 +111,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-
-
-
-
-
-
-
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, FlowPreview::class)
 @Composable
 fun NoteEditorScreen(
@@ -2240,13 +2232,16 @@ fun NoteEditorScreen(
                         confirmButton = {
                             Button(
                                 onClick = {
-                                    val headers = if (tableHasHeader) {
-                                        (1..tableCols).map { String.format(tableHeaderCellLabel, it) }
+                                    // La cabecera es la primera fila: se crea solo si la opción está marcada. Antes se
+                                    // creaba siempre, con cadenas vacías cuando no había cabecera, y
+                                    // quedaba una fila fantasma que no era de nadie (RF-48).
+                                    val dataRows = (1..tableRows).map { List(tableCols) { "" } }
+                                    val rows = if (tableHasHeader) {
+                                        listOf((1..tableCols).map { String.format(tableHeaderCellLabel, it) }) + dataRows
                                     } else {
-                                        List(tableCols) { "" }
+                                        dataRows
                                     }
-                                    val rows = (1..tableRows).map { List(tableCols) { "" } }
-                                    val tableData = TableData(headers = headers, rows = rows)
+                                    val tableData = TableData(rows = rows, showHeader = tableHasHeader)
                                     handleSlashSelect(DataBlock(type = BlockType.TABLE, content = "", meta = mapOf("table" to tableData.toJson())))
                                     showInsertTableDialog = false
                                 }
@@ -2444,7 +2439,6 @@ fun NoteEditorScreen(
             }
 
             if (isKeyboardVisible) {
-                Box(Modifier.fillMaxSize()) {
                     EditorToolbarContainer(
                         modifier = Modifier.align(Alignment.BottomCenter),
                     activeTextStyles = activeTextStyles,
@@ -2618,8 +2612,7 @@ fun NoteEditorScreen(
                     onMoveBlockUp = { moveActiveBlockUp() },
                     onMoveBlockDown = { moveActiveBlockDown() }
                 )
-                }
-            }
+              }
 
         if (showMoreFormattingSheet) {
             fun handleBlockSelect(cmd: BlockCommand) {
