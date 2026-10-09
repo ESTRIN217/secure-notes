@@ -1,6 +1,12 @@
 # MEMORY.md — secure-notes 
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 ## Estado actual 
+- **Spec 010 (el carril se estrecha) implementada**: el carril del tirador de fila pasa de 48 a
+  **24 dp**, así que la tabla recupera 24 dp de ancho en pantallas estrechas. El tirador **sigue
+  midiendo 48 dp** y sobresale 12 dp por fuera de la tarjeta; para que ese desborde siga siendo
+  pulsable, la capa de tiradores se desplaza a la izquierda y el tirador de columna compensa.
+  **63 pruebas puras en verde** (46 geometría, 17 `TableRowHeightsTest`) y `assembleDebug` limpio.
+  `ui/table/` **sin tocar**: `gutterWidth` es un parámetro.
 - **Spec 009 (celda multilínea y geometría por fila) implementada**: la tabla **mide cada fila por
   separado**. Antes era un `rowHeightPx` único repartido a todas (`List(rows.size) { rowHeightPx }`),
   así que el contorno sumaba alturas falsas en cuanto una fila crecía. **93 pruebas puras en verde**
@@ -28,6 +34,11 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`; mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
 
 ## Aprendizajes y errores a evitar 
+- **Un carril más estrecho que el tirador obliga a alinearlo por su borde derecho, nunca centrado.**
+  Centrado, la mitad derecha cae sobre el relleno **y el texto** de la primera celda: es el defecto
+  que el carril vino a cerrar. Pegando el borde derecho al final del carril, el tirador ocupa carril
+  y relleno y se detiene donde empieza el texto. Y lo que sobresale de un hijo queda fuera de los
+  límites de su padre, así que el padre hay que **ensancharlo** o el toque no llega a esa parte.
 - **Una geometría que reparte un mismo alto a todas las filas miente en cuanto una crece.** El bug
   llevaba años oculto: `singleLine` y el alto fijo de 44 dp hacían que todas las filas midieran lo
   mismo. Al volver multilínea aflora, y entonces el contorno y los tiradores caen sobre filas que no

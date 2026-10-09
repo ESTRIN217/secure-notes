@@ -209,6 +209,26 @@ class TableSelectionGeometryTest {
         assertNull(selectionOutline(metrics, SelectionState(selectedRow = 3)))
     }
 
+    @Test
+    fun `the first column starts at the width of the gutter`() {
+        // El carril es un PARAMETRO, no una constante cableada: por eso este test, con su
+        // `gutter = 24f` local, sigue verde sin editar cuando producción estrecha el carril
+        // (spec 010, RNF-24). Con el carril a 24 la primera columna arranca en 24, no en 48.
+        val estrecho = metrics.copy(gutterWidth = 24f)
+        assertEquals(24f, selectionOutline(estrecho, SelectionState(focused = a))?.left)
+        assertEquals(124f, selectionOutline(estrecho, SelectionState(focused = CellKey(1, 1)))?.left)
+    }
+
+    @Test
+    fun `a narrower gutter only shifts the outline, it does not resize the row`() {
+        val conCarril = metrics.copy(gutterWidth = gutter)
+        val estrecho = metrics.copy(gutterWidth = 24f)
+        val conPista = selectionOutline(conCarril, SelectionState(selectedRow = 1))!!
+        val sinPista = selectionOutline(estrecho, SelectionState(selectedRow = 1))!!
+        assertEquals(conPista.width, sinPista.width, 0.01f)
+        assertEquals(gutter - 24f, conPista.left - sinPista.left, 0.01f)
+    }
+
     // El carril de los manejadores desplaza las celdas, y el contorno con ellas.
 
     private val gutter = 24f

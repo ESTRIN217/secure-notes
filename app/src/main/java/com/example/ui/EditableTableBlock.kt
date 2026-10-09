@@ -148,28 +148,47 @@ private val TableBottomMargin = 12.dp
 private val MinCellHeight = 44.dp
 
 /**
- * Tamaño de los manejadores: el de columna va horizontal y el de fila vertical. Es el
- * mismo número a propósito, para que el carril de la izquierda mida igual que el
- * manejador de columna.
+ * Tamaño de los tiradores: el de columna va horizontal y el de fila vertical.
  *
- * 48 dp, el objetivo táctil mínimo de Material, porque los tres ya son `IconButton`:
- * antes medían 16×24 dp (o 24×16) y se quedaban en un tercio del mínimo. El carril
- * crece con ellos, así que la tabla pierde 24 dp de ancho útil: es el coste consciente
- * de la decisión 1 de la spec 007.
+ * 48 dp, el objetivo táctil mínimo de Material, porque los tres ya son `IconButton`: antes medían
+ * 16×24 dp (o 24×16) y se quedaban en un tercio del mínimo.
+ *
+ * El carril **no** mide lo mismo que el tirador desde la spec 010: lo que obliga a que midan es el
+ * relleno de la celda, no la igualdad. Ver `TableRowGutter` y `HandleOverhang`.
  */
 private val HandleWidth = 48.dp
 private val HandleHeight = 48.dp
 private val ColumnHandleHeight = 48.dp
 
 /**
- * Carril de los manejadores de fila, a la izquierda de la primera columna.
+ * Relleno horizontal de una celda, el mismo que aplica `TableCell`.
  *
- * El texto de la primera celda arranca justo donde acaba el carril. El carril se
- * superpone al borde de la tarjeta y no es opcional: con los manejadores encima de la
- * celda tapaban la primera letra de cada fila, porque son más anchos que el relleno
- * horizontal de la celda.
+ * Se nombra para que la cuenta del carril sea legible: el texto de la primera columna no empieza en
+ * el borde del carril, sino despues de este relleno (spec 010, RF-60).
  */
-private val TableRowGutter = HandleWidth
+private val CellHorizontalPadding = 12.dp
+
+/**
+ * Carril de los tiradores de fila, a la izquierda de la primera columna, dentro de la tarjeta.
+ *
+ * Es **mas estrecho que el tirador a proposito**: 48 dp de carril se comian el 13% del ancho de una
+ * pantalla de 360 dp, y el tirador solo se ve cuando la tabla esta marcada: el impuesto se pagaba
+ * siempre. Con 24 dp, el tirador de 48 dp ocupa el carril entero y luego este relleno, y se detiene
+ * exactamente donde empieza el texto: no toca ni una letra (spec 010, decision 1).
+ *
+ * El texto de la primera columna arranca en `TableRowGutter + CellHorizontalPadding`, y ahi se para
+ * el borde derecho del tirador.
+ */
+private val TableRowGutter = 24.dp
+
+/**
+ * Cuanto sobresale el tirador por fuera de la tarjeta, a la izquierda.
+ *
+ * **Derivado y escrito como resta**, no como numero suelto: si el carril cambia, esto se ajusta solo
+ * y no puede quedar inconsistente. Es la parte del tirador que hay que hacer posible de pulsar, y por
+ * eso la capa de tiradores se ensancha lo mismo (spec 010, RF-61, decision 2).
+ */
+private val HandleOverhang = HandleWidth - TableRowGutter
 
 private val LINK_REGEX = Regex("(https?|note)://")
 
@@ -930,20 +949,32 @@ private fun TableHandleOverlay(
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val centers = rowHandleCenters(metrics)
+    val gutterWidthPx = with(LocalDensity.current) { TableRowGutter.toPx() }
     val handleWidthPx = with(LocalDensity.current) { HandleWidth.toPx() }
     val handleHeightPx = with(LocalDensity.current) { HandleHeight.toPx() }
+    val overhangPx = with(LocalDensity.current) { HandleOverhang.toPx() }
+    // El carril es mas estrecho que el tirador, asi que este no cabe dentro: su borde derecho se
+    // para al final del carril y lo que sobra cae en el relleno de la primera celda, nunca en el
+    // texto (spec 010, RF-60).
+    val handleLeftPx = gutterWidthPx - handleWidthPx
     // Un solo manejador, el de la fila activa: con uno por fila el carril se llenaba
     // de tiradores y la tabla se leía con ruido. La fila activa es la seleccionada o
     // la que tiene la celda enfocada, con la misma prioridad que el contorno.
     val activeRow = selectedRow ?: focused?.row
-    Box(modifier = modifier) {
+    // La capa se ensancha por la izquierda lo mismo que el desborde del tirador. Sin esto, los
+    // 12 dp que sobresalen quedan fuera de los limites de su padre y el toque puede no llegar a
+    // ellos: el tirador se veria de 48 dp y solo responderia en la mitad de dentro (spec 010,
+    // RF-61).
+    Box(modifier = modifier.offset(x = -HandleOverhang)) {
         centers.forEachIndexed { rowIndex, centerY ->
             if (rowIndex != activeRow) return@forEachIndexed
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .zIndex(2f)
-                    .offset { IntOffset(0, (centerY - handleHeightPx / 2f).roundToInt()) }
+                    .offset {
+                        IntOffset(handleLeftPx.roundToInt(), (centerY - handleHeightPx / 2f).roundToInt())
+                    }
             ) {
                 RowHandle(
                     rowIndex = rowIndex,
@@ -973,7 +1004,11 @@ private fun TableHandleOverlay(
         // o no el pintado (RF-28 enmendado). Superpuesto, así que no empuja la fila.
         val col = focused?.col
         if (focused?.row == 0 && col != null) {
-            val leftPx = columnHandleLeft(metrics, col, handleWidthPx)
+            // La capa entera se desplaza a la izquierda para que el desborde del tirador de fila
+            // quede dentro de sus limites y siga siendo pulsable (spec 010, decision 2). Ese
+            // desfase hay que devolverselo aqui, o el tirador de columna se queda 12 dp a la
+            // izquierda de su columna.
+            val leftPx = columnHandleLeft(metrics, col, handleWidthPx)?.plus(overhangPx)
             val colHeightPx = with(LocalDensity.current) { ColumnHandleHeight.toPx() }
             if (leftPx != null) {
                 Box(
@@ -1104,7 +1139,7 @@ private fun TableCell(
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))
     }
     Box(
-        base.padding(horizontal = 12.dp, vertical = 4.dp),
+        base.padding(horizontal = CellHorizontalPadding, vertical = 4.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         BasicTextField(
