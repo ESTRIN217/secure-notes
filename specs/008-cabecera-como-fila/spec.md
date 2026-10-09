@@ -2,6 +2,10 @@
 
 Estado: implementada (2026-10-08), T1-T9 cerradas; **sin verificación visual**
 
+> **Enmienda posterior.** Su **RF-54** («una sola línea») queda **enmendado** por
+> `specs/009-celda-multilinea/spec.md`: una tabla no puede ocultar texto. Ver la nota de
+> procedencia de la 009.
+
 > **Nota de procedencia.** Hija de `specs/001-limites-constitucion/spec.md` (**aprobada**), que
 > sigue siendo la ley. Hereda sin modificar **RF-3, RF-19, RF-20** y **RNF-4, RNF-5, RNF-6**.
 > Encadena con `specs/005-tabla-seleccion/` y `specs/007-tiradores-tabla/`, **cerradas**: su carril

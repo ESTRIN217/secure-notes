@@ -1,6 +1,11 @@
 # MEMORY.md — secure-notes 
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 ## Estado actual 
+- **Spec 009 (celda multilínea y geometría por fila) implementada**: la tabla **mide cada fila por
+  separado**. Antes era un `rowHeightPx` único repartido a todas (`List(rows.size) { rowHeightPx }`),
+  así que el contorno sumaba alturas falsas en cuanto una fila crecía. **93 pruebas puras en verde**
+  (17 `TableRowHeightsTest` nueva, 44 geometría, 25 `TableDataTest`, 7 texto plano) y `assembleDebug`
+  limpio. Enmienda el **RF-54** de la 008.
 - **Spec 008 (la cabecera es una fila más) implementada**: la fila de cabecera era una lista paralela a `rows` y ahora **es la fila 0**. Fuera `TableData.headers`, `HEADER_ROW`, `headerHeightPx`, `setHeader` y el composable `TableHeaderRow` (110 líneas). **107 pruebas puras en verde** (25 `TableDataTest` nueva, 40 geometría, 7 texto plano, 35 parser) y `assembleDebug` limpio. Enmienda **RF-28 y RF-29** de la spec 005 (la primera fila ya tiene tirador con *eliminar*).
 - **Spec 006 (rediseño del chat con IA) implementada y comprobada en todo lo comprobable aquí**: **T1–T13 HECHAS** (implementación, comprobación y cierre documental). Los tres prototipos están adoptados y conectados —`FloatingChatInputField` es el `bottomBar`, `AttachmentAiSheet` la hoja de adjuntos, `EmptyChatWelcome` la bienvenida, y `AiChatScreen.kt` los cablea—, con las **siete lógicas puras** en `ui/chat/` (L1/L2, L3, L4/L6/L7, L5): sin imports de Compose, sin `R`, sin reloj. La carga de la edición al abrir la sesión la decide **L6** (`adoptPendingEditing`), no el Composable (RNF-11). **53 casos verdes** (`./gradlew :app:testDebugUnitTest --tests 'com.example.Chat*'`) y `assembleDebug` con **cero avisos** en `main`.
 - **Nada de la spec 006 se ha visto en un dispositivo**, y no se puede en esta plataforma: riesgo declarado, no criterio incumplido. Los `grep` verifican que el texto esté escrito, no que la pantalla se pinte bien.
@@ -23,6 +28,16 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`; mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
 
 ## Aprendizajes y errores a evitar 
+- **Una geometría que reparte un mismo alto a todas las filas miente en cuanto una crece.** El bug
+  llevaba años oculto: `singleLine` y el alto fijo de 44 dp hacían que todas las filas midieran lo
+  mismo. Al volver multilínea aflora, y entonces el contorno y los tiradores caen sobre filas que no
+  son. **Un alto por fila, y el que se realimenta a las celdas es un `heightIn(min = …)`, nunca un
+  `height(…)`**: con alto exacto, una celda que crece tras la medida recorta el texto.
+- **Una tabla no oculta texto.** Ni `singleLine`, ni `maxLines`, ni alto máximo. La elipsis es la
+  señal de que el dato no cabe, y en una tabla no basta: hay que leerlo.
+- **La capa que dibuja no siempre es la que miente.** El contorno y los tiradores salían mal por
+  cómo se construían las medidas, no por el dibujado: `TableSelectionGeometry` ya sumaba altos reales
+  y tiene prueba que lo fija. Antes de tocar el dibujado, comprobar quién le da los datos.
 - **Una lista paralela obliga a un caso especial en cada capa.** El `headers` de la tabla no era solo un modelo raro: forzaba `HEADER_ROW`, `headerHeightPx`, un `setHeader` que descartaba lo escrito, un `moveColumn` muerto sin cabecera, un tirador que resaltaba sin mover y `<th>` fuera de su `<tr>`. La prueba que lo detecta es **montar el fixture por la ruta de lectura, no por el constructor**: con el constructor, 13 de 25 pruebas pasaban sin comprobar nada.
 - **Quitar `<tr>` con `replace` no comprueba nada**: `html.replace("<tr>","")` deja el `<th>` dentro y la aserción falla siempre. Hay que quitar las filas **bien formadas** con `Regex("<tr>.*?</tr>")` y mirar lo que queda fuera.
 - **Una dependencia entre capas retrasa el verde**: el modelo de la tabla no se pudo probar en verde hasta cerrar el editor, porque `:app` es un solo módulo. El orden «modelo → editor → verificar» no está mal, pero el «hecho cuando» de la primera tarea no se cumple hasta la última.
@@ -38,6 +53,10 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - **Afirmar una errata exige mirar el diccionario o el código, no el ojo.** Dos veces fallé en la revisión del README: (a) `bloc de notas` es correcto — DLE 1ª acepción «cuaderno» y Notepad en Windows se llama así; `bloques` son las unidades del editor (`DataBlock`/`BlockType`), así que la mezcla no es inconsistente; (b) «E2EE»/«de ponto a ponta» **sí es defendible**: la clave nunca sale del dispositivo y Drive solo ve ciphertext. Regla: las 9 locales divergen entre sí, así que una frase de marketing se contrasta con `strings.xml` + código antes de llamarla error.
 
 ## Próximos pasos 
+- **Verificar en dispositivo, spec 009**: que una celda larga se lea **entera** en varias líneas, que
+  el tinte de cabecera cubra la fila entera y no solo el alto de su texto, y que el contorno caiga
+  sobre la celda enfocada en una fila más alta que las de arriba. **Nada de esto se ha visto**: las
+  pruebas puras solo comprueban la aritmética de la geometría, no que las celdas alcancen esos altos.
 - **Verificar en dispositivo, spec 008**: que la fila 0 se pinte como cabecera y se pueda borrar y arrastrar como las demás; que con la opción apagada siga visible como fila de datos; que el tirador de columna salga al enfocar una celda de la fila 0 con la opción apagada; y que el HTML exportado conserve la cabecera. **Nada de esto se ha visto en una pantalla**: es riesgo declarado.
 - **Unificar el segundo modelo de tabla, sin spec**: `NoteContentBlock.TableBlock` sigue guardando los títulos aparte y lo usan la lectura sin edición, el TTS y la previsualización. Al unificarlo se arreglaría de paso el defecto conocido de `BlockEditor.kt:1011`.
 - **Verificar en dispositivo, spec 005**: el margen de 60dp por tabla puede resultar excesivo, y una tabla como primer bloque (nada de la 005 se ha visto); 90/120 Hz y jank con `FrameMetrics`; que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).

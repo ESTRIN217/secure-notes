@@ -96,8 +96,12 @@ import com.example.ui.table.SelectionState
 import com.example.ui.table.TableMetrics
 import com.example.ui.table.TableSelectionOverlay
 import com.example.ui.table.columnHandleLeft
+import com.example.ui.table.moved
 import com.example.ui.table.nextFocusSet
+import com.example.ui.table.resized
 import com.example.ui.table.rowHandleCenters
+import com.example.ui.table.rowHeightOr
+import com.example.ui.table.without
 import kotlin.math.roundToInt
 
 private data class FocusedCell(val row: Int, val col: Int)
@@ -134,6 +138,14 @@ private val TableToolbarGap = 4.dp
 
 /** Respiro bajo la tabla, para que no quede pegada al bloque de abajo. */
 private val TableBottomMargin = 12.dp
+
+/**
+ * Suelo de altura de una celda: el mínimo táctil de Material.
+ *
+ * Es un **mínimo y nunca un tope**: una celda cuyo texto no cabe en él crece, porque una tabla no
+ * puede ocultar texto (spec 009, RF-55 y RF-59).
+ */
+private val MinCellHeight = 44.dp
 
 /**
  * Tamaño de los manejadores: el de columna va horizontal y el de fila vertical. Es el
@@ -229,7 +241,10 @@ class TableBlockState(initialData: TableData) {
     var dragRowTarget by mutableStateOf<Int?>(null)
     var dragCol by mutableStateOf<Int?>(null)
     var dragColTarget by mutableStateOf<Int?>(null)
-    var rowHeightPx by mutableStateOf(48f)
+    // Un alto por fila, no uno para toda la tabla: cada fila mide lo que mide su celda más alta.
+    // Con un alto compartido el contorno sumaba alturas que no eran las reales en cuanto una crecía
+    // (spec 009, RF-56). Arranca a cero porque el alto real solo se sabe tras medir.
+    var rowHeightsPx by mutableStateOf(resized(emptyList(), initialData.rows.size, 0f))
 
     val focusRequesters = mutableMapOf<Pair<Int, Int>, FocusRequester>()
 
@@ -249,6 +264,7 @@ class TableBlockState(initialData: TableData) {
         ) return
         rows = data.rows.map { it.toMutableList() }.toMutableList()
         weights = data.normalizedWeights().toMutableList()
+        rowHeightsPx = resized(rowHeightsPx, rows.size, 0f)
         bgColorHex = data.bgColorHex?.hex()
         showHeader = data.showHeader
         showHeaderColumn = data.showHeaderColumn
@@ -330,23 +346,27 @@ class TableBlockState(initialData: TableData) {
     }
 
     fun insertRowAbove(rowIndex: Int) {
-        rows.add(rowIndex.coerceIn(0, rows.size), MutableList(columnCount) { "" })
-        selectedRow = rowIndex.coerceIn(0, rows.size - 1)
+        val at = rowIndex.coerceIn(0, rows.size)
+        rows.add(at, MutableList(columnCount) { "" })
+        rowHeightsPx = resized(rowHeightsPx, rows.size, 0f)
+        selectedRow = at.coerceIn(0, rows.size - 1)
         notifyChange()
     }
 
     fun insertRowBelow(rowIndex: Int) {
-        rows.add((rowIndex + 1).coerceIn(0, rows.size), MutableList(columnCount) { "" })
-        selectedRow = (rowIndex + 1).coerceIn(0, rows.size - 1)
+        val at = (rowIndex + 1).coerceIn(0, rows.size)
+        rows.add(at, MutableList(columnCount) { "" })
+        rowHeightsPx = resized(rowHeightsPx, rows.size, 0f)
+        selectedRow = at.coerceIn(0, rows.size - 1)
         notifyChange()
     }
 
     fun deleteRow(rowIndex: Int) {
-        if (rows.size > 1) {
-            rows.removeAt(rowIndex.coerceIn(0, rows.lastIndex))
-            selectedRow = null
-            notifyChange()
-        }
+        if (rows.size <= 1) return
+        rows.removeAt(rowIndex.coerceIn(0, rows.lastIndex))
+        rowHeightsPx = without(rowHeightsPx, rowIndex.coerceIn(0, rows.size))
+        selectedRow = null
+        notifyChange()
     }
 
     fun insertColumnLeft(colIndex: Int) {
@@ -376,6 +396,9 @@ class TableBlockState(initialData: TableData) {
         if (from == to || from !in rows.indices || to !in rows.indices) return
         val item = rows.removeAt(from)
         rows.add(to, item)
+        // El alto viaja con la fila: si la alta pasa a ser la última, el resto no se desplaza de
+        // sitio y por tanto no puede medirse contra la altura equivocada (RF-56).
+        rowHeightsPx = moved(rowHeightsPx, from, to)
         selectedRow = to
         notifyChange()
     }
@@ -553,7 +576,7 @@ fun EditableTableBlock(
         val tableMetrics = with(LocalDensity.current) {
             TableMetrics(
                 columnWidths = (0 until state.columnCount).map { getColumnWidth(it).toPx() },
-                rowHeights = List(state.rows.size) { state.rowHeightPx },
+                rowHeights = state.rowHeightsPx,
                 gutterWidth = TableRowGutter.toPx(),
             )
         }
@@ -636,7 +659,13 @@ fun EditableTableBlock(
                                         onFocusChange(focused)
                                     },
                                     onResizeColumn = { col, delta -> state.adjustColumnWidth(col, delta, colUnitPx) },
-                                    onRowHeight = { state.rowHeightPx = it },
+                                    rowHeightPx = rowHeightOr(state.rowHeightsPx, rowIndex, 0f),
+                                    onRowHeight = { alto ->
+                                        state.rowHeightsPx = state.rowHeightsPx.toMutableList()
+                                            .also { lista ->
+                                                if (rowIndex in lista.indices) lista[rowIndex] = alto
+                                            }
+                                    },
                                     focusRequesters = state.focusRequesters,
                                     onMoveFocus = state::moveFocus
                                 )
@@ -795,11 +824,16 @@ private fun TableRow(
     onCellValueChange: (Int, String) -> Unit,
     onCellSelect: (Int, Boolean) -> Unit,
     onResizeColumn: (Int, Float) -> Unit,
+    rowHeightPx: Float,
     onRowHeight: (Float) -> Unit,
     focusRequesters: MutableMap<Pair<Int, Int>, FocusRequester>,
     onMoveFocus: (Int, Int) -> Unit
 ) {
     val isActiveRow = selectedRow == rowIndex
+    // Todas las celdas de la fila arrancan con el alto ya medido de esa fila, para que el borde y
+    // el tinte de cabecera cubran la fila entera y no solo lo que ocupa su texto (RF-58). Antes de
+    // medir vale el suelo táctil; después manda el alto real de la fila.
+    val cellMinHeight = with(LocalDensity.current) { maxOf(rowHeightPx.toDp(), MinCellHeight) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -852,7 +886,9 @@ private fun TableRow(
                             )
                         }
                     } else null,
-                    modifier = Modifier.width(getColumnWidth(col))
+                    modifier = Modifier
+                        .width(getColumnWidth(col))
+                        .heightIn(min = cellMinHeight)
                 )
             }
         }
@@ -1068,7 +1104,7 @@ private fun TableCell(
         base = base.shadow(2.dp, RoundedCornerShape(4.dp))
     }
     Box(
-        base.heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 4.dp),
+        base.padding(horizontal = 12.dp, vertical = 4.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         BasicTextField(

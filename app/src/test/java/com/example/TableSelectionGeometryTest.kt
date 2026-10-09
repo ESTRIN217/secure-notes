@@ -280,6 +280,48 @@ class TableSelectionGeometryTest {
         }
     }
 
+    /**
+     * RF-57: con filas desiguales, el borde superior de cada celda es la suma de los altos REALES de
+     * las de arriba. Antes el bloque repartía un único alto a todas las filas, así que en cuanto una
+     * crecía el contorno caía sobre otra fila (spec 009).
+     */
+    @Test
+    fun `the top edge of a cell sums the real heights of the rows above it`() {
+        val desiguales = metrics.copy(rowHeights = listOf(44f, 160f, 44f))
+        // Bordes de fila con esos altos: 0, 44 y 204.
+        assertEquals(
+            OutlineRect(0f, 44f, 100f, 204f),
+            selectionOutline(desiguales, SelectionState(focused = CellKey(1, 0))),
+        )
+        assertEquals(
+            OutlineRect(0f, 204f, 100f, 248f),
+            selectionOutline(desiguales, SelectionState(focused = CellKey(2, 0))),
+        )
+    }
+
+    @Test
+    fun `the outline of the taller row is as tall as that row`() {
+        val desiguales = metrics.copy(rowHeights = listOf(44f, 160f, 44f))
+        val outline = selectionOutline(desiguales, SelectionState(focused = CellKey(1, 1)))!!
+        assertEquals(160f, outline.height, 0.01f)
+    }
+
+    @Test
+    fun `a selected taller row is outlined with its own height`() {
+        val desiguales = metrics.copy(rowHeights = listOf(44f, 160f, 44f))
+        val outline = selectionOutline(desiguales, SelectionState(selectedRow = 1))!!
+        assertEquals(44f, outline.top, 0.01f)
+        assertEquals(204f, outline.bottom, 0.01f)
+    }
+
+    @Test
+    fun `handles land in their own row when one row is much taller`() {
+        val desiguales = metrics.copy(rowHeights = listOf(44f, 160f, 44f))
+        // Centro de la fila 1: la mitad de su alto, más lo que miden las de arriba.
+        assertEquals(124f, rowHandleCenters(desiguales)[1])
+        assertEquals(3, rowHandleCenters(desiguales).size)
+    }
+
     @Test
     fun `handles follow rows that are added`() {
         val grown = metrics.copy(rowHeights = listOf(44f, 60f, 44f, 30f))
