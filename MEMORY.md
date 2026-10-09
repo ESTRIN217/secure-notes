@@ -1,7 +1,11 @@
 # MEMORY.md — secure-notes 
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 ## Estado actual 
-- **Spec 010 (el carril se estrecha) implementada**: el carril del tirador de fila pasa de 48 a
+- **Spec 011 (el tirador, entero dentro) implementada y verificada en dispositivo**: el carril baja a
+  **36 dp**, el tirador sigue midiendo 48 dp y queda **entero dentro** de la tarjeta. Enmienda la
+  decisión 2 y el RF-61 de la 010, que apostaban por un desborde de 12 dp. **88 pruebas puras en
+  verde** (46 geometría, 17 `TableRowHeightsTest`, 25 `TableDataTest`).
+- **Spec 010 (el carril se estrecha) implementada**, luego enmendada por la 011: el carril del tirador de fila pasa de 48 a
   **24 dp**, así que la tabla recupera 24 dp de ancho en pantallas estrechas. El tirador **sigue
   midiendo 48 dp** y sobresale 12 dp por fuera de la tarjeta; para que ese desborde siga siendo
   pulsable, la capa de tiradores se desplaza a la izquierda y el tirador de columna compensa.
@@ -34,6 +38,12 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`; mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
 
 ## Aprendizajes y errores a evitar 
+- **Un tirador más ancho que el carril solo funciona entero dentro de la tarjeta.** Un desborde de
+  12 dp se ve pero **no recibe el toque**: comprobado en dispositivo. Y el arreglo no era solo quitarlo,
+  que yo además había contado el desborde **dos veces** (capa desplazada + tirador a `carril − 48`),
+  así que quedó 36 dp fuera en vez de 12. Antes de desplazar una capa para que un hijo que sobresale
+  sea pulsable, **comprobar en dispositivo si llega el toque**: lo que sobresale del padre queda fuera
+  de sus límites, y el mismo problema sube un nivel si el padre también sobresale.
 - **Un carril más estrecho que el tirador obliga a alinearlo por su borde derecho, nunca centrado.**
   Centrado, la mitad derecha cae sobre el relleno **y el texto** de la primera celda: es el defecto
   que el carril vino a cerrar. Pegando el borde derecho al final del carril, el tirador ocupa carril

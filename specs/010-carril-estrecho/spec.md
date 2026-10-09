@@ -2,6 +2,11 @@
 
 Estado: implementada (2026-10-09), T1-T3 cerradas; **sin verificación visual**
 
+> **Enmienda posterior.** Su **decisión 2** (ensanchar la capa de tiradores para que el desborde sea
+> pulsable) y su **RF-61** quedan **enmendados** por `specs/011-sin-desborde/spec.md`: en dispositivo
+> la parte del tirador fuera de la tarjeta **no recibe el toque**, y el carril baja a 36 dp para que
+> el tirador quepa entero dentro. Ver la nota de procedencia de la 011.
+
 > **Nota de procedencia.** Hija de `specs/001-limites-constitucion/spec.md` (**aprobada**), que
 > sigue siendo la ley. Hereda sin modificar **RF-3, RF-19, RF-20** y **RNF-4, RNF-5, RNF-6**.
 > Encadena con `specs/005-tabla-seleccion/`, `007-tiradores-tabla/`, `008-cabecera-como-fila/` y
