@@ -77,10 +77,10 @@ class NoteHandoffTest {
         // RNF-36: la ruta acaba en un log cuando algo falla, y el nombre del archivo del usuario no
         // puede aparecer ahi. El nombre va DENTRO del sobre, no en el nombre del fichero.
         val dir = tempDir()
-        val ruta = MarkdownHandoff.write(dir, "Documento Confidencial del Adrian.md", "secreto")
+        val ruta = MarkdownHandoff.write(dir, "Documento Confidencial de Alvarez.md", "secreto")
         val nombreFichero = File(ruta).name
 
-        assertFalse("la ruta incluye el nombre del usuario: $nombreFichero", nombreFichero.contains("Adrian"))
+        assertFalse("la ruta incluye el nombre del usuario: $nombreFichero", nombreFichero.contains("Alvarez"))
         assertFalse(nombreFichero.contains("Confidencial"))
         assertEquals(MarkdownHandoff.FILE_NAME, nombreFichero)
         dir.deleteRecursively()
