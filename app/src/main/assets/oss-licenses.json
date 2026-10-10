@@ -148,6 +148,14 @@
       "use": "Render Markdown"
     },
     {
+      "name": "commonmark-java (core, gfm-tables, gfm-strikethrough)",
+      "version": "0.13.0",
+      "license": "BSD-2-Clause",
+      "copyright": "Atlassian Pty Ltd (© 2015-2016)",
+      "url": "https://github.com/commonmark/commonmark-java/blob/master/LICENSE.txt",
+      "use": "Markdown -> HTML de la vista previa del editor"
+    },
+    {
       "name": "LaTeX (base, parser, renderer)",
       "version": "1.5.4",
       "license": "MIT",

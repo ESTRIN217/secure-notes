@@ -46,6 +46,7 @@
 | PDF Viewer (viewer, viewer-fragment, document-service, compose) | 1.0.0-alpha19 (fragment alpha04) | Apache-2.0 | AOSP | https://github.com/androidx/androidx/blob/androidx-main/pdf/pdf-viewer/build.gradle | `:visor-pdf` |
 | compose-markdown | 0.7.2 | MIT | Jeziel Lago (© 2021) | https://github.com/jeziellago/compose-markdown/blob/main/LICENSE | Render Markdown |
 | LaTeX (base, parser, renderer) | 1.5.4 | MIT | huarangmeng (© 2026) | https://github.com/huarangmeng/latex/blob/master/LICENSE | Ecuaciones en notas |
+| commonmark-java (core, ext-gfm-tables, ext-gfm-strikethrough) | 0.13.0 | BSD-2-Clause | Atlassian Pty Ltd (© 2015-2016) | https://github.com/commonmark/commonmark-java/blob/master/LICENSE.txt | Vista previa de Markdown en `:editor-de-codigo` |
 
 ### IA local
 

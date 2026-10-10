@@ -4,10 +4,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import java.util.regex.Pattern
 
 object SyntaxHighlighter {
@@ -428,15 +430,43 @@ object SyntaxHighlighter {
         applyRegex(code, "(?m)[#;].*$", theme.comment)
     }
 
-    private fun AnnotatedString.Builder.highlightMarkdown(code: String, theme: SyntaxTheme) {
-        applyRegex(code, "(?m)^#{1,6}\\s+.*$", theme.keyword, FontWeight.Bold)
-        applyRegex(code, "`[^`\\n]+`", theme.function)
-        applyRegex(code, "```[\\s\\S]*?```", theme.string)
-        applyRegex(code, "(?m)^[ \\t]*[-*+]\\s+", theme.operator, FontWeight.Bold)
-        applyRegex(code, "(?m)^[ \\t]*\\d+\\.\\s+", theme.number)
-        applyRegex(code, "\\*\\*[^*]+\\*\\*|__[^_]+__", theme.propertyKey, FontWeight.Bold)
-        applyRegex(code, "\\[[^\\]]+\\]\\([^\\)]+\\)", theme.variable)
+    /**
+ * Mapa de token de Markdown a estilo del tema.
+ *
+ * **No añade ningún campo a [SyntaxTheme]** (RNF-28): reparte las construcciones de GFM entre los
+ * colores que los cuatro temas ya traen, que es lo que hace que ninguno de ellos necesite cambios.
+ *
+ * La familia de énfasis comparte color a propósito —`propertyKey`— y se distingue por el peso, la
+ * cursiva o el tachado. Dos colores para «fuerte» y «simple» no aportarían nada: lo que se ve
+ * distinto es el grosor, no el tono.
+ */
+private fun styleFor(kind: MdTokenKind, theme: SyntaxTheme): SpanStyle = when (kind) {
+    MdTokenKind.HEADING, MdTokenKind.HEADING_MARK -> SpanStyle(theme.keyword, fontWeight = FontWeight.Bold)
+    MdTokenKind.CODE_FENCE, MdTokenKind.CODE_BLOCK -> SpanStyle(theme.string)
+    MdTokenKind.INLINE_CODE -> SpanStyle(theme.function)
+    MdTokenKind.STRONG -> SpanStyle(theme.propertyKey, fontWeight = FontWeight.Bold)
+    MdTokenKind.EM -> SpanStyle(theme.propertyKey, fontStyle = FontStyle.Italic)
+    MdTokenKind.STRIKETHROUGH ->
+        SpanStyle(theme.propertyKey, textDecoration = TextDecoration.LineThrough)
+    MdTokenKind.LINK_TEXT -> SpanStyle(theme.keyword)
+    MdTokenKind.LINK_URL -> SpanStyle(theme.function)
+    MdTokenKind.LINK_REF -> SpanStyle(theme.function)
+    MdTokenKind.AUTOLINK -> SpanStyle(theme.variable)
+    MdTokenKind.HTML_TAG -> SpanStyle(theme.annotation)
+    MdTokenKind.BULLET_MARK, MdTokenKind.ORDERED_MARK -> SpanStyle(theme.operator, fontWeight = FontWeight.Bold)
+    MdTokenKind.TASK_MARK -> SpanStyle(theme.booleanNull, fontWeight = FontWeight.Bold)
+    MdTokenKind.THEMATIC_BREAK, MdTokenKind.QUOTE_MARK, MdTokenKind.FRONT_MATTER -> SpanStyle(theme.comment)
+    MdTokenKind.TABLE_DELIM -> SpanStyle(theme.punctuation)
+    MdTokenKind.TABLE_HEADER -> SpanStyle(theme.type, fontWeight = FontWeight.Bold)
+    MdTokenKind.TABLE_ROW -> SpanStyle(theme.text)
+    MdTokenKind.ESCAPE -> SpanStyle(theme.punctuation)
+}
+
+private fun AnnotatedString.Builder.highlightMarkdown(code: String, theme: SyntaxTheme) {
+    MarkdownTokenizer.tokenize(code).forEach { token ->
+        addStyle(styleFor(token.kind, theme), token.start, token.end)
     }
+}
 
     private fun AnnotatedString.Builder.applyRegex(
         text: String,

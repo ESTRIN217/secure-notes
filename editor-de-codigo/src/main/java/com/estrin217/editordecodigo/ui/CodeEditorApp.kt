@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.WrapText
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
@@ -56,10 +58,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +91,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +101,7 @@ import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxTheme
 import com.estrin217.editordecodigo.ui.components.CodeEditorView
+import com.estrin217.editordecodigo.ui.components.MarkdownPreview
 import com.estrin217.editordecodigo.ui.components.FilesDrawerSheet
 import com.estrin217.editordecodigo.ui.components.JumpToLineDialog
 import com.estrin217.editordecodigo.ui.components.LanguageSelectorDialog
@@ -110,9 +115,18 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+/**
+ * El editor de código, y opcionalmente la vía para mandar su Markdown a una nota.
+ *
+ * [onSendToNotes] es **opcional** y por defecto `null` a propósito: los llamantes que no usan la
+ * acción siguen compilando sin cambios, y `null` significa «aquí no hay a quién mandar el Markdown»,
+ * que es lo que hace que el item de menú no se componga. Recibe `String` y no tipos de nota porque
+ * esta librería **no conoce** la base de notas: si recibiera un `Note`, dependería de `:app`.
+ */
 fun CodeEditorApp(
     viewModel: CodeEditorViewModel,
-    topTabs: @Composable () -> Unit = {}
+    topTabs: @Composable () -> Unit = {},
+    onSendToNotes: ((name: String, markdown: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -169,7 +183,11 @@ fun CodeEditorApp(
     val isWelcomeTabOpen by viewModel.isWelcomeTabOpen.collectAsState()
     val textFieldValue by viewModel.textFieldValue.collectAsState()
     val language by viewModel.language.collectAsState()
-    val isEditMode by viewModel.isEditMode.collectAsState()
+    val viewMode by viewModel.viewMode.collectAsState()
+    val isEditMode = viewMode.isEditable()
+    val availableModes = viewModel.availableModes()
+    val previewHtml by viewModel.previewHtml.collectAsState()
+    val layout = remember(viewMode) { PreviewLayout.forMode(viewMode) }
     val showLineNumbers by viewModel.showLineNumbers.collectAsState()
     val wordWrap by viewModel.wordWrap.collectAsState()
     val fontSizeSp by viewModel.fontSizeSp.collectAsState()
@@ -320,25 +338,17 @@ fun CodeEditorApp(
                         }
                     },
                     actions = {
-                        // Quick Edit / View Mode Toggle Chip
-                        FilterChip(
-                            selected = isEditMode,
-                            onClick = { viewModel.toggleEditMode() },
-                            label = {
-                                Text(
-                                    text = if (isEditMode) stringResource(R.string.mode_edit) else stringResource(R.string.mode_view),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            },
-                            modifier = Modifier.testTag("toggle_mode_chip")
+                        // Selector de modo: el chip muestra el modo actual y abre la lista.
+                        //
+                        // No es una barra segmentada de cuatro botones: la barra superior ya lleva
+                        // chip, deshacer, rehacer, guardar y menú, y cuatro botones desbordarían en
+                        // pantalla estrecha. El chip además no cambia de ancho al cambiar de modo,
+                        // que es justo lo que hace falta para que quepa.
+                        ModeSelector(
+                            mode = viewMode,
+                            availableModes = availableModes,
+                            onSelect = { viewModel.setViewMode(it) },
+                            onToggleEdit = { viewModel.toggleEditMode() }
                         )
 
                         Spacer(modifier = Modifier.width(2.dp))
@@ -502,6 +512,33 @@ fun CodeEditorApp(
                                     )
                                 }
                                 HorizontalDivider()
+                                // «Enviar a notas» solo existe si hay anfitrión Y el archivo es
+                                // Markdown: una acción que la librería no puede cumplir no debe
+                                // llegar a la pantalla (RF-76).
+                                val sender = onSendToNotes
+                                if (sender != null && EditorModes.canSendToNotes(true, language, currentFile != null)) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.menu_send_to_notes)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Note,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            // Se guarda **antes** de enviar, y se envía el texto en
+                                            // memoria, no lo releído de disco: sin carrera posible
+                                            // aunque `saveCurrentFile` sea asíncrono (RF-77).
+                                            viewModel.saveCurrentFile()
+                                            sender.invoke(
+                                                currentFile?.name.orEmpty(),
+                                                textFieldValue.text
+                                            )
+                                        },
+                                        modifier = Modifier.testTag("menu_send_to_notes")
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.copy_code)) },
                                     leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
@@ -611,23 +648,52 @@ fun CodeEditorApp(
 
             // Main Editor & Viewer Area
             Box(modifier = Modifier.weight(1f)) {
-                if (currentFile != null) {
-                    CodeEditorView(
+                when {
+                    currentFile == null -> EmptyWorkspaceView(
+                        theme = theme,
+                        onNewFile = { showNewFileDialog = true },
+                        onOpenFile = { openDocumentLauncher.launch(arrayOf("*/*")) }
+                    )
+                    // `layout` decide qué panes existen, y esa decisión está probada en
+                    // `PreviewLayoutTest`. Aquí solo se compone lo que toca.
+                    layout.showsEditor && layout.showsPreview -> Row(Modifier.fillMaxSize()) {
+                        EditorPane(
+                            textFieldValue = textFieldValue,
+                            onValueChange = { viewModel.updateTextFieldValue(it) },
+                            language = language,
+                            theme = theme,
+                            isEditable = isEditMode,
+                            showLineNumbers = showLineNumbers,
+                            wordWrap = wordWrap,
+                            fontSizeSp = fontSizeSp,
+                            searchQuery = searchQuery,
+                            modifier = Modifier.weight(PreviewLayout.EDITOR_WEIGHT)
+                        )
+                        VerticalDivider(color = theme.lineNumber.copy(alpha = 0.25f))
+                        PreviewPane(
+                            html = previewHtml,
+                            theme = theme,
+                            basePath = currentFile?.filePath,
+                            modifier = Modifier.weight(PreviewLayout.PREVIEW_WEIGHT)
+                        )
+                    }
+                    layout.showsPreview -> PreviewPane(
+                        html = previewHtml,
+                        theme = theme,
+                        basePath = currentFile?.filePath,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> EditorPane(
                         textFieldValue = textFieldValue,
                         onValueChange = { viewModel.updateTextFieldValue(it) },
                         language = language,
                         theme = theme,
-                        isEditMode = isEditMode,
+                        isEditable = isEditMode,
                         showLineNumbers = showLineNumbers,
                         wordWrap = wordWrap,
                         fontSizeSp = fontSizeSp,
-                        searchQuery = searchQuery
-                    )
-                } else {
-                    EmptyWorkspaceView(
-                        theme = theme,
-                        onNewFile = { showNewFileDialog = true },
-                        onOpenFile = { openDocumentLauncher.launch(arrayOf("*/*")) }
+                        searchQuery = searchQuery,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -792,6 +858,112 @@ fun CodeEditorApp(
     }
 }
 
+/**
+ * Los dos lados de la vista previa, como contenido lambdas.
+ *
+ * No son Composables aparte con sus propios `collectAsState`: los `StateFlow` ya están recogidos
+ * arriba, en `CodeEditorApp`, y volver a recogerlos aquí leería cada uno dos veces por
+ * recomposición. Se pasan como lambdas para que quien compone decida qué estado usa.
+ */
+/**
+ * El chip de modo y su desplegable.
+ *
+ * Toca el chip alterna entre editar y ver —que es lo que hace el conmutador de siempre— y el menú
+ * deja elegir cualquiera de los disponibles. Con solo dos modos, un toque basta; con cuatro, un ciclo
+ * obligaría a leer la etiqueta para saber cuántas pulsaciones faltan.
+ */
+@Composable
+private fun ModeSelector(
+    mode: ViewMode,
+    availableModes: List<ViewMode>,
+    onSelect: (ViewMode) -> Unit,
+    onToggleEdit: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = mode.isEditable(),
+            onClick = {
+                if (availableModes.size <= 2) {
+                    onToggleEdit()
+                } else {
+                    expanded = true
+                }
+            },
+            label = { Text(mode.label(), fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold) },
+            leadingIcon = {
+                Icon(
+                    imageVector = mode.icon(),
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            },
+            modifier = Modifier.testTag("toggle_mode_chip")
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            availableModes.forEach { candidate ->
+                DropdownMenuItem(
+                    text = { Text(candidate.label()) },
+                    leadingIcon = { Icon(candidate.icon(), contentDescription = null) },
+                    onClick = {
+                        expanded = false
+                        onSelect(candidate)
+                    },
+                    modifier = Modifier.testTag("mode_item_${candidate.name}")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorPane(
+    textFieldValue: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    language: SupportedLanguage,
+    theme: SyntaxTheme,
+    isEditable: Boolean,
+    showLineNumbers: Boolean,
+    wordWrap: Boolean,
+    fontSizeSp: Float,
+    searchQuery: String,
+    modifier: Modifier
+) {
+    CodeEditorView(
+        textFieldValue = textFieldValue,
+        onValueChange = onValueChange,
+        language = language,
+        theme = theme,
+        isEditable = isEditable,
+        showLineNumbers = showLineNumbers,
+        wordWrap = wordWrap,
+        fontSizeSp = fontSizeSp,
+        searchQuery = searchQuery,
+        modifier = modifier
+    )
+}
+
+/**
+ * El lado de la vista previa. Con el HTML a `null` pinta el fondo del tema y nada más: es el estado
+ * de los 300 ms de retardo, y un hueco con el color del tema se lee mejor que un hueco blanco.
+ */
+@Composable
+private fun PreviewPane(
+    html: String?,
+    theme: SyntaxTheme,
+    basePath: String?,
+    modifier: Modifier
+) {
+    if (html == null) {
+        Box(modifier = modifier.background(theme.background))
+        return
+    }
+    MarkdownPreview(documentHtml = html, basePath = basePath, modifier = modifier)
+}
+
 @Composable
 private fun EmptyWorkspaceView(
     theme: SyntaxTheme,
@@ -859,4 +1031,23 @@ private fun EmptyWorkspaceView(
             }
         }
     }
+}
+
+/** El texto del modo sale de `strings.xml`; aquí solo se decide cuál de los cuatro. */
+@Composable
+private fun ViewMode.label(): String = stringResource(
+    when (this) {
+        ViewMode.EDIT -> R.string.mode_edit
+        ViewMode.VIEW -> R.string.mode_view
+        ViewMode.SPLIT -> R.string.mode_split
+        ViewMode.PREVIEW -> R.string.mode_preview
+    }
+)
+
+@Composable
+private fun ViewMode.icon(): androidx.compose.ui.graphics.vector.ImageVector = when (this) {
+    ViewMode.EDIT -> Icons.Default.Edit
+    ViewMode.VIEW -> Icons.Default.Visibility
+    ViewMode.SPLIT -> Icons.Default.VerticalSplit
+    ViewMode.PREVIEW -> Icons.Default.Visibility
 }

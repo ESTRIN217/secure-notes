@@ -54,6 +54,9 @@ googleId = "1.2.0"
 material3 = "1.5.0-alpha28"
 media3 = "1.7.1"
 glance = "1.3.0-alpha02"
+# commonmark-java: la MISMA version que ya arrastra compose-markdown, para no forzar un salto
+# transitivo que romperia MarkdownText (spec 012, decision 2).
+commonmark = "0.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -130,6 +133,9 @@ androidx-media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exop
 androidx-fragment-compose = { group = "androidx.fragment", name = "fragment-compose", version = "1.8.6" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+commonmark-core = { group = "com.atlassian.commonmark", name = "commonmark", version.ref = "commonmark" }
+commonmark-tables = { group = "com.atlassian.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-strikethrough = { group = "com.atlassian.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -40,6 +40,11 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
+  // Markdown -> HTML de la vista previa. La version 0.13.0 es la que ya arrastra compose-markdown:
+  // declararla aqui no descarga nada ni cambia lo que resuelve Gradle (spec 012, decision 2).
+  implementation(libs.commonmark.core)
+  implementation(libs.commonmark.tables)
+  implementation(libs.commonmark.strikethrough)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   testImplementation(libs.junit)

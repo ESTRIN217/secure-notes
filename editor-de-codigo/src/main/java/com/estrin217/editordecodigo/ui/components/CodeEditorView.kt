@@ -51,7 +51,7 @@ fun CodeEditorView(
     onValueChange: (TextFieldValue) -> Unit,
     language: SupportedLanguage,
     theme: SyntaxTheme,
-    isEditMode: Boolean,
+    isEditable: Boolean,
     showLineNumbers: Boolean,
     wordWrap: Boolean,
     fontSizeSp: Float,
@@ -91,8 +91,8 @@ fun CodeEditorView(
         )
     }
 
-    val highlightedViewerText = remember(codeText, language, theme, searchQuery, isEditMode) {
-        if (!isEditMode) {
+    val highlightedViewerText = remember(codeText, language, theme, searchQuery, isEditable) {
+        if (!isEditable) {
             SyntaxHighlighter.highlight(
                 code = codeText,
                 language = language,
@@ -173,7 +173,7 @@ fun CodeEditorView(
                 )
                 .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
-            if (isEditMode) {
+            if (isEditable) {
                 // Interactive editable text field
                 BasicTextField(
                     value = textFieldValue,

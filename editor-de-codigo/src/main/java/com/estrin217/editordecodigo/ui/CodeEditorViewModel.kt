@@ -14,6 +14,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.data.model.CodeFile
+import com.estrin217.editordecodigo.markdown.MarkdownPreview
+import com.estrin217.editordecodigo.markdown.PreviewTheme
 import com.estrin217.editordecodigo.data.repository.CodeFileRepository
 import com.estrin217.editordecodigo.formatter.CodeFormattingManager
 import com.estrin217.editordecodigo.formatter.FormatOptions
@@ -23,7 +25,10 @@ import com.estrin217.editordecodigo.syntax.SyntaxTheme
 import com.estrin217.editordecodigo.syntax.SyntaxThemes
 import com.estrin217.editordecodigo.utils.ExternalFileInfo
 import com.estrin217.editordecodigo.utils.FileImportExportHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -78,8 +83,57 @@ class CodeEditorViewModel(
     private val _language = MutableStateFlow(SupportedLanguage.BASH)
     val language: StateFlow<SupportedLanguage> = _language.asStateFlow()
 
-    private val _isEditMode = MutableStateFlow(true)
-    val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+    /**
+     * Modo del archivo activo. Sustituye al antiguo `isEditMode`, que era un `StateFlow` paralelo y
+     * se desincronizaba del archivo: abrir un `.kt` después de un `.md` en vista previa lo dejaba
+     * sin poder editar (RNF-31).
+     */
+    private val _viewMode = MutableStateFlow(ViewMode.EDIT)
+    val viewMode: StateFlow<ViewMode> = _viewMode.asStateFlow()
+
+    private val modeRegistry = EditorModes.forFiles()
+
+    /** `isEditMode` pasa a derivarse: una sola fuente de verdad (RNF-31). */
+    val isEditMode: Boolean get() = _viewMode.value.isEditable()
+
+    /**
+     * HTML de la vista previa, o `null` si no hay nada que pintar.
+     *
+     * Se calcula **fuera del hilo principal** y con retardo (RF-75): convertir en cada recomposición de
+     * `BasicTextField` sería parsear el documento entero por cada tecla que se pulsa, en el hilo de la
+     * interfaz. Aquí solo se publica el resultado y la composición lo lee.
+     *
+     * El `debounce` es la mitad de la protección; el `catch` es la otra: si el motor falla, el HTML se
+     * queda en su último valor y el editor sigue ahí (RF-74).
+     */
+    private val _previewHtml = MutableStateFlow<String?>(null)
+    val previewHtml: StateFlow<String?> = _previewHtml.asStateFlow()
+
+    private var previewJob: Job? = null
+
+    /** Repide el HTML si hay vista previa visible. Si no, no gasta ni un ciclo de reloj. */
+    private fun refreshPreview() {
+        if (!_viewMode.value.showsPreview()) {
+            previewJob?.cancel()
+            _previewHtml.value = null
+            return
+        }
+        schedulePreview(_textFieldValue.value.text, _syntaxTheme.value.toPreviewTheme())
+    }
+
+    private fun schedulePreview(text: String, previewTheme: PreviewTheme) {
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch {
+            delay(PREVIEW_DEBOUNCE_MS)
+            val html = withContext(Dispatchers.Default) {
+                runCatching {
+                    MarkdownPreview.render(text, previewTheme)
+                }.getOrNull()
+            }
+            _previewHtml.value = html
+        }
+    }
+
 
     private val _showLineNumbers = MutableStateFlow(true)
     val showLineNumbers: StateFlow<Boolean> = _showLineNumbers.asStateFlow()
@@ -184,6 +238,7 @@ class CodeEditorViewModel(
         }
 
         _textFieldValue.value = newValue
+        refreshPreview()
 
         if (current != null) {
             unsavedBuffers[current.id] = newValue.text
@@ -251,13 +306,36 @@ class CodeEditorViewModel(
         updateUndoRedoAvailability(current.id)
     }
 
+    /**
+     * Alterna entre editar y ver, que es lo que hacía el conmutador de antes.
+     *
+     * Desde `EDIT` va a `VIEW` y vuelve. Desde `SPLIT` o `PREVIEW` vuelve a `EDIT`: alternar entre
+     * «se escribe» y «se ve el resultado» tiene dos estados, no cuatro, y un ciclo de cuatro
+     * obligaría a leer la etiqueta para saber cuántas pulsaciones faltan.
+     */
     fun toggleEditMode() {
-        _isEditMode.value = !_isEditMode.value
+        setViewMode(if (_viewMode.value == ViewMode.EDIT) ViewMode.VIEW else ViewMode.EDIT)
     }
 
     fun setEditMode(isEdit: Boolean) {
-        _isEditMode.value = isEdit
+        setViewMode(if (isEdit) ViewMode.EDIT else ViewMode.VIEW)
     }
+
+    /**
+     * Cambia el modo del archivo activo. Un modo que el lenguaje no admite se guarda como `EDIT`
+     * (RF-66), y en cualquier caso queda **anotado** para el archivo, para que al volver a él se
+     * recupere (RF-69).
+     */
+    fun setViewMode(mode: ViewMode) {
+        val current = _currentFile.value
+        val safe = EditorModes.sanitized(mode, _language.value)
+        _viewMode.value = safe
+        if (current != null) modeRegistry.record(current.id, safe)
+        refreshPreview()
+    }
+
+    /** Los modos que ofrece el archivo activo, para el selector del `CodeEditorApp`. */
+    fun availableModes(): List<ViewMode> = EditorModes.availableFor(_language.value)
 
     fun toggleLineNumbers() {
         _showLineNumbers.value = !_showLineNumbers.value
@@ -281,14 +359,22 @@ class CodeEditorViewModel(
 
     fun setSyntaxTheme(theme: SyntaxTheme) {
         _syntaxTheme.value = theme
+        refreshPreview()
     }
 
+    /**
+     * Cambia el lenguaje del archivo activo.
+ *
+     * También **revalida el modo**: pasar de Markdown a otro lenguaje deja `SPLIT` y `PREVIEW` sin
+     * sentido, así que el archivo vuelve a `EDIT` en vez de quedarse en una vista previa vacía.
+     */
     fun setLanguage(lang: SupportedLanguage) {
         _language.value = lang
         val current = _currentFile.value ?: return
         val updated = current.copy(language = lang)
         _currentFile.value = updated
         _openTabs.value = _openTabs.value.map { if (it.id == updated.id) updated else it }
+        setViewMode(_viewMode.value)
     }
 
     fun selectFile(file: CodeFile) {
@@ -314,6 +400,11 @@ class CodeEditorViewModel(
         val initialText = bufferedText ?: file.content
         _textFieldValue.value = TextFieldValue(initialText, TextRange(0))
         _language.value = file.language
+        // El modo se restaura del archivo y se revalida contra SU lenguaje: un `.md` en vista previa
+        // no puede dejar al `.kt` siguiente mirando una vista previa que no existe (RF-69, caso 7).
+        _viewMode.value = EditorModes.sanitized(modeRegistry.modeOf(file.id), file.language)
+        _previewHtml.value = null
+        refreshPreview()
 
         if (initialText != file.content && bufferedText != null) {
             _dirtyFileIds.value = _dirtyFileIds.value + file.id
@@ -343,6 +434,7 @@ class CodeEditorViewModel(
         unsavedBuffers.remove(fileId)
         undoStacks.remove(fileId)
         redoStacks.remove(fileId)
+        modeRegistry.forget(fileId)
         _dirtyFileIds.value = _dirtyFileIds.value - fileId
 
         if (_currentFile.value?.id == fileId) {
@@ -637,6 +729,7 @@ class CodeEditorViewModel(
             unsavedBuffers.remove(file.id)
             undoStacks.remove(file.id)
             redoStacks.remove(file.id)
+            modeRegistry.forget(file.id)
             _dirtyFileIds.value = _dirtyFileIds.value - file.id
             val remainingTabs = _openTabs.value.filter { it.id != file.id }
             _openTabs.value = remainingTabs
@@ -969,6 +1062,9 @@ class CodeEditorViewModel(
         return Pair(line, col)
     }
 }
+
+/** Espera antes de recalcular: 300 ms es lo que hace falta para no parsear en cada tecla. */
+private const val PREVIEW_DEBOUNCE_MS = 300L
 
 class CodeEditorViewModelFactory(
     private val repository: CodeFileRepository,
