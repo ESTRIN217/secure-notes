@@ -647,6 +647,44 @@ class NotesViewModel(
         }
     }
 
+    /**
+     * Crea una nota nueva a partir del Markdown del editor de código (spec 013, RF-78).
+     *
+     * Delega en [saveNoteAndGetId] y **no toca `noteDao`** (RNF-33). Que sea por aquí y no por el
+     * DAO tiene una razón concreta: `saveNoteAndGetId` copia los adjuntos, actualiza `lastModified` y
+     * refresca los widgets. Escribir en el DAO saltándose eso deja la nota nueva sin aparecer en el
+     * widget hasta reiniciar la app.
+     *
+     * El título sale del nombre del archivo sin directorios ni extensión. **Siempre crea una nota
+     * nueva**, aunque exista otra con el mismo título: sobrescribir una que el usuario no sabía que
+     * existía es peor que un duplicado visible (caso límite 3).
+     *
+     * El Markdown vacío crea la nota igualmente, con el bloque vacío: el usuario la pidió
+     * (caso límite 2).
+     */
+    /**
+     * Ejecuta un bloque en el ámbito del ViewModel.
+     *
+     * Existe para que quien recibe el sobre de traspaso no tenga que crear un `scope` propio: el del
+     * ViewModel sobrevive a la rotación y se limpia con él.
+     */
+    fun launchInViewModelScope(block: suspend () -> Unit) {
+        viewModelScope.launch { block() }
+    }
+
+    suspend fun createNoteFromMarkdown(fileName: String, markdown: String): Result<Int> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                saveNoteAndGetId(
+                    id = 0,
+                    title = com.example.util.FileImporter.noteTitleFrom(fileName),
+                    content = com.example.util.FileImporter.markdownToBlockContent(markdown),
+                    isEncrypted = false,
+                    tagsList = emptyList()
+                )
+            }
+        }
+
     suspend fun saveNoteAndGetId(
         id: Int,
         title: String,

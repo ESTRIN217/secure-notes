@@ -3,6 +3,7 @@ package com.example.util
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.example.data.model.DataBlock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -70,16 +71,49 @@ object FileImporter {
         }.getOrElse { "" }
     }
 
-    suspend fun convertToBlockContent(context: Context, uri: Uri, type: ImportFileType): String? {
+    /**
+ * Convierte Markdown a contenido de bloque, **sin `Context` ni `Uri`**: solo texto.
+ *
+ * Vive separada de [convertToBlockContent] a propósito (spec 013, RF-83). El importador del FAB y el
+ * envío «Enviar a notas» del editor tienen que producir **exactamente la misma nota**: si cada uno
+ * tuviera su conversión, divergirían en cuanto una cambiara, y nadie lo notaría hasta comparar dos
+ * notas que deberían ser iguales.
+ *
+ * Pura y sin Android (RNF-38), que es lo que permite probarla en esta plataforma.
+ */
+fun markdownToBlockContent(raw: String): String {
+    if (raw.isBlank()) return DataBlock.serialize(emptyList())
+    return DataBlock.serialize(DataBlock.migrateLegacyContent(raw))
+}
+
+/**
+ * El título de la nota a partir del nombre del archivo: sin directorios y sin extensión.
+ *
+ * Una nota no debe heredar la carpeta del almacenamiento (caso límite 5), y el título es el nombre,
+ * no el nombre de fichero. Nunca devuelve una cadena vacía: una nota sin título no se distingue en la
+ * lista (caso límite 1).
+ */
+fun noteTitleFrom(fileName: String): String {
+    val base = fileName.trim().substringAfterLast('/').substringAfterLast('\\')
+    val withoutExtension = base.substringBeforeLast('.', base).trim()
+    return withoutExtension.ifBlank { base.trim() }.ifBlank { DEFAULT_NOTE_TITLE }
+}
+
+private const val DEFAULT_NOTE_TITLE = "documento"
+
+suspend fun convertToBlockContent(context: Context, uri: Uri, type: ImportFileType): String? {
         if (!isTextLike(type)) return null
         val raw = readTextFromUri(context, uri)
         if (raw.isBlank()) return null
-        val migrated = when (type) {
-            ImportFileType.HTML -> com.example.data.model.DataBlock.migrateLegacyContent(
-                com.example.util.HtmlConverter.convertHtmlToSecureNotes(raw)
+        return when (type) {
+            ImportFileType.HTML -> com.example.data.model.DataBlock.serialize(
+                com.example.data.model.DataBlock.migrateLegacyContent(
+                    com.example.util.HtmlConverter.convertHtmlToSecureNotes(raw)
+                )
             )
-            else -> com.example.data.model.DataBlock.migrateLegacyContent(raw)
+            // Markdown, TXT y JSON pasan por la MISMA conversión que el envío del editor, para que
+            // las dos notas salgan idénticas (spec 013, RF-83).
+            else -> this.markdownToBlockContent(raw)
         }
-        return com.example.data.model.DataBlock.serialize(migrated)
     }
 }

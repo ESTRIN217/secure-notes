@@ -121,6 +121,7 @@ import com.example.ui.TabsSaver
 import com.example.util.MoveDirection
 import com.example.util.SortOption
 import com.example.util.FileImporter
+import com.example.util.MarkdownHandoff
 import com.example.util.ImportFileType
 import com.example.util.borderStrokeHelper
 import com.example.util.fillPackageNameOrScope
@@ -151,6 +152,15 @@ class MainActivity : FragmentActivity() {
     companion object {
         @JvmStatic
         var intentRelay: ((Intent) -> Unit)? = null
+
+        /**
+         * Ruta del sobre de traspaso pendiente de consumir (spec 013).
+         *
+         * Vive en el companion porque lo escribe el `intentRelay` y lo lee un `LaunchedEffect` del
+         * árbol de composición, que son sitios distintos de la misma clase.
+         */
+        var pendingHandoffPath: String? = null
+
     }
 
     override fun onUserInteraction() {
@@ -467,9 +477,25 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             } else if (intent.getBooleanExtra("new_note", false)) {
                 navigator.onNavigateTo(Screen.NoteEditor(0))
             }
+            deliverNoteHandoff(intent, isUnlocked, viewModel, context)
         }
         activity?.intent?.data?.let { enqueueFileImport(activity, context, it) }
+        deliverNoteHandoff(activity?.intent, isUnlocked, viewModel, context)
         onDispose { MainActivity.intentRelay = null }
+    }
+
+    // Este `LaunchedEffect` cubre **solo** el caso de un sobre que llego con la bóveda bloqueada
+    // (caso limite 6). El camino normal lo resuelve `deliverNoteHandoff` en el acto.
+    //
+    // Antes esto no funcionaba y por eso: el sobre se guardaba en una `var` estatica y la clave del
+    // efecto era `isUnlocked`, que ya no cambia al llegar el Intent, asi que el efecto no volvia a
+    // correr y el Markdown se quedaba esperando en `cacheDir` para siempre. El error no era la
+    // guarda, era el **reloj**: un estado escrito desde `onNewIntent` no se observa desde un
+    // `LaunchedEffect` sin algo que lo dispare.
+    LaunchedEffect(isUnlocked) {
+        if (isUnlocked) drainPendingHandoff(viewModel, context) { noteId ->
+            navigator.onNavigateTo(Screen.NoteEditor(noteId))
+        }
     }
 
     val screenContext = remember(viewModel, themeViewModel, backupViewModel, updaterViewModel, aiViewModel, storageViewModel, chatHistoryViewModel, navigator, currentScreen, tabsManager) {
@@ -519,6 +545,87 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             )
         }
     }
+}
+
+/**
+ * Guarda el sobre de traspaso que deja `CodeEditorActivity` (spec 013, RF-81, RF-82).
+ *
+ * MIENTRAS la bóveda esté bloqueada **no se crea nada y no se borra el fichero**: el Markdown espera
+ * en `cacheDir` hasta que la app se desbloquee. Borrarlo bloqueado perdería el trabajo del usuario;
+ * crearlo sin contraseña maestra saltaría la bóveda (caso límite 6).
+ * **Consume en el acto si la app está desbloqueada**; si no, guarda la ruta para
+ * [drainPendingHandoff].
+ *
+ * La decisión de consumir aquí, y no solo en un efecto de composición, es lo que arregla el fallo de
+ * «enviar a notas no hace nada»: el sobre llegaba por `onNewIntent`, se guardaba en una `var`
+ * estática, y ningún `LaunchedEffect` la observaba —su clave era `isUnlocked`, que ya no cambiaba
+ * al llegar el Intent. El Markdown se quedaba esperando en `cacheDir` para siempre.
+ *
+ * @param unlocked si la bóveda está abierta ahora mismo.
+ */
+private fun deliverNoteHandoff(intent: Intent?, unlocked: Boolean, viewModel: NotesViewModel, context: Context) {
+    val path = intent?.getStringExtra(CodeEditorActivity.EXTRA_NOTE_HANDOFF) ?: return
+    if (unlocked) consumeNoteHandoff(path, viewModel, context, null)
+    else MainActivity.pendingHandoffPath = path
+}
+
+/**
+ * Consume el sobre y crea la nota (spec 013, RF-82).
+ *
+ * MIENTRAS la bóveda esté bloqueada **no se crea nada y no se borra el fichero**: el Markdown espera
+ * en `cacheDir` hasta que la app se desbloquee. Borrarlo bloqueado perdería el trabajo del usuario;
+ * crearlo sin contraseña maestra saltaría la bóveda (caso límite 6).
+ *
+ * `consume` lee y borra en un mismo paso, así que el borrado ocurre también cuando el contenido
+ * venía corrupto (RNF-35): un sobre a medio consumir es un Markdown sin cifrar que se queda ahí.
+ *
+ * [navigateToNote] es `null` cuando el consumo viene de [deliverNoteHandoff] sin acceso al
+ * navegador —la app aún está componiendo el primer frame—; en ese caso la nota se crea y se
+ * abre igualmente, y el `LaunchedEffect` de más abajo la encuentra ya en la lista.
+ */
+private fun consumeNoteHandoff(
+    path: String,
+    viewModel: NotesViewModel,
+    context: Context,
+    navigateToNote: ((Int) -> Unit)?
+) {
+    MainActivity.pendingHandoffPath = null
+    val pair = MarkdownHandoff.consume(path) ?: return
+    val (name, markdown) = pair
+    viewModel.launchInViewModelScope {
+        viewModel.createNoteFromMarkdown(name, markdown)
+            .onSuccess { newId ->
+                navigateToNote?.invoke(newId)
+                // `Toast` y no un `Snackbar`: `MainActivity` no tiene `Scaffold` donde colgarlo, y
+                // añadir uno solo para esto arriesgaria el layout de la pantalla. Es el mismo
+                // mecanismo que ya usa el importador de archivos de mas abajo (RF-79).
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.note_created_from, name),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            // Solo la clase de la excepcion: el mensaje puede llevar datos del usuario (RNF-36).
+            .onFailure {
+                Log.e("MainActivity", "create note from markdown failed", it)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.note_create_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    }
+}
+
+/**
+ * Consume lo que quedó guardado por un Intent que llegó bloqueado.
+ *
+ * Es el único lector de [MainActivity.pendingHandoffPath], y corre desde el `LaunchedEffect` que se
+ * dispara al **desbloquear**, que es justo cuando el sobre pasa a poder consumirse.
+ */
+private fun drainPendingHandoff(viewModel: NotesViewModel, context: Context, navigateToNote: (Int) -> Unit) {
+    val path = MainActivity.pendingHandoffPath ?: return
+    consumeNoteHandoff(path, viewModel, context, navigateToNote)
 }
 
 @Composable

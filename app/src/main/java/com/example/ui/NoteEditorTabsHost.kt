@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -16,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +36,7 @@ import com.estrin217.visormedia.ui.MediaViewerScreen
 import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.NotesViewModel
+import kotlinx.coroutines.launch
 import java.io.File
 
 sealed interface PendingTabAction {
@@ -62,6 +66,26 @@ fun NoteEditorTabsHost(
     val noteTabId = (selected as? OpenTab.Note)?.noteId
     val guard = remember(noteTabId) { DraftGuard() }
     var pending by remember { mutableStateOf<PendingTabAction?>(null) }
+
+    // El aviso del envío va en un Snackbar del host, no en un diálogo: el usuario acaba de pulsar
+    // una acción y quiere saber si funcionó, no confirmar nada (RF-79).
+    val sendHostState = remember { SnackbarHostState() }
+    val sendScope = rememberCoroutineScope()
+    var sendOk by remember { mutableStateOf<Boolean?>(null) }
+    // El nombre del archivo que se conversion, que es lo que el usuario reconoce como su.
+    var enviadoNombre by remember { mutableStateOf("") }
+    val creadoMsg = stringResource(R.string.note_created_from, enviadoNombre)
+    val falloMsg = stringResource(R.string.note_create_failed)
+    LaunchedEffect(sendOk) {
+        when (val ok = sendOk) {
+            null -> return@LaunchedEffect
+            true -> sendHostState.showSnackbar(creadoMsg)
+            false -> sendHostState.showSnackbar(falloMsg)
+        }
+        sendOk = null
+    }
+
+    val onSendResult: (String, Boolean) -> Unit = { name, ok -> enviadoNombre = name; sendOk = ok }
     val importedKeys = remember { mutableSetOf<String>() }
     PruneMissingTabs(tabs, notes, tabsManager, selected?.key, onSelectNote, onBack)
     if (selected == null) {
@@ -84,14 +108,18 @@ fun NoteEditorTabsHost(
         onNavigateToDrawing = onNavigateToDrawing,
         onNavigateToAiChat = onNavigateToAiChat,
         onNavigateToNote = onNavigateToNote,
+        onSendResult = onSendResult,
         setPending = { pending = it }
     )
-    DraftGuardDialog(
-        visible = pending != null && guard.hasUnsaved,
-        onSave = { saveAndResume(guard, tabsManager, pending, onSelectNote, onBack) { pending = null } },
-        onDiscard = { discardAndResume(guard, tabsManager, pending, onSelectNote, onBack) { pending = null } },
-        onCancel = { pending = null }
-    )
+    Box(Modifier.fillMaxSize()) {
+        DraftGuardDialog(
+            visible = pending != null && guard.hasUnsaved,
+            onSave = { saveAndResume(guard, tabsManager, pending, onSelectNote, onBack) { pending = null } },
+            onDiscard = { discardAndResume(guard, tabsManager, pending, onSelectNote, onBack) { pending = null } },
+            onCancel = { pending = null }
+        )
+        SnackbarHost(sendHostState, Modifier.align(Alignment.BottomCenter))
+    }
 }
 
 @Composable
@@ -111,6 +139,7 @@ private fun TabContent(
     onNavigateToDrawing: (Int, String?) -> Unit,
     onNavigateToAiChat: (Int) -> Unit,
     onNavigateToNote: (Int) -> Unit,
+    onSendResult: (String, Boolean) -> Unit,
     setPending: (PendingTabAction) -> Unit
 ) {
     val tabBar: @Composable () -> Unit = {
@@ -153,7 +182,15 @@ private fun TabContent(
             PdfTabContent(tab, tabBar, importedKeys) { hostOnBack(tabsManager, onBack) }
         }
         is OpenTab.TextFile -> key(tab.key) {
-            TextTabContent(tab, tabBar, importedKeys) { hostOnBack(tabsManager, onBack) }
+            TextTabContent(
+                tab = tab,
+                tabBar = tabBar,
+                importedKeys = importedKeys,
+                onClose = { hostOnBack(tabsManager, onBack) },
+                viewModel = viewModel,
+                tabsManager = tabsManager,
+                onSendResult = onSendResult
+            )
         }
     }
 }
@@ -186,8 +223,12 @@ private fun TextTabContent(
     tab: OpenTab.TextFile,
     tabBar: @Composable () -> Unit,
     importedKeys: MutableSet<String>,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    viewModel: NotesViewModel,
+    tabsManager: OpenNoteTabs,
+    onSendResult: (String, Boolean) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val appContext = context.applicationContext
     val codeViewModel: CodeEditorViewModel = viewModel(
@@ -205,8 +246,27 @@ private fun TextTabContent(
         TabLoadError(tab.label, onClose)
         return
     }
-    CodeEditorApp(viewModel = codeViewModel, topTabs = tabBar)
+    CodeEditorApp(
+        viewModel = codeViewModel,
+        topTabs = tabBar,
+        // El camino corto de «Enviar a notas»: aquí ya hay `NotesViewModel` y pestañas, así que no
+        // hace falta ni `startActivity` ni el sobre en `cacheDir`. La nota se abre en una pestaña de
+        // esta misma pantalla (RF-80).
+        onSendToNotes = { name, markdown ->
+            scope.launch {
+                viewModel.createNoteFromMarkdown(name, markdown)
+                    .onSuccess { newId ->
+                        tabsManager.openNote(newId)
+                        tabsManager.selectTabByKey(OpenTab.Note(newId).key)
+                    }
+                    .onFailure { Log.e(TAG, "create note from markdown failed", it) }
+                    .also { onSendResult(name, it.isSuccess) }
+            }
+        }
+    )
 }
+
+private const val TAG = "NoteEditorTabsHost"
 
 @Composable
 private fun TabLoadError(label: String, onClose: () -> Unit) {

@@ -1189,4 +1189,6 @@ Diferencia: %3$s
         <item quantity="other">%1$d recuerdos</item>
     </plurals>
     <string name="ai_ondevice_lazy_note">El modelo se carga la primera vez que usas una función de IA y se libera automáticamente cuando la app pasa a segundo plano.</string>
+    <string name="note_created_from">Nota creada desde %1$s</string>
+    <string name="note_create_failed">No se pudo crear la nota</string>
 </resources>

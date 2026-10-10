@@ -1254,4 +1254,6 @@ O que deseja fazer?</string>
         <item quantity="other">%1$d memórias</item>
     </plurals>
     <string name="ai_ondevice_lazy_note">O modelo é carregado na primeira vez que você usa um recurso de IA e é liberado automaticamente quando o app vai para segundo plano.</string>
+    <string name="note_created_from">Nota criada a partir de %1$s</string>
+    <string name="note_create_failed">Não foi possível criar a nota</string>
 </resources>

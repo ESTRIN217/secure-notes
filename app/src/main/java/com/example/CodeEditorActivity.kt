@@ -11,7 +11,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import android.content.Intent
+import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,6 +22,7 @@ import com.estrin217.editordecodigo.CodeEditor
 import com.estrin217.editordecodigo.ui.CodeEditorApp
 import com.estrin217.editordecodigo.ui.CodeEditorViewModel
 import com.example.data.SharedPreferencesRepository
+import com.example.util.MarkdownHandoff
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.ThemeViewModel
 
@@ -33,6 +37,11 @@ class CodeEditorActivity : ComponentActivity() {
 
     private val codeViewModel: CodeEditorViewModel by viewModels {
         CodeEditor.viewModelFactory(applicationContext)
+    }
+
+    companion object {
+        /** Ruta del sobre de traspaso en `cacheDir`. La ruta viaja en el Intent, el contenido no. */
+        const val EXTRA_NOTE_HANDOFF = "com.example.EXTRA_NOTE_HANDOFF"
     }
 
     override fun attachBaseContext(newBase: Context) {
@@ -85,7 +94,29 @@ class CodeEditorActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CodeEditorApp(viewModel = codeViewModel)
+                    val scope = rememberCoroutineScope()
+                    CodeEditorApp(
+                        viewModel = codeViewModel,
+                        // Esta Activity vive FUERA del flujo de bloqueo de la bóveda y no tiene el
+                        // `NotesViewModel`, así que no puede escribir en la base de notas: saltaría
+                        // la contraseña maestra (RF-81). Deja el sobre en `cacheDir` y arranca
+                        // `MainActivity`, que sí está dentro del flujo y sí crea la nota.
+                        onSendToNotes = { name, markdown ->
+                            val ruta = MarkdownHandoff.write(cacheDir, name, markdown)
+                            val intent = Intent(this, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                putExtra(EXTRA_NOTE_HANDOFF, ruta)
+                            }
+                            runCatching { startActivity(intent) }.onFailure {
+                                // Solo se registra la clase: el mensaje puede llevar la ruta, y la
+                                // ruta lleva parte del nombre del archivo del usuario (RNF-36).
+                                Log.e("CodeEditorActivity", "handoff failed", it)
+                                // Sin destino, el sobre se queda en cacheDir: se borra aqui para no
+                                // dejar un Markdown sin cifrar tirado (RNF-35).
+                                MarkdownHandoff.consume(ruta)
+                            }
+                        }
+                    )
                 }
             }
         }
