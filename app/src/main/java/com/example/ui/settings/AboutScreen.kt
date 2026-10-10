@@ -67,25 +67,25 @@ fun AboutScreen(
 
     Scaffold(
         topBar = {
-          TopAppBar(
-            title = {
-              Text(
+            TopAppBar(
+                title = {
+                    Text(
                         text = stringResource(R.string.about_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back)
                         )
-              }
-            },
-            actions = {}
-          )
+                    }
+                },
+                actions = {}
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
@@ -114,7 +114,7 @@ fun AboutScreen(
                     },
                     appName = "Llama.cpp",
                     platformLabel = platformLabel,
-                    version = "0.2.0",
+                    version = "0.4.1",
                     archLabel = archLabel
                 )
             }

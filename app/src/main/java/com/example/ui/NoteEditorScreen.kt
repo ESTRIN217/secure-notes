@@ -277,11 +277,15 @@ fun NoteEditorScreen(
     var aiPromptInput by remember { mutableStateOf("") }
     var aiSelectionStart by remember { mutableIntStateOf(0) }
     var aiSelectionEnd by remember { mutableIntStateOf(0) }
+    
 
     val inPlaceResult by aiViewModel.inPlaceResult.collectAsStateWithLifecycle()
     val inPlaceStreamingText by aiViewModel.inPlaceStreamingText.collectAsStateWithLifecycle()
     val inPlaceProcessing by aiViewModel.inPlaceProcessing.collectAsStateWithLifecycle()
     val inPlaceAction by aiViewModel.inPlaceAction.collectAsStateWithLifecycle()
+
+    val isKeyboardVisible = WindowInsets.isImeVisible
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun executeAiAction(
         action: AiAction
@@ -364,6 +368,148 @@ fun NoteEditorScreen(
     fun activeSegments(): List<com.example.data.model.TextSegment> =
         blocks.getOrNull(toolbarActiveBlockIndex)?.ensureSegments() ?: emptyList()
 
+    var convertBlockMode by remember { mutableStateOf(false) }
+    var showFontSizeSheet by remember { mutableStateOf(false) }
+    data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
+    val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex, pendingTypingStyle) {
+        val segs = activeSegments()
+        val cursor = activeSelection.first
+        val activeStyles = mutableSetOf<String>()
+        var activeFontColor: Color? = null
+        var activeBgColor: Color? = null
+        when (blocks.getOrNull(toolbarActiveBlockIndex)?.type) {
+            BlockType.HEADING1 -> activeStyles.add("h1")
+            BlockType.HEADING2 -> activeStyles.add("h2")
+            BlockType.HEADING3 -> activeStyles.add("h3")
+            BlockType.HEADING4 -> activeStyles.add("h4")
+            else -> {}
+        }
+        var pos = 0
+        var target: com.example.data.model.TextSegment? = null
+        val totalLen = segs.sumOf { it.text.length }
+        if (cursor < totalLen || pendingTypingStyle != null) {
+            for (seg in segs) {
+                val segEnd = pos + seg.text.length
+                if (pos <= cursor && cursor <= segEnd) {
+                    target = seg
+                    break
+                }
+                pos = segEnd
+            }
+        }
+        val seg = target
+        if (seg != null) {
+            if (seg.bold) activeStyles.add("b")
+            if (seg.italic) activeStyles.add("i")
+            if (seg.underline) activeStyles.add("u")
+            if (seg.strikethrough) activeStyles.add("s")
+            if (seg.code) activeStyles.add("code")
+            when (seg.baseline) {
+                com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
+                com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
+                else -> {}
+            }
+            if (seg.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(seg.colorHex)
+            if (seg.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(seg.bgColorHex)
+        }
+        if (activeSelection.first == activeSelection.last) {
+            pendingTypingStyle?.let { p ->
+                if (p.bold) activeStyles.add("b")
+                if (p.italic) activeStyles.add("i")
+                if (p.underline) activeStyles.add("u")
+                if (p.strikethrough) activeStyles.add("s")
+                if (p.code) activeStyles.add("code")
+                when (p.baseline) {
+                    com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
+                    com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
+                    else -> {}
+                }
+                if (p.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(p.colorHex)
+                if (p.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(p.bgColorHex)
+            }
+        }
+        ToolbarState(activeStyles, activeFontColor, activeBgColor)
+    }
+    val activeFontColor = toolbarState.activeFontColor
+    val activeBgColor = toolbarState.activeBgColor
+
+    fun styleApplies(tag: String, seg: com.example.data.model.TextSegment): Boolean = when (tag) {
+        "b" -> seg.bold
+        "i" -> seg.italic
+        "u" -> seg.underline
+        "s" -> seg.strikethrough
+        "code" -> seg.code
+        "sub" -> seg.baseline == com.example.data.model.TextBaseline.SUBSCRIPT
+        "sup" -> seg.baseline == com.example.data.model.TextBaseline.SUPERSCRIPT
+        "mark" -> seg.bgColorHex == "FFEB3B"
+        "small" -> seg.fontSizeSp != null && seg.fontSizeSp < 14f
+        "kbd", "var", "samp" -> seg.code
+        "quote" -> seg.italic
+        else -> false
+    }
+
+    fun applyTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+        "b" -> seg.copy(bold = true)
+        "i" -> seg.copy(italic = true)
+        "u" -> seg.copy(underline = true)
+        "s" -> seg.copy(strikethrough = true)
+        "code" -> seg.copy(code = true)
+        "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUBSCRIPT)
+        "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUPERSCRIPT)
+        "mark" -> seg.copy(bgColorHex = "FFEB3B")
+        "small" -> seg.copy(fontSizeSp = 12f)
+        "kbd", "var", "samp" -> seg.copy(code = true)
+        "normal" -> seg.copy(bold = false, italic = false, underline = false, strikethrough = false, code = false, colorHex = null, bgColorHex = null, fontSizeSp = null, baseline = com.example.data.model.TextBaseline.NORMAL)
+        "quote" -> seg.copy(italic = true)
+        else -> seg
+    }
+
+    fun removeTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
+        "b" -> seg.copy(bold = false)
+        "i" -> seg.copy(italic = false)
+        "u" -> seg.copy(underline = false)
+        "s" -> seg.copy(strikethrough = false)
+        "code" -> seg.copy(code = false)
+        "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
+        "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
+        "mark" -> seg.copy(bgColorHex = null)
+        "small" -> seg.copy(fontSizeSp = null)
+        "kbd", "var", "samp" -> seg.copy(code = false)
+        "quote" -> seg.copy(italic = false)
+        else -> seg
+    }
+
+    fun adjustIndent(delta: Int) {
+        if (toolbarActiveBlockIndex !in blocks.indices) return
+        val block = blocks[toolbarActiveBlockIndex]
+        val current = block.meta["indentLevel"]?.toIntOrNull() ?: 0
+        val newLevel = (current + delta).coerceAtLeast(0)
+        if (newLevel == current) return
+        val updated = if (newLevel == 0) {
+            block.copy(meta = block.meta - "indentLevel")
+        } else {
+            block.copy(meta = block.meta + ("indentLevel" to newLevel.toString()))
+        }
+        blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
+        saveBlocksToHistory()
+    }
+
+    fun convertBlockToHeading(tag: String) {
+        if (toolbarActiveBlockIndex !in blocks.indices) return
+        val type = when (tag) {
+            "h1" -> BlockType.HEADING1
+            "h2" -> BlockType.HEADING2
+            "h3" -> BlockType.HEADING3
+            "h4" -> BlockType.HEADING4
+            else -> return
+        }
+        val block = blocks[toolbarActiveBlockIndex]
+        if (block.type == type) return
+        blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, block.copy(type = type)) }
+        saveBlocksToHistory()
+    }
+
+    val activeTextStyles = toolbarState.activeStyles
     val commitSegments: (List<com.example.data.model.TextSegment>) -> Unit = { newSegs ->
         if (toolbarActiveBlockIndex in blocks.indices && blocks[toolbarActiveBlockIndex].contentIsText) {
             val block = blocks[toolbarActiveBlockIndex]
@@ -810,6 +956,8 @@ fun NoteEditorScreen(
 
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
+    var showMoreFormattingSheet by remember { mutableStateOf(false) }
+    
 
     // Replace selection with AI in-place result
     LaunchedEffect(inPlaceResult, contentLoaded) {
@@ -982,6 +1130,8 @@ fun NoteEditorScreen(
 
     var originalNote: Note? by remember { mutableStateOf(null) }
     var hasNavigatingToDrawing by remember { mutableStateOf(false) }
+    var showTextBgColorSheet by remember { mutableStateOf(false) }
+    var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
 
     // Load note data initially, and reactively reload when externally updated
     LaunchedEffect(noteId) {
@@ -1267,6 +1417,9 @@ fun NoteEditorScreen(
     ) { uri: Uri? ->
         uri?.let { handlePickedFile(it) }
     }
+    val decreaseIndent: () -> Unit = {
+                adjustIndent(-1)
+    }
 
     fun isTextLikeFile(mime: String, ext: String): Boolean {
         if (mime.startsWith("text/")) return true
@@ -1461,208 +1614,40 @@ fun NoteEditorScreen(
         }
         onBack()
     }
-
-    BackHandler(onBack = handleSaveAndExit)
-
-    Scaffold(
-      modifier = Modifier
-        .statusBarsPadding()
-        .navigationBarsPadding(),
-        topBar = {
-          Column {
-            tabBarContent()
-            TopAppBar(
-            title = {},
-            navigationIcon = {
-              IconButton(onClick = handleSaveAndExit) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-              }
-            },
-            actions = {
-              IconButton(
-                onClick = { showMoreSheet = true },
-                modifier = Modifier.testTag("more_note_btn")
-              ) {
-                Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
-              }
-            }
-            )            
-          }
-        }
-    ) { innerPadding ->
-        val isDark = isSystemInDarkTheme()
-        val currentBgColor = if (selectedBgColorId != null && selectedBgColorId != 0) {
-            getNoteBackgroundColor(selectedBgColorId!!, isDark)
-        } else {
-            MaterialTheme.colorScheme.background
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(currentBgColor)
-                .padding(innerPadding)
-                .imePadding(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            selectedBgImagePath?.let { bgPath ->
-                AsyncImage(
-                    model = bgPath,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.22f
-                )
-            }
-
-            var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
-            var showTextBgColorSheet by remember { mutableStateOf(false) }
-            var showMoreFormattingSheet by remember { mutableStateOf(false) }
-            var convertBlockMode by remember { mutableStateOf(false) }
-            var showFontSizeSheet by remember { mutableStateOf(false) }
-            val isKeyboardVisible = WindowInsets.isImeVisible
-            val keyboardController = LocalSoftwareKeyboardController.current
-            data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
-            val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex, pendingTypingStyle) {
-                val segs = activeSegments()
-                val cursor = activeSelection.first
-                val activeStyles = mutableSetOf<String>()
-                var activeFontColor: Color? = null
-                var activeBgColor: Color? = null
-                when (blocks.getOrNull(toolbarActiveBlockIndex)?.type) {
-                    BlockType.HEADING1 -> activeStyles.add("h1")
-                    BlockType.HEADING2 -> activeStyles.add("h2")
-                    BlockType.HEADING3 -> activeStyles.add("h3")
-                    BlockType.HEADING4 -> activeStyles.add("h4")
-                    else -> {}
-                }
-                var pos = 0
-                var target: com.example.data.model.TextSegment? = null
-                val totalLen = segs.sumOf { it.text.length }
-                if (cursor < totalLen || pendingTypingStyle != null) {
-                    for (seg in segs) {
-                        val segEnd = pos + seg.text.length
-                        if (pos <= cursor && cursor <= segEnd) {
-                            target = seg
-                            break
+    val clipboard = LocalClipboard.current
+            val pasteFromClipboard: () -> Unit = {
+                scope.launch {
+                val clipText = clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString() ?: ""
+                if (clipText.isNotEmpty()) {
+                    if (RichTextParser.isSecureNotesJson(clipText)) {
+                        val defaultTitle = context.getString(R.string.title_imported_note)
+                        val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
+                        title = importedTitle
+                        val (importedBlocks, _) = DataBlock.migrateToSegments(DataBlock.migrateLegacyContent(importedContent))
+                        blocks = importedBlocks
+                        if (blocks.isNotEmpty()) {
+                            val importedPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
+                            contentValue = TextFieldValue(text = importedPlain, selection = TextRange(importedPlain.length))
+                            toolbarActiveBlockIndex = 0
                         }
-                        pos = segEnd
-                    }
-                }
-                val seg = target
-                if (seg != null) {
-                    if (seg.bold) activeStyles.add("b")
-                    if (seg.italic) activeStyles.add("i")
-                    if (seg.underline) activeStyles.add("u")
-                    if (seg.strikethrough) activeStyles.add("s")
-                    if (seg.code) activeStyles.add("code")
-                    when (seg.baseline) {
-                        com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
-                        com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
-                        else -> {}
-                    }
-                    if (seg.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(seg.colorHex)
-                    if (seg.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(seg.bgColorHex)
-                }
-                if (activeSelection.first == activeSelection.last) {
-                    pendingTypingStyle?.let { p ->
-                        if (p.bold) activeStyles.add("b")
-                        if (p.italic) activeStyles.add("i")
-                        if (p.underline) activeStyles.add("u")
-                        if (p.strikethrough) activeStyles.add("s")
-                        if (p.code) activeStyles.add("code")
-                        when (p.baseline) {
-                            com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
-                            com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
-                            else -> {}
+                        saveBlocksToHistory()
+                        Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
+                    } else {
+                        val converted = if (clipText.trimStart().startsWith("<") || clipText.contains("</")) {
+                            try { RichTextParser.convertHtmlToSecureNotes(clipText) } catch (e: Exception) { clipText }
+                        } else {
+                            clipText
                         }
-                        if (p.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(p.colorHex)
-                        if (p.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(p.bgColorHex)
+                        pendingInsert.value = converted
                     }
                 }
-                ToolbarState(activeStyles, activeFontColor, activeBgColor)
-            }
-            val activeTextStyles = toolbarState.activeStyles
-            val activeFontColor = toolbarState.activeFontColor
-            val activeBgColor = toolbarState.activeBgColor
-
-            fun styleApplies(tag: String, seg: com.example.data.model.TextSegment): Boolean = when (tag) {
-                "b" -> seg.bold
-                "i" -> seg.italic
-                "u" -> seg.underline
-                "s" -> seg.strikethrough
-                "code" -> seg.code
-                "sub" -> seg.baseline == com.example.data.model.TextBaseline.SUBSCRIPT
-                "sup" -> seg.baseline == com.example.data.model.TextBaseline.SUPERSCRIPT
-                "mark" -> seg.bgColorHex == "FFEB3B"
-                "small" -> seg.fontSizeSp != null && seg.fontSizeSp < 14f
-                "kbd", "var", "samp" -> seg.code
-                "quote" -> seg.italic
-                else -> false
-            }
-
-            fun applyTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-                "b" -> seg.copy(bold = true)
-                "i" -> seg.copy(italic = true)
-                "u" -> seg.copy(underline = true)
-                "s" -> seg.copy(strikethrough = true)
-                "code" -> seg.copy(code = true)
-                "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUBSCRIPT)
-                "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUPERSCRIPT)
-                "mark" -> seg.copy(bgColorHex = "FFEB3B")
-                "small" -> seg.copy(fontSizeSp = 12f)
-                "kbd", "var", "samp" -> seg.copy(code = true)
-                "normal" -> seg.copy(bold = false, italic = false, underline = false, strikethrough = false, code = false, colorHex = null, bgColorHex = null, fontSizeSp = null, baseline = com.example.data.model.TextBaseline.NORMAL)
-                "quote" -> seg.copy(italic = true)
-                else -> seg
-            }
-
-            fun removeTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-                "b" -> seg.copy(bold = false)
-                "i" -> seg.copy(italic = false)
-                "u" -> seg.copy(underline = false)
-                "s" -> seg.copy(strikethrough = false)
-                "code" -> seg.copy(code = false)
-                "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
-                "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
-                "mark" -> seg.copy(bgColorHex = null)
-                "small" -> seg.copy(fontSizeSp = null)
-                "kbd", "var", "samp" -> seg.copy(code = false)
-                "quote" -> seg.copy(italic = false)
-                else -> seg
-            }
-
-            fun adjustIndent(delta: Int) {
-                if (toolbarActiveBlockIndex !in blocks.indices) return
-                val block = blocks[toolbarActiveBlockIndex]
-                val current = block.meta["indentLevel"]?.toIntOrNull() ?: 0
-                val newLevel = (current + delta).coerceAtLeast(0)
-                if (newLevel == current) return
-                val updated = if (newLevel == 0) {
-                    block.copy(meta = block.meta - "indentLevel")
-                } else {
-                    block.copy(meta = block.meta + ("indentLevel" to newLevel.toString()))
                 }
-                blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, updated) }
-                saveBlocksToHistory()
             }
-
-            fun convertBlockToHeading(tag: String) {
-                if (toolbarActiveBlockIndex !in blocks.indices) return
-                val type = when (tag) {
-                    "h1" -> BlockType.HEADING1
-                    "h2" -> BlockType.HEADING2
-                    "h3" -> BlockType.HEADING3
-                    "h4" -> BlockType.HEADING4
-                    else -> return
-                }
-                val block = blocks[toolbarActiveBlockIndex]
-                if (block.type == type) return
-                blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, block.copy(type = type)) }
-                saveBlocksToHistory()
+            val insertCurrentDate: () -> Unit = {
+                val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                pendingInsert.value = formattedDate
             }
-
-            fun applyTag(tag: String) {
+    fun applyTag(tag: String) {
                 if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
                 if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
                     convertBlockToHeading(tag)
@@ -1712,8 +1697,7 @@ fun NoteEditorScreen(
                 }
                 if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
             }
-
-            fun applyTagWithVal(tag: String, value: String) {
+    fun applyTagWithVal(tag: String, value: String) {
                 if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
                 val segs = activeSegments()
                 if (segs.isEmpty()) return
@@ -1782,53 +1766,247 @@ fun NoteEditorScreen(
                     }
                 }
                 if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
-            }
+    }
 
-            val decreaseIndent: () -> Unit = {
-                adjustIndent(-1)
-            }
+    BackHandler(onBack = handleSaveAndExit)
 
-            val clipboard = LocalClipboard.current
-            val pasteFromClipboard: () -> Unit = {
-                scope.launch {
-                val clipText = clipboard.getClipEntry()?.clipData?.getItemAt(0)?.text?.toString() ?: ""
-                if (clipText.isNotEmpty()) {
-                    if (RichTextParser.isSecureNotesJson(clipText)) {
-                        val defaultTitle = context.getString(R.string.title_imported_note)
-                        val (importedTitle, importedContent) = RichTextParser.parseSecureNotesJson(clipText, defaultTitle)
-                        title = importedTitle
-                        val (importedBlocks, _) = DataBlock.migrateToSegments(DataBlock.migrateLegacyContent(importedContent))
-                        blocks = importedBlocks
-                        if (blocks.isNotEmpty()) {
-                            val importedPlain = com.example.util.RichTextConverter.segmentsToPlainText(blocks[0].ensureSegments())
-                            contentValue = TextFieldValue(text = importedPlain, selection = TextRange(importedPlain.length))
-                            toolbarActiveBlockIndex = 0
+    Scaffold(
+      modifier = Modifier
+        .statusBarsPadding()
+        .navigationBarsPadding(),
+        topBar = {
+          Column {
+            tabBarContent()
+            TopAppBar(
+            title = {},
+            navigationIcon = {
+              IconButton(onClick = handleSaveAndExit) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+              }
+            },
+            actions = {
+              IconButton(
+                onClick = { showMoreSheet = true },
+                modifier = Modifier.testTag("more_note_btn")
+              ) {
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(id = R.string.more_options), tint = MaterialTheme.colorScheme.primary)
+              }
+            }
+            )            
+          }
+        },
+      bottomBar = {
+        if (isKeyboardVisible) {
+                    EditorToolbarContainer(
+                        // El inset vive UNA vez, en el bottomBar: `ime` gana con el teclado abierto,
+                        // `navigationBars` con el teclado cerrado. El `Box` de contenido ya no repite
+                        // el `imePadding()`, que además duplicaba el `innerPadding` del Scaffold.
+                        modifier = Modifier.windowInsetsPadding(
+                            WindowInsets.ime.union(WindowInsets.navigationBars)
+                        ),
+                    activeTextStyles = activeTextStyles,
+                    isSpeaking = isSpeaking,
+                    aiEnabled = aiEnabled,
+                    showAiPanel = showAiPanel,
+                    canUndo = historyIndex > 0,
+                    canRedo = historyIndex < history.lastIndex,
+                    onUndo = {
+                        syncActiveBlock()
+                        if (historyIndex > 0) {
+                            historyIndex--
+                            val prevBlocks = history[historyIndex]
+                            blocks = prevBlocks
+                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                            toolbarActiveBlockIndex = idx
+                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                            activeSelection = text.length..text.length
                         }
-                        saveBlocksToHistory()
-                        Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
-                    } else {
-                        val converted = if (clipText.trimStart().startsWith("<") || clipText.contains("</")) {
-                            try { RichTextParser.convertHtmlToSecureNotes(clipText) } catch (e: Exception) { clipText }
+                    },
+                    onRedo = {
+                        syncActiveBlock()
+                        if (historyIndex < history.lastIndex) {
+                            historyIndex++
+                            val nextBlocks = history[historyIndex]
+                            blocks = nextBlocks
+                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
+                            toolbarActiveBlockIndex = idx
+                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
+                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
+                            activeSelection = text.length..text.length
+                        }
+                    },
+                    onToggleTag = { applyTag(it) },
+                    decreaseIndent = decreaseIndent,
+                    pasteFromClipboard = pasteFromClipboard,
+                    insertCurrentDate = insertCurrentDate,
+                    applyTagWithVal = { tag, value -> applyTagWithVal(tag, value) },
+                    onClearFormatting = {
+                        pendingTypingStyle = null
+                        val segs = activeSegments()
+                        if (segs.isNotEmpty()) {
+                            val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                            val selStart = activeSelection.first.coerceIn(0, plain.length)
+                            val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+                            val start = if (selStart == selEnd) 0 else selStart
+                            val end = if (selStart == selEnd) plain.length else selEnd
+                            val newSegs = com.example.util.RichTextConverter.applySpanStyle(segs, start, end) {
+                                it.copy(
+                                    bold = false, italic = false, underline = false, strikethrough = false,
+                                    code = false, colorHex = null, bgColorHex = null,
+                                    fontFamily = null, fontSizeSp = null,
+                                    baseline = com.example.data.model.TextBaseline.NORMAL
+                                )
+                            }
+                            commitSegmentsWithSelection(newSegs, selStart)
+                        }
+                    },
+                    onOpenMoreFormatting = { showMoreFormattingSheet = true },
+                    onOpenPalette = { showPaletteSheet = true },
+                    onTtsToggle = {
+                        when {
+                            isSpeaking -> {
+                                tts?.stop()
+                                ttsPaused = true
+                                isSpeaking = false
+                            }
+                            ttsPaused -> {
+                                speakTts(ttsParts, ttsPartIndex.coerceIn(0, (ttsParts.size - 1).coerceAtLeast(0)))
+                            }
+                            else -> {
+                                val sel = activeSelection
+                                val parts = if (sel.first != sel.last) {
+                                    val plain = com.example.util.RichTextConverter.segmentsToPlainText(activeSegments())
+                                    listOf(
+                                        plain.substring(
+                                            sel.first.coerceIn(0, plain.length),
+                                            sel.last.coerceIn(sel.first, plain.length)
+                                        )
+                                    )
+                                } else {
+                                    com.example.util.buildTtsChunks(title, blocks)
+                                }
+                                val clean = parts.map { it.trim() }.filter { it.isNotBlank() }
+                                if (clean.isEmpty()) {
+                                    Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
+                                } else {
+                                    ttsParts = clean
+                                    ttsPartIndex = 0
+                                    ttsPaused = false
+                                    speakTts(clean, 0)
+                                }
+                            }
+                        }
+                    },
+                    onOpenDrawing = {
+                        insertDrawingBlock()
+                    },
+                    onOpenAttachments = { showVoiceFileSheet = true },
+                    onOpenAi = {
+                        aiSelectionStart = activeSelection.first
+                        aiSelectionEnd = activeSelection.last
+                        if (activeSelection.first != activeSelection.last) {
+                            showAiContextSheet = true
                         } else {
-                            clipText
+                            aiViewModel.attachNoteAsAttachment(noteId, title, content)
+                            onNavigateToAiChat(noteId)
                         }
-                        pendingInsert.value = converted
-                    }
-                }
-                }
+                    },
+                    onToggleAiPanel = { showAiPanel = !showAiPanel },
+                    onToggleKeyboard = {
+                        if (isKeyboardVisible) {
+                            keyboardController?.hide()
+                        } else {
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    onOpenbgFontColor = { showTextBgColorSheet = true },
+                    onOpenInlineLink = {
+                        val cursor = toolbarActiveCursorOffset.coerceIn(0, toolbarParseResult.text.length)
+                        val urlAtCursor = toolbarParseResult.text.getStringAnnotations("URL", cursor, cursor).firstOrNull()?.item
+                        if (urlAtCursor != null) {
+                            clickedUrlAddress = urlAtCursor
+                            clickedUrlAbsoluteOffset = cursor
+                            urlEditRange = null
+                            showUrlDialog = true
+                        } else {
+                            inlineLinkMode = true
+                            pageLinkTargetBlockIndex = -1
+                            showNoteLinkPicker = true
+                        }
+                    },
+                    onOpenEquation = { showEquationDialog = true },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    matchCount = matchRanges.size,
+                    currentMatchIndex = currentMatchIndex,
+                    onPreviousMatch = {
+                        if (matchRanges.isNotEmpty()) {
+                            currentMatchIndex = (currentMatchIndex - 1 + matchRanges.size) % matchRanges.size
+                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    onNextMatch = {
+                        if (matchRanges.isNotEmpty()) {
+                            currentMatchIndex = (currentMatchIndex + 1) % matchRanges.size
+                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
+                            editorFocusRequester.requestFocus()
+                        }
+                    },
+                    caseSensitive = searchCaseSensitive,
+                    onCaseSensitiveChange = { searchCaseSensitive = it },
+                    fullWord = searchFullWord,
+                    onFullWordChange = { searchFullWord = it },
+                    onOpenFontSizeSheet = { showFontSizeSheet = true },
+                    onConvertBlock = {
+                        convertBlockMode = true
+                        showMoreFormattingSheet = true
+                    },
+                    onDeleteBlock = {
+                        val deletedBlock = blocks.getOrNull(toolbarActiveBlockIndex)
+                        deleteActiveBlock()
+                        if (deletedBlock?.isLegacyDrawing == true) {
+                            attachments = attachments.filterNot { it.type == "drawing" && it.path == deletedBlock.content }
+                        }
+                    },
+                    onMoveBlockUp = { moveActiveBlockUp() },
+                    onMoveBlockDown = { moveActiveBlockDown() }
+                )
+              }
+      }
+    ) { innerPadding ->
+        val isDark = isSystemInDarkTheme()
+        val currentBgColor = if (selectedBgColorId != null && selectedBgColorId != 0) {
+            getNoteBackgroundColor(selectedBgColorId!!, isDark)
+        } else {
+            MaterialTheme.colorScheme.background
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(currentBgColor)
+                .padding(innerPadding),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            selectedBgImagePath?.let { bgPath ->
+                AsyncImage(
+                    model = bgPath,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.22f
+                )
             }
 
-            val insertCurrentDate: () -> Unit = {
-                val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
-                pendingInsert.value = formattedDate
-            }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp)
-                    .padding(bottom = 72.dp)
             ) {
                 OutlinedTextField(
                     value = title,
@@ -1837,7 +2015,7 @@ fun NoteEditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("note_title_input"),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(15.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -1846,7 +2024,7 @@ fun NoteEditorScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (selectedNoteTags.isNotEmpty()) {
                     // Horizontal Pill tag tagging selectors
@@ -1886,7 +2064,7 @@ fun NoteEditorScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 
@@ -2438,181 +2616,7 @@ fun NoteEditorScreen(
                 )
             }
 
-            if (isKeyboardVisible) {
-                    EditorToolbarContainer(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    activeTextStyles = activeTextStyles,
-                    isSpeaking = isSpeaking,
-                    aiEnabled = aiEnabled,
-                    showAiPanel = showAiPanel,
-                    canUndo = historyIndex > 0,
-                    canRedo = historyIndex < history.lastIndex,
-                    onUndo = {
-                        syncActiveBlock()
-                        if (historyIndex > 0) {
-                            historyIndex--
-                            val prevBlocks = history[historyIndex]
-                            blocks = prevBlocks
-                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
-                            toolbarActiveBlockIndex = idx
-                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
-                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
-                            activeSelection = text.length..text.length
-                        }
-                    },
-                    onRedo = {
-                        syncActiveBlock()
-                        if (historyIndex < history.lastIndex) {
-                            historyIndex++
-                            val nextBlocks = history[historyIndex]
-                            blocks = nextBlocks
-                            val idx = toolbarActiveBlockIndex.coerceIn(0, (blocks.size - 1).coerceAtLeast(0))
-                            toolbarActiveBlockIndex = idx
-                            val segs = blocks.getOrNull(idx)?.ensureSegments() ?: emptyList<com.example.data.model.TextSegment>()
-                            val text = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                            contentValue = TextFieldValue(text = text, selection = TextRange(text.length))
-                            activeSelection = text.length..text.length
-                        }
-                    },
-                    onToggleTag = { applyTag(it) },
-                    decreaseIndent = decreaseIndent,
-                    pasteFromClipboard = pasteFromClipboard,
-                    insertCurrentDate = insertCurrentDate,
-                    applyTagWithVal = { tag, value -> applyTagWithVal(tag, value) },
-                    onClearFormatting = {
-                        pendingTypingStyle = null
-                        val segs = activeSegments()
-                        if (segs.isNotEmpty()) {
-                            val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                            val selStart = activeSelection.first.coerceIn(0, plain.length)
-                            val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
-                            val start = if (selStart == selEnd) 0 else selStart
-                            val end = if (selStart == selEnd) plain.length else selEnd
-                            val newSegs = com.example.util.RichTextConverter.applySpanStyle(segs, start, end) {
-                                it.copy(
-                                    bold = false, italic = false, underline = false, strikethrough = false,
-                                    code = false, colorHex = null, bgColorHex = null,
-                                    fontFamily = null, fontSizeSp = null,
-                                    baseline = com.example.data.model.TextBaseline.NORMAL
-                                )
-                            }
-                            commitSegmentsWithSelection(newSegs, selStart)
-                        }
-                    },
-                    onOpenMoreFormatting = { showMoreFormattingSheet = true },
-                    onOpenPalette = { showPaletteSheet = true },
-                    onTtsToggle = {
-                        when {
-                            isSpeaking -> {
-                                tts?.stop()
-                                ttsPaused = true
-                                isSpeaking = false
-                            }
-                            ttsPaused -> {
-                                speakTts(ttsParts, ttsPartIndex.coerceIn(0, (ttsParts.size - 1).coerceAtLeast(0)))
-                            }
-                            else -> {
-                                val sel = activeSelection
-                                val parts = if (sel.first != sel.last) {
-                                    val plain = com.example.util.RichTextConverter.segmentsToPlainText(activeSegments())
-                                    listOf(
-                                        plain.substring(
-                                            sel.first.coerceIn(0, plain.length),
-                                            sel.last.coerceIn(sel.first, plain.length)
-                                        )
-                                    )
-                                } else {
-                                    com.example.util.buildTtsChunks(title, blocks)
-                                }
-                                val clean = parts.map { it.trim() }.filter { it.isNotBlank() }
-                                if (clean.isEmpty()) {
-                                    Toast.makeText(context, context.getString(R.string.nothing_to_read), Toast.LENGTH_SHORT).show()
-                                } else {
-                                    ttsParts = clean
-                                    ttsPartIndex = 0
-                                    ttsPaused = false
-                                    speakTts(clean, 0)
-                                }
-                            }
-                        }
-                    },
-                    onOpenDrawing = {
-                        insertDrawingBlock()
-                    },
-                    onOpenAttachments = { showVoiceFileSheet = true },
-                    onOpenAi = {
-                        aiSelectionStart = activeSelection.first
-                        aiSelectionEnd = activeSelection.last
-                        if (activeSelection.first != activeSelection.last) {
-                            showAiContextSheet = true
-                        } else {
-                            aiViewModel.attachNoteAsAttachment(noteId, title, content)
-                            onNavigateToAiChat(noteId)
-                        }
-                    },
-                    onToggleAiPanel = { showAiPanel = !showAiPanel },
-                    onToggleKeyboard = {
-                        if (isKeyboardVisible) {
-                            keyboardController?.hide()
-                        } else {
-                            editorFocusRequester.requestFocus()
-                        }
-                    },
-                    onOpenbgFontColor = { showTextBgColorSheet = true },
-                    onOpenInlineLink = {
-                        val cursor = toolbarActiveCursorOffset.coerceIn(0, toolbarParseResult.text.length)
-                        val urlAtCursor = toolbarParseResult.text.getStringAnnotations("URL", cursor, cursor).firstOrNull()?.item
-                        if (urlAtCursor != null) {
-                            clickedUrlAddress = urlAtCursor
-                            clickedUrlAbsoluteOffset = cursor
-                            urlEditRange = null
-                            showUrlDialog = true
-                        } else {
-                            inlineLinkMode = true
-                            pageLinkTargetBlockIndex = -1
-                            showNoteLinkPicker = true
-                        }
-                    },
-                    onOpenEquation = { showEquationDialog = true },
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    matchCount = matchRanges.size,
-                    currentMatchIndex = currentMatchIndex,
-                    onPreviousMatch = {
-                        if (matchRanges.isNotEmpty()) {
-                            currentMatchIndex = (currentMatchIndex - 1 + matchRanges.size) % matchRanges.size
-                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
-                            editorFocusRequester.requestFocus()
-                        }
-                    },
-                    onNextMatch = {
-                        if (matchRanges.isNotEmpty()) {
-                            currentMatchIndex = (currentMatchIndex + 1) % matchRanges.size
-                            setContentValue(contentValue.copy(selection = matchRanges[currentMatchIndex]))
-                            editorFocusRequester.requestFocus()
-                        }
-                    },
-                    caseSensitive = searchCaseSensitive,
-                    onCaseSensitiveChange = { searchCaseSensitive = it },
-                    fullWord = searchFullWord,
-                    onFullWordChange = { searchFullWord = it },
-                    onOpenFontSizeSheet = { showFontSizeSheet = true },
-                    onConvertBlock = {
-                        convertBlockMode = true
-                        showMoreFormattingSheet = true
-                    },
-                    onDeleteBlock = {
-                        val deletedBlock = blocks.getOrNull(toolbarActiveBlockIndex)
-                        deleteActiveBlock()
-                        if (deletedBlock?.isLegacyDrawing == true) {
-                            attachments = attachments.filterNot { it.type == "drawing" && it.path == deletedBlock.content }
-                        }
-                    },
-                    onMoveBlockUp = { moveActiveBlockUp() },
-                    onMoveBlockDown = { moveActiveBlockDown() }
-                )
-              }
+            
 
         if (showMoreFormattingSheet) {
             fun handleBlockSelect(cmd: BlockCommand) {

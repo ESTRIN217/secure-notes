@@ -57,12 +57,13 @@ fun FloatingChatInputField(
     modifier: Modifier = Modifier
 ) {
     HorizontalFloatingToolbar(
-      expanded = true,
-      modifier = modifier
-      .fillMaxWidth()
-      .padding(horizontal = 16.dp, vertical = 8.dp),
-      colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
-      scrollBehavior = null
+        expanded = true,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(35.dp),
+        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+        scrollBehavior = null
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             if (attachments.isNotEmpty()) {
@@ -71,7 +72,7 @@ fun FloatingChatInputField(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 15.dp, vertical = 4.dp)
+                modifier = Modifier
             ) {
                 // Botón de adjuntar (+) a la izquierda; el menú lo abre la pantalla (es T9/T10).
                 IconButton(
@@ -146,7 +147,7 @@ private fun ChatTextField(
         },
         modifier = modifier,
         singleLine = false,
-        maxLines = 4,
+        maxLines = 6,
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,

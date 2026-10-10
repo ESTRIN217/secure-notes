@@ -97,16 +97,13 @@ import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxTheme
 import com.estrin217.editordecodigo.ui.components.CodeEditorView
-import com.estrin217.editordecodigo.ui.components.EditorTabsBar
 import com.estrin217.editordecodigo.ui.components.FilesDrawerSheet
-import com.estrin217.editordecodigo.ui.components.FormatOptionsDialog
 import com.estrin217.editordecodigo.ui.components.JumpToLineDialog
 import com.estrin217.editordecodigo.ui.components.LanguageSelectorDialog
 import com.estrin217.editordecodigo.ui.components.NewFileDialog
 import com.estrin217.editordecodigo.ui.components.QuickSymbolBar
 import com.estrin217.editordecodigo.ui.components.SearchReplaceBar
 import com.estrin217.editordecodigo.ui.components.ThemeSelectorDialog
-import com.estrin217.editordecodigo.ui.components.VSCodeWelcomeScreen
 import com.estrin217.editordecodigo.ui.theme.JetBrainsMono
 import com.estrin217.editordecodigo.utils.FileImportExportHelper
 import kotlinx.coroutines.launch
@@ -195,7 +192,6 @@ fun CodeEditorApp(
     var showJumpToLineDialog by remember { mutableStateOf(false) }
     var showLanguageSelector by remember { mutableStateOf(false) }
     var showThemeSelector by remember { mutableStateOf(false) }
-    var showFormatOptionsDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     @Suppress("DEPRECATION")
@@ -290,8 +286,16 @@ fun CodeEditorApp(
                                     )
                                     Text(
                                         text = when {
-                                            isSearchVisible && searchQuery.isNotBlank() -> stringResource(R.string.topbar_search_query, searchQuery)
-                                            currentFile != null -> stringResource(R.string.topbar_search_file, currentFile?.name.orEmpty())
+                                            isSearchVisible && searchQuery.isNotBlank() -> stringResource(
+                                                R.string.topbar_search_query,
+                                                searchQuery
+                                            )
+
+                                            currentFile != null -> stringResource(
+                                                R.string.topbar_search_file,
+                                                currentFile?.name.orEmpty()
+                                            )
+
                                             else -> stringResource(R.string.topbar_search_command)
                                         },
                                         fontSize = 11.sp,
@@ -432,15 +436,6 @@ fun CodeEditorApp(
                                     modifier = Modifier.testTag("menu_jump_line")
                                 )
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_syntax)) },
-                                    leadingIcon = { Icon(Icons.Default.TextFields, contentDescription = null) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        showLanguageSelector = true
-                                    },
-                                    modifier = Modifier.testTag("menu_language")
-                                )
-                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.menu_theme)) },
                                     leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
                                     onClick = {
@@ -450,7 +445,13 @@ fun CodeEditorApp(
                                     modifier = Modifier.testTag("menu_theme")
                                 )
                                 DropdownMenuItem(
-                                    text = { Text(if (showLineNumbers) stringResource(R.string.menu_hide_lines) else stringResource(R.string.menu_show_lines)) },
+                                    text = {
+                                        Text(
+                                            if (showLineNumbers) stringResource(R.string.menu_hide_lines) else stringResource(
+                                                R.string.menu_show_lines
+                                            )
+                                        )
+                                    },
                                     leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
                                     onClick = {
                                         showOverflowMenu = false
@@ -458,8 +459,19 @@ fun CodeEditorApp(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text(if (wordWrap) stringResource(R.string.menu_wrap_off) else stringResource(R.string.menu_wrap_on)) },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, contentDescription = null) },
+                                    text = {
+                                        Text(
+                                            if (wordWrap) stringResource(R.string.menu_wrap_off) else stringResource(
+                                                R.string.menu_wrap_on
+                                            )
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.WrapText,
+                                            contentDescription = null
+                                        )
+                                    },
                                     onClick = {
                                         showOverflowMenu = false
                                         viewModel.toggleWordWrap()
@@ -474,19 +486,15 @@ fun CodeEditorApp(
                                     },
                                     modifier = Modifier.testTag("menu_format_code")
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_format_options)) },
-                                    leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        showFormatOptionsDialog = true
-                                    },
-                                    modifier = Modifier.testTag("menu_format_options")
-                                )
                                 if (language == SupportedLanguage.JSON) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(R.string.menu_minify)) },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatAlignLeft, contentDescription = null) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.FormatAlignLeft,
+                                                contentDescription = null
+                                            )
+                                        },
                                         onClick = {
                                             showOverflowMenu = false
                                             viewModel.minifyJson()
@@ -499,7 +507,8 @@ fun CodeEditorApp(
                                     leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                                     onClick = {
                                         showOverflowMenu = false
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clipboard =
+                                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("Code", textFieldValue.text))
                                         scope.launch {
                                             snackbarHostState.showSnackbar(context.getString(R.string.copied_clipboard))
@@ -517,7 +526,12 @@ fun CodeEditorApp(
                                             putExtra(Intent.EXTRA_SUBJECT, currentFile?.name ?: shareSubjectDefault)
                                             type = "text/plain"
                                         }
-                                        context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_chooser)))
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                sendIntent,
+                                                context.getString(R.string.share_chooser)
+                                            )
+                                        )
                                     }
                                 )
                             }
@@ -529,22 +543,6 @@ fun CodeEditorApp(
                         navigationIconContentColor = theme.text,
                         actionIconContentColor = theme.text
                     )
-                )
-
-                // VS Code Horizontal Tabs Bar
-                EditorTabsBar(
-                    tabs = openTabs,
-                    activeFile = currentFile,
-                    dirtyFileIds = dirtyFileIds,
-                    theme = theme,
-                    isWelcomeTabOpen = isWelcomeTabOpen,
-                    onSelectTab = { viewModel.selectFile(it) },
-                    onCloseTab = { viewModel.closeTab(it) },
-                    onCloseOtherTabs = { viewModel.closeOtherTabs(it) },
-                    onCloseAllTabs = { viewModel.closeAllTabs() },
-                    onNewTab = { showNewFileDialog = true },
-                    onSelectWelcomeTab = { viewModel.openWelcomeTab() },
-                    onCloseWelcomeTab = { viewModel.closeWelcomeTab() }
                 )
             }
         },
@@ -624,16 +622,6 @@ fun CodeEditorApp(
                         wordWrap = wordWrap,
                         fontSizeSp = fontSizeSp,
                         searchQuery = searchQuery
-                    )
-                } else if (isWelcomeTabOpen) {
-                    // Pantalla de bienvenida estilo VS Code (Visual Studio Code Start Page)
-                    VSCodeWelcomeScreen(
-                        theme = theme,
-                        recentFiles = files,
-                        onNewFile = { showNewFileDialog = true },
-                        onOpenFile = { openDocumentLauncher.launch(arrayOf("*/*")) },
-                        onOpenFolder = { openDirectoryLauncher.launch(null) },
-                        onSelectRecentFile = { viewModel.selectFile(it) }
                     )
                 } else {
                     EmptyWorkspaceView(
@@ -800,19 +788,6 @@ fun CodeEditorApp(
             currentTheme = theme,
             onDismiss = { showThemeSelector = false },
             onSelectTheme = { viewModel.setSyntaxTheme(it) }
-        )
-    }
-
-    if (showFormatOptionsDialog) {
-        FormatOptionsDialog(
-            currentOptions = formatOptions,
-            currentLanguage = language,
-            onDismiss = { showFormatOptionsDialog = false },
-            onApplyAndFormat = { newOptions ->
-                showFormatOptionsDialog = false
-                viewModel.updateFormatOptions(newOptions)
-                viewModel.formatCode(newOptions)
-            }
         )
     }
 }

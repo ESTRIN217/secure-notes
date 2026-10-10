@@ -78,7 +78,7 @@ import java.util.Locale
 
 private const val SWIPE_THRESHOLD = 120f
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun AiChatScreen(
     viewModel: AiViewModel,
@@ -255,7 +255,9 @@ fun AiChatScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
-              modifier = Modifier.statusBarsPadding(),
+              modifier = Modifier
+                .statusBarsPadding()
+              .navigationBarsPadding(),
             topBar = {
                 TopAppBar(
                     title = {
@@ -305,6 +307,12 @@ fun AiChatScreen(
                 // El campo solo pinta y lanza eventos (RF-33): el texto que muestra y el estado al
                 // que escribe los decide L6, y si se puede enviar y el texto de ayuda, L4.
                 FloatingChatInputField(
+                    // El inset vive UNA vez, en el bottomBar: `ime` gana con el teclado abierto,
+                    // `navigationBars` con el teclado cerrado. El `Box` de contenido ya no repite
+                    // el `imePadding()`, que además duplicaba el `innerPadding` del Scaffold.
+                    modifier = Modifier.windowInsetsPadding(
+                        WindowInsets.ime.union(WindowInsets.navigationBars)
+                    ),
                     attachments = pendingAttachments,
                     text = effectiveText(inputText, editingMessage),
                     onTextChange = { newText ->

@@ -1,6 +1,14 @@
 # MEMORY.md — secure-notes 
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 ## Estado actual 
+- **Inset del teclado unificado en editor y chat** (decisión 12). El toolbar del editor y el campo
+  del chat viven en el `bottomBar` de su `Scaffold` y llevan **una sola** fuente de inset:
+  `Modifier.windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))`. El `Box` de
+  contenido **ya no** lleva `.imePadding()`. Compila limpio; **sin verificación visual**.
+- **Refactor a medias terminado**: el `Scaffold` del editor se movió al cuerpo de la función y sus
+  140 líneas de estado de toolbar se izaron fuera del `Box`. `Scaffold` **no** aplica el inset del
+  teclado al `bottomBar` (verificado en el bytecode de material3 1.5.0-alpha28:
+  `contentWindowInsets` = `getSystemBarsForVisualComponents()`, no `ime`).
 - **Spec 011 (el tirador, entero dentro) implementada y verificada en dispositivo**: el carril baja a
   **36 dp**, el tirador sigue midiendo 48 dp y queda **entero dentro** de la tarjeta. Enmienda la
   decisión 2 y el RF-61 de la 010, que apostaban por un desborde de 12 dp. **88 pruebas puras en
@@ -25,6 +33,16 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - **Spec 005 implementada** (`specs/005-tabla-seleccion/`): selección y foco de la tabla. Los manejadores se superponían a la primera columna y **tapaban su primera letra**; ahora van en un carril y solo se dibuja el de la fila activa. **Sin verificación visual.**
 
 ## Decisiones (y por qué) 
+- **12. El inset del teclado se aplica UNA vez, en el `bottomBar`, con `union`**: 
+  `WindowInsets.ime.union(WindowInsets.navigationBars)` gana el `ime` con el teclado abierto y las
+  barras de navegación con el teclado cerrado, sin tener que decidir en código. El síntoma que
+  había (barra invisible pero **su hueco visible**) era doble conteo: `innerPadding` del `Scaffold`
+  ya reservaba la altura del `bottomBar`, y el `.imePadding()` del `Box` de contenido la volvía a
+  sumar. Con `adjustResize` implícito y `enableEdgeToEdge()`, el teclado tapa el `bottomBar`: sin
+  inset propio, la barra queda **detrás** del teclado. ⚠️ **Pendiente de revisión visual**: Both
+  `Scaffold` conservan su `.navigationBarsPadding()`, que reduce la caja del Scaffold mientras el
+  `union` actúa dentro del `bottomBar`. Superficies distintas, se cree que no se duplica, pero no
+  está verificado en dispositivo.
 - **9. La cabecera es una fila y una columna, no un dato aparte** (spec 008): «activar fila de cabecera» es estilo sobre la fila 0, igual que «activar columna de cabecera» lo es sobre la columna 0. Se descartó guardar en qué fila está la cabecera porque obligaría a la geometría a seguir distinguiéndola. Consecuencias aceptadas: desactivar la fila la convierte en dato (no la borra) y la fila 0 ya se puede borrar y mover. Al leer una nota vieja, los títulos antiguos se anteponen **siempre**: descartarlos sería borrar texto del usuario.
 - **5. La sugerencia de resumen conserva su visibilidad condicional** (texto seleccionado, contenido de nota o adjuntos): sin ella sería un botón que pide resumir la nada, y en los tres puntos de entrada el contexto llega vacío.
 - **6. La rotación del saludo es diaria, determinista y cíclica**: es la única forma de ejercitarlo con JUnit puro y evita que el texto cambie bajo los ojos de quien mira. No se promete que dos días cualesquiera den saludos distintos.
@@ -38,6 +56,14 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`; mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
 
 ## Aprendizajes y errores a evitar 
+- **Kotlin NO admite referencias adelantadas a funciones locales.** Al izar un bloque de código,
+  colocarlo **después** de las funciones locales que llama, no antes. Compilé con la certeza
+  contraria y salió `Unresolved reference 'activeSegments'` en la primera pasada. Lo mismo aplica a
+  las lambdas de `remember`: se evalúan en la declaración.
+- **Un `bottomBar` sin su propio inset queda detrás del teclado.** `Scaffold` mide el `bottomBar`
+  dentro de su propia caja, que no sabe del teclado; con `enableEdgeToEdge()` + `adjustResize`
+  implícito, el teclado lo tapa. Y si además el `Box` de contenido lleva `.imePadding()`, el
+  `innerPadding` y el teclado se suman **dos veces**: se ve el hueco y no la barra.
 - **Un tirador más ancho que el carril solo funciona entero dentro de la tarjeta.** Un desborde de
   12 dp se ve pero **no recibe el toque**: comprobado en dispositivo. Y el arreglo no era solo quitarlo,
   que yo además había contado el desborde **dos veces** (capa desplazada + tirador a `carril − 48`),
