@@ -11,12 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -33,7 +31,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipEntry
@@ -43,7 +40,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -62,6 +58,27 @@ import com.example.data.model.createRawContent
 import com.example.data.model.parseNoteContentAndAttachments
 import com.example.data.model.parseTags
 import com.example.ui.viewmodel.NotesViewModel
+import com.example.ui.editor.applyTagToSelection
+import com.example.ui.editor.buildTableRows
+import com.example.ui.editor.findUrlAt
+import com.example.ui.editor.setTagValue
+import com.example.ui.editor.clearTagValue
+import com.example.ui.editor.tagValueOf
+import com.example.ui.editor.applyTransformForTag
+import com.example.ui.editor.buildMatchRanges
+import com.example.ui.editor.computeToolbarStyle
+import com.example.ui.editor.convertBlockAt
+import com.example.ui.editor.deleteBlockAt
+import com.example.ui.editor.headingTypeForTag
+import com.example.ui.editor.insertPlanFor
+import com.example.ui.editor.insertionIndex
+import com.example.ui.editor.ExternalTarget
+import com.example.ui.editor.externalTargetFor
+import com.example.ui.editor.isAudioFile
+import com.example.ui.editor.moveBlockBy
+import com.example.ui.editor.removeTransformForTag
+import com.example.ui.editor.styleApplies
+import com.example.util.RichTextConverter
 import com.example.ui.settings.SettingsCardGroup
 import com.example.ui.settings.SettingsSwitchTile
 import com.example.util.getNoteBackgroundColor
@@ -85,8 +102,6 @@ import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.media.MediaPlayer
-import android.media.MediaRecorder
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
@@ -263,12 +278,10 @@ fun NoteEditorScreen(
     var urlEditRange by remember { mutableStateOf<IntRange?>(null) }
     
     var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
     var matchRanges by remember { mutableStateOf<List<TextRange>>(emptyList()) }
     var currentMatchIndex by remember { mutableStateOf(0) }
     var searchCaseSensitive by remember { mutableStateOf(false) }
     var searchFullWord by remember { mutableStateOf(false) }
-    var showSearchMoreOptions by remember { mutableStateOf(false) }
     val editorFocusRequester = remember { FocusRequester() }
 
     // ── AI Integration State ─────────────────────────────────
@@ -299,46 +312,19 @@ fun NoteEditorScreen(
         showAiContextSheet = false
     }
 
+    // El resaltado es lógica pura (`buildMatchRanges`); aquí solo se le pasa el texto limpio y la
+    // traducción de índices, y se recogen lo que devuelva. El efecto se relanza a sí mismo cuando mueve
+    // el cursor: es el comportamiento que había y no se toca en este refactor.
     LaunchedEffect(searchQuery, searchCaseSensitive, searchFullWord, contentValue.text) {
         if (searchQuery.isNotEmpty()) {
             val parseResult = RichTextParser.parseWithMapping(contentValue.text, hideTags = true)
-            val cleanText = parseResult.text.text
-            val ranges = mutableListOf<TextRange>()
-            if (searchFullWord) {
-                val escapedQuery = Regex.escape(searchQuery)
-                val patternString = "\\b$escapedQuery\\b"
-                val options = if (searchCaseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
-                try {
-                    val regex = Regex(patternString, options)
-                    regex.findAll(cleanText).forEach { matchResult ->
-                        val cleanStart = matchResult.range.first
-                        val cleanEnd = matchResult.range.last + 1
-                        val rawStart = parseResult.transformedToOriginal(cleanStart)
-                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
-                        ranges.add(TextRange(rawStart, rawEnd))
-                    }
-                } catch (e: Exception) {
-                    var idx = cleanText.indexOf(searchQuery, 0, ignoreCase = !searchCaseSensitive)
-                    while (idx != -1) {
-                        val cleanStart = idx
-                        val cleanEnd = idx + searchQuery.length
-                        val rawStart = parseResult.transformedToOriginal(cleanStart)
-                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
-                        ranges.add(TextRange(rawStart, rawEnd))
-                        idx = cleanText.indexOf(searchQuery, idx + 1, ignoreCase = !searchCaseSensitive)
-                    }
-                }
-            } else {
-                var idx = cleanText.indexOf(searchQuery, 0, ignoreCase = !searchCaseSensitive)
-                while (idx != -1) {
-                    val cleanStart = idx
-                    val cleanEnd = idx + searchQuery.length
-                        val rawStart = parseResult.transformedToOriginal(cleanStart)
-                        val rawEnd = parseResult.transformedToOriginal(cleanEnd)
-                        ranges.add(TextRange(rawStart, rawEnd))
-                        idx = cleanText.indexOf(searchQuery, idx + 1, ignoreCase = !searchCaseSensitive)
-                }
-            }
+            val ranges = buildMatchRanges(
+                cleanText = parseResult.text.text,
+                query = searchQuery,
+                fullWord = searchFullWord,
+                caseSensitive = searchCaseSensitive,
+                toRawIndex = parseResult::transformedToOriginal
+            ).map { TextRange(it.first, it.last) }
             matchRanges = ranges
             if (currentMatchIndex >= ranges.size) {
                 currentMatchIndex = 0
@@ -370,113 +356,14 @@ fun NoteEditorScreen(
 
     var convertBlockMode by remember { mutableStateOf(false) }
     var showFontSizeSheet by remember { mutableStateOf(false) }
-    data class ToolbarState(val activeStyles: Set<String>, val activeFontColor: Color?, val activeBgColor: Color?)
-    val toolbarState = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex, pendingTypingStyle) {
-        val segs = activeSegments()
-        val cursor = activeSelection.first
-        val activeStyles = mutableSetOf<String>()
-        var activeFontColor: Color? = null
-        var activeBgColor: Color? = null
-        when (blocks.getOrNull(toolbarActiveBlockIndex)?.type) {
-            BlockType.HEADING1 -> activeStyles.add("h1")
-            BlockType.HEADING2 -> activeStyles.add("h2")
-            BlockType.HEADING3 -> activeStyles.add("h3")
-            BlockType.HEADING4 -> activeStyles.add("h4")
-            else -> {}
-        }
-        var pos = 0
-        var target: com.example.data.model.TextSegment? = null
-        val totalLen = segs.sumOf { it.text.length }
-        if (cursor < totalLen || pendingTypingStyle != null) {
-            for (seg in segs) {
-                val segEnd = pos + seg.text.length
-                if (pos <= cursor && cursor <= segEnd) {
-                    target = seg
-                    break
-                }
-                pos = segEnd
-            }
-        }
-        val seg = target
-        if (seg != null) {
-            if (seg.bold) activeStyles.add("b")
-            if (seg.italic) activeStyles.add("i")
-            if (seg.underline) activeStyles.add("u")
-            if (seg.strikethrough) activeStyles.add("s")
-            if (seg.code) activeStyles.add("code")
-            when (seg.baseline) {
-                com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
-                com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
-                else -> {}
-            }
-            if (seg.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(seg.colorHex)
-            if (seg.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(seg.bgColorHex)
-        }
-        if (activeSelection.first == activeSelection.last) {
-            pendingTypingStyle?.let { p ->
-                if (p.bold) activeStyles.add("b")
-                if (p.italic) activeStyles.add("i")
-                if (p.underline) activeStyles.add("u")
-                if (p.strikethrough) activeStyles.add("s")
-                if (p.code) activeStyles.add("code")
-                when (p.baseline) {
-                    com.example.data.model.TextBaseline.SUBSCRIPT -> activeStyles.add("sub")
-                    com.example.data.model.TextBaseline.SUPERSCRIPT -> activeStyles.add("sup")
-                    else -> {}
-                }
-                if (p.colorHex != null) activeFontColor = com.example.util.JsonColorizer.parseColor(p.colorHex)
-                if (p.bgColorHex != null) activeBgColor = com.example.util.JsonColorizer.parseColor(p.bgColorHex)
-            }
-        }
-        ToolbarState(activeStyles, activeFontColor, activeBgColor)
-    }
-    val activeFontColor = toolbarState.activeFontColor
-    val activeBgColor = toolbarState.activeBgColor
-
-    fun styleApplies(tag: String, seg: com.example.data.model.TextSegment): Boolean = when (tag) {
-        "b" -> seg.bold
-        "i" -> seg.italic
-        "u" -> seg.underline
-        "s" -> seg.strikethrough
-        "code" -> seg.code
-        "sub" -> seg.baseline == com.example.data.model.TextBaseline.SUBSCRIPT
-        "sup" -> seg.baseline == com.example.data.model.TextBaseline.SUPERSCRIPT
-        "mark" -> seg.bgColorHex == "FFEB3B"
-        "small" -> seg.fontSizeSp != null && seg.fontSizeSp < 14f
-        "kbd", "var", "samp" -> seg.code
-        "quote" -> seg.italic
-        else -> false
-    }
-
-    fun applyTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-        "b" -> seg.copy(bold = true)
-        "i" -> seg.copy(italic = true)
-        "u" -> seg.copy(underline = true)
-        "s" -> seg.copy(strikethrough = true)
-        "code" -> seg.copy(code = true)
-        "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUBSCRIPT)
-        "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.SUPERSCRIPT)
-        "mark" -> seg.copy(bgColorHex = "FFEB3B")
-        "small" -> seg.copy(fontSizeSp = 12f)
-        "kbd", "var", "samp" -> seg.copy(code = true)
-        "normal" -> seg.copy(bold = false, italic = false, underline = false, strikethrough = false, code = false, colorHex = null, bgColorHex = null, fontSizeSp = null, baseline = com.example.data.model.TextBaseline.NORMAL)
-        "quote" -> seg.copy(italic = true)
-        else -> seg
-    }
-
-    fun removeTransformForTag(tag: String, seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-        "b" -> seg.copy(bold = false)
-        "i" -> seg.copy(italic = false)
-        "u" -> seg.copy(underline = false)
-        "s" -> seg.copy(strikethrough = false)
-        "code" -> seg.copy(code = false)
-        "sub" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
-        "sup" -> seg.copy(baseline = com.example.data.model.TextBaseline.NORMAL)
-        "mark" -> seg.copy(bgColorHex = null)
-        "small" -> seg.copy(fontSizeSp = null)
-        "kbd", "var", "samp" -> seg.copy(code = false)
-        "quote" -> seg.copy(italic = false)
-        else -> seg
+    val activeTextStyles = remember(activeSegments(), activeSelection, toolbarActiveBlockIndex, pendingTypingStyle) {
+        computeToolbarStyle(
+            blockType = blocks.getOrNull(toolbarActiveBlockIndex)?.type,
+            segments = activeSegments(),
+            cursor = activeSelection.first,
+            collapsed = activeSelection.first == activeSelection.last,
+            pending = pendingTypingStyle
+        )
     }
 
     fun adjustIndent(delta: Int) {
@@ -495,21 +382,16 @@ fun NoteEditorScreen(
     }
 
     fun convertBlockToHeading(tag: String) {
-        if (toolbarActiveBlockIndex !in blocks.indices) return
-        val type = when (tag) {
-            "h1" -> BlockType.HEADING1
-            "h2" -> BlockType.HEADING2
-            "h3" -> BlockType.HEADING3
-            "h4" -> BlockType.HEADING4
-            else -> return
-        }
-        val block = blocks[toolbarActiveBlockIndex]
+        val type = headingTypeForTag(tag) ?: return
+        val block = blocks.getOrNull(toolbarActiveBlockIndex) ?: return
         if (block.type == type) return
-        blocks = blocks.toMutableList().apply { set(toolbarActiveBlockIndex, block.copy(type = type)) }
+        val nuevo = convertBlockAt(blocks, toolbarActiveBlockIndex, type, block.meta) ?: return
+        // **No** por `applyBlocksChange`: eso repone el cursor al final del bloque y aquí el cursor
+        // se está eligiendo justo ahora, que es el punto de convertir a título.
+        blocks = nuevo
         saveBlocksToHistory()
     }
 
-    val activeTextStyles = toolbarState.activeStyles
     val commitSegments: (List<com.example.data.model.TextSegment>) -> Unit = { newSegs ->
         if (toolbarActiveBlockIndex in blocks.indices && blocks[toolbarActiveBlockIndex].contentIsText) {
             val block = blocks[toolbarActiveBlockIndex]
@@ -611,25 +493,38 @@ fun NoteEditorScreen(
     var bookmarkDialogMode by remember { mutableIntStateOf(-1) }
     val fetchingBookmarkIndices = remember { mutableStateOf(setOf<Int>()) }
 
-    fun insertAudioBlock(src: String) {
+    /**
+     * Inserta un bloque de medio donde está el cursor (RF-89).
+     *
+     * Sustituye a **cinco** insertadores que eran byte a byte idénticos: lo único que cambiaba era
+     * el bloque que construían. Cada uno repetía la decisión de *dónde* insertar —sustituir el
+     * bloque vacío del cursor o empujar hacia abajo— y el normalizado del cursor al terminar. Esa
+     * decisión está ahora en [insertPlanFor], que es pura y tiene prueba para los dos desenlaces.
+     *
+     * Devuelve el índice donde ha quedado el bloque, que el de marcador necesita para ir a buscar
+     * sus metadatos después.
+     */
+    fun insertBlockAtCursor(block: DataBlock): Int {
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
-        val audioBlock = DataBlock(type = BlockType.AUDIO, content = src)
+        val plan = insertPlanFor(
+            activeIndex = currentIdx,
+            activePlainText = blocks.getOrNull(currentIdx)
+                ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()) },
+            blockCount = blocks.size
+        )
         val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = audioBlock
-        } else {
-            newBlocks.add(idx, audioBlock)
-        }
+        if (plan.replaceInPlace) newBlocks[plan.index] = block else newBlocks.add(plan.index, block)
         blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
+        toolbarActiveBlockIndex = plan.index.coerceAtMost(newBlocks.size - 1)
         contentValue = TextFieldValue(text = "", selection = TextRange(0))
         activeSelection = 0..0
         saveBlocksToHistory()
+        return plan.index
+    }
+
+    fun insertAudioBlock(src: String) {
+        insertBlockAtCursor(DataBlock(type = BlockType.AUDIO, content = src))
     }
 
     fun applyAudioSelection(src: String) {
@@ -645,24 +540,7 @@ fun NoteEditorScreen(
     }
 
     fun insertFileBlock(path: String, name: String) {
-        showSlashMenu = false
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
-        val fileBlock = DataBlock(type = BlockType.FILE, content = path, meta = mapOf("name" to name))
-        val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = fileBlock
-        } else {
-            newBlocks.add(idx, fileBlock)
-        }
-        blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
-        contentValue = TextFieldValue(text = "", selection = TextRange(0))
-        activeSelection = 0..0
-        saveBlocksToHistory()
+        insertBlockAtCursor(DataBlock(type = BlockType.FILE, content = path, meta = mapOf("name" to name)))
     }
 
     fun applyFileSelection(path: String, name: String) {
@@ -701,29 +579,22 @@ fun NoteEditorScreen(
     }
 
     fun insertBookmarkBlock(rawUrl: String) {
+        // El menú se cierra **antes** de validar la URL. Es lo que había, y no es un descuido: si la
+        // URL sale mal, el menú tampoco debe reaparecer. Por eso esta línea no puede delegarse solo
+        // en `insertBlockAtCursor`, que se ejecuta más abajo y no se alcanza con una URL vacía.
         showSlashMenu = false
         val url = normalizeBookmarkUrl(rawUrl)
         if (url.isBlank()) return
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
-        val bookmarkBlock = DataBlock(type = BlockType.BOOKMARK, content = url, meta = mapOf(
-            "title" to (BookmarkMetadataFetcher.hostOf(url) ?: url),
-            "favicon" to BookmarkMetadataFetcher.faviconFor(url)
-        ))
-        val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = bookmarkBlock
-        } else {
-            newBlocks.add(idx, bookmarkBlock)
-        }
-        blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
-        contentValue = TextFieldValue(text = "", selection = TextRange(0))
-        activeSelection = 0..0
-        saveBlocksToHistory()
+        val idx = insertBlockAtCursor(
+            DataBlock(
+                type = BlockType.BOOKMARK,
+                content = url,
+                meta = mapOf(
+                    "title" to (BookmarkMetadataFetcher.hostOf(url) ?: url),
+                    "favicon" to BookmarkMetadataFetcher.faviconFor(url)
+                )
+            )
+        )
         refreshBookmarkMeta(idx, url)
     }
 
@@ -747,24 +618,7 @@ fun NoteEditorScreen(
     }
 
     fun insertVideoBlock(src: String) {
-        showSlashMenu = false
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
-        val videoBlock = DataBlock(type = BlockType.VIDEO, content = src)
-        val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = videoBlock
-        } else {
-            newBlocks.add(idx, videoBlock)
-        }
-        blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
-        contentValue = TextFieldValue(text = "", selection = TextRange(0))
-        activeSelection = 0..0
-        saveBlocksToHistory()
+        insertBlockAtCursor(DataBlock(type = BlockType.VIDEO, content = src))
     }
 
     fun applyVideoSelection(src: String) {
@@ -780,50 +634,14 @@ fun NoteEditorScreen(
     }
 
     fun insertImageBlock(src: String, linkUrl: String? = null) {
-        showSlashMenu = false
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
         val meta = if (linkUrl != null) mapOf("linkUrl" to linkUrl) else emptyMap()
-        val imageBlock = DataBlock(type = BlockType.IMAGE, content = src, meta = meta)
-        val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = imageBlock
-        } else {
-            newBlocks.add(idx, imageBlock)
-        }
-        blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
-        contentValue = TextFieldValue(text = "", selection = TextRange(0))
-        activeSelection = 0..0
-        saveBlocksToHistory()
+        insertBlockAtCursor(DataBlock(type = BlockType.IMAGE, content = src, meta = meta))
     }
 
     fun insertDrawingBlock() {
-        showSlashMenu = false
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it.ensureSegments()).isBlank() } == true
-        val drawingBlock = DataBlock(
-            type = BlockType.DRAWING,
-            content = "",
-            meta = mapOf("wysiwyg" to "true")
+        insertBlockAtCursor(
+            DataBlock(type = BlockType.DRAWING, content = "", meta = mapOf("wysiwyg" to "true"))
         )
-        val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = drawingBlock
-        } else {
-            newBlocks.add(idx, drawingBlock)
-        }
-        blocks = newBlocks
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
-        contentValue = TextFieldValue(text = "", selection = TextRange(0))
-        activeSelection = 0..0
-        saveBlocksToHistory()
     }
 
     fun applyImageSelection(src: String) {
@@ -843,48 +661,26 @@ fun NoteEditorScreen(
 
     fun moveActiveBlockUp() {
         val idx = toolbarActiveBlockIndex
-        if (idx in 1 until blocks.size) {
-            val newBlocks = blocks.toMutableList()
-            val item = newBlocks.removeAt(idx)
-            newBlocks.add(idx - 1, item)
-            toolbarActiveBlockIndex = idx - 1
-            applyBlocksChange(newBlocks)
-        }
+        val nuevos = moveBlockBy(blocks, idx, -1) ?: return
+        toolbarActiveBlockIndex = idx - 1
+        applyBlocksChange(nuevos)
     }
 
     fun moveActiveBlockDown() {
         val idx = toolbarActiveBlockIndex
-        if (idx in 0 until blocks.size - 1) {
-            val newBlocks = blocks.toMutableList()
-            val item = newBlocks.removeAt(idx)
-            newBlocks.add(idx + 1, item)
-            toolbarActiveBlockIndex = idx + 1
-            applyBlocksChange(newBlocks)
-        }
+        val nuevos = moveBlockBy(blocks, idx, 1) ?: return
+        toolbarActiveBlockIndex = idx + 1
+        applyBlocksChange(nuevos)
     }
 
     fun deleteActiveBlock() {
-        val idx = toolbarActiveBlockIndex
-        if (idx in blocks.indices && blocks.size > 1) {
-            val newBlocks = blocks.toMutableList()
-            newBlocks.removeAt(idx)
-            applyBlocksChange(newBlocks)
-        }
+        val nuevos = deleteBlockAt(blocks, toolbarActiveBlockIndex) ?: return
+        applyBlocksChange(nuevos)
     }
 
     fun convertActiveBlock(type: BlockType, meta: Map<String, String> = emptyMap()) {
-        val idx = toolbarActiveBlockIndex
-        if (idx in blocks.indices) {
-            val block = blocks[idx]
-            val newBlocks = blocks.toMutableList().apply {
-                set(idx, block.copy(type = type, meta = meta))
-            }
-            applyBlocksChange(newBlocks)
-        }
-    }
-
-    val insertAtCursor: (String) -> Unit = { tag ->
-        pendingInsert.value = tag
+        val nuevos = convertBlockAt(blocks, toolbarActiveBlockIndex, type, meta) ?: return
+        applyBlocksChange(nuevos)
     }
 
     val handleUrlClick: (String, Int) -> Unit = { url, _ ->
@@ -957,7 +753,42 @@ fun NoteEditorScreen(
     var attachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     var showVoiceFileSheet by remember { mutableStateOf(false) }
     var showMoreFormattingSheet by remember { mutableStateOf(false) }
-    
+
+    // El guardado vive aquí y no más abajo por una razón que no es estética: Kotlin **no admite
+    // referencias adelantadas a funciones locales**, y los dos efectos de la IA de abajo lo llaman.
+    // Una `var` sí se puede capturar desde una lambda declarada antes (el cuerpo del efecto se
+    // evalúa cuando corre), pero una función local se resuelve al compilar, en orden.
+    val contentForSave: () -> String = {
+        val jsonContent = DataBlock.serialize(blocks)
+        if (attachments.isEmpty()) jsonContent
+        else createRawContent(jsonContent, attachments)
+    }
+
+    /**
+     * Guarda la nota que se está editando (RF-85).
+     *
+     * **El único sitio** por el que se envía, salvo la llamada de `moveBlockToAnotherNote`, que
+     * guarda *otra* nota con los campos de aquella. El contenido llega como parámetro porque quien
+     * llama puede tener algo ya serializado y volver a hacerlo aquí sería tirar el trabajo.
+     *
+     * **No lleva guarda de «¿hay algo que guardar?»**: esa vigilancia se queda donde ya estaba, que
+     * es [saveCurrentNote] y el guardado al salir. Añadirla aquí cambiaría lo que se guarda en los
+     * caminos que hoy guardan siempre (RF-85, RNF-39).
+     */
+    fun persistNote(content: String) {
+        viewModel.saveNote(
+            id = noteId,
+            title = title.trim(),
+            content = content,
+            isEncrypted = isEncrypted,
+            tagsList = selectedNoteTags,
+            backgroundColor = selectedBgColorId,
+            backgroundImagePath = selectedBgImagePath,
+            isPinned = isPinned,
+            isFavorite = isFavorite,
+            isArchived = isArchived
+        )
+    }
 
     // Replace selection with AI in-place result
     LaunchedEffect(inPlaceResult, contentLoaded) {
@@ -970,20 +801,7 @@ fun NoteEditorScreen(
         val newCursor = selStart + result.length
         setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
         syncActiveBlock(); saveBlocksToHistory()
-        val saveJson = DataBlock.serialize(blocks)
-        val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
-        viewModel.saveNote(
-            id = noteId,
-            title = title.trim(),
-            content = saveContent,
-            isEncrypted = isEncrypted,
-            tagsList = selectedNoteTags,
-            backgroundColor = selectedBgColorId,
-            backgroundImagePath = selectedBgImagePath,
-            isPinned = isPinned,
-            isFavorite = isFavorite,
-            isArchived = isArchived
-        )
+        persistNote(contentForSave())
         aiViewModel.clearInPlaceResult()
     }
 
@@ -994,8 +812,9 @@ fun NoteEditorScreen(
         val segs = activeSegments()
         if (segs.isEmpty()) return@LaunchedEffect
         val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+        // La inserción streaming va **desde** el cursor, nunca sustituye una selección: se escribe letra
+        // a letra y lo que hubiera seleccionado se queda delante.
         val insertFrom = contentValue.selection.start.coerceIn(0, plain.length)
-        val insertEnd = contentValue.selection.end.coerceIn(0, plain.length).coerceAtLeast(insertFrom)
         var currentSegs = segs
         for (i in text.indices) {
             val chunk = text.substring(0, i + 1)
@@ -1010,20 +829,7 @@ fun NoteEditorScreen(
             kotlinx.coroutines.delay(15)
         }
         commitSegmentsWithSelection(currentSegs, insertFrom + text.length)
-        val saveJson = DataBlock.serialize(blocks)
-        val saveContent = if (attachments.isEmpty()) saveJson else createRawContent(saveJson, attachments)
-        viewModel.saveNote(
-            id = noteId,
-            title = title.trim(),
-            content = saveContent,
-            isEncrypted = isEncrypted,
-            tagsList = selectedNoteTags,
-            backgroundColor = selectedBgColorId,
-            backgroundImagePath = selectedBgImagePath,
-            isPinned = isPinned,
-            isFavorite = isFavorite,
-            isArchived = isArchived
-        )
+        persistNote(contentForSave())
         aiViewModel.clearInsertResult()
     }
 
@@ -1129,7 +935,6 @@ fun NoteEditorScreen(
     }
 
     var originalNote: Note? by remember { mutableStateOf(null) }
-    var hasNavigatingToDrawing by remember { mutableStateOf(false) }
     var showTextBgColorSheet by remember { mutableStateOf(false) }
     var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
 
@@ -1278,15 +1083,17 @@ fun NoteEditorScreen(
     fun handleSlashSelect(block: DataBlock) {
         showSlashMenu = false
         val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        val currentBlock = blocks.getOrNull(currentIdx)
-        val replaceInPlace = currentBlock
+        // Sustituye el bloque cuando **es la barra que se estaba escribiendo**, no cuando está
+        // vacío: es la misma forma que al insertar un medio, pero otra regla, y por eso la regla
+        // se queda aquí y el índice es lo único que se comparte.
+        val esPlaceholder = blocks.getOrNull(currentIdx)
             ?.ensureSegments()
             ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it) }
             ?.startsWith("/") == true
+        val idx = insertionIndex(currentIdx, esPlaceholder, blocks.size)
         val newBlocks = blocks.toMutableList()
-        val idx = if (replaceInPlace) currentIdx else (currentIdx + 1).coerceAtMost(blocks.size)
-        if (replaceInPlace) {
-            newBlocks[currentIdx] = block.copy(content = block.content)
+        if (esPlaceholder) {
+            newBlocks[currentIdx] = block
         } else {
             newBlocks.add(idx, block)
             pendingFocusBlockIndex = idx
@@ -1297,12 +1104,6 @@ fun NoteEditorScreen(
         activeSelection = blockPlain.length..blockPlain.length
         toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
         saveBlocksToHistory()
-    }
-
-    val contentForSave: () -> String = {
-        val jsonContent = DataBlock.serialize(blocks)
-        if (attachments.isEmpty()) jsonContent
-        else createRawContent(jsonContent, attachments)
     }
 
     val hasContentToSave: () -> Boolean = {
@@ -1333,18 +1134,7 @@ fun NoteEditorScreen(
 
     fun saveCurrentNote() {
         if (!hasContentToSave()) return
-        viewModel.saveNote(
-            id = noteId,
-            title = title.trim(),
-            content = contentForSave(),
-            isEncrypted = isEncrypted,
-            tagsList = selectedNoteTags,
-            backgroundColor = selectedBgColorId,
-            backgroundImagePath = selectedBgImagePath,
-            isPinned = isPinned,
-            isFavorite = isFavorite,
-            isArchived = isArchived
-        )
+        persistNote(contentForSave())
     }
 
     // Persist media/text on background (e.g. process death within the autosave debounce).
@@ -1373,10 +1163,9 @@ fun NoteEditorScreen(
 
             val extension = if (name.contains(".")) name.substringAfterLast(".") else ""
             val mime = contentResolver.getType(selectedUri) ?: ""
-            val isAudio = mime.startsWith("audio/") || extension.lowercase() in setOf(
-                "mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "amr", "3gp", "3gpp", "mid", "midi"
-            )
-            val prefix = if (isAudio) "audio" else "file"
+            // Si es un audio o un archivo cualquiera lo decide la lógica pura; aquí solo el I/O.
+            val esAudio = isAudioFile(mime, extension)
+            val prefix = if (esAudio) "audio" else "file"
             val localFile = File(context.filesDir, "${prefix}_${noteId}_${System.currentTimeMillis()}.${extension}")
             contentResolver.openInputStream(selectedUri)?.use { input ->
                 FileOutputStream(localFile).use { output ->
@@ -1384,7 +1173,7 @@ fun NoteEditorScreen(
                 }
             }
 
-            if (isAudio) {
+            if (esAudio) {
                 applyAudioSelection(localFile.absolutePath)
                 Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
             } else {
@@ -1393,18 +1182,7 @@ fun NoteEditorScreen(
             }
             showVoiceFileSheet = false
             scope.launch {
-                viewModel.saveNote(
-                    id = noteId,
-                    title = title.trim(),
-                    content = contentForSave(),
-                    isEncrypted = isEncrypted,
-                    tagsList = selectedNoteTags,
-                    backgroundColor = selectedBgColorId,
-                    backgroundImagePath = selectedBgImagePath,
-                    isPinned = isPinned,
-                    isFavorite = isFavorite,
-                    isArchived = isArchived
-                )
+                persistNote(contentForSave())
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -1421,15 +1199,6 @@ fun NoteEditorScreen(
                 adjustIndent(-1)
     }
 
-    fun isTextLikeFile(mime: String, ext: String): Boolean {
-        if (mime.startsWith("text/")) return true
-        if (mime == "application/json") return true
-        return ext in setOf(
-            "md", "markdown", "json", "xml", "yaml", "yml", "csv", "log",
-            "kt", "java", "js", "ts", "py", "html", "htm", "css"
-        )
-    }
-
     fun openExternalFile(path: String) {
         try {
             val file = File(path)
@@ -1440,22 +1209,18 @@ fun NoteEditorScreen(
             val ext = path.substringAfterLast('.', "").lowercase()
             val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            if (mime == "application/pdf") {
-                onOpenPdfTab(uri, file.name)
-                return
+            when (externalTargetFor(mime, ext)) {
+                ExternalTarget.PDF -> onOpenPdfTab(uri, file.name)
+                ExternalTarget.TEXTO -> onOpenTextTab(uri, file.name)
+                // Sin tipo no hay Intent que construir: callar es mejor que abrir un error.
+                ExternalTarget.SIN_TIPO -> return
+                ExternalTarget.VER_CON_OTRA_APP -> context.startActivity(
+                    Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mime)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                )
             }
-            if (mime == "application/octet-stream") {
-                return
-            }
-            if (isTextLikeFile(mime, ext)) {
-                onOpenTextTab(uri, file.name)
-                return
-            }
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(intent)
         } catch (e: Exception) {
             Log.e("NoteEditorScreen", "openExternalFile failed", e)
             Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
@@ -1580,36 +1345,16 @@ fun NoteEditorScreen(
         .collectLatest {
             syncActiveBlock()
             if ((title.isNotBlank() || content.isNotBlank()) && noteId != 0) {
-                viewModel.saveNote(
-                    id = noteId,
-                    title = title.trim(),
-                    content = contentForSave(),
-                    isEncrypted = isEncrypted,
-                    tagsList = selectedNoteTags,
-                    backgroundColor = selectedBgColorId,
-                    backgroundImagePath = selectedBgImagePath,
-                    isPinned = isPinned,
-                    isFavorite = isFavorite,
-                    isArchived = isArchived
-                )
+                persistNote(contentForSave())
             }
         }
     }
 
     val handleSaveAndExit = {
-        if (!hasNavigatingToDrawing && (title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty())) {
-            viewModel.saveNote(
-                id = noteId,
-                title = title.trim(),
-                content = contentForSave(),
-                isEncrypted = isEncrypted,
-                tagsList = selectedNoteTags,
-                backgroundColor = selectedBgColorId,
-                backgroundImagePath = selectedBgImagePath,
-                isPinned = isPinned,
-                isFavorite = isFavorite,
-                isArchived = isArchived
-            )
+        // La guarda era la de `hasContentToSave` más un flag que nunca se activaba, así que es
+        // exactamente la de `saveCurrentNote` (RF-84).
+        if (hasContentToSave()) {
+            saveCurrentNote()
             Toast.makeText(context, context.getString(R.string.toast_note_saved), Toast.LENGTH_SHORT).show()
         }
         onBack()
@@ -1647,125 +1392,65 @@ fun NoteEditorScreen(
                 val formattedDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
                 pendingInsert.value = formattedDate
             }
+
+    /** Las etiquetas que encienden y apagan un tramo. Las de título y la sangría van aparte. */
+    val STYLE_TAGS = setOf(
+        "b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote"
+    )
+
     fun applyTag(tag: String) {
-                if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
-                if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
-                    convertBlockToHeading(tag)
-                    return
-                }
-                if (tag == "indent") {
-                    adjustIndent(+1)
-                    return
-                }
-                val styleTags = setOf("b", "i", "u", "s", "code", "sub", "sup", "mark", "small", "kbd", "var", "samp", "normal", "quote")
-                if (tag !in styleTags) return
-                val segs = activeSegments()
-                if (segs.isEmpty()) return
-                val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                val selStart = activeSelection.first.coerceIn(0, plain.length)
-                val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
-                if (tag == "normal") {
-                    pendingTypingStyle = null
-                    val newSegs = if (selStart == selEnd) {
-                        if (selStart >= plain.length) return
-                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg -> removeTransformForTag("normal", seg) }
-                    } else {
-                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg -> removeTransformForTag("normal", seg) }
-                    }
-                    commitSegmentsWithSelection(newSegs, selStart)
-                    return
-                }
-                val newSegs = if (selStart == selEnd) {
-                    val charSeg = if (selStart < plain.length) com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull() else null
-                    val base = pendingTypingStyle ?: com.example.data.model.TextSegment()
-                    val isActive = (charSeg != null && styleApplies(tag, charSeg)) || styleApplies(tag, base)
-                    val nextPending = if (isActive) removeTransformForTag(tag, base) else applyTransformForTag(tag, base)
-                    pendingTypingStyle = nextPending.takeIf { it.hasTypingStyle }
-                    if (charSeg != null) {
-                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
-                            if (isActive) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
-                        }
-                    } else {
-                        null
-                    }
-                } else {
-                    val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
-                    val allStyled = inRange.isNotEmpty() && inRange.all { styleApplies(tag, it) }
-                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg ->
-                        if (allStyled) removeTransformForTag(tag, seg) else applyTransformForTag(tag, seg)
-                    }
-                }
-                if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
-            }
+        if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
+        if (tag in setOf("h1", "h2", "h3", "h4", "h5", "h6")) {
+            convertBlockToHeading(tag)
+            return
+        }
+        if (tag == "indent") {
+            adjustIndent(+1)
+            return
+        }
+        if (tag !in STYLE_TAGS) return
+        val segs = activeSegments()
+        if (segs.isEmpty()) return
+        // «normal» no conmuta: apaga todos los formatos a la vez, se ponga lo que se ponga debajo.
+        val quita = tag == "normal"
+        if (quita) pendingTypingStyle = null
+        val r = applyTagToSelection(
+            segments = segs,
+            plainLength = RichTextConverter.segmentsToPlainText(segs).length,
+            selStart = activeSelection.first,
+            selEnd = activeSelection.last,
+            currentPending = pendingTypingStyle,
+            isOn = { if (quita) true else styleApplies(tag, it) },
+            isAlreadyApplied = { charSeg, base ->
+                (charSeg != null && !quita && styleApplies(tag, charSeg)) || styleApplies(tag, base)
+            },
+            transform = { seg, _ -> removeTransformForTag(tag, seg) }
+        )
+        pendingTypingStyle = r.pending.takeIf { it.hasTypingStyle }
+        if (r.segments != null) commitSegmentsWithSelection(r.segments, activeSelection.first)
+    }
+
     fun applyTagWithVal(tag: String, value: String) {
-                if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
-                val segs = activeSegments()
-                if (segs.isEmpty()) return
-                val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                val selStart = activeSelection.first.coerceIn(0, plain.length)
-                val selEnd = activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
-
-                fun setValueOn(seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-                    "color" -> seg.copy(colorHex = com.example.util.RichTextConverter.normalizeColorValue(value))
-                    "bg" -> seg.copy(bgColorHex = com.example.util.RichTextConverter.normalizeColorValue(value))
-                    "font" -> seg.copy(fontFamily = value)
-                    "size" -> seg.copy(fontSizeSp = value.toFloatOrNull())
-                    "url" -> seg.copy(linkUrl = value)
-                    else -> seg
-                }
-
-                fun clearValueOn(seg: com.example.data.model.TextSegment): com.example.data.model.TextSegment = when (tag) {
-                    "color" -> seg.copy(colorHex = null)
-                    "bg" -> seg.copy(bgColorHex = null)
-                    "font" -> seg.copy(fontFamily = null)
-                    "size" -> seg.copy(fontSizeSp = null)
-                    "url" -> seg.copy(linkUrl = null)
-                    else -> seg
-                }
-
-                fun currentValueOn(seg: com.example.data.model.TextSegment): String? = when (tag) {
-                    "color" -> seg.colorHex
-                    "bg" -> seg.bgColorHex
-                    "font" -> seg.fontFamily
-                    "size" -> seg.fontSizeSp?.let { if (it == it.toInt().toFloat()) it.toInt().toString() else it.toString() }
-                    "url" -> seg.linkUrl
-                    else -> null
-                }
-
-                val isDefault = value == "default" || value.isEmpty()
-                val newSegs = if (selStart == selEnd) {
-                    val charSeg = if (selStart < plain.length) com.example.util.RichTextConverter.rangeSegments(segs, selStart, selStart + 1).firstOrNull() else null
-                    val base = pendingTypingStyle ?: com.example.data.model.TextSegment()
-                    val alreadyApplied = !isDefault && currentValueOn(base) == value
-                    val nextPending = when {
-                        isDefault -> clearValueOn(base)
-                        alreadyApplied -> clearValueOn(base)
-                        else -> setValueOn(base)
-                    }
-                    pendingTypingStyle = nextPending.takeIf { it.hasTypingStyle }
-                    if (charSeg != null) {
-                        com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selStart + 1) { seg ->
-                            when {
-                                isDefault -> clearValueOn(seg)
-                                alreadyApplied -> clearValueOn(seg)
-                                else -> setValueOn(seg)
-                            }
-                        }
-                    } else {
-                        null
-                    }
-                } else {
-                    val inRange = com.example.util.RichTextConverter.rangeSegments(segs, selStart, selEnd)
-                    val alreadyApplied = !isDefault && inRange.isNotEmpty() && inRange.all { currentValueOn(it) == value }
-                    com.example.util.RichTextConverter.applySpanStyle(segs, selStart, selEnd) { seg ->
-                        when {
-                            isDefault -> clearValueOn(seg)
-                            alreadyApplied -> clearValueOn(seg)
-                            else -> setValueOn(seg)
-                        }
-                    }
-                }
-                if (newSegs != null) commitSegmentsWithSelection(newSegs, selStart)
+        if (blocks.getOrNull(toolbarActiveBlockIndex)?.type == BlockType.CODE_BLOCK) return
+        val segs = activeSegments()
+        if (segs.isEmpty()) return
+        val esDefecto = value == "default" || value.isEmpty()
+        val r = applyTagToSelection(
+            segments = segs,
+            plainLength = RichTextConverter.segmentsToPlainText(segs).length,
+            selStart = activeSelection.first,
+            selEnd = activeSelection.last,
+            currentPending = pendingTypingStyle,
+            isOn = { !esDefecto && tagValueOf(it, tag) == value },
+            // **Solo lo pendiente**: la letra que hay debajo no entra en la decisión. Es lo que
+            // hacía el editor y se conserva a propósito; ver la nota de `applyTagToSelection`.
+            isAlreadyApplied = { _, base -> !esDefecto && tagValueOf(base, tag) == value },
+            transform = { seg, yaEstaba ->
+                if (esDefecto || yaEstaba) clearTagValue(seg, tag) else setTagValue(seg, tag, value)
+            }
+        )
+        pendingTypingStyle = r.pending.takeIf { it.hasTypingStyle }
+        if (r.segments != null) commitSegmentsWithSelection(r.segments, activeSelection.first)
     }
 
     BackHandler(onBack = handleSaveAndExit)
@@ -2255,345 +1940,140 @@ fun NoteEditorScreen(
                 
                 // Insert URL Dialog
                 if (showInsertUrlDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showInsertUrlDialog = false },
-                        title = { Text(stringResource(id = R.string.dialog_insert_url_title)) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedTextField(
-                                    value = urlInputAddress,
-                                    onValueChange = { urlInputAddress = it },
-                                    label = { Text(stringResource(id = R.string.label_url_address)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
+                    InsertUrlDialog(
+                        address = urlInputAddress,
+                        text = urlInputText,
+                        onAddressChange = { urlInputAddress = it },
+                        onTextChange = { urlInputText = it },
+                        onConfirm = { address, display ->
+                            val segs = activeSegments()
+                            val editRange = urlEditRange
+                            if (segs.isEmpty()) {
+                                pendingInsert.value = "<url=$address>$display</url>"
+                            } else {
+                                val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
+                                val selStart = editRange?.first
+                                    ?: activeSelection.first.coerceIn(0, plain.length)
+                                val selEnd = editRange?.let { it.last + 1 }
+                                    ?: activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
+                                val insert = listOf(
+                                    com.example.data.model.TextSegment(text = display, linkUrl = address)
                                 )
-                                OutlinedTextField(
-                                    value = urlInputText,
-                                    onValueChange = { urlInputText = it },
-                                    label = { Text(stringResource(id = R.string.label_url_text)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                val newSegs = com.example.util.RichTextConverter.insertSegments(segs, selStart, selEnd, insert)
+                                commitSegmentsWithSelection(newSegs, selStart + display.length)
                             }
                         },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (urlInputAddress.isNotBlank()) {
-                                        val display = urlInputText.ifEmpty { urlInputAddress }
-                                        val editRange = urlEditRange
-                                        val segs = activeSegments()
-                                        if (segs.isEmpty()) {
-                                            pendingInsert.value = "<url=$urlInputAddress>$display</url>"
-                                        } else {
-                                            val plain = com.example.util.RichTextConverter.segmentsToPlainText(segs)
-                                            val selStart = editRange?.first ?: activeSelection.first.coerceIn(0, plain.length)
-                                            val selEnd = editRange?.let { it.last + 1 } ?: activeSelection.last.coerceIn(0, plain.length).coerceAtLeast(selStart)
-                                            val insert = listOf(com.example.data.model.TextSegment(text = display, linkUrl = urlInputAddress))
-                                            val newSegs = com.example.util.RichTextConverter.insertSegments(segs, selStart, selEnd, insert)
-                                            commitSegmentsWithSelection(newSegs, selStart + display.length)
-                                        }
-                                    }
-                                    urlInputAddress = ""
-                                    urlInputText = ""
-                                    urlEditRange = null
-                                    showInsertUrlDialog = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_insert))
-                            }
+                        // Confirmar y cancelar hacen **lo mismo** al cerrar: limpiar los campos.
+                        // Tocar fuera, en cambio, solo cierra y los deja puestos: es lo que había.
+                        onCerrar = {
+                            urlInputAddress = ""
+                            urlInputText = ""
+                            urlEditRange = null
+                            showInsertUrlDialog = false
                         },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    urlInputAddress = ""
-                                    urlInputText = ""
-                                    urlEditRange = null
-                                    showInsertUrlDialog = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
-                        }
+                        onDismissRequest = { showInsertUrlDialog = false }
                     )
                 }
                 
                 // Insert Bookmark Dialog
                 if (showBookmarkUrlDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showBookmarkUrlDialog = false },
-                        title = { Text(stringResource(id = R.string.dialog_insert_bookmark_title)) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedTextField(
-                                    value = bookmarkUrlInput,
-                                    onValueChange = { bookmarkUrlInput = it },
-                                    label = { Text(stringResource(id = R.string.label_bookmark_url)) },
-                                    placeholder = { Text(stringResource(id = R.string.block_bookmark_url_hint)) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                    InsertBookmarkDialog(
+                        url = bookmarkUrlInput,
+                        onUrlChange = { bookmarkUrlInput = it },
+                        // Se entrega la URL **antes** de cerrar y de vaciar el campo, que es como
+                        // estaba: al confirmar, `applyBookmarkUrl` necesita leerla.
+                        onConfirm = { url -> applyBookmarkUrl(url) },
+                        onCerrar = {
+                            bookmarkUrlInput = ""
+                            showBookmarkUrlDialog = false
                         },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    val url = bookmarkUrlInput
-                                    showBookmarkUrlDialog = false
-                                    bookmarkUrlInput = ""
-                                    applyBookmarkUrl(url)
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_insert))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    bookmarkUrlInput = ""
-                                    showBookmarkUrlDialog = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
-                        }
+                        onDismissRequest = { showBookmarkUrlDialog = false }
                     )
                 }
 
                 // Insert Table Dialog
                 if (showInsertTableDialog) {
                     val tableHeaderCellLabel = stringResource(R.string.table_header_cell)
-                    AlertDialog(
-                        onDismissRequest = { showInsertTableDialog = false },
-                        title = { Text(stringResource(R.string.insert_table)) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(stringResource(R.string.rows_label), style = MaterialTheme.typography.bodyMedium)
-                                    @Suppress("DEPRECATION")
-                                    Slider(
-                                        value = tableRows.toFloat(),
-                                        onValueChange = { tableRows = it.toInt() },
-                                        valueRange = 1f..10f,
-                                        steps = 8,
-                                        modifier = Modifier.width(120.dp)
-                                    )
-                                    Text("$tableRows", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(stringResource(R.string.cols_label), style = MaterialTheme.typography.bodyMedium)
-                                    @Suppress("DEPRECATION")
-                                    Slider(
-                                        value = tableCols.toFloat(),
-                                        onValueChange = { tableCols = it.toInt() },
-                                        valueRange = 1f..8f,
-                                        steps = 6,
-                                        modifier = Modifier.width(120.dp)
-                                    )
-                                    Text("$tableCols", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = tableHasHeader,
-                                        onCheckedChange = { tableHasHeader = it }
-                                    )
-                                    Text(stringResource(R.string.include_header_row), style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                    InsertTableDialog(
+                        rows = tableRows,
+                        columns = tableCols,
+                        hasHeader = tableHasHeader,
+                        onRowsChange = { tableRows = it },
+                        onColumnsChange = { tableCols = it },
+                        onHasHeaderChange = { tableHasHeader = it },
+                        onConfirm = { filas, columnas, conCabecera ->
+                            // La cabecera es la primera fila y solo existe si se ha pedido: antes se
+                            // creaba siempre, con cadenas vacías cuando no había cabecera, y quedaba
+                            // una fila fantasma que no era de nadie (RF-48).
+                            val tableData = TableData(
+                                rows = buildTableRows(filas, columnas, conCabecera) {
+                                    String.format(tableHeaderCellLabel, it)
+                                },
+                                showHeader = conCabecera
+                            )
+                            handleSlashSelect(
+                                DataBlock(
+                                    type = BlockType.TABLE,
+                                    content = "",
+                                    meta = mapOf("table" to tableData.toJson())
+                                )
+                            )
                         },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    // La cabecera es la primera fila: se crea solo si la opción está marcada. Antes se
-                                    // creaba siempre, con cadenas vacías cuando no había cabecera, y
-                                    // quedaba una fila fantasma que no era de nadie (RF-48).
-                                    val dataRows = (1..tableRows).map { List(tableCols) { "" } }
-                                    val rows = if (tableHasHeader) {
-                                        listOf((1..tableCols).map { String.format(tableHeaderCellLabel, it) }) + dataRows
-                                    } else {
-                                        dataRows
-                                    }
-                                    val tableData = TableData(rows = rows, showHeader = tableHasHeader)
-                                    handleSlashSelect(DataBlock(type = BlockType.TABLE, content = "", meta = mapOf("table" to tableData.toJson())))
-                                    showInsertTableDialog = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_insert))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    showInsertTableDialog = false
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
-                        }
+                        onCerrar = { showInsertTableDialog = false }
                     )
                 }
 
                 // URL Click Action Dialog (Open, Copy, Delete)
                 if (showUrlDialog) {
                     val clipboard = LocalClipboard.current
-                    AlertDialog(
-                        onDismissRequest = { showUrlDialog = false },
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Link,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(stringResource(id = R.string.url_dialog_title))
+                    UrlActionDialog(
+                        url = clickedUrlAddress,
+                        // Cada acción cierra ella misma: el orden entre cerrar este diálogo y abrir
+                        // el otro está en el `onEdit`, y por eso no hay un `onCerrar` compartido.
+                        onOpen = {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(clickedUrlAddress)))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
+                            }
+                            showUrlDialog = false
+                        },
+                        onCopy = {
+                            scope.launch {
+                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", clickedUrlAddress)))
+                            }
+                            Toast.makeText(context, context.getString(R.string.url_dialog_copy) + ": " + clickedUrlAddress, Toast.LENGTH_SHORT).show()
+                            showUrlDialog = false
+                        },
+                        onEdit = {
+                            val segs = activeSegments()
+                            val offset = clickedUrlAbsoluteOffset.coerceIn(0,
+                                com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
+                            val url = findUrlAt(segs, offset)
+                            if (url != null) {
+                                urlInputAddress = url.segment.linkUrl ?: ""
+                                urlInputText = url.segment.text
+                                urlEditRange = url.range
+                                showUrlDialog = false
+                                showInsertUrlDialog = true
+                            } else {
+                                showUrlDialog = false
                             }
                         },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = clickedUrlAddress,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        onDelete = {
+                            val segs = activeSegments()
+                            val offset = clickedUrlAbsoluteOffset.coerceIn(0,
+                                com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
+                            val url = findUrlAt(segs, offset)
+                            if (url != null) {
+                                val newSegs = com.example.util.RichTextConverter.replaceTextRange(
+                                    segs, url.start, url.start + url.segment.text.length, ""
                                 )
-                                
-                                Spacer(modifier = Modifier.height(4.dp))
-                                
-                                OutlinedButton(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(clickedUrlAddress))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, context.getString(R.string.toast_cannot_open_url), Toast.LENGTH_SHORT).show()
-                                        }
-                                        showUrlDialog = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(id = R.string.url_dialog_open))
-                                }
-                                
-                                OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", clickedUrlAddress)))
-                                        }
-                                        Toast.makeText(context, context.getString(R.string.url_dialog_copy) + ": " + clickedUrlAddress, Toast.LENGTH_SHORT).show()
-                                        showUrlDialog = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(id = R.string.url_dialog_copy))
-                                }
-                                
-                                OutlinedButton(
-                                    onClick = {
-                                        val segs = activeSegments()
-                                        val offset = clickedUrlAbsoluteOffset.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
-                                        var pos = 0
-                                        var urlSeg: com.example.data.model.TextSegment? = null
-                                        var urlStart = 0
-                                        for (seg in segs) {
-                                            val segEnd = pos + seg.text.length
-                                            if (pos <= offset && offset < segEnd && seg.linkUrl != null) {
-                                                urlSeg = seg
-                                                urlStart = pos
-                                                break
-                                            }
-                                            pos = segEnd
-                                        }
-                                        if (urlSeg != null) {
-                                            urlInputAddress = urlSeg.linkUrl ?: ""
-                                            urlInputText = urlSeg.text
-                                            urlEditRange = urlStart..(urlStart + urlSeg.text.length - 1)
-                                            showUrlDialog = false
-                                            showInsertUrlDialog = true
-                                        } else {
-                                            showUrlDialog = false
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(id = R.string.url_dialog_edit))
-                                }
-                                
-                                OutlinedButton(
-                                    onClick = {
-                                        val segs = activeSegments()
-                                        val offset = clickedUrlAbsoluteOffset.coerceIn(0, com.example.util.RichTextConverter.segmentsToPlainText(segs).length)
-                                        var pos = 0
-                                        var urlSeg: com.example.data.model.TextSegment? = null
-                                        var urlStart = 0
-                                        for (seg in segs) {
-                                            val segEnd = pos + seg.text.length
-                                            if (pos <= offset && offset < segEnd && seg.linkUrl != null) {
-                                                urlSeg = seg
-                                                urlStart = pos
-                                                break
-                                            }
-                                            pos = segEnd
-                                        }
-                                        if (urlSeg != null) {
-                                            val newSegs = com.example.util.RichTextConverter.replaceTextRange(segs, urlStart, urlStart + urlSeg.text.length, "")
-                                            commitSegmentsWithSelection(newSegs, urlStart)
-                                        }
-                                        showUrlDialog = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = stringResource(id = R.string.url_dialog_delete),
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
+                                commitSegmentsWithSelection(newSegs, url.start)
                             }
+                            showUrlDialog = false
                         },
-                        confirmButton = {},
-                        dismissButton = {
-                            TextButton(onClick = { showUrlDialog = false }) {
-                                Text(stringResource(id = R.string.btn_cancel))
-                            }
-                        }
+                        onCerrar = { showUrlDialog = false }
                     )
                 }
                 
@@ -2649,245 +2129,47 @@ fun NoteEditorScreen(
         }
 
         // ── Level 2: Floating AI Panel ──────────────────────────
+        // El `if` se queda aquí y no dentro del panel: quien tiene la bandera decide si la superficie
+        // existe (decisión 7 del plan), igual que con las hojas.
         if (showAiPanel) {
-            Box(Modifier.fillMaxSize()) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 88.dp)
-                    .fillMaxWidth(0.92f),
-                shape = RoundedCornerShape(16.dp),
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("✨ ${stringResource(R.string.ai_assistant)}", style = MaterialTheme.typography.titleSmall)
-                        IconButton(onClick = { showAiPanel = false }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = aiPromptInput,
-                        onValueChange = { aiPromptInput = it },
-                        placeholder = { Text(stringResource(R.string.ai_panel_placeholder), fontSize = 13.sp) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp),
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        SuggestionChip(
-                            onClick = {
-                                aiSelectionStart = 0; aiSelectionEnd = contentValue.text.length
-                                executeAiAction(AiAction.SUMMARIZE)
-                                showAiPanel = false
-                            },
-                            label = { Text(stringResource(R.string.ai_summarize), fontSize = 11.sp) }
-                        )
-                        SuggestionChip(
-                            onClick = {
-                                aiSelectionStart = 0; aiSelectionEnd = contentValue.text.length
-                                executeAiAction(AiAction.FIX_GRAMMAR)
-                                showAiPanel = false
-                            },
-                            label = { Text(stringResource(R.string.ai_fix_grammar), fontSize = 11.sp) }
-                        )
-                        SuggestionChip(
-                            onClick = {
-                                aiViewModel.attachNoteAsAttachment(noteId, title, content)
-                                showAiPanel = false
-                                onNavigateToAiChat(noteId)
-                            },
-                            label = { Text(stringResource(R.string.ai_panel_chat), fontSize = 11.sp) }
-                        )
-                    }
-                    if (aiPromptInput.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        Button(
-                            onClick = {
-                                aiSelectionStart = activeSelection.first
-                                aiSelectionEnd = activeSelection.last
-                                val target = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
-                                    .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
-                                aiViewModel.executeInPlace(AiAction.GENERATE, "$target\n\n$aiPromptInput")
-                                aiPromptInput = ""
-                                showAiPanel = false
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !inPlaceProcessing
-                        ) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.ai_generate), fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-            }
+            NoteEditorAiPanel(
+                prompt = aiPromptInput,
+                onPromptChange = { aiPromptInput = it },
+                onRunOverWholeNote = { action ->
+                    aiSelectionStart = 0; aiSelectionEnd = contentValue.text.length
+                    executeAiAction(action)
+                    showAiPanel = false
+                },
+                onOpenChat = {
+                    aiViewModel.attachNoteAsAttachment(noteId, title, content)
+                    showAiPanel = false
+                    onNavigateToAiChat(noteId)
+                },
+                onRunPrompt = {
+                    aiSelectionStart = activeSelection.first
+                    aiSelectionEnd = activeSelection.last
+                    val target = contentValue.text.substring(aiSelectionStart, aiSelectionEnd)
+                        .takeIf { aiSelectionStart != aiSelectionEnd } ?: content
+                    aiViewModel.executeInPlace(AiAction.GENERATE, "$target\n\n$aiPromptInput")
+                    aiPromptInput = ""
+                    showAiPanel = false
+                },
+                processing = inPlaceProcessing,
+                onDismiss = { showAiPanel = false }
+            )
         }
 
         // Palette Bottom Sheet
         if (showPaletteSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showPaletteSheet = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.option_note_styling),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    // Colors section
-                    Text(
-                        text = stringResource(id = R.string.label_note_color),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
-                    )
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        (0..6).forEach { colorId ->
-                            val isSelected = selectedBgColorId == colorId || (colorId == 0 && selectedBgColorId == null)
-                            val colorLabel = when (colorId) {
-                                0 -> stringResource(id = R.string.label_color_none)
-                                1 -> stringResource(id = R.string.label_color_blue)
-                                2 -> stringResource(id = R.string.label_color_green)
-                                3 -> stringResource(id = R.string.label_color_yellow)
-                                4 -> stringResource(id = R.string.label_color_pink)
-                                5 -> stringResource(id = R.string.label_color_purple)
-                                6 -> stringResource(id = R.string.label_color_orange)
-                                else -> ""
-                            }
-                            val circleColor = if (colorId == 0) {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            } else {
-                                getNoteBackgroundColor(colorId, isDark)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(circleColor)
-                                    .border(
-                                        width = if (isSelected) 3.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                        shape = CircleShape
-                                    )
-                                    .clickable {
-                                        selectedBgColorId = if (colorId == 0) null else colorId
-                                    }
-                                    .testTag("sheet_color_picker_$colorId"),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (colorId == 0) {
-                                    Icon(
-                                        imageVector = Icons.Default.Block,
-                                        contentDescription = colorLabel,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = colorLabel,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Background Image Section
-                    Text(
-                        text = stringResource(id = R.string.option_select_bg_image),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.align(Alignment.Start).padding(bottom = 8.dp)
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                imagePickerLauncher.launch("image/*")
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Image, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(id = R.string.option_select_bg_image), fontSize = 12.sp)
-                        }
-                        
-                        if (selectedBgImagePath != null) {
-                            IconButton(
-                                onClick = { selectedBgImagePath = null },
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
-                                    .size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = stringResource(id = R.string.option_clear_bg_image),
-                                    tint = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-                    }
-                    
-                    selectedBgImagePath?.let { bgPath ->
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedCard(
-                            modifier = Modifier
-                                .size(120.dp, 80.dp)
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            AsyncImage(
-                                model = bgPath,
-                                contentDescription = stringResource(id = R.string.cd_bg_preview),
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                }
-            }
+            NoteEditorPaletteSheet(
+                selectedColorId = selectedBgColorId,
+                onColorSelected = { selectedBgColorId = it },
+                backgroundImagePath = selectedBgImagePath,
+                onPickImage = { imagePickerLauncher.launch("image/*") },
+                onClearImage = { selectedBgImagePath = null },
+                isDark = isDark,
+                onDismiss = { showPaletteSheet = false }
+            )
         }
 
         EditorMoreOptions(
@@ -2915,426 +2197,55 @@ fun NoteEditorScreen(
         )
 
         // Voice and File Attachment Bottom Sheet
+        //
+        // El `if` NO se mueve dentro de la hoja (decisión 7 del plan): sus `remember` —el grabador,
+        // el reproductor, el archivo grabado— se descartan con la hoja, y si el hijo se
+        // autocondicionara por su cuenta una grabación seguiría viva con la hoja cerrada.
         if (showVoiceFileSheet) {
-            var isRecording by remember { mutableStateOf(false) }
-            var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
-            var recordedFile by remember { mutableStateOf<File?>(null) }
-            var isPlayingRecording by remember { mutableStateOf(false) }
-            var draftPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-            
-            // Record Audio Permission launcher
-            val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                if (isGranted) {
-                    try {
-                        val file = File(context.filesDir, "voice_${noteId}_${System.currentTimeMillis()}.3gp")
-                        recordedFile = file
-                        
-                        val recorderContext = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            context.createAttributionContext("microphone")
-                        } else {
-                            context
-                        }
-                        val recorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                            MediaRecorder(recorderContext)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            MediaRecorder()
-                        }.apply {
-                            setAudioSource(MediaRecorder.AudioSource.MIC)
-                            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-                            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-                            setOutputFile(file.absolutePath)
-                            prepare()
-                            start()
-                        }
-                        mediaRecorder = recorder
-                        isRecording = true
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(context, context.getString(R.string.toast_recording_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+            NoteEditorVoiceFileSheet(
+                noteId = noteId,
+                onInsertImage = {
+                    showVoiceFileSheet = false
+                    imageDialogMode = -1
+                    showInsertImageDialog = true
+                },
+                onInsertVideo = {
+                    showVoiceFileSheet = false
+                    videoDialogMode = -1
+                    showInsertVideoDialog = true
+                },
+                onPickFile = { filePickerLauncher.launch("*/*") },
+                onAttachRecording = { path ->
+                    applyAudioSelection(path)
+                    scope.launch {
+                        persistNote(contentForSave())
                     }
-                } else {
-                    Toast.makeText(context, context.getString(R.string.mic_permission_required), Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            DisposableEffect(Unit) {
-                onDispose {
-                    mediaRecorder?.apply {
-                        try {
-                            stop()
-                        } catch (e: Exception) {
-                            Log.e("NoteEditor", "media recorder stop failed", e)
-                        }
-                        release()
-                    }
-                    draftPlayer?.release()
-                }
-            }
-
-            ModalBottomSheet(
-                onDismissRequest = {
+                    showVoiceFileSheet = false
+                },
+                onDismiss = {
                     showVoiceFileSheet = false
                     audioDialogMode = -1
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.add_attachment),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    // Option: Insert Image
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showVoiceFileSheet = false
-                                imageDialogMode = -1
-                                showInsertImageDialog = true
-                            },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Image,
-                                contentDescription = stringResource(id = R.string.rich_insert_image),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(id = R.string.rich_insert_image),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.desc_insert_image),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    // Option: Insert Video
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showVoiceFileSheet = false
-                                videoDialogMode = -1
-                                showInsertVideoDialog = true
-                            },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
-                                contentDescription = stringResource(id = R.string.rich_insert_video),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(id = R.string.rich_insert_video),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(id = R.string.desc_insert_video),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    // Option A: Voice Recording panel
-                    OutlinedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.voice_note_recorder),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            
-                            if (!isRecording && recordedFile == null) {
-                                // Default State: Tap to record
-                                IconButton(
-                                    onClick = {
-                                        recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                    },
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                                        .testTag("start_record_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Mic,
-                                        contentDescription = stringResource(R.string.tap_to_record),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                                Text(stringResource(R.string.tap_to_record), style = MaterialTheme.typography.bodySmall)
-                            } else if (isRecording) {
-                                // Recording State
-                                IconButton(
-                                    onClick = {
-                                        try {
-                                            mediaRecorder?.apply {
-                                                stop()
-                                                release()
-                                            }
-                                            mediaRecorder = null
-                                            isRecording = false
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
-                                        .testTag("stop_record_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Stop,
-                                        contentDescription = stringResource(id = R.string.cd_stop_recording),
-                                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                                Text(stringResource(R.string.recording_tap_to_stop), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                            } else if (recordedFile != null) {
-                                // Review / Draft State
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            if (isPlayingRecording) {
-                                                draftPlayer?.stop()
-                                                draftPlayer?.release()
-                                                draftPlayer = null
-                                                isPlayingRecording = false
-                                            } else {
-                                                try {
-                                                    val player = MediaPlayer().apply {
-                                                        setDataSource(recordedFile!!.absolutePath)
-                                                        prepare()
-                                                        start()
-                                                        setOnCompletionListener {
-                                                            isPlayingRecording = false
-                                                            release()
-                                                        }
-                                                    }
-                                                    draftPlayer = player
-                                                    isPlayingRecording = true
-                                                } catch (e: Exception) {
-                                                    e.printStackTrace()
-                                                    Toast.makeText(context, context.getString(R.string.toast_audio_preview_error), Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-                                            .testTag("play_preview_btn")
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isPlayingRecording) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = stringResource(id = R.string.cd_preview_voice_note),
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            applyAudioSelection(recordedFile!!.absolutePath)
-
-                                            scope.launch {
-                                                viewModel.saveNote(
-                                                    id = noteId,
-                                                    title = title.trim(),
-                                                    content = contentForSave(),
-                                                    isEncrypted = isEncrypted,
-                                                    tagsList = selectedNoteTags,
-                                                    backgroundColor = selectedBgColorId,
-                                                    backgroundImagePath = selectedBgImagePath,
-                                                    isPinned = isPinned,
-                                                    isFavorite = isFavorite,
-                                                    isArchived = isArchived
-                                                )
-                                            }
-                                            showVoiceFileSheet = false
-                                            Toast.makeText(context, context.getString(R.string.toast_voice_note_attached), Toast.LENGTH_SHORT).show()
-                                        },
-                                        modifier = Modifier.testTag("attach_voice_btn")
-                                    ) {
-                                        Text(stringResource(R.string.attach_voice))
-                                    }
-
-                                    IconButton(
-                                        onClick = {
-                                            recordedFile?.delete()
-                                            recordedFile = null
-                                        },
-                                        modifier = Modifier.testTag("delete_recording_btn")
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.cd_discard_recording), tint = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Option B: File Selection panel
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { filePickerLauncher.launch("*/*") },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.select_external_file), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(stringResource(R.string.select_external_file), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                Text(stringResource(R.string.select_file_desc), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
                 }
-            }
+            )
         }
 
         // ── Level 1: AI Context Actions Bottom Sheet ──────────
         if (showAiContextSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showAiContextSheet = false
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        "✨ ${stringResource(R.string.ai_assistant)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Spacer(Modifier.height(16.dp))
-
-                    Text(stringResource(R.string.ai_context_quick_actions), style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AssistChip(
-                            onClick = { executeAiAction(AiAction.SUMMARIZE) },
-                            label = { Text(stringResource(R.string.ai_chip_summarize), fontSize = 12.sp) },
-                            leadingIcon = { }
-                        )
-                        AssistChip(
-                            onClick = { executeAiAction(AiAction.FIX_GRAMMAR) },
-                            label = { Text(stringResource(R.string.ai_chip_fix_grammar), fontSize = 12.sp) },
-                            leadingIcon = { }
-                        )
-                    }
-                }
-            }
+            NoteEditorAiContextSheet(
+                onRunAction = { action -> executeAiAction(action) },
+                onDismiss = { showAiContextSheet = false }
+            )
         }
 
         // ── AI Streaming / Result Indicator ───────────────────
-        if (inPlaceAction != null && inPlaceProcessing) {
-            AlertDialog(
-                onDismissRequest = { aiViewModel.cancelGeneration() },
-                title = { Text(stringResource(R.string.ai_progress_title), style = MaterialTheme.typography.titleSmall) },
-                text = {
-                    Column {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = when (inPlaceAction) {
-                                AiAction.SUMMARIZE -> stringResource(R.string.ai_progress_summarizing)
-                                AiAction.FIX_GRAMMAR -> stringResource(R.string.ai_progress_fixing_grammar)
-                                else -> stringResource(R.string.ai_generating)
-                            },
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        if (!inPlaceStreamingText.isNullOrBlank()) {
-                            Spacer(Modifier.height(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = inPlaceStreamingText!!,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(8.dp),
-                                    maxLines = 8,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { aiViewModel.cancelGeneration() }) {
-                        Text(stringResource(R.string.btn_cancel))
-                    }
-                }
+        // `inPlaceAction` es una propiedad delegada, y Kotlin no hace smart cast sobre las delegadas:
+        // se lee una vez a un `val` y se pasa ese.
+        val accionEnCurso = inPlaceAction
+        if (accionEnCurso != null && inPlaceProcessing) {
+            NoteEditorAiProgressDialog(
+                action = accionEnCurso,
+                streamingText = inPlaceStreamingText,
+                onCancel = { aiViewModel.cancelGeneration() }
             )
         }
 
@@ -3402,92 +2313,19 @@ fun NoteEditorScreen(
         }
 
         if (showEquationDialog) {
-            val equationTarget = equationEditTarget
-            AlertDialog(
-                onDismissRequest = {
-                    showEquationDialog = false
+            EquationDialog(
+                latex = equationInput,
+                isEdit = equationEditTarget != null,
+                onLatexChange = { equationInput = it },
+                onConfirm = { latex ->
+                    val target = equationEditTarget
+                    if (target != null) applyEquationEdit(target.first, target.second, latex)
+                    else pendingInsert.value = "<eq>$latex</eq>"
+                },
+                onCerrar = {
                     equationInput = ""
                     equationEditTarget = null
-                },
-                title = {
-                    Text(
-                        stringResource(
-                            id = if (equationTarget != null) R.string.dialog_edit_equation_title
-                            else R.string.dialog_insert_equation_title
-                        )
-                    )
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = equationInput,
-                            onValueChange = { equationInput = it },
-                            label = { Text(stringResource(id = R.string.label_equation_latex)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (equationInput.isNotBlank()) {
-                            Text(
-                                text = stringResource(id = R.string.rich_live_preview),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                com.hrm.latex.renderer.Latex(
-                                    latex = equationInput.trim(),
-                                    config = com.hrm.latex.renderer.model.LatexConfig(
-                                        fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                                        theme = com.hrm.latex.renderer.model.LatexTheme.light(
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        ),
-                                        accessibilityEnabled = true
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState())
-                                        .padding(8.dp)
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val latex = equationInput.trim()
-                            if (latex.isNotBlank()) {
-                                if (equationTarget != null) {
-                                    applyEquationEdit(equationTarget.first, equationTarget.second, latex)
-                                } else {
-                                    pendingInsert.value = "<eq>$latex</eq>"
-                                }
-                            }
-                            equationInput = ""
-                            equationEditTarget = null
-                            showEquationDialog = false
-                        }
-                    ) {
-                        Text(
-                            stringResource(
-                                id = if (equationTarget != null) R.string.btn_save else R.string.btn_insert
-                            )
-                        )
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            equationInput = ""
-                            equationEditTarget = null
-                            showEquationDialog = false
-                        }
-                    ) {
-                        Text(stringResource(id = R.string.btn_cancel))
-                    }
+                    showEquationDialog = false
                 }
             )
         }
