@@ -1,6 +1,17 @@
 # MEMORY.md — secure-notes 
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 ## Estado actual
+- **Spec 014 (descomponer el editor de notas) IMPLEMENTADA**, T1-T8 cerradas.
+  `NoteEditorScreen.kt` de **3504 a 2342 líneas**, partida en 4 ficheros (`NoteEditorDialogs` 445,
+  `NoteEditorSheets` 595, `NoteEditorAiSurfaces` 244, más `TabsHost`). Paquete `com.example.ui.editor/`
+  con **diez** lógicas puras (sin `import androidx.compose` ni `import android`, con una prueba que lo
+  vigila) y **79 pruebas** nuevas en `:app` (72 de lógica + 6 invariantes).
+  Invariantes en `EditorInvariantsTest`: tamaño (2342), estado muerto (0), nunca asignado (0),
+  funciones largas (7), guardados (2) y **techo de 600 líneas por fichero extraído**.
+  ✅ **VERIFICADO EN DISPOSITIVO por quien Decide tras T5: «todo perfecto en pantalla».**
+  ⚠️ **T6-T8 NO se han visto en una pantalla**: son movimiento puro de superficie, y lo único que
+  puede romperse es que una hoja no se abra o que su cierre haga otra cosa.
+  RF-84…RF-89, RNF-39…RNF-43.
 - **Spec 012 (Markdown GFM) IMPLEMENTADA**, T1-T8 cerradas. Resaltado GFM con tokenizador propio,
   modos `SPLIT` 50/50 y `PREVIEW` con `WebView` (sin JS, sin red). **133 pruebas** en
   `:editor-de-codigo`, `:app:assembleDebug` verde. **Nada se ha visto en un dispositivo.**
@@ -17,7 +28,18 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
   para `linux/aarch64`. Los tests **puros sí se ejecutan**. Las 2 pruebas Robolectric de
   `ExternalFileStorageRobolectricTest` son la línea de base de `:editor-de-codigo`.
 
-## Decisiones (y por qué) 
+## Decisiones (y por qué)
+- **15. El techo de 600 líneas de RNF-43 se aplica a lo que sale del composable, no al
+  `NoteEditorScreen.kt`.** Escrita literal («ningún fichero del editor de notas supera las 600
+  líneas») es imposible: el propio `NoteEditorScreen.kt` mide 2342, y bajarlo de 600 exige **partir
+  el composable**, que es justo lo que la 014 declara fuera de alcance. Así que el monolito se mide
+  con su umbral propio, que baja en cada tarea, y las 600 líneas son el techo de lo extraído. Lo
+  mismo con `BlockEditor` (1030), `EditableTableBlock` (1456) y `FloatingEditorToolbar` (759): ya
+ pasaban de 600 antes de la 014 y son de otro fichero. **No se les baja el presupuesto para que
+  pasen**: un invariante que nace rojo entrena a ignorar el rojo.
+- **14. Los `InsertMediaDialog` ×2 no se movieron, y no es un pendiente de movimiento.** Catorce
+  parámetros cada uno, ocho de ellos «qué hacer cuando» repetidos en los dos. El problema no es
+  dónde viven sino cómo están modelados, y eso es la primera decisión de la 015. 
 - **14. El editor de código NO escribe en la base de notas.** `CodeEditorActivity` vive **fuera** del
   flujo de bloqueo de la bóveda y no tiene el `NotesViewModel`: escribir desde ahí saltaría la
   contraseña maestra y el refresco de widgets. Deja un sobre en `cacheDir` con nombre **fijo**
@@ -81,8 +103,38 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - **`Icons.AutoMirrored.Filled.Note` necesita su propio import**; `Icons.Filled.Note` está obsoleto.
 - **`StringIndexOutOfBounds: Index -1`** en un tokenizador es `md[i-1]` con `i==0`, o un `indexOf` que
   devolvió −1 usado como posición.
+- **Los comentarios de bloque de Kotlin se ANIDAN.** Escribir `audio/*` dentro de un KDoc abre un
+  comentario dentro del comentario: el `*/` que cierra el KDoc cierra el anidado y el de fuera queda
+  abierto hasta el final del fichero. El error sale como `Syntax error: Unclosed comment` **en la
+  línea donde el comentario debería cerrar**, muy lejos de la causa. Salió en la 014.
 - **Kotlin NO admite referencias adelantadas a funciones locales.** Colocar el bloque **después** de
-  las funciones que llama.
+  las funciones que llama. ⚠️ Matiz que costó un `BUILD FAILED` en la 014: **sí** se puede capturar una
+  `var` declarada después desde el cuerpo de una lambda (`LaunchedEffect`), porque la lambda se
+  evalúa cuando corre. Lo que se resuelve al compilar es la **llamada a la función local**, y esa sí
+  exige orden.
+- **`^` no ancla al principio de cada línea en Kotlin** sin `RegexOption.MULTILINE`, y el índice que
+  devuelve un `findAll` es un **desplazamiento en caracteres, no un número de línea**: usarlo como
+  índice de lista deja el rango vacío y descarta todas las coincidencias **en silencio**. Pasó en dos
+  invariantes de la 014 que daban verde sin comprobar nada. Todo recorrido por fuente lleva ahora una
+  **autocomprobación** que verifica que está leyendo el archivo.
+- **Al unificar dos código, comparar el comportamiento rama por rama, no la forma.** La 014: los dos
+  mandos de formato (conmutable y con valor) compartían esqueleto pero **decidían distinto** con el
+  cursor suelto —el conmutable mira la letra de debajo, el de valor solo lo pendiente—. Unificar sin
+  esa comparación habría cambiado el color al pulsar sobre una letra ya coloreada.
+- **`applyBlocksChange` repone el cursor al final del bloque.** No usarlo donde antes se asignaba
+  `blocks` directamente: al convertir a título, el cursor habría saltado al final en cada `h1`.
+- **Kotlin NO hace smart cast sobre una propiedad delegada.** `if (inPlaceAction != null)` con
+  `inPlaceAction` de `collectAsStateWithLifecycle()` no estrecha el tipo: salía «Smart cast to
+  'AiAction' is impossible». Se lee a un `val` y se pasa ese.
+- **Cerrar un diálogo son cuatro operaciones, no una.** `onDismissRequest`, «cancelar», «aceptar» y
+  «cerrar» **no coinciden** en ningún diálogo: el de URL limpia los campos en «cancelar» pero no al
+  tocar fuera; el de imagen y vídeo sí limpia en los dos. Y en `UrlActionDialog` al editar hay que
+  cerrarse **antes** de abrir el de escribir, así que un `onClose` compartido del padre las pisaría.
+  **Un patrón que acierta cinco de seis es el que hace que el sexto se rompa sin que se entienda por
+  qué**: hay que leer cada diálogo, no copiar el del vecino.
+- **Un `when` de un brazo por cada constante de una enumeración es una tabla de despacho, no lógica.**
+  Partirlo en varios ficheros lo hace más disperso, no más legible. Aplicar la regla de las 20 líneas
+  a lógica, y dejarlo escrito en el invariante para que el número no parezca arbitrario.
 - **Apóstrofos crudos** en `strings.xml` rompen `mergeDebugResources`, **después** de que Kotlin
   compila limpio. Y en `strings.xml` los saltos son `\n` literal, nunca 0x0A.
 - **Un `BUILD SUCCESSFUL` puede no ejecutar nada**: `testDebugUnitTest` sale `UP-TO-DATE`; usar
@@ -99,11 +151,40 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
   `HEADER_ROW`, `headerHeightPx`, `setHeader` y `moveColumn` muerto. Montar el fixture **por la ruta de
   lectura**, no por el constructor.
 
-## Próximos pasos 
-- **Verificar en dispositivo, spec 012**: que el `WebView` pinte y no deje la pantalla en negro al
-  cambiar de modo; que el reparto 50/50 sea el esperado y las dos mitades no se desalineen al
-  desplazar; que el chip no desborde con «Mitad y mitad» en los 8 locales; y que una lista de tarea
-  salga con casilla. Las pruebas puras comprueban **qué se compone** y el HTML, no que se vea.
+## Próximos pasos
+- **Defecto encontrado en la 014, sin arreglar a propósito** (esta spec es de cero cambio de
+  comportamiento, así que queda reportado, no tocado): `removeTransformForTag("normal", …)` **no
+  tiene brazo `normal`** y cae en `else`, o sea que el botón «normal» de la barra **no hace nada**.
+  El brazo que sí limpia todo está en `applyTransformForTag`. Son ~2 líneas.
+- **Asimetría conservada a propósito, spec 014**: con el cursor sobre una letra ya coloreada y sin
+  color pendiente, pulsar el color **vuelve a colorear** en vez de borrarlo, porque el mando de valor
+  decide solo por el estilo pendiente. El conmutable sí mira la letra. Está documentado en
+  `applyTagToSelection` y fijado por dos pruebas. Corregirlo es otra spec.
+- **Spec 015 (siguiente)**, en este orden:
+  1. **Decidir cómo se modelan los `InsertMediaDialog` ×2** (14 parámetros, 8 de ellos eventos).
+     Es la primera decisión, porque de ella depende si salen como un diálogo o como dos.
+  2. Agrupar el estado del editor (95 declaraciones) y recordar los ~11 manejadores de las barras.
+     Es lo que queda de `NoteEditorScreen`, y es de riesgo alto porque el estado se comparte **por
+     identidad** con `BlockEditor` (`pendingInsert`, `pendingSelection` y `pendingTagInsert` se le
+     pasan como objetos `MutableState`, y `toolbarParseResult` lo escribe el hijo y lo lee la
+     barra). **Es también lo único que puede bajar `NoteEditorScreen.kt` de las 600 líneas**: sin
+     partir el composable, RNF-43 no se cumple para ese fichero.
+  3. Desbloquea partir `handlePickedFile`, `openExternalFile`, `moveBlockToAnotherNote` y
+     `handleSlashSelect`.
+- **Verificar en dispositivo, T6-T8 de la 014**: solo superficie movida, así que lo comprobable es
+  poco pero real: que la **hoja de voz** siga grabando y que cerrar con una grabación en curso la
+  detenga (es la trampa de la decisión 7: los `remember` viven dentro de la hoja); que la **paleta**
+  siga aplicando color e imagen de fondo; que el **panel de IA** mande la nota entera en resumir y
+  corregir, y que «generar» siga tomando lo seleccionado; y que los **cinco diálogos** acepten,
+  cancelen y cierren como antes. Nada de esto se ha visto en una pantalla.
+- **Verificar en dispositivo, specs 005-013**: **ninguna de las specs 005 a 013 se ha visto en una
+  pantalla**, y todas comparten el mismo riesgo: las pruebas puras comprueban **qué se compone** y la
+  aritmética, no que se vea. Por spec: 012, el `WebView` pinta y no deja la pantalla negra al
+  cambiar de modo, el reparto 50/50 no se desalinea y las listas de tarea salen con casilla. 009, que
+  una celda larga se lea **entera** en varias líneas. 008, que la fila 0 se comporte como las demás.
+  005, que el margen de 60 dp por tabla no sea excesivo. 006, que la píldora no quede tapada por el
+  teclado y que la hoja se cierre de verdad antes de abrir el otro selector (RF-35). 013, que la
+  acción del editor de código llegue a crear la nota. Detalle largo en `specs/*/plan.md`.
 - **Defecto conocido, sin spec**: el enfasis dentro de una celda de tabla o del texto de un título no
   se tokeniza, porque el token de bloque cubre el texto entero. Sale del color de la celda, no del
   enfasis. Es coherente con RF-65, pero conviene mirarlo en una pantalla.
@@ -114,7 +195,11 @@ Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aport
 - **Verificar en dispositivo, spec 008**: que la fila 0 se pinte como cabecera y se pueda borrar y arrastrar como las demás; que con la opción apagada siga visible como fila de datos; que el tirador de columna salga al enfocar una celda de la fila 0 con la opción apagada; y que el HTML exportado conserve la cabecera. **Nada de esto se ha visto en una pantalla**: es riesgo declarado.
 - **Unificar el segundo modelo de tabla, sin spec**: `NoteContentBlock.TableBlock` sigue guardando los títulos aparte y lo usan la lectura sin edición, el TTS y la previsualización. Al unificarlo se arreglaría de paso el defecto conocido de `BlockEditor.kt:1011`.
 - **Verificar en dispositivo, spec 005**: el margen de 60dp por tabla puede resultar excesivo, y una tabla como primer bloque (nada de la 005 se ha visto); 90/120 Hz y jank con `FrameMetrics`; que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).
-- **Verificar en dispositivo, spec 006** (riesgo declarado): que la píldora no quede tapada por el teclado, que el `errorContainer` en modo detener tenga contraste, que el campo bloqueado se lea como bloqueado, que cuatro líneas no se salgan de la `Surface` de 28 dp, que el rebote se perciba, que la hoja se cierre de verdad antes de abrir el otro selector (RF-35), que el saludo más largo (francés, 37 caracteres) quepa en pantalla estrecha, que las etiquetas nuevas quepan en el `LazyRow` y que el **relleno horizontal de 32 dp por lado** del campo nuevo —el doble de los 16 del `bottomBar` viejo, explícitamente **fuera del alcance** de la spec («las medidas exactas del nuevo campo»), así que no es incumplimiento— no se vea disparado en pantalla estrecha.
+- **Verificar en dispositivo, spec 006** (riesgo declarado): que la píldora no quede tapada por el
+  teclado, que el `errorContainer` en modo detener tenga contraste, que el campo bloqueado se lea como
+  bloqueado, que el saludo más largo (francés, 37 caracteres) quepa en pantalla estrecha y que las
+  etiquetas nuevas quepan en el `LazyRow`. El relleno horizontal de 32 dp del campo nuevo es
+  **explícitamente fuera del alcance** de la spec, así que no es incumplimiento.
 - **Defecto conocido, sin spec**: `BlockEditor.kt:1011` tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y previsualización. Son ~4 líneas.
 - **Defecto conocido, sin spec**: `BlockEditor.kt:92` comparte un único `pendingSelection` entre todos los bloques y `EditableChecklistBlock` no informa de su selección.
 - Spec 002, T4-T5: generar los dos goldens que faltan y fijar `roborazzi.test.verify`.
