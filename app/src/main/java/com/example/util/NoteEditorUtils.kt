@@ -138,7 +138,14 @@ fun preprocessMarkdownBlocks(text: String): String {
             trimmed.count { it == '*' },
             trimmed.count { it == '_' }
         )
-        if (!trimmed.contains('|') && hrCounts.any { it >= 3 } && trimmed.matches(Regex("^[-*_ ]+$"))) {
+        // Una raya **bajo texto** no es raya: es el subrayado de un encabezado setext (RF-90, caso límite 3).
+        // Sin esta condición el `---` se convertiría en `<hr/>` antes de llegar al analizador de texto y el
+        // encabezado no se vería nunca en una nota. Que las dos capas decidan distinto es justo lo que la
+        // spec 012 ya pagó una vez con `---` dentro de una tabla.
+        val isUnderlineChar = trimmed.isNotEmpty() && (trimmed.all { it == '-' } || trimmed.all { it == '=' })
+        val lineAbove = if (i > 0) lines[i - 1].trim() else ""
+        val underlineBelowText = isUnderlineChar && lineAbove.isNotEmpty() && !lineAbove.startsWith("|")
+        if (!trimmed.contains('|') && hrCounts.any { it >= 3 } && trimmed.matches(Regex("^[-*_ ]+$")) && !underlineBelowText) {
             result.append("<hr/>")
             i++
             continue

@@ -6,7 +6,13 @@ import com.example.util.MathRenderer
 import com.example.data.model.NoteContentBlock
 import com.example.util.parseToContentBlocks
 import com.example.util.toggleNthChecklistItem
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -164,15 +170,21 @@ class RichTextParserTest {
 
     @Test
     fun testHorizontalRuleMarkdown() {
-        val raw = "Text above\n---\nText below"
-        val parsedHide = RichTextParser.parse(raw, hideTags = true)
-        assertTrue(parsedHide.text.contains("Text above"))
-        assertTrue(parsedHide.text.contains("Text below"))
+        // Comportamiento cambiado a propósito por la spec 016 (RF-90): `---` **bajo texto** es un
+        // encabezado setext, no una raya. La raya necesita la línea en blanco de antes. El caso `***` no
+        // cambia: nunca es un subrayado setext, solo guiones.
+        val bajoTexto = RichTextParser.parse("Text above\n---\nText below", hideTags = true)
+        assertTrue(bajoTexto.text.contains("Text above"))
+        assertTrue(bajoTexto.text.contains("Text below"))
+        assertFalse(bajoTexto.text.contains("-"))
 
-        val raw2 = "Text above\n***\nText below"
-        val parsedHide2 = RichTextParser.parse(raw2, hideTags = true)
-        assertTrue(parsedHide2.text.contains("Text above"))
-        assertTrue(parsedHide2.text.contains("Text below"))
+        val conBlancoAntes = RichTextParser.parse("Text above\n\n---\nText below", hideTags = true)
+        assertTrue(conBlancoAntes.text.contains("Text above"))
+        assertTrue(conBlancoAntes.text.contains("Text below"))
+
+        val asteriscos = RichTextParser.parse("Text above\n***\nText below", hideTags = true)
+        assertTrue(asteriscos.text.contains("Text above"))
+        assertTrue(asteriscos.text.contains("Text below"))
     }
 
     @Test
@@ -376,5 +388,266 @@ class RichTextParserTest {
         val parse = RichTextParser.parseWithMapping("# Title", hideTags = true)
         assertEquals(0, parse.previousVisibleOffset(2))
         assertEquals(2, parse.nextVisibleOffset(0))
+    }
+
+    // ===================================================================================================
+    // Spec 016 — GFM en el markup heredado
+    // ===================================================================================================
+
+    // -------------------------------- Setext (RF-90) --------------------------------------------------
+
+    @Test
+    fun testSetextIgualesDaPrimerNivel() {
+        val parsed = RichTextParser.parseWithMapping("Título\n===", hideTags = true)
+        // El texto del título se ve entero y la línea de iguales desaparece.
+        assertEquals("Título", parsed.text.text.trim())
+        assertTrue(parsed.text.spanStyles.any { it.item.fontSize == 24.sp })
+    }
+
+    @Test
+    fun testSetextGuionesDaSegundoNivel() {
+        val parsed = RichTextParser.parseWithMapping("Título\n---", hideTags = true)
+        assertEquals("Título", parsed.text.text.trim())
+        assertTrue(parsed.text.spanStyles.any { it.item.fontSize == 20.sp })
+    }
+
+    @Test
+    fun testRayaSinTextoEncimaSigueSiendoRaya() {
+        // Sin texto justo encima, `---` es raya y no encabezado: es lo que decide el caso límite 2.
+        val conBlanco = RichTextParser.parseWithMapping("Texto\n\n---", hideTags = true)
+        assertFalse(conBlanco.text.spanStyles.any { it.item.fontSize == 20.sp })
+
+        val alPrincipio = RichTextParser.parseWithMapping("---\nTexto", hideTags = true)
+        assertFalse(alPrincipio.text.spanStyles.any { it.item.fontSize == 20.sp })
+    }
+
+    @Test
+    fun testSetextYLaCapaDeBloquesCoinciden() {
+        // El `---` bajo texto no puede convertirse en `<hr/>` antes de llegar aquí: si lo hiciera, el
+        // encabezado setext no se vería nunca en una nota (caso límite 3).
+        val bloques = parseToContentBlocks("Texto\n---")
+        assertFalse(bloques.any { it is NoteContentBlock.HorizontalRuleBlock })
+    }
+
+    // -------------------------------- Enlaces por referencia (RF-91) -----------------------------------
+
+    @Test
+    fun testEnlacePorReferenciaResuelto() {
+        val parsed = RichTextParser.parseWithMapping(
+            "Ver [el manual][man] y luego [man].\n\n[man]: https://ejemplo.com",
+            hideTags = true
+        )
+        val anotaciones = parsed.text.getStringAnnotations("URL", 0, parsed.text.length)
+        assertEquals(2, anotaciones.size)
+        assertTrue(anotaciones.all { it.item == "https://ejemplo.com" })
+        // Solo se ve el texto del enlace: los corchetes y la definición quedan ocultos.
+        assertFalse(parsed.text.text.contains("[el manual]"))
+        assertFalse(parsed.text.text.contains("[man]"))
+    }
+
+    @Test
+    fun testEnlacePorReferenciaSinDefinicionQuedaLiteral() {
+        val parsed = RichTextParser.parseWithMapping("Ver [el manual][man] aquí.", hideTags = true)
+        assertEquals("Ver [el manual][man] aquí.", parsed.text.text)
+        assertEquals(0, parsed.text.getStringAnnotations("URL", 0, parsed.text.length).size)
+    }
+
+    @Test
+    fun testColapsadoSinDefinicionNoEsEnlace() {
+        // La diferencia con el tokenizador de la spec 012, donde `[ref]` sí es enlace: aquí, sin definición,
+        // es texto. Son dos gramáticas distintas y unirlas daría un resultado que no es el de ninguna.
+        val parsed = RichTextParser.parseWithMapping("Un [ref] suelto.", hideTags = true)
+        assertEquals("Un [ref] suelto.", parsed.text.text)
+    }
+
+    @Test
+    fun testDefinicionDeReferenciaEsMarcaProtegida() {
+        val parse = RichTextParser.parseWithMapping("x\n[r]: https://ejemplo.com\ny", hideTags = true)
+        val definicion = parse.text.text.indexOf("https")
+        assertTrue("La definición debería ocultarse", definicion < 0)
+        val range = parse.protectedRanges.first { it.first == 2 }
+        assertEquals(2, parse.snapOffset(5))
+        assertEquals(range.last + 1, parse.snapOffset(24))
+        assertEquals(1, parse.previousVisibleOffset(10))
+        assertEquals(range.last + 1, parse.nextVisibleOffset(10))
+    }
+
+    // -------------------------------- Autolink con ángulos (RF-92) ------------------------------------
+
+    @Test
+    fun testAutolinkConAngulosNoDesaparece() {
+        // El fallo que viene a arreglar esta spec: hoy este texto desaparece de la nota.
+        val parsed = RichTextParser.parseWithMapping("Ver <https://ejemplo.com> ahora.", hideTags = true)
+        assertEquals("Ver https://ejemplo.com ahora.", parsed.text.text)
+    }
+
+    @Test
+    fun testAutolinkConAngulosEsEnlacePulsable() {
+        val parsed = RichTextParser.parseWithMapping("<https://ejemplo.com>", hideTags = true)
+        val anotaciones = parsed.text.getStringAnnotations("URL", 0, parsed.text.length)
+        assertEquals(1, anotaciones.size)
+        assertEquals("https://ejemplo.com", anotaciones.first().item)
+    }
+
+    @Test
+    fun testAutolinkDeCorreoSePinta() {
+        val parsed = RichTextParser.parseWithMapping("<correo@ejemplo.com>", hideTags = true)
+        assertEquals("correo@ejemplo.com", parsed.text.text)
+    }
+
+    @Test
+    fun testEtiquetaHtmlSigueSiendoEtiqueta() {
+        // El arreglo es aditivo: lo que no es autolink cae en el camino de etiquetas de siempre.
+        val negrita = RichTextParser.parseWithMapping("<b>negrita</b>", hideTags = true)
+        assertEquals("negrita", negrita.text.text)
+        assertTrue(negrita.text.spanStyles.any { it.item.fontWeight == FontWeight.Bold })
+
+        val etiquetaUrl = RichTextParser.parseWithMapping("<url=https://ejemplo.com>texto</url>", hideTags = true)
+        assertEquals("texto", etiquetaUrl.text.text)
+    }
+
+    @Test
+    fun testAutolinkEsMarcaProtegida() {
+        val parse = RichTextParser.parseWithMapping("a <https://x.com> b", hideTags = true)
+        // Los ángulos son rango protegido: el cursor no puede parar entre ellos.
+        assertTrue(parse.protectedRanges.any { it.first == 2 })
+        assertEquals(2, parse.snapOffset(2))
+        assertEquals(3, parse.nextVisibleOffset(2))
+        assertEquals(1, parse.previousVisibleOffset(3))
+
+        val closeRange = parse.protectedRanges.first { it.first == 16 }
+        assertEquals(16, parse.snapOffset(16))
+        assertEquals(closeRange.last + 1, parse.nextVisibleOffset(16))
+        assertEquals(15, parse.previousVisibleOffset(17))
+    }
+
+    // -------------------------------- Cierre de encabezado (RF-93) -------------------------------------
+
+    @Test
+    fun testHashesDeCierreSeOcultan() {
+        val parsed = RichTextParser.parseWithMapping("## Título ##", hideTags = true)
+        assertEquals("Título", parsed.text.text)
+    }
+
+    @Test
+    fun testHashesPegadosNoSeOcultan() {
+        // Sin espacio delante, los `#` son parte del título, no su cierre.
+        val parsed = RichTextParser.parseWithMapping("## Título#", hideTags = true)
+        assertEquals("Título#", parsed.text.text)
+    }
+
+    @Test
+    fun testHashesDeCierreEnModoGrisSeVen() {
+        val parsed = RichTextParser.parseWithMapping("## Título ##", hideTags = false, showTagsGray = true)
+        assertTrue(parsed.text.text.contains("##"))
+    }
+
+    @Test
+    fun testHashesDeCierreEsMarcaProtegida() {
+        val parse = RichTextParser.parseWithMapping("## Título ##\ny", hideTags = true)
+        val range = parse.protectedRanges.first { it.first == 9 }
+        assertEquals(9, parse.snapOffset(9))
+        assertEquals(range.last + 1, parse.snapOffset(11))
+        assertEquals(8, parse.previousVisibleOffset(10))
+        assertEquals(range.last + 1, parse.nextVisibleOffset(10))
+    }
+
+    // -------------------------------- Viñeta `+` (RF-94) -----------------------------------------------
+
+    @Test
+    fun testMasEsUnaViñeta() {
+        val conGuion = RichTextParser.parse("- Uno\n- Dos", hideTags = true)
+        val conMas = RichTextParser.parse("+ Uno\n+ Dos", hideTags = true)
+        assertEquals(conGuion.text, conMas.text)
+        assertTrue(conMas.text.contains("•"))
+    }
+
+    // -------------------------------- Código con tiradas (RF-95) ---------------------------------------
+
+    @Test
+    fun testCodigoConTiradaDeBackticks() {
+        val parsed = RichTextParser.parseWithMapping("Usa `` `a` `` aquí.", hideTags = true)
+        assertEquals("Usa `a` aquí.", parsed.text.text)
+    }
+
+    @Test
+    fun testTiradaImparSinCierreQuedaVisible() {
+        // Va **dentro** de una línea a propósito: al principio de línea, ` ``` ` abre una cerca, que es lo que
+        // ya hacía el analizador y no tiene nada que ver con el código en línea.
+        val parsed = RichTextParser.parseWithMapping("ver ```a`` aquí", hideTags = true)
+        assertTrue(parsed.text.text.contains("```"))
+        assertTrue(parsed.text.text.contains("``"))
+    }
+
+    // -------------------------------- Énfasis intraword (RF-96) ----------------------------------------
+
+    @Test
+    fun testEnfasisIntrawordNoSeAplica() {
+        val asterisco = RichTextParser.parse("a*b*c", hideTags = true)
+        assertEquals("a*b*c", asterisco.text)
+        assertFalse(asterisco.spanStyles.any { it.item.fontStyle == FontStyle.Italic })
+
+        val guion = RichTextParser.parse("ancho_maximo", hideTags = true)
+        assertFalse(guion.spanStyles.any { it.item.fontStyle == FontStyle.Italic })
+    }
+
+    @Test
+    fun testEnEmphasisNormalSigueFuncionando() {
+        // La regla de RF-96 quita el énfasis **dentro** de palabra, no el de siempre.
+        val cursiva = RichTextParser.parse("por *esto* pasa", hideTags = true)
+        assertTrue(cursiva.spanStyles.any { it.item.fontStyle == FontStyle.Italic })
+
+        val fuerte = RichTextParser.parse("por **esto** pasa", hideTags = true)
+        assertTrue(fuerte.spanStyles.any { it.item.fontWeight == FontWeight.Bold })
+    }
+
+    // -------------------------------- Tabla como texto (RF-97) -----------------------------------------
+
+    @Test
+    fun testTablaComoTextoPintaCabeceraYSeparadora() {
+        val parsedGris = RichTextParser.parseWithMapping(
+            "Antes\n| A | B |\n| --- | --- |\n| 1 | 2 |",
+            hideTags = false, showTagsGray = true
+        )
+        val negrita = parsedGris.text.spanStyles.any { it.item.fontWeight == FontWeight.Bold }
+        assertTrue("La fila de cabecera debería ir en negrita", negrita)
+        assertTrue(parsedGris.text.text.contains("| --- | --- |"))
+        assertTrue(parsedGris.text.spanStyles.any { it.item.color == Color(0xFF9E9E9E) })
+
+        val parsedOculto = RichTextParser.parseWithMapping(
+            "Antes\n| A | B |\n| --- | --- |\n| 1 | 2 |",
+            hideTags = true
+        )
+        assertFalse(parsedOculto.text.text.contains("| --- | --- |"))
+        val delimiterRange = parsedOculto.protectedRanges.firstOrNull { it.first == 16 }
+        assertTrue("La fila separadora debe estar protegida", delimiterRange != null)
+    }
+
+    @Test
+    fun testFilaSeparadoraEsMarcaProtegida() {
+        val parse = RichTextParser.parseWithMapping(
+            "| A | B |\n| --- | --- |\n| 1 | 2 |",
+            hideTags = true
+        )
+        val range = parse.protectedRanges.first { it.first == 10 }
+        assertEquals(10, parse.snapOffset(12))
+        assertEquals(range.last + 1, parse.snapOffset(21))
+        assertEquals(9, parse.previousVisibleOffset(15))
+        assertEquals(range.last + 1, parse.nextVisibleOffset(15))
+    }
+
+    @Test
+    fun testTablaDeBloqueNoSeRompone() {
+        // Si la tabla llega convertida en bloque, el comportamiento es el de siempre.
+        val bloques = parseToContentBlocks("Antes\n| A | B |\n| --- | --- |\n| 1 | 2 |\nDespués")
+        val tabla = bloques.find { it is NoteContentBlock.TableBlock } as NoteContentBlock.TableBlock
+        assertEquals(listOf("A", "B"), tabla.headers)
+        assertEquals(1, tabla.rows.size)
+    }
+
+    @Test
+    fun testTablaDeUnaColumnaNoSeReconoce() {
+        val parsed = RichTextParser.parse("| --- |", hideTags = false, showTagsGray = true)
+        assertFalse(parsed.spanStyles.any { it.item.fontWeight == FontWeight.Bold })
     }
 }

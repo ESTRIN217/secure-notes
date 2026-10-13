@@ -75,6 +75,31 @@ class RichTextParser {
         val builder = AnnotatedString.Builder()
         val offsetMapper = OffsetMapper()
         val mapping = offsetMapper.createMapping(N)
+
+        // Pre-pasada de las definiciones de enlace por referencia (RF-91). Va **antes** del bucle porque el
+        // bucle es de una sola pasada y una definición puede estar *después* del enlace que la usa: sin esto,
+        // `[texto][r]` no encontraría nunca un `[r]:` de abajo. Sale temprano si el documento no tiene ni un
+        // corchete, que es el caso de la mayoría de las notas.
+        val references = GfmMarkup.collectReferenceDefinitions(rawText)
+
+        // Estado de la línea que se está pintando, para decidir lo que solo se puede saber mirando atrás:
+        // si la línea de arriba tenía texto (setext) y dónde empieza y acaba en el buffer (para aplicarle el
+        // estilo cuando el subrayado llegue **después** de haberla escrito ya).
+        var currentLineBuilderStart = 0
+        var currentLineHadText = false
+        var currentLineHadBlockMarker = false
+        // Lo que **acabó** en el salto de línea anterior. El setext y la tabla con tubería necesitan mirar
+        // atrás: su regla depende de si la línea de arriba tenía texto, y su estilo se aplica a un tramo que
+        // ya está escrito. Se captura **antes** de reiniciar el estado de la línea nueva; si se hiciera
+        // después, la información se habría perdido y ninguna de las dos se reconocería nunca.
+        var previousLineBuilderStart = 0
+        var previousLineBuilderEnd = 0
+        var previousLineHadText = false
+        var currentLineSourceStart = 0
+        // Índice del primer `#` de cierre del encabezado de la línea actual, o −1 (RF-93). Se calcula al
+        // empezar el encabezado, cuando la línea entera está a la vista; después solo hay que alcanzarlo.
+        var closingHashesFrom = -1
+
         val activeStyles = mutableListOf<ActiveStyle>()
         val olIndexStack = mutableListOf<Int>()
         val ulStack = mutableListOf<Boolean>()
@@ -106,15 +131,82 @@ class RichTextParser {
                     skipOrGrayTagChars(rawText, builder, mapping, i, fenceEnd, showTagsGray = false)
                     i = rawText.indexOf('\n', fenceEnd).let { if (it == -1) N else it + 1 }
                     isLineStart = true
+                    currentLineHadBlockMarker = true
+                    continue
+                }
+
+                // --- Setext (RF-90). El subrayado llega **después** de que la línea de arriba esté ya en el
+                // buffer, así que se le aplica el estilo a ese tramo ya escrito en lugar de rebobinar. La
+                // condición de «la de arriba tenía texto» es lo que distingue un encabezado de una raya.
+                val setext = GfmMarkup.setextAt(rawText, i, previousLineHadText)
+                if (setext != null) {
+                    val style = setextHeadingStyle(setext)
+                    val underlineEnd = rawText.indexOf('\n', i).let { if (it == -1) N else it }
+                    // Se estiliza la línea anterior, que ya está escrita, y se oculta la de subrayado.
+                    if (previousLineBuilderEnd > previousLineBuilderStart) {
+                        builder.addStyle(style, previousLineBuilderStart, previousLineBuilderEnd)
+                    }
+                    for (k in i until underlineEnd) OffsetMapper.skipChar(mapping, k)
+                    i = underlineEnd
+                    isLineStart = true
+                    currentLineHadText = false
+                    currentLineHadBlockMarker = false
+                    currentLineBuilderStart = builder.length
+                    currentLineSourceStart = underlineEnd + 1
+                    previousLineHadText = false
+                    continue
+                }
+
+                // --- Definición de enlace por referencia (RF-91): se oculta o engrise la línea entera.
+                val referenceDefinition = references.at(i)
+                if (referenceDefinition != null) {
+                    skipOrGrayTagChars(rawText, builder, mapping, referenceDefinition.start, referenceDefinition.end, showTagsGray)
+                    i = referenceDefinition.end
+                    isLineStart = true
+                    currentLineHadText = false
+                    currentLineHadBlockMarker = true
+                    currentLineBuilderStart = builder.length
+                    continue
+                }
+
+                // --- Tabla con tubería que llega como texto (RF-97). Se estiliza la fila de cabecera, que
+                // ya está en el buffer, y se engrise la separadora. Las filas de datos se dejan como están.
+                if (GfmMarkup.tableDelimiterAt(rawText, i)) {
+                    if (previousLineBuilderEnd > previousLineBuilderStart) {
+                        builder.addStyle(
+                            SpanStyle(fontWeight = FontWeight.Bold),
+                            previousLineBuilderStart,
+                            previousLineBuilderEnd
+                        )
+                    }
+                    val delimiterEnd = rawText.indexOf('\n', i).let { if (it == -1) N else it }
+                    skipOrGrayTagChars(rawText, builder, mapping, i, delimiterEnd, showTagsGray)
+                    i = delimiterEnd
+                    isLineStart = true
+                    currentLineHadText = false
+                    currentLineHadBlockMarker = true
+                    currentLineBuilderStart = builder.length
+                    currentLineSourceStart = delimiterEnd + 1
+                    previousLineHadText = false
                     continue
                 }
 
                 val result = parseLineStartMarkers(rawText, i, builder, mapping,
                     hideTags, showTagsGray, activeStyles,
-                    olIndexStack, ulStack, listContainerStack)
+                    olIndexStack, ulStack, listContainerStack, references)
                 if (result != null) {
                     i = result
                     isLineStart = false
+                    currentLineHadBlockMarker = true
+                    currentLineBuilderStart = builder.length
+                    currentLineSourceStart = i
+                    // Si lo que empieza aquí es un encabezado, se apunta dónde empieza el cierre (RF-93) —el
+                    // `#` del cierre y **el espacio que lo precede**, que es parte del cierre y no del
+                    // título—. Se apunta antes de que ese espacio llegue al buffer: si se apuntara solo a los
+                    // `#`, el espacio ya estaría escrito y ocultarlo después no lo quitaría de la pantalla.
+                    closingHashesFrom = if (isHeadingActive(activeStyles)) {
+                        closingHashMarkStart(rawText, i, result)
+                    } else -1
                     continue
                 }
             }
@@ -131,7 +223,21 @@ class RichTextParser {
                 appendChar(rawText[i + 1], builder, mapping, i + 1)
                 i += 2
                 isLineStart = false
+                currentLineHadText = true
                 continue
+            }
+
+            // --- Autolink con ángulos (RF-92). Va **antes** del `char == '<'` de las etiquetas HTML, porque
+            // hoy `<https://…>` se pierde: `HtmlTagParser` lee la URL como nombre de etiqueta y oculta el
+            // tramo entero. Lo que no sea autolink cae al camino de etiquetas de siempre, intacto.
+            if (char == '<' && (hideTags || showTagsGray)) {
+                val autolink = GfmMarkup.angleAutolink(rawText, i)
+                if (autolink != null) {
+                    i = paintAngleAutolink(autolink, builder, mapping, rawText, showTagsGray, activeStyles)
+                    isLineStart = false
+                    currentLineHadText = true
+                    continue
+                }
             }
 
             if (char == '<' && (hideTags || showTagsGray)) {
@@ -139,22 +245,42 @@ class RichTextParser {
                 if (tagInfo != null) {
                     i = handleHtmlTag(tagInfo, builder, mapping, rawText, hideTags, showTagsGray, activeStyles,
                         olIndexStack, ulStack, listContainerStack)
+                    isLineStart = false
+                    currentLineHadText = true
                     continue
                 }
             }
 
             if (hideTags || showTagsGray) {
-                val markdownResult = parseMarkdownSyntax(rawText, i, builder, mapping, hideTags, showTagsGray, activeStyles)
+                val markdownResult = parseMarkdownSyntax(rawText, i, builder, mapping, hideTags, showTagsGray, activeStyles, references)
                 if (markdownResult != null) {
                     i = markdownResult
                     continue
                 }
             }
 
+            if (i == closingHashesFrom) {
+                val hashesEnd = rawText.indexOf('\n', i).let { if (it == -1) N else it }
+                skipOrGrayTagChars(rawText, builder, mapping, i, hashesEnd, showTagsGray)
+                i = hashesEnd
+                closingHashesFrom = -1
+                isLineStart = false
+                continue
+            }
+
             appendChar(rawText[i], builder, mapping, i)
 
             if (char == '\n') {
+                // Antes de reiniciar, se guarda lo que estaba escribiendo la línea que termina.
+                previousLineBuilderStart = currentLineBuilderStart
+                previousLineBuilderEnd = builder.length - 1
+                previousLineHadText = currentLineHadText && !currentLineHadBlockMarker
                 isLineStart = true
+                currentLineBuilderStart = builder.length
+                currentLineHadText = false
+                currentLineHadBlockMarker = false
+                currentLineSourceStart = i + 1
+                closingHashesFrom = -1
                 if (hideTags || showTagsGray) {
                     endStyle(activeStyles, "h1", builder)
                     endStyle(activeStyles, "h2", builder)
@@ -166,6 +292,7 @@ class RichTextParser {
                 }
             } else {
                 isLineStart = false
+                currentLineHadText = true
             }
             i++
         }
@@ -192,7 +319,9 @@ class RichTextParser {
     private fun parseLineStartMarkers(
         rawText: String, i: Int, builder: AnnotatedString.Builder, mapping: OffsetMapper.MappingArrays,
         hideTags: Boolean, showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>,
-        olIndexStack: MutableList<Int>, ulStack: MutableList<Boolean>, listContainerStack: MutableList<String>
+        olIndexStack: MutableList<Int>, ulStack: MutableList<Boolean>,
+        listContainerStack: MutableList<String>,
+        references: GfmMarkup.ReferenceDefinitions
     ): Int? {
         val lineEnd = rawText.indexOf('\n', i).let { if (it == -1) rawText.length else it }
         val lineContent = rawText.substring(i, lineEnd)
@@ -226,7 +355,10 @@ class RichTextParser {
             LineMarker("- [X] ", null, "checked", if (showTagsGray) null else "☑ "),
             LineMarker("* [X] ", null, "checked", if (showTagsGray) null else "☑ "),
             LineMarker("- ", null, "list", if (showTagsGray) null else "• "),
-            LineMarker("* ", null, "list", if (showTagsGray) null else "• ")
+            LineMarker("* ", null, "list", if (showTagsGray) null else "• "),
+            // `+` es viñeta en GFM (RF-94). Entra en la misma lista que `-` y `*`: el glifo y el tratamiento
+            // ya están resueltos, así que es una línea más y no una rama nueva.
+            LineMarker("+ ", null, "list", if (showTagsGray) null else "• ")
         )
 
         val lineFromI = rawText.substring(i)
@@ -305,6 +437,119 @@ class RichTextParser {
         }
 
         return null
+    }
+
+    /** Estilo de un encabezado setext: los mismos colores y tamaños que los ATX de la lista de marcadores. */
+    private fun setextHeadingStyle(kind: SetextKind): SpanStyle = when (kind) {
+        SetextKind.H1 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFFB8C00))
+        SetextKind.H2 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFF57C00))
+    }
+
+    private fun isHeadingActive(activeStyles: MutableList<ActiveStyle>): Boolean =
+        activeStyles.any { it.type.length == 2 && it.type[0] == 'h' && it.type[1].isDigit() }
+
+    /**
+     * Índice desde el que hay que ocultar el cierre de un encabezado (RF-93), o −1 si no cierra.
+     *
+     * Es el del primer `#`, **retrocediendo un espacio** si lo hay: `## Título ##` se ve como `## Título`,
+     * sin el espacio colgando. Y se devuelve −1 cuando los `#` están pegados al texto, porque entonces son
+     * parte del título y no su cierre.
+     */
+    private fun closingHashMarkStart(rawText: String, lineStart: Int, contentStart: Int): Int {
+        val hashesStart = GfmMarkup.closingHashStart(rawText, lineStart, contentStart) ?: return -1
+        val withSpace = if (hashesStart > contentStart && rawText[hashesStart - 1] == ' ') hashesStart - 1 else hashesStart
+        return withSpace
+    }
+
+    /**
+     * Pinta un autolink con ángulos: los ángulos se ocultan (o engrisan) y la URL queda como enlace con su
+     * anotación, para que al pulsarla se abra (RF-92).
+     *
+     * Los ángulos se ocultan con `skipOrGrayTagChars`, que además los registra como rango protegido: por eso
+     * el cursor salta de la URL al texto y no puede quedarse entre los dos ángulos.
+     */
+    private fun paintAngleAutolink(
+        autolink: AngleAutolink,
+        builder: AnnotatedString.Builder,
+        mapping: OffsetMapper.MappingArrays,
+        rawText: String,
+        showTagsGray: Boolean,
+        activeStyles: MutableList<ActiveStyle>
+    ): Int {
+        val urlStart = autolink.start + 1
+        val urlEnd = urlStart + autolink.url.length
+        skipOrGrayTagChars(rawText, builder, mapping, autolink.start, urlStart, showTagsGray)
+        val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+        startStyle(activeStyles, "url", linkStyle, builder, annotation = autolink.url)
+        for (k in urlStart until urlEnd) appendChar(rawText[k], builder, mapping, k)
+        endStyle(activeStyles, "url", builder)
+        skipOrGrayTagChars(rawText, builder, mapping, urlEnd, autolink.end, showTagsGray)
+        return autolink.end
+    }
+
+    /**
+     * Enlace por referencia: `[texto][r]`, `[texto][]` o `[r]` a secas (RF-91).
+     *
+     * Devuelve el índice siguiente al enlace, o `null` si aquí no hay uno **o si la etiqueta no está definida**
+     * en el documento. Ese `null` es lo que deja `[algo]` como texto literal: sin definición no es un enlace,
+     * y es la diferencia con el tokenizador de la spec 012, donde `[ref]` sí lo es.
+     */
+    private fun parseReferenceLink(
+        rawText: String, i: Int, builder: AnnotatedString.Builder,
+        mapping: OffsetMapper.MappingArrays, showTagsGray: Boolean,
+        activeStyles: MutableList<ActiveStyle>, references: GfmMarkup.ReferenceDefinitions
+    ): Int? {
+        if (rawText[i] != '[') return null
+        val firstClose = rawText.indexOf(']', i + 1)
+        if (firstClose == -1) return null
+        val display = rawText.substring(i + 1, firstClose)
+
+        // Forma completa `[texto][r]` o colapsada `[texto][]`.
+        if (firstClose + 1 < rawText.length && rawText[firstClose + 1] == '[') {
+            val secondClose = rawText.indexOf(']', firstClose + 2)
+            if (secondClose == -1) return null
+            val label = rawText.substring(firstClose + 2, secondClose).ifEmpty { display }
+            return paintReferenceLink(rawText, i, firstClose + 2, secondClose + 1, display, label, references,
+                builder, mapping, showTagsGray, activeStyles)
+        }
+
+        // Forma colapsada `[r]`: enlace a sí mismo, **solo** si la etiqueta existe.
+        val url = references.urlFor(display) ?: return null
+        return paintCollapsedReferenceLink(rawText, i, firstClose + 1, display, url,
+            builder, mapping, showTagsGray, activeStyles)
+    }
+
+    private fun paintReferenceLink(
+        rawText: String, start: Int, labelStart: Int, end: Int, display: String, label: String,
+        references: GfmMarkup.ReferenceDefinitions, builder: AnnotatedString.Builder,
+        mapping: OffsetMapper.MappingArrays, showTagsGray: Boolean,
+        activeStyles: MutableList<ActiveStyle>
+    ): Int? {
+        val url = references.urlFor(label) ?: return null
+        val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+        // Los corchetes y la etiqueta son marca: se ocultan (o engrisan) y quedan fuera del texto pintado.
+        skipOrGrayTagChars(rawText, builder, mapping, start, start + 1, showTagsGray)
+        startStyle(activeStyles, "url", linkStyle, builder, annotation = url)
+        OffsetMapper.addChar(mapping, start + 1, builder.length)
+        builder.append(display)
+        endStyle(activeStyles, "url", builder)
+        skipOrGrayTagChars(rawText, builder, mapping, labelStart, end, showTagsGray)
+        return end
+    }
+
+    private fun paintCollapsedReferenceLink(
+        rawText: String, start: Int, end: Int, display: String, url: String,
+        builder: AnnotatedString.Builder, mapping: OffsetMapper.MappingArrays,
+        showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>
+    ): Int {
+        val linkStyle = SpanStyle(color = Color(0xFF1976D2), textDecoration = TextDecoration.Underline)
+        skipOrGrayTagChars(rawText, builder, mapping, start, start + 1, showTagsGray)
+        startStyle(activeStyles, "url", linkStyle, builder, annotation = url)
+        OffsetMapper.addChar(mapping, start + 1, builder.length)
+        builder.append(display)
+        endStyle(activeStyles, "url", builder)
+        skipOrGrayTagChars(rawText, builder, mapping, end - 1, end, showTagsGray)
+        return end
     }
 
     private fun handleHtmlTag(
@@ -449,8 +694,16 @@ class RichTextParser {
 
     private fun parseMarkdownSyntax(
         rawText: String, i: Int, builder: AnnotatedString.Builder, mapping: OffsetMapper.MappingArrays,
-        hideTags: Boolean, showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>
+        hideTags: Boolean, showTagsGray: Boolean, activeStyles: MutableList<ActiveStyle>,
+        references: GfmMarkup.ReferenceDefinitions
     ): Int? {
+        // Enlace por referencia `[texto][r]` o `[r]`, resuelto con la pre-pasada (RF-91). Va **antes** del
+        // enlace en línea porque `[texto][r]` no lo casaría, pero si lo reconociera el orden importaría:
+        // primero la forma más específica. Si la etiqueta no está definida, la función devuelve `null` y el
+        // texto se queda literal, con sus corchetes.
+        val referenceLink = parseReferenceLink(rawText, i, builder, mapping, showTagsGray, activeStyles, references)
+        if (referenceLink != null) return referenceLink
+
         val linkMatch = markdownLinkRegex.find(rawText.substring(i))
         if (linkMatch != null) {
             val full = linkMatch.value
@@ -481,28 +734,45 @@ class RichTextParser {
         for (marker in boldMarkers) {
             if (rawText.startsWith(marker, i)) {
                 val isActive = activeStyles.any { it.type == marker }
-                if (showTagsGray) {
-                    if (isActive) { endStyle(activeStyles, marker, builder); skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, true) }
-                    else { skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, true); startStyle(activeStyles, marker, SpanStyle(fontWeight = FontWeight.Bold), builder) }
+                // La regla intraword (RF-96) decide si el delimitador aplica: para abrir mira lo de detrás y lo
+                // de delante; para cerrar, solo lo de delante. Si no aplica, **no** se toca el estilo y el
+                // asterisco sale como carácter normal.
+                val applies = if (isActive) {
+                    GfmMarkup.emphasisDelimiterClosesAt(rawText, i, 2)
                 } else {
-                    skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, showTagsGray)
-                    if (isActive) endStyle(activeStyles, marker, builder) else startStyle(activeStyles, marker, SpanStyle(fontWeight = FontWeight.Bold), builder)
+                    GfmMarkup.emphasisDelimiterAppliesAt(rawText, i, 2)
                 }
-                return i + 2
+                if (applies) {
+                    if (showTagsGray) {
+                        if (isActive) { endStyle(activeStyles, marker, builder); skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, true) }
+                        else { skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, true); startStyle(activeStyles, marker, SpanStyle(fontWeight = FontWeight.Bold), builder) }
+                    } else {
+                        skipOrGrayTagChars(rawText, builder, mapping, i, i + 2, showTagsGray)
+                        if (isActive) endStyle(activeStyles, marker, builder) else startStyle(activeStyles, marker, SpanStyle(fontWeight = FontWeight.Bold), builder)
+                    }
+                    return i + 2
+                }
             }
         }
 
         if (rawText[i] == '*' || rawText[i] == '_') {
             val marker = rawText[i].toString()
             val isActive = activeStyles.any { it.type == marker }
-            if (showTagsGray) {
-                if (isActive) { endStyle(activeStyles, marker, builder); skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, true) }
-                else { skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, true); startStyle(activeStyles, marker, SpanStyle(fontStyle = FontStyle.Italic), builder) }
+            val applies = if (isActive) {
+                GfmMarkup.emphasisDelimiterClosesAt(rawText, i, 1)
             } else {
-                skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, showTagsGray)
-                if (isActive) endStyle(activeStyles, marker, builder) else startStyle(activeStyles, marker, SpanStyle(fontStyle = FontStyle.Italic), builder)
+                GfmMarkup.emphasisDelimiterAppliesAt(rawText, i, 1)
             }
-            return i + 1
+            if (applies) {
+                if (showTagsGray) {
+                    if (isActive) { endStyle(activeStyles, marker, builder); skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, true) }
+                    else { skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, true); startStyle(activeStyles, marker, SpanStyle(fontStyle = FontStyle.Italic), builder) }
+                } else {
+                    skipOrGrayTagChars(rawText, builder, mapping, i, i + 1, showTagsGray)
+                    if (isActive) endStyle(activeStyles, marker, builder) else startStyle(activeStyles, marker, SpanStyle(fontStyle = FontStyle.Italic), builder)
+                }
+                return i + 1
+            }
         }
 
         if (rawText.startsWith("~~", i)) {
@@ -519,6 +789,36 @@ class RichTextParser {
         }
 
         if (rawText[i] == '`') {
+            // Código en línea. Con **tiradas** de acentos graves (RF-95) hay que cerrar con los mismos que
+            // abren: si no hay cierre del mismo tamaño, **no** es código y los acentos se quedan a la vista.
+            // Con un solo acento el comportamiento es el de siempre (abrir/cerrar alternando).
+            val runLength = GfmMarkup.backtickRunLength(rawText, i)
+            if (runLength > 1) {
+                val closing = GfmMarkup.closingBacktickRun(rawText, i + runLength)
+                if (closing != null) {
+                    skipOrGrayTagChars(rawText, builder, mapping, i, i + runLength, showTagsGray)
+                    val spanStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFFE91E63))
+                    startStyle(activeStyles, "`", spanStyle, builder)
+                    // GFM quita **un** espacio de cada lado cuando el contenido empieza y acaba en espacio
+                    // (el relleno de `` `a` ``). Si no, el código en línea llevaría espacios fantasma.
+                    var contentStart = i + runLength
+                    var contentEnd = closing
+                    if (contentStart < contentEnd && rawText[contentStart] == ' ' && rawText[contentEnd - 1] == ' ') {
+                        contentStart++
+                        contentEnd--
+                    }
+                    for (k in contentStart until contentEnd) appendChar(rawText[k], builder, mapping, k)
+                    endStyle(activeStyles, "`", builder)
+                    skipOrGrayTagChars(rawText, builder, mapping, closing, closing + runLength, showTagsGray)
+                    return closing + runLength
+                }
+                // Sin cierre del mismo tamaño, **no** es código (RF-95). La tirada entera se queda a la
+                // vista: se copia carácter a carácter y se avanza más allá de ella. Devolver `null` no
+                // bastaría, porque el bucle avanzaría **un** carácter y el resto de la tirada volvería a
+                // evaluarse como una tirata nueva, que sí cerraría con la que hay al final.
+                for (k in i until i + runLength) appendChar(rawText[k], builder, mapping, k)
+                return i + runLength
+            }
             val marker = "`"
             val isActive = activeStyles.any { it.type == marker }
             val codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080), color = Color(0xFFE91E63))
