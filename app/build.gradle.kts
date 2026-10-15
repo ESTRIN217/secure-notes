@@ -128,6 +128,16 @@ dependencies {
   implementation(libs.coil.svg)
   implementation(libs.converter.moshi)
   implementation(libs.compose.markdown)
+  // Motor de GFM del chat con IA (spec 017, RF-98). Estas seis piezas ya venian en el APK como
+  // dependencia `runtime` de compose-markdown: se declaran aqui porque `runtime` no llega al
+  // classpath de compilacion. Cero jars nuevos (RNF-48). compose-markdown SE QUEDA: el changelog y
+  // la pantalla de actualizacion lo siguen usando.
+  implementation(libs.markwon.core)
+  implementation(libs.markwon.ext.tables)
+  implementation(libs.markwon.ext.strikethrough)
+  implementation(libs.markwon.ext.tasklist)
+  implementation(libs.markwon.html)
+  implementation(libs.markwon.linkify)
   implementation(libs.latex.base)
   implementation(libs.latex.parser)
   implementation(libs.latex.renderer)

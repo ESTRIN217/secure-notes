@@ -54,9 +54,15 @@ googleId = "1.2.0"
 material3 = "1.5.0-alpha28"
 media3 = "1.7.1"
 glance = "1.3.0-alpha02"
-# commonmark-java: la MISMA version que ya arrastra compose-markdown, para no forzar un salto
-# transitivo que romperia MarkdownText (spec 012, decision 2).
+# commonmark-java: la MISMA version que ya arrastra compose-markdown y que exige markwon-core,
+# para no forzar un salto transitivo que romperia el chat (spec 017) y MarkdownText (spec 012,
+# decision 2). Si esta version sube, se rompe el editor de codigo y el chat a la vez y ninguna
+# prueba funcional se pone roja: hay un invariante que lo vigila (spec 017, T7).
 commonmark = "0.13.0"
+# Motor de GFM del chat (spec 017). Estas seis piezas YA estaban en el APK como dependencia
+# `runtime` de compose-markdown; se declaran aqui porque una dependencia `runtime` no llega al
+# classpath de compilacion. Cero jars nuevos: RNF-48.
+markwon = "4.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -113,6 +119,13 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
+# Motor de GFM directo del chat (spec 017, RF-98).
+markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
+markwon-ext-tables = { group = "io.noties.markwon", name = "ext-tables", version.ref = "markwon" }
+markwon-ext-strikethrough = { group = "io.noties.markwon", name = "ext-strikethrough", version.ref = "markwon" }
+markwon-ext-tasklist = { group = "io.noties.markwon", name = "ext-tasklist", version.ref = "markwon" }
+markwon-html = { group = "io.noties.markwon", name = "html", version.ref = "markwon" }
+markwon-linkify = { group = "io.noties.markwon", name = "linkify", version.ref = "markwon" }
 latex-base = { group = "io.github.huarangmeng", name = "latex-base", version.ref = "latex" }
 latex-parser = { group = "io.github.huarangmeng", name = "latex-parser", version.ref = "latex" }
 latex-renderer = { group = "io.github.huarangmeng", name = "latex-renderer", version.ref = "latex" }

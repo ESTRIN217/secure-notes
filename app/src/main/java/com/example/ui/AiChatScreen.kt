@@ -64,6 +64,9 @@ import com.example.ui.chat.shouldSend
 import com.example.ui.chat.visibleSuggestions
 import com.example.ui.chat.writeTarget
 import com.example.ui.chat.WriteTarget
+import com.example.ui.markdown.ChatMarkwon
+import com.example.ui.markdown.ChatMarkdownSource.markdownForMessage
+import com.example.ui.markdown.ChatMarkdownText
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
 import com.example.ui.viewmodel.ConversationTurn
@@ -656,7 +659,8 @@ fun MessageBubble(
                     bottomEnd = if (isUser) 4.dp else 16.dp
                 ),
                 modifier = Modifier
-                    .widthIn(max = 320.dp)
+                    .fillMaxWidth(0.85f)
+                    .widthIn(max = 480.dp)
                     .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
                     .combinedClickable(
                         onClick = {
@@ -735,9 +739,14 @@ fun MessageBubble(
                               }
                             }
                         }
-                        Text(
-                            text = RichTextParser.parse(turn.content, hideTags = true),
-                            style = MaterialTheme.typography.bodyMedium.copy(color = textColor)
+                        // El cuerpo del mensaje se pinta con el motor de GFM (spec 017, RF-98), no con el
+                        // analizador de texto enriquecido: el Markdown que devuelve el modelo se ve como en
+                        // GitHub. El texto se adapta **una vez por mensaje** (la línea es la clave), y la
+                        // clave es justamente la línea: sin ella se reharía en cada recomposición.
+                        val markdown = remember(turn.content) { markdownForMessage(turn.content) }
+                        ChatMarkdownText(
+                            crudo = markdown,
+                            color = textColor
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -1076,6 +1085,10 @@ fun ChatMessageList(
     effectiveSessionId: Int,
     viewModel: AiViewModel
 ) {
+    // El motor de GFM se construye **una vez para toda la lista** y se reparte con un `CompositionLocal`
+    // (spec 017, RF-98). Va aquí y no dentro de cada burbuja a propósito: la lista descarta lo que sale de
+    // pantalla, así que un motor por burbuja se reconstruiría en cada vuelta al mensaje.
+    ChatMarkwon.ProvidesChatMarkwon {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -1131,12 +1144,19 @@ fun ChatMessageList(
         }
         if (hasStreamingContent) {
             item(key = "streaming") {
+                // La réplica EN CURSO se sigue pintando con el analizador de texto enriquecido, y no con el
+                // motor de GFM (spec 017, RF-103). Dos razones, y ninguna es que no se pueda: (1) el motor
+                // parsea en el hilo principal, y aquí el texto cambia con cada fragmento; (2) más importante,
+                // el texto a medio escribir **cambiaría de motor a mitad**: una tabla que aún no tiene línea
+                // separadora se vería como texto y un renglón después como tabla, y ese parpadeo se ve más
+                // que la inconsistencia entre la burbuja en curso y la ya guardada.
                 StreamingBubble(
                     text = streamingText!!,
                     modelName = displayModelName
                 )
             }
         }
+    }
     }
 }
 

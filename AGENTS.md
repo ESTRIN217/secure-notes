@@ -187,6 +187,14 @@ dejarlo en la memoria.
   la primera petición: **no hay crash, las imágenes simplemente no cargan**.
 - Jank: `perf/FrameMetricsMonitor` solo registra en DEBUG; para overdraw usar
   `adb shell setprop debug.hwui.overdraw show` + GPU Profiler.
+- **Markdown del chat**: el motor (`ui/markdown/ChatMarkwon.kt`) se construye **una vez por pantalla** y se
+  reparte con `CompositionLocal`; nunca uno por burbuja (la `LazyColumn` descarta lo que sale de pantalla).
+  El `TextView` **no** lleva `movementMethod` ni texto seleccionable: es lo que deja el menú de pulsación larga
+  y el deslizamiento en la burbuja, y lo que impide que el motor abra enlaces por su cuenta. Quien abra un
+  enlace devuelve `true` solo si abre de verdad, y solo si `isWebLink` (spec 017).
+- **Una dependencia `runtime` no llega al classpath de compilación.** Markwon venía así por
+  `compose-markdown` y hubo que declararlo aparte; **cero jars nuevos** era cierto y no se notó hasta que se
+  intentó importar (spec 017).
 
 
 ## Limites
