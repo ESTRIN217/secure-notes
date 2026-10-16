@@ -3,6 +3,7 @@ package com.example.data.storage
 import android.content.Context
 import android.os.StatFs
 import android.util.Log
+import com.estrin217.editordecodigo.CodeEditor
 import com.example.data.local.NoteDatabase
 import com.example.data.model.Note
 import com.example.util.BackupAttachmentHelper
@@ -19,7 +20,7 @@ object StorageAnalyzer {
         val dbPath = context.getDatabasePath("secure_notes_database")
 
         val allItems = mutableListOf<StorageItem>()
-        val referencedPaths = collectReferencedPaths(database)
+        val referencedPaths = collectReferencedPaths(database) + collectEditorPaths(context)
 
         scanDirectory(filesDir, StorageCategory.OTHER, allItems, referencedPaths, isCache = false)
         scanDirectory(cacheDir, StorageCategory.CACHE, allItems, referencedPaths, isCache = true)
@@ -56,6 +57,22 @@ object StorageAnalyzer {
             Log.e(TAG, "Failed to collect referenced paths", e)
         }
         return referenced
+    }
+
+    /**
+     * Rutas que el editor de código todavía lista en sus recientes (spec 024, RF-152).
+     *
+     * Sus archivos no los referencia ninguna nota —los referencia el editor—, y sin esto el
+     * administrador los tomaba por huérfanos y los borraba. Un fallo al leer los recientes no puede
+     * tumbar el escaneo: se registra sin datos y se sigue con cero rutas (RNF-94).
+     */
+    private suspend fun collectEditorPaths(context: Context): Set<String> = try {
+        CodeEditor.recentLocalFilePaths(context)
+    } catch (e: Exception) {
+        OpaqueTrace.registrarFallo(
+            TAG, "read editor recent files", "codeFile", OpaqueTrace.isolatedNext(), e
+        )
+        emptySet()
     }
 
     private fun extractPathsFromContent(content: String): List<String> {

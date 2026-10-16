@@ -163,6 +163,22 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     **compara** (`isDirectVideoFileUrl`), nunca donde se **enseña** ni al extraer el identificador —
     `extractYouTubeId` **no** puede pasar a minúsculas: el id distingue caja y con él se arma la miniatura
     (`youTubeThumbnail`). `null` para lo local, que conserva la regla de siempre (RF-151).
+- **Archivos del editor y almacenamiento** (`StorageAnalyzer`, `CodeEditor`, `FileImportExportHelper`) — reglas permanentes:
+  - **El administrador de almacenamiento solo borra lo que no referencian ni las notas ni el índice de recientes
+    del editor.** «Huérfano» sigue siendo «no referenciado»; lo único que cambia es **qué** cuenta como
+    referenciado, y los recientes se leen por la fachada del editor (`CodeEditor.recentLocalFilePaths`), nunca
+    abriendo `AppDatabase` desde `:app`. Quien añada otro módulo que guarde archivos propios en `filesDir`
+    hereda la obligación de sumar su índice aquí (spec 024).
+  - **`filesDir/code_files` cae en `OTHER`, y `OTHER` sí entra en las categorías borrables**: cualquier archivo
+    nuevo que se deje en `filesDir` sin referenciarlo desde una nota **ni** desde su índice se ofrece para
+    borrado —también desde la limpieza automática— así que un fichero nuevo necesita su índice o no dura.
+  - **Quien consulte el índice del editor comprueba antes que la base existe** (`AppDatabase.databaseExists`):
+    abrir Room **crea** el fichero, y un escaneo de almacenamiento no debe estrenar datos (RF-152, RNF-94).
+  - **Toda URI del almacenamiento compartido que el editor reciba se persiste antes de leerla**, dentro de los
+    propios lectores (`readExternalFile`/`readExternalFolder`) y no en cada llamante: así el selector del sistema
+    y el `Intent` de otra app quedan cubiertos de una vez. Permiso de **lectura y escritura** con caída a lectura;
+    si no se concede, se registra sin datos y la importación sigue. Solo `content://` (decisión **pura** en
+    `PersistablePermission`), porque una ruta local no tiene permiso que persistir (RF-155…RF-158).
 - **MD3 Expressive opt-ins** (material3 `1.5.0-alpha28`):
   - `LoadingIndicator` requires `@OptIn(ExperimentalMaterial3ExpressiveApi::class)` — `@ExperimentalMaterial3Api` alone is NOT enough.
   - Its signature is `LoadingIndicator(modifier, color, polygons)` — there is **no `strokeWidth` param** (that is `CircularProgressIndicator`'s).

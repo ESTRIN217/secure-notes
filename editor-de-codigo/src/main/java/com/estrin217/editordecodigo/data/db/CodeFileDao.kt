@@ -25,6 +25,9 @@ interface CodeFileDao {
     @Query("SELECT * FROM code_files ORDER BY isPinned DESC, updatedAt DESC LIMIT 1")
     suspend fun getLatestFile(): CodeFile?
 
+    @Query("SELECT * FROM code_files")
+    suspend fun getAllFilesOnce(): List<CodeFile>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFile(file: CodeFile): Long
 

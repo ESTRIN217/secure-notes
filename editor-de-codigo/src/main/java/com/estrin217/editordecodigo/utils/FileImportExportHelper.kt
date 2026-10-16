@@ -1,6 +1,8 @@
 package com.estrin217.editordecodigo.utils
 
+import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
@@ -24,6 +26,47 @@ object FileImportExportHelper {
 
     /** Tamaño máximo por archivo al importar una carpeta completa (1 MB). */
     private const val MAX_FOLDER_ENTRY_CHARS = 1024 * 1024
+
+    /**
+     * Pide al sistema que el permiso sobre [uri] sobreviva al cierre de la app (spec 024, RF-155).
+     *
+     * El permiso que concede el selector del sistema dura mientras vive la app: sin guardarlo, la
+     * URI sigue en los recientes pero ya no se puede leer, y el archivo se abría vacío. Se pide
+     * **lectura y escritura** para poder releerlo *y* seguir guardando en el original; si el
+     * proveedor solo concedió lectura, se pide solo lectura. Si ninguna de las dos se concede
+     * (p. ej. la URI viene de otra app y no es persistible), se registra el fallo —sin datos— y
+     * la importación sigue como siempre (RF-157, RNF-96). Una URI ya persistida no lanza nada
+     * (RNF-98).
+     *
+     * Solo aplica al almacenamiento compartido: una ruta local no tiene permiso que persistir
+     * (RF-158, decisión pura en [PersistablePermission]).
+     */
+    fun persistSharedStoragePermission(context: Context, uri: Uri) {
+        if (!PersistablePermission.appliesTo(uri.scheme)) return
+
+        val resolver = context.contentResolver
+        val choices = intArrayOf(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+        var failure: Exception? = null
+        for (flags in choices) {
+            val outcome = tryPersist(resolver, uri, flags)
+            if (outcome == null) return
+            failure = outcome
+        }
+        OpaqueTrace.registrarFallo(
+            TAG, "persist uri permission", "externalFile", OpaqueTrace.isolatedNext(), failure
+        )
+    }
+
+    /** `null` si el permiso se guardó; la excepción si no, para poder registrar qué falló. */
+    private fun tryPersist(resolver: ContentResolver, uri: Uri, flags: Int): Exception? = try {
+        resolver.takePersistableUriPermission(uri, flags)
+        null
+    } catch (e: Exception) {
+        e
+    }
 
     /**
      * True si el tamaño declarado supera el límite, sin leer contenido.
@@ -77,10 +120,12 @@ object FileImportExportHelper {
     }
 
     /**
-     * Reads the filename and content of a file selected via document picker Uri.
+     * Reads the filename and content of a file selected via document picker Uri, y guarda el
+     * permiso persistente de esa URI para poder releerla tras reiniciar (RF-155).
      * @return null when the file cannot be read or exceeds [MAX_EXTERNAL_CHARS].
      */
     fun readExternalFile(context: Context, uri: Uri): ExternalFileInfo? {
+        persistSharedStoragePermission(context, uri)
         return try {
             val contentResolver = context.contentResolver
             var fileName = "archivo_externo.txt"
@@ -134,6 +179,7 @@ object FileImportExportHelper {
      * Import is flat: nested directories are skipped.
      */
     fun readExternalFolder(context: Context, treeUri: Uri): Pair<String, List<ExternalFileInfo>> {
+        persistSharedStoragePermission(context, treeUri)
         val folderName = runCatching {
             DocumentsContract.getTreeDocumentId(treeUri)
                 .substringAfterLast(':')

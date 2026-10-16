@@ -28,15 +28,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun codeFileDao(): CodeFileDao
 
     companion object {
+
+        const val DB_NAME = "code_tools_db"
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        /**
+         * True si el editor ya creó su base de datos. Quien solo **consulta** los recientes
+         * (el administrador de almacenamiento) lo comprueba antes, porque abrir Room **crea** el
+         * fichero y un escaneo no debe estrenar datos (spec 024, RNF-94).
+         */
+        fun databaseExists(context: Context): Boolean =
+            context.getDatabasePath(DB_NAME).exists()
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "code_tools_db"
+                    DB_NAME
                 )
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
