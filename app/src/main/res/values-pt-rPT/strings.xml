@@ -1256,4 +1256,24 @@ O que deseja fazer?</string>
     <string name="ai_ondevice_lazy_note">O modelo é carregado na primeira vez que usa uma função de IA e é libertado automaticamente quando a app passa para segundo plano.</string>
     <string name="note_created_from">Nota criada a partir de %1$s</string>
     <string name="note_create_failed">Não foi possível criar a nota</string>
+    <!-- Crash report (spec 020) -->
+    <string name="crash_channel_name">Relatórios de erro</string>
+    <string name="crash_channel_description">Avisa quando a aplicação fecha sozinha</string>
+    <string name="crash_notification_title">O Secure Notes terminou inesperadamente</string>
+    <string name="crash_notification_text">Toque para ver o erro e enviá-lo para o GitHub</string>
+    <string name="crash_report_title">Relatório de erro</string>
+    <string name="crash_copy">Copiar</string>
+    <string name="crash_share">Partilhar</string>
+    <string name="crash_send_github">Enviar</string>
+    <string name="crash_discard">Descartar relatório</string>
+    <string name="crash_discard_title">Descartar o relatório?</string>
+    <string name="crash_discard_text">Será eliminado e não voltará a ser-lhe lembrado este erro.</string>
+    <string name="crash_copied">Relatório copiado para a área de transferência</string>
+    <string name="crash_no_browser">Nenhuma aplicação encontrada para abrir o GitHub</string>
+    <string name="crash_empty_title">Nenhum erro registado</string>
+    <string name="crash_empty_text">Nada falhou desde a última vez que olhou.</string>
+    <string name="crash_send_privacy_warning">A mensagem da exceção pode conter um trecho de uma das suas notas. Leia antes de publicar.</string>
+    <string name="crash_notice_title">A aplicação terminou inesperadamente</string>
+    <string name="crash_notice_text">Existe um relatório do último erro. Pode copiá-lo, partilhá-lo ou enviá-lo para o GitHub.</string>
+    <string name="crash_notice_view">Ver relatório</string>
 </resources>

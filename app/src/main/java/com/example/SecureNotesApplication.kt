@@ -12,6 +12,8 @@ import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.svg.SvgDecoder
+import com.example.crash.CrashNotifier
+import com.example.crash.CrashReporter
 import com.example.data.ai.AiModelHost
 import com.example.perf.DevicePerformanceProfile
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,6 +39,12 @@ class SecureNotesApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        // Lo primero de todo: si la propia app se cae al arrancar, este es el informe que más sirve y el menos
+        // se registraría si el manejador se pusiera más tarde (spec 020, RF-117). Es la **única** pieza global
+        // que añade esta spec: nada más del arranque cambia (RNF-69).
+        CrashReporter.instalar(this)
+        CrashNotifier.crearCanal(this)
+        CrashNotifier.anunciar(this)
         registerActivityLifecycleCallbacks(VisibilityCallbacks())
     }
 

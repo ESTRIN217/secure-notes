@@ -1192,4 +1192,24 @@ Cosa vuoi fare?</string>
     <string name="ai_ondevice_lazy_note">Il modello viene caricato al primo utilizzo di una funzione IA e viene liberato automaticamente quando l\'app passa in background.</string>
     <string name="note_created_from">Nota creata da %1$s</string>
     <string name="note_create_failed">Impossibile creare la nota</string>
+    <!-- Crash report (spec 020) -->
+    <string name="crash_channel_name">Rapporti di errore</string>
+    <string name="crash_channel_description">Ti avvisa quando l\'app si chiude da sola</string>
+    <string name="crash_notification_title">Secure Notes si è chiuso in modo inatteso</string>
+    <string name="crash_notification_text">Tocca per vedere l\'errore e inviarlo a GitHub</string>
+    <string name="crash_report_title">Rapporto di errore</string>
+    <string name="crash_copy">Copia</string>
+    <string name="crash_share">Condividi</string>
+    <string name="crash_send_github">Invia</string>
+    <string name="crash_discard">Scarta il rapporto</string>
+    <string name="crash_discard_title">Scartare il rapporto?</string>
+    <string name="crash_discard_text">Verrà eliminato e non ti verrà più ricordato questo errore.</string>
+    <string name="crash_copied">Rapporto copiato negli appunti</string>
+    <string name="crash_no_browser">Nessuna app trovata per aprire GitHub</string>
+    <string name="crash_empty_title">Nessun errore registrato</string>
+    <string name="crash_empty_text">Nulla è fallito dall\'ultima volta che hai guardato.</string>
+    <string name="crash_send_privacy_warning">Il messaggio dell\'eccezione può contenere un frammento di una delle tue note. Leggilo prima di pubblicarlo.</string>
+    <string name="crash_notice_title">L\'app si è chiusa in modo inatteso</string>
+    <string name="crash_notice_text">C\'è un rapporto dell\'ultimo errore. Puoi copiarlo, condividerlo o inviarlo a GitHub.</string>
+    <string name="crash_notice_view">Vedi il rapporto</string>
 </resources>

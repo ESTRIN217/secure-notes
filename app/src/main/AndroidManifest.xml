@@ -182,6 +182,16 @@
             android:label="@string/pdf_viewer_title" 
           android:theme="@style/Theme.MyApplication" />
 
+        <!--
+            Spec 020. Se declara aquí y **no** exported: solo la abre esta app, y un informe de fallo
+            no tiene que abrirlo cualquiera que ponga el nombre de la clase en un Intent.
+        -->
+        <activity
+            android:name=".CrashReportActivity"
+            android:exported="false"
+            android:label="@string/crash_report_title"
+            android:theme="@style/Theme.MyApplication" />
+
         <activity
             android:name=".widget.SingleNoteConfigActivity"
             android:exported="false"

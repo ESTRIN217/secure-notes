@@ -1193,4 +1193,24 @@ Que souhaitez-vous faire ?</string>
     <string name="ai_ondevice_lazy_note">Le modèle est chargé la première fois que vous utilisez une fonction IA et libéré automatiquement lorsque l\'application passe en arrière-plan.</string>
     <string name="note_created_from">Note créée depuis %1$s</string>
     <string name="note_create_failed">Impossible de créer la note</string>
+    <!-- Crash report (spec 020) -->
+    <string name="crash_channel_name">Rapports d\'erreur</string>
+    <string name="crash_channel_description">Vous prévient quand l\'application se ferme toute seule</string>
+    <string name="crash_notification_title">Secure Notes s\'est fermée de façon inattendue</string>
+    <string name="crash_notification_text">Touchez pour voir l\'erreur et l\'envoyer à GitHub</string>
+    <string name="crash_report_title">Rapport d\'erreur</string>
+    <string name="crash_copy">Copier</string>
+    <string name="crash_share">Partager</string>
+    <string name="crash_send_github">Envoyer</string>
+    <string name="crash_discard">Supprimer le rapport</string>
+    <string name="crash_discard_title">Supprimer le rapport ?</string>
+    <string name="crash_discard_text">Il sera effacé et cette erreur ne vous sera plus rappelée.</string>
+    <string name="crash_copied">Rapport copié dans le presse-papiers</string>
+    <string name="crash_no_browser">Aucune application pour ouvrir GitHub</string>
+    <string name="crash_empty_title">Aucune erreur enregistrée</string>
+    <string name="crash_empty_text">Rien n\'a échoué depuis la dernière fois que vous avez regardé.</string>
+    <string name="crash_send_privacy_warning">Le message de l\'exception peut contenir un fragmento d\'une de vos notes. Lisez-le avant de le publier.</string>
+    <string name="crash_notice_title">L\'application s\'est fermée de façon inattendue</string>
+    <string name="crash_notice_text">Il y a un rapport de la dernière erreur. Vous pouvez le copier, le partager ou l\'envoyer à GitHub.</string>
+    <string name="crash_notice_view">Voir le rapport</string>
 </resources>

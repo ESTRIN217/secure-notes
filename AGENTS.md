@@ -55,6 +55,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | AI | `com.example.data.ai` | `AIService.kt` (interface), `OllamaService.kt` (OkHttp, default `http://localhost:11434`), `OnDeviceService.kt` (wraps `LlamaCppEngine`, official llama.cpp `llama.android` binding), `OnDeviceModel.kt` (hardcoded `MODEL_CATALOG` + `filterForDevice`/`bestForDevice` + Hugging Face `sourceLabel`/`downloadUrl`/`sourcePageUrl`/`quantLabel`), `ModelDownloader.kt`, `DeviceInfo.kt`, `ToolRegistry.kt`, `MemoryManager.kt`, `tools/` (note tools for AI) |
 | Sync | `com.example.data.sync` | `CloudSyncManager.kt` (interface), `GoogleDriveSyncService.kt` (OkHttp impl), `SyncWorker.kt` (WorkManager) |
 | Preferences | `com.example.data` | `PreferencesRepository.kt` (interface), `SharedPreferencesRepository.kt` |
+| Crash log | `com.example.crash` | `CrashReportText.kt`, `CrashIssueUrl.kt`, `CrashStore.kt` (**puros**, sin `android`), `CrashReporter.kt` (manejador de excepciones), `CrashNotifier.kt`; pantalla en `com.example.ui.crash.CrashReportScreen.kt` + `com.example.CrashReportActivity.kt` (**Activity propia**, fuera del Navigator) |
 | Utils | `com.example.util` | `RichTextParser.kt`, `ExportUtils.kt`, `BiometricAuthManager.kt`, `OssLicenses.kt` (lee `assets/oss-licenses.json`), `export/` (Txt, Markdown, Pdf, Html, Json exporters) |
 | Library `:editor-de-codigo` | `com.estrin217.editordecodigo` | `CodeEditor.kt` (facade), `ui/CodeEditorApp.kt`, `ui/CodeEditorViewModel.kt`, `ui/components/` (VS Code-style tabs, welcome screen, search/replace, quick-symbol bar), `syntax/`, `formatter/`, `utils/FileStorageManager.kt` |
 | Library `:visor-pdf` | `com.estrin217.pdfviewer` | `PdfViewerScreen.kt`, `PdfViewerViewModel.kt` |
@@ -124,6 +125,23 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
   - Known limitation (documented-only): `maxTokens` can overshoot by up to ~user-prompt-length tokens —
     stop position double-counts user tokens (`ai_chat.cpp:447`).
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.
+- **Crash log** (`com.example.crash`, spec 020) — reglas permanentes:
+  - **La delegación va fuera de todo `try`.** El manejador se registra y **después** llama al manejador que
+    hubiera; delegar dentro de un `try`, o en un `finally`, deja de delegar si falla la escritura. Y la
+    escritura es `try/catch (Throwable)`, **no** `runCatching`: `OutOfMemoryError` no es `Exception`.
+  - **`CrashStore` recibe la `File`, no un `Context`.** Es lo que hace que escribir/leer/consumir se prueben
+    con `TemporaryFolder` **sin Robolectric**, que aquí no se ejecuta. Quien sabe de `filesDir` es
+    `CrashReporter`. Los tres ficheros puros **no** pueden importar `android` ni `androidx.compose`.
+  - **El aviso de dentro de la app es el canal que siempre funciona.** Sin `POST_NOTIFICATIONS`, `notify()`
+    es un **no-op silencioso** en Android 13+: avisar y no avisar serían lo mismo. Por eso `anunciar`
+    comprueba el permiso, y el canal se crea **antes** de notificar (`notify()` sobre un canal inexistente no
+    suena, no rompe). **Nunca** se pide el permiso al arrancar.
+  - **Se consume lo que se lleva el informe, no lo que se mira.** Copiar y cerrar **no** consumen; compartir,
+    enviar y descartar **sí**; y «Ver informe» **no** consume, porque la pantalla lee el fichero al abrirse.
+  - **El informe no lleva datos del usuario, así que la pantalla vive FUERA del flujo de bloqueo** y es una
+    `Activity` propia: no toca `NoteDatabase` ni `NotesViewModel` por construcción.
+  - El aviso de privacidad va **siempre**, sin mirar el informe: el mensaje de la excepción es el único campo
+    que la app no controla, y mirar para decidir si hay que avisar es mirar justo lo que no se debe.
 - **MD3 Expressive opt-ins** (material3 `1.5.0-alpha28`):
   - `LoadingIndicator` requires `@OptIn(ExperimentalMaterial3ExpressiveApi::class)` — `@ExperimentalMaterial3Api` alone is NOT enough.
   - Its signature is `LoadingIndicator(modifier, color, polygons)` — there is **no `strokeWidth` param** (that is `CircularProgressIndicator`'s).

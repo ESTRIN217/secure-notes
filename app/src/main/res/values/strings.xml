@@ -1292,4 +1292,24 @@
     <string name="ai_ondevice_lazy_note">The model is loaded the first time you use an AI feature and freed automatically when the app goes to the background.</string>
     <string name="note_created_from">Note created from %1$s</string>
     <string name="note_create_failed">Could not create the note</string>
+    <!-- Crash report (spec 020) -->
+    <string name="crash_channel_name">Crash reports</string>
+    <string name="crash_channel_description">Tells you when the app closed unexpectedly</string>
+    <string name="crash_notification_title">Secure Notes closed unexpectedly</string>
+    <string name="crash_notification_text">Tap to see the error and send it to GitHub</string>
+    <string name="crash_report_title">Crash report</string>
+    <string name="crash_copy">Copy</string>
+    <string name="crash_share">Share</string>
+    <string name="crash_send_github">Send</string>
+    <string name="crash_discard">Discard report</string>
+    <string name="crash_discard_title">Discard the report?</string>
+    <string name="crash_discard_text">It will be deleted and you will not be reminded of this failure again.</string>
+    <string name="crash_copied">Report copied to the clipboard</string>
+    <string name="crash_no_browser">No app found to open GitHub</string>
+    <string name="crash_empty_title">No crash recorded</string>
+    <string name="crash_empty_text">Nothing has failed since the last time you looked.</string>
+    <string name="crash_send_privacy_warning">The exception message may contain a fragment of one of your notes. Read it before publishing it.</string>
+    <string name="crash_notice_title">The app closed unexpectedly</string>
+    <string name="crash_notice_text">There is a report from the last failure. You can copy it, share it or send it to GitHub.</string>
+    <string name="crash_notice_view">See report</string>
 </resources>

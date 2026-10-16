@@ -102,6 +102,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.data.ai.OllamaService
 import com.example.data.ai.ModelDownloader
+import com.example.crash.CrashReporter
 import com.example.perf.DisplayRefreshRate
 import com.example.perf.FrameMetricsMonitor
 import com.example.perf.ProvidePerformanceProfile
@@ -417,6 +418,14 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
     val importScope = rememberCoroutineScope()
     var pendingFile by remember { mutableStateOf<PendingFileInfo?>(null) }
 
+    // Spec 020, RF-120: el aviso del fallo pendiente. `LaunchedEffect(Unit)` corre **una vez** por arranque, así
+    // que no hay bucle aunque el informe siga ahí; la lectura va en IO porque `hayInformePendiente` toca disco.
+    var avisoDeFallo by remember { mutableStateOf(false) }
+    val avisoScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        avisoDeFallo = CrashReporter.hayInformePendiente(context.applicationContext)
+    }
+
     fun enqueueFileImport(activity: Activity?, context: Context, uri: Uri) {
         if (pendingFile != null) return
         runCatching {
@@ -544,6 +553,34 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
                 onDismiss = { pendingFile = null }
             )
         }
+    }
+
+    // El aviso va FUERA del if: el informe no lleva datos del usuario, así que también se ve con la bóveda
+    // bloqueada (spec 020, RF-120 y caso límite 9). Adentro, con la app bloqueada, no se vería nunca justo
+    // después de un fallo, que es cuando más falta hace.
+    if (avisoDeFallo) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.crash_notice_title)) },
+            text = { Text(stringResource(R.string.crash_notice_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    // **No** se consume aquí: la pantalla del informe lee el fichero al abrirse, y consumirlo
+                    // antes la dejaría sin nada que enseñar. Lo consume la acción que sí se lleva el informe
+                    // —copiar, compartir o enviar— o «Descartar» (decisión 9 del plan).
+                    avisoDeFallo = false
+                    context.startActivity(Intent(context, CrashReportActivity::class.java))
+                }) { Text(stringResource(R.string.crash_notice_view)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    avisoScope.launch {
+                        CrashReporter.consumir(context.applicationContext)
+                        avisoDeFallo = false
+                    }
+                }) { Text(stringResource(R.string.crash_discard)) }
+            }
+        )
     }
 }
 
