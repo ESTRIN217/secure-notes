@@ -160,9 +160,11 @@ fun MainListScreen(
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var isFabExpanded by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME) {
+    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME && isFabExpanded) {
         viewModel.currentSection.value = com.example.data.model.NavigationSection.HOME
+        isFabExpanded = false
     }
 
     val sortedNotes = remember(notes, sortOption, customOrderStr) {
@@ -204,7 +206,6 @@ fun MainListScreen(
     var showBatchTagDialog by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEmptyTrashAlert by remember { mutableStateOf(false) }
-    var isFabExpanded by remember { mutableStateOf(false) }
 
     var showAudioRecorderSheet by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
