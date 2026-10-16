@@ -83,6 +83,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/pdf" />
             </intent-filter>
+
+            <!--
+                Spec 021. Va **aquí** y no en otra Activity a propósito: solo una Activity MAIN/LAUNCHER puede
+                declarar atajos del lanzador, y esta es la única que lo es. Por eso los cinco atajos apuntan a
+                MainActivity y el del editor de código se resuelve desde dentro.
+            -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity

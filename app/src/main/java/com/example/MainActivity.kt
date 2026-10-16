@@ -115,6 +115,11 @@ import java.util.Locale
 
 import com.example.ui.Screen
 import com.example.ui.ScreenSaver
+import com.example.ui.ejecutarDestino
+import com.example.shortcut.ShortcutDestination
+import com.example.shortcut.ShortcutDecision
+import com.example.shortcut.ShortcutPending
+import com.example.shortcut.decidir
 import com.example.ui.Navigator
 import com.example.ui.ScreenContext
 import com.example.ui.OpenNoteTabs
@@ -162,6 +167,13 @@ class MainActivity : FragmentActivity() {
          */
         var pendingHandoffPath: String? = null
 
+        /**
+         * El atajo del lanzador que llegó con la bóveda cerrada (spec 021, RF-127).
+         *
+         * Vive en el `companion` por el mismo motivo que [pendingHandoffPath]: lo escribe el `intentRelay` y lo
+         * lee un `LaunchedEffect` del árbol de composición, que son sitios distintos de la misma clase.
+         */
+        val atajoPendiente = ShortcutPending()
     }
 
     override fun onUserInteraction() {
@@ -402,6 +414,48 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     )
 
+    var atajoCumplido by rememberSaveable { mutableStateOf<String?>(null) }
+
+    /**
+     * Cumple el atajo del lanzador que venga en [intent] (spec 021, RF-127, RF-128).
+     *
+     * **Una sola función para las dos entradas**: el arranque en frío la llama con `activity.intent` y
+     * el `intentRelay` —que es `onNewIntent`— con el `Intent` nuevo. Si fueran dos funciones, el candado solo
+     * estaría en una de las dos y el atajo funcionaría sin contraseña por la otra.
+     *
+     * El destino viaja en la **acción**, no en un extra: es el único atributo que la plataforma exige en un
+     * `<intent>` de atajo. La primera versión lo metía en un extra que nunca llegó a declararse en el XML, y
+     * los cinco atajos abrían la app sin hacer nada —con `BUILD SUCCESSFUL` y todo, porque AAPT no valida
+     * `res/xml`. Solo lo usa el camino caliente; el de arranque en frío pasa por [resolverAtajoEnArranque].
+     */
+    fun resolverAtajo(intent: Intent?, abierta: Boolean) {
+        val decision = decidir(intent?.action, abierta, MainActivity.atajoPendiente)
+        if (decision is ShortcutDecision.Ejecutar) {
+            ejecutarDestino(
+                decision.destino,
+                navigator,
+                chatHistoryViewModel,
+                aiViewModel.backend.value,
+                context
+            )
+        }
+    }
+
+    /**
+     * Cumple el atajo del arranque en frío, y **solo la primera vez** (RF-128).
+     *
+     * La marca es `rememberSaveable` y no un `var` a secas porque tiene que sobrevivir al giro: el `Intent`
+     * del `Activity` también sobrevive, así que sin esta marca `LaunchedEffect(Unit)` volvería a cumplir el
+     * atajo cada vez que el usuario rotaba, y con el chat de la IA eso es **una conversación nueva en cada
+     * giro**. El camino caliente no lleva marca a propósito: pulsar dos veces el mismo atajo tiene que contar.
+     */
+    fun resolverAtajoEnArranque(intent: Intent?, abierta: Boolean) {
+        val accion = intent?.action
+        if (accion == null || accion == atajoCumplido) return
+        resolverAtajo(intent, abierta)
+        if (ShortcutDestination.desdeAccion(accion) != null) atajoCumplido = accion
+    }
+
     LaunchedEffect(Unit) {
         if (activity?.intent?.getBooleanExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE, false) == true) {
             currentScreen = Screen.UpdateInfo
@@ -413,6 +467,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
             navigator.onNavigateTo(Screen.NoteEditor(0))
             activity.intent.removeExtra("new_note")
         }
+        resolverAtajoEnArranque(activity?.intent, isUnlocked)
     }
 
     val importScope = rememberCoroutineScope()
@@ -487,6 +542,8 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
                 navigator.onNavigateTo(Screen.NoteEditor(0))
             }
             deliverNoteHandoff(intent, isUnlocked, viewModel, context)
+            // El atajo del lanzador pasa por la **misma** función que el arranque en frío (spec 021, RF-128).
+            resolverAtajo(intent, isUnlocked)
         }
         activity?.intent?.data?.let { enqueueFileImport(activity, context, it) }
         deliverNoteHandoff(activity?.intent, isUnlocked, viewModel, context)
@@ -504,6 +561,12 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
     LaunchedEffect(isUnlocked) {
         if (isUnlocked) drainPendingHandoff(viewModel, context) { noteId ->
             navigator.onNavigateTo(Screen.NoteEditor(noteId))
+        }
+        // El atajo que llegó con la bóveda cerrada se cumple **aquí**, y no en un efecto aparte: este efecto
+        // ya reacciona a `isUnlocked`, que es justo el reloj que hace falta (spec 021, RF-127). Con el candado
+        // puesto no hay nada que drenar, y `drena()` sobre vacío devuelve `null` sin hacer nada.
+        MainActivity.atajoPendiente.drena()?.let { destino ->
+            ejecutarDestino(destino, navigator, chatHistoryViewModel, aiViewModel.backend.value, context)
         }
     }
 

@@ -375,6 +375,12 @@ val ScreenSaver = mapSaver(
     }
 )
 
-private fun launchCodeEditor(context: Context) {
+/**
+ * Lanza el editor de código, que vive fuera del flujo del `Navigator`.
+ *
+ * `internal` y no `private` porque el atajo del lanzador lo necesita también (spec 021, RF-125) y duplicar el
+ * `Intent` en dos sitios es la forma de que un día dejen de coincidir.
+ */
+internal fun launchCodeEditor(context: Context) {
     context.startActivity(Intent(context, com.example.CodeEditorActivity::class.java))
 }

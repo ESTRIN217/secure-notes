@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Los atajos del lanzador (spec 021, RF-124).
+
+    **Los cinco apuntan a `MainActivity`** y no a su destino real, y no es pereza: la plataforma solo deja
+    declarar atajos en una Activity `MAIN`/`LAUNCHER`, así que el del editor de código tiene que pasar por aquí
+    aunque su destino sea otra `Activity`. Lo que viaja es la **acción** de cada `Intent` —una por atajo, con
+    prefijo `com.estrin217.securenotes.shortcut.`— y `com.example.shortcut.ShortcutDestination` es lo único que
+    sabe interpretarlas. **No** es un extra a propósito: un `<extra>` dentro de un `<intent>` no se puede
+    comprobar sin dispositivo, y en la primera versión ni siquiera estaba declarado aquí, así que los cinco
+    atajos abrían la app sin hacer nada, con `BUILD SUCCESSFUL` y todo.
+
+    Tres cosas que impone la plataforma:
+
+    1. `shortcutId` es **literal**: no puede ser `@string`.
+    2. `shortcutShortLabel` **sí** es un `@string`, y son claves que ya existían en los nueve locales, así que
+       esta spec no añade ni una traducción (RNF-72).
+    3. No hay atributo `monochrome` y el icono "can't include tints": los `sc_*` son vectores de un color sin
+       `android:tint`.
+
+    **El orden importa**: muchos lanzadores muestran cuatro de golpe, así que el quinto —el menos usado— es el
+    del editor de código (caso límite 10).
+
+    Ni un `<intent>` lleva `android:data` ni `android:mimeType` (RF-130): los filtros `VIEW` que la app ya
+    tiene para abrir archivos se llevarían por delante el atajo y abrirían el importador.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="ai_chat"
+        android:enabled="true"
+        android:icon="@drawable/sc_ai_chat"
+        android:shortcutShortLabel="@string/ai_chat_title"
+        android:shortcutLongLabel="@string/ai_chat_title">
+        <intent
+            android:action="com.estrin217.securenotes.shortcut.AI_CHAT"
+            android:targetPackage="com.estrin217.securenotes"
+            android:targetClass="com.example.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/sc_settings"
+        android:shortcutShortLabel="@string/nav_settings"
+        android:shortcutLongLabel="@string/nav_settings">
+        <intent
+            android:action="com.estrin217.securenotes.shortcut.SETTINGS"
+            android:targetPackage="com.estrin217.securenotes"
+            android:targetClass="com.example.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/sc_new_note"
+        android:shortcutShortLabel="@string/btn_new_note"
+        android:shortcutLongLabel="@string/btn_new_note">
+        <intent
+            android:action="com.estrin217.securenotes.shortcut.NEW_NOTE"
+            android:targetPackage="com.estrin217.securenotes"
+            android:targetClass="com.example.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/sc_search"
+        android:shortcutShortLabel="@string/search_notes"
+        android:shortcutLongLabel="@string/search_notes">
+        <intent
+            android:action="com.estrin217.securenotes.shortcut.SEARCH"
+            android:targetPackage="com.estrin217.securenotes"
+            android:targetClass="com.example.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="code_editor"
+        android:enabled="true"
+        android:icon="@drawable/sc_code"
+        android:shortcutShortLabel="@string/code_editor"
+        android:shortcutLongLabel="@string/code_editor">
+        <intent
+            android:action="com.estrin217.securenotes.shortcut.CODE_EDITOR"
+            android:targetPackage="com.estrin217.securenotes"
+            android:targetClass="com.example.MainActivity" />
+    </shortcut>
+</shortcuts>
