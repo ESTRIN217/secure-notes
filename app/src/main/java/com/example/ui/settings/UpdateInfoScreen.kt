@@ -33,12 +33,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.estrin217.markdown.MarkdownEngine
+import com.estrin217.markdown.MarkdownText
+import com.example.ui.markdown.markdownColors
 import com.example.R
 import com.example.data.AppUpdateConfig
 import androidx.compose.material3.TopAppBar
 import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.ui.viewmodel.UpdateDownloadState
-import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +101,10 @@ fun UpdateInfoScreen(
         if (Build.SUPPORTED_ABIS.isNotEmpty()) Build.SUPPORTED_ABIS[0].uppercase() else unknownLabel
     }
 
+    // El motor va por encima del Scaffold (spec 018, RF-105): solo hay una lista y no se descarta, pero un
+    // motor por release se reconstruiría en cada elemento. El texto se entrega **literal**: las notas se
+    // escriben en GitHub y el HTML crudo de ahí es legítimo.
+    MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
     Scaffold(
         topBar = {
           TopAppBar(
@@ -345,8 +351,8 @@ fun UpdateInfoScreen(
                                     )
                                     MarkdownText(
                                         markdown = uiState.latestChangelog ?: "",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        linkColor = MaterialTheme.colorScheme.primary
+                                        textStyle = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -355,5 +361,6 @@ fun UpdateInfoScreen(
                 }
             }
         }
+    }
     }
 }

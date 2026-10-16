@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.estrin217.markdown.MarkdownEngine
+import com.estrin217.markdown.MarkdownText
+import com.example.ui.markdown.markdownColors
 import com.example.R
 import com.example.data.ai.*
 import com.example.data.local.ChatSessionWithPreview
@@ -64,8 +67,6 @@ import com.example.ui.chat.shouldSend
 import com.example.ui.chat.visibleSuggestions
 import com.example.ui.chat.writeTarget
 import com.example.ui.chat.WriteTarget
-import com.example.ui.markdown.ChatMarkwon
-import com.example.ui.markdown.ChatMarkdownSource.markdownForMessage
 import com.example.ui.markdown.ChatMarkdownText
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
@@ -741,11 +742,11 @@ fun MessageBubble(
                         }
                         // El cuerpo del mensaje se pinta con el motor de GFM (spec 017, RF-98), no con el
                         // analizador de texto enriquecido: el Markdown que devuelve el modelo se ve como en
-                        // GitHub. El texto se adapta **una vez por mensaje** (la línea es la clave), y la
-                        // clave es justamente la línea: sin ella se reharía en cada recomposición.
-                        val markdown = remember(turn.content) { markdownForMessage(turn.content) }
+                        // GitHub. La burbuja entrega el contenido **crudo**: la adaptación del markup heredado
+                        // la hace `ChatMarkdownText`, **una sola vez** y con su `remember` (spec 018, RF-108).
+                        // Antes se adaptaba aquí también, y el texto pasaba dos veces por la adaptación.
                         ChatMarkdownText(
-                            crudo = markdown,
+                            crudo = turn.content,
                             color = textColor
                         )
                     }
@@ -1088,7 +1089,7 @@ fun ChatMessageList(
     // El motor de GFM se construye **una vez para toda la lista** y se reparte con un `CompositionLocal`
     // (spec 017, RF-98). Va aquí y no dentro de cada burbuja a propósito: la lista descarta lo que sale de
     // pantalla, así que un motor por burbuja se reconstruiría en cada vuelta al mensaje.
-    ChatMarkwon.ProvidesChatMarkwon {
+    MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()

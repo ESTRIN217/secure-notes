@@ -140,20 +140,12 @@
       "use": "visor-pdf"
     },
     {
-      "name": "compose-markdown",
-      "version": "0.7.2",
-      "license": "MIT",
-      "copyright": "Jeziel Lago (c) 2021",
-      "url": "https://github.com/jeziellago/compose-markdown/blob/main/LICENSE",
-      "use": "Render Markdown (changelog, pantalla de actualización)"
-    },
-    {
       "name": "Markwon (core, ext-tables, ext-strikethrough, ext-tasklist, html, linkify)",
       "version": "4.6.2",
       "license": "Apache-2.0",
       "copyright": "noties (c) 2015-2019",
       "url": "https://github.com/noties/Markwon/blob/master/LICENSE",
-      "use": "Motor de GFM del chat con IA"
+      "use": "Motor de GFM (chat con IA, texto legal, changelog y pantalla de actualización)"
     },
     {
       "name": "commonmark-java (core, gfm-tables, gfm-strikethrough)",

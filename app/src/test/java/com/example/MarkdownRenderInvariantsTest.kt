@@ -21,7 +21,7 @@ class MarkdownRenderInvariantsTest {
 
     private companion object {
         const val TOML = "../gradle/libs.versions.toml"
-        const val MODULO_RENDER = "src/main/java/com/example/ui/markdown/ChatMarkwon.kt"
+        const val MODULO_RENDER = "../markdown/src/main/java/com/estrin217/markdown/MarkdownEngine.kt"
         const val FUENTE_PURA = "src/main/java/com/example/ui/markdown/ChatMarkdownSource.kt"
         const val PANTALLA_CHAT = "src/main/java/com/example/ui/AiChatScreen.kt"
 
@@ -42,18 +42,30 @@ class MarkdownRenderInvariantsTest {
 
     private fun leer(ruta: String): String = File(ruta).readText()
 
+    /** Lee y **comprueba que se ha leído de verdad**: una ruta equivocada haría `readText` petar por otro motivo. */
+    private fun leerComprobando(ruta: String, etiqueta: String): String {
+        val texto = leer(ruta)
+        assertTrue("no se está leyendo $etiqueta ($ruta)", texto.lines().size >= MINIMO_DE_LINEAS)
+        return texto
+    }
+
     // ── RNF-48: cero jars nuevos ───────────────────────────────────────────────────────────
 
     @Test
-    fun `commonmark no se mueve`() {
-        val toml = leer(TOML)
-        assertTrue("no se está leyendo el fichero del catálogo", toml.contains("commonmark"))
-
-        val asignacion = Regex("""^commonmark\s*=\s*"([^"]+)"""", RegexOption.MULTILINE).find(toml)
-        assertTrue("no se encuentra la asignación de commonmark", asignacion != null)
-        assertTrue(
-            "commonmark debería seguir en $COMMONMARK_ESPERADA y está en ${asignacion!!.groupValues[1]}",
-            asignacion.groupValues[1] == COMMONMARK_ESPERADA
+    fun `commonmark ya no lo declara nadie`() {
+        // RNF-48 y RNF-60. **Invertido por la spec 019.** Esto antes fijaba la versión en 0.13.0, y la razón era
+        // que había **tres** caminos que podían moverla: la librería de Markdown de terceros (retirada en la 018)
+        // y el generador de HTML de la vista previa (borrado en la 019), aparte del propio motor. Ya no queda
+        // ninguno de los dos primeros, así que la versión es cosa de `markwon-core` y de nadie más, y una línea
+        // de catálogo sin nada detrás **no fija nada**: solo lo aparenta.
+        val toml = leerComprobando(TOML, "el catálogo")
+        assertFalse(
+            "commonmark no debe volver a declararse: el motor lo arrastra y nada más lo necesita (RNF-60)",
+            Regex("""^commonmark-(core|tables|strikethrough)\s*=""", RegexOption.MULTILINE).containsMatchIn(toml)
+        )
+        assertFalse(
+            "commonmark no debe volver a declararse en ningún módulo",
+            File("build.gradle.kts").readText().contains("libs.commonmark")
         )
     }
 
@@ -79,38 +91,55 @@ class MarkdownRenderInvariantsTest {
     }
 
     @Test
-    fun `compose-markdown se queda porque otras dos pantallas lo usan`() {
-        // Las otras dos pantallas (`ChangelogSheet`, `UpdateInfoScreen`) siguen con `MarkdownText`. Si alguien
-        // quita la dependencia esperando que ya no hace falta, la app deja de compilar —que es la forma
-        // barata de enterarse—, pero esta prueba lo dice antes.
+    fun `compose-markdown se retira porque ya no la usa ninguna pantalla`() {
+        // Invertido por la spec 018. Cuando se escribió, las otras dos pantallas (`ChangelogSheet`,
+        // `UpdateInfoScreen`) seguían con su `MarkdownText` y quitarla rompía la compilación —que es la forma
+        // barata de enterarse—. Con la 018 las cuatro superficies de Markdown pintan con el motor de la app
+        // y la dependencia no tiene a nadie detrás. Si algún día vuelve a hacer falta, esta prueba lo dice
+        // antes de que alguien la declare «porque sí».
         val toml = leer(TOML)
-        assertTrue("compose-markdown no debe desaparecer del catálogo", toml.contains("compose-markdown"))
+        assertFalse(
+            "compose-markdown no debe volver al catálogo: el motor de la app pinta las cuatro superficies",
+            toml.contains("compose-markdown")
+        )
     }
 
     // ── RNF-50: pintar no hace red ──────────────────────────────────────────────────────────
 
     @Test
-    fun `el modulo de render no menciona ninguna clase de imagenes`() {
+    fun `el modulo de render no tiene ninguna clase de imagenes de terceros`() {
+        // RNF-50 y RNF-57. El módulo del motor **sí** puede registrar imágenes desde la spec 019 —es lo que
+        // permite que la vista previa del editor enseñe las suyas—, así que la regla dejó de ser «aquí no hay
+        // imágenes» y pasó a ser «aquí no hay nada que sepa salir a la red». Las imágenes del chat las prohibit
+        // el invariante de abajo, que mira **quién pasa el cargador**, no qué sabe el motor.
         val fuente = leer(MODULO_RENDER)
         assertTrue("no se está leyendo el módulo de render", fuente.length > MINIMO_DE_LINEAS)
 
-        listOf("image.AsyncDrawableLoader", "asyncDrawableLoader", "CoilImagesPlugin", "imageLoader").forEach {
+        listOf("Coil", "coil3", "okhttp", "HttpURLConnection", "java.net.URL", "Glide").forEach {
             assertFalse(
-                "el render no debe nombrar $it: una imagen de un mensaje podría salir a la red (RNF-50)",
+                "el módulo del motor no debe nombrar $it: una imagen podría salir a la red (RNF-50, RNF-57)",
                 fuente.contains(it)
             )
         }
     }
 
     @Test
-    fun `el motor no arrastra un cargador de imagenes`() {
-        val fuente = leer(MODULO_RENDER)
-        val plugins = fuente.lines().filter { it.contains(".usePlugin(") }
+    fun `ninguna superficie de la app pasa un cargador de imagenes`() {
+        // RNF-50. Esta es **la** regla: el motor puede con imágenes, pero las cuatro superficies de `:app` pasan
+        // `null`, que es lo que impide que un mensaje del chat saque una imagen remota. Es un recorrido por
+        // **todos** los ficheros de `src/main`, no solo los cuatro que ya sabemos: un cargador pasado en otro
+        // sitio no se vería en un recorrido parcial.
+        val arbol = File("src/main").walkTopDown().filter { it.isFile && it.extension == "kt" }
+            .associate { it.path to it.readText() }
+        assertTrue("el recorrido está roto: no ha leído ningún Kotlin", arbol.size >= 30)
 
-        assertTrue("no se encuentra la lista de plugins: el recorrido está roto", plugins.size >= 6)
-        assertFalse(
-            "no debe haber ningún plugin que cargue imágenes (RNF-50)",
-            plugins.any { it.contains("Image") }
+        val ofensores = arbol.filter { (_, texto) ->
+            texto.contains("imagenesLocalesDe") || texto.contains("LocalFileImageLoader")
+        }.keys
+        assertTrue(
+            "ninguna superficie de la app debe pasar un cargador de imágenes: el chat y el texto legal no tienen " +
+                "imágenes y abrirlas sería una vía de salida (RNF-50). Está en: $ofensores",
+            ofensores.isEmpty()
         )
     }
 

@@ -64,7 +64,6 @@ private fun fallbackLicenses(): List<OssLibrary> = listOf(
     OssLibrary("Biometric", "1.4.0-alpha07", "Apache-2.0", "https://developer.android.com/jetpack/androidx/releases/biometric"),
     OssLibrary("Media3", "1.7.1", "Apache-2.0", "https://github.com/androidx/media/blob/release/LICENSE"),
     OssLibrary("PDF Viewer", "1.0.0-alpha19", "Apache-2.0", "https://github.com/androidx/androidx/blob/androidx-main/pdf/pdf-viewer/build.gradle"),
-    OssLibrary("compose-markdown", "0.7.2", "MIT", "https://github.com/jeziellago/compose-markdown/blob/main/LICENSE"),
     OssLibrary("LaTeX", "1.5.4", "MIT", "https://github.com/huarangmeng/latex/blob/master/LICENSE"),
     OssLibrary("llama.cpp", "commit 3dc7285b4", "MIT", "https://github.com/ggml-org/llama.cpp/blob/master/LICENSE")
 )

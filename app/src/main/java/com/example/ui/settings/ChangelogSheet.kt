@@ -18,14 +18,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.estrin217.markdown.MarkdownEngine
+import com.estrin217.markdown.MarkdownText
+import com.example.ui.markdown.markdownColors
 import com.example.R
 import com.example.data.AppUpdateConfig
 import com.example.data.updates.GithubRelease
 import com.example.data.updates.UpdateFetcher
-import dev.jeziellago.compose.markdowntext.MarkdownText
 
 private const val TAG = "ChangelogSheet"
 
+/**
+ * Las notas de cada release, pintadas con el motor de Markdown (spec 018, RF-105).
+ *
+ * El texto se entrega **literal**: las notas se escriben en GitHub, donde el HTML crudo —un `<details>`, un
+ * `<hr>`— es legítimo y se ve. Pasarlo por la adaptación del chat **haría daño**, porque esa adaptación está
+ * hecha para el markup heredado de las notas de la app y retiraría etiquetas que aquí sí significan algo.
+ *
+ * El motor va por encima del `LazyColumn` de la hoja, nunca dentro de cada release: la lista descarta lo que
+ * sale de pantalla, y un motor por release se reconstruiría en cada vuelta.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangelogBottomSheet(onDismiss: () -> Unit) {
@@ -51,6 +63,7 @@ fun ChangelogBottomSheet(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
+     MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -133,6 +146,7 @@ fun ChangelogBottomSheet(onDismiss: () -> Unit) {
                 }
             }
         }
+        }
     }
 }
 
@@ -175,10 +189,8 @@ private fun ChangelogReleaseItem(release: GithubRelease) {
                 }
                 MarkdownText(
                     markdown = release.body,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    linkColor = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textStyle = MaterialTheme.typography.bodyMedium
                 )
             }
         }

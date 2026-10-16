@@ -41,7 +41,6 @@ roborazzi = "1.68.0"
 orgJson = "20240303"
 secretsGradlePlugin = "2.0.1"
 googleServices = "4.5.0"
-composeMarkdown = "0.7.2"
 latex = "1.5.4"
 workRuntimeKtx = "2.11.2"
 biometric = "1.4.0-alpha07"
@@ -54,14 +53,15 @@ googleId = "1.2.0"
 material3 = "1.5.0-alpha28"
 media3 = "1.7.1"
 glance = "1.3.0-alpha02"
-# commonmark-java: la MISMA version que ya arrastra compose-markdown y que exige markwon-core,
-# para no forzar un salto transitivo que romperia el chat (spec 017) y MarkdownText (spec 012,
-# decision 2). Si esta version sube, se rompe el editor de codigo y el chat a la vez y ninguna
-# prueba funcional se pone roja: hay un invariante que lo vigila (spec 017, T7).
-commonmark = "0.13.0"
-# Motor de GFM del chat (spec 017). Estas seis piezas YA estaban en el APK como dependencia
-# `runtime` de compose-markdown; se declaran aqui porque una dependencia `runtime` no llega al
-# classpath de compilacion. Cero jars nuevos: RNF-48.
+# commonmark-java ya **no se declara**: la spec 019 quito las tres declaraciones de `:editor-de-codigo`
+# al borrarse el generador de HTML. Sigue dentro del APK, y ahora **por una sola via**: `markwon-core`
+# lo exige en `compile` y lo arrastra a 0.13.0. Antes habia tres caminos que podian moverlo —la
+# libreria de Markdown de terceros (retirada en la 018) y el generador de HTML (borrado en la 019)— y
+# ahora no hay ninguno, asi que su version es cosa de `markwon-core` y de nadie mas.
+# Motor de GFM de toda superficie de Markdown (spec 017, RF-98; spec 018, RF-104, RF-105). Estas seis
+# piezas YA estaban en el APK como dependencia `runtime` de la libreria que la 018 retira; se declaran
+# aqui porque una dependencia `runtime` no llega al classpath de compilacion. Cero jars nuevos:
+# RNF-48, RNF-53.
 markwon = "4.6.2"
 
 [libraries]
@@ -118,8 +118,9 @@ roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", versi
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
-compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
-# Motor de GFM directo del chat (spec 017, RF-98).
+# Motor de GFM de toda superficie de Markdown de la app (spec 017 lo construyó para el chat; la 018
+# lo extió a la pantalla legal y a las dos de novedades, y retiró la libreria de Markdown de terceros
+# que pintaba esas tres).
 markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 markwon-ext-tables = { group = "io.noties.markwon", name = "ext-tables", version.ref = "markwon" }
 markwon-ext-strikethrough = { group = "io.noties.markwon", name = "ext-strikethrough", version.ref = "markwon" }
@@ -146,9 +147,6 @@ androidx-media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exop
 androidx-fragment-compose = { group = "androidx.fragment", name = "fragment-compose", version = "1.8.6" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
-commonmark-core = { group = "com.atlassian.commonmark", name = "commonmark", version.ref = "commonmark" }
-commonmark-tables = { group = "com.atlassian.commonmark", name = "commonmark-ext-gfm-tables", version.ref = "commonmark" }
-commonmark-strikethrough = { group = "com.atlassian.commonmark", name = "commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

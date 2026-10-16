@@ -126,45 +126,6 @@ object ChatMarkdownSource {
         return salida.joinToString("\n")
     }
 
-    /**
-     * Qué direcciones se pueden abrir al pulsarlas (spec 017, RF-100).
-     *
-     * Solo web: `http`, `https` y lo que se escribe sin esquema pero **parece** un dominio. Se rechazan
-     * `javascript:`, `intent:`, `file:`, `content:`, `tel:`, `mailto:` y cualquier otra cosa, y eso no es
-     * purismo: es lo que impide que una respuesta del modelo pueda lanzar lo que sea al pulsar sobre ella.
-     *
-     * `mailto:` está deliberadamente **fuera** aunque el motor pueda producirlo con su máscara por defecto:
-     * por eso el motor se construye con máscara de solo URLs web (ver `ChatMarkwon`).
-     *
-     * Sin esquema se acepta lo que tenga un punto con algo antes y después, que es lo que separa un dominio
-     * de una frase con punto. `a.b` sí cuenta; `no tengo punto`, no.
-     */
-    fun isWebLink(url: String): Boolean {
-        val limpia = url.trim()
-        if (limpia.isEmpty()) return false
-        val esquema = esquemaDe(limpia)
-        if (esquema != null) return esquema == "http" || esquema == "https"
-        return pareceDominio(limpia)
-    }
-
-    /** El esquema en minúsculas, o `null` si la dirección no lleva ninguno. */
-    private fun esquemaDe(url: String): String? {
-        val separador = url.indexOf(':')
-        if (separador <= 0) return null
-        val posible = url.substring(0, separador)
-        if (!posible.all { it.isLetter() || it == '+' || it == '-' || it == '.' }) return null
-        return posible.lowercase()
-    }
-
-    /** Un dominio tiene punto, algo antes y algo después, y nada de espacios. */
-    private fun pareceDominio(url: String): Boolean {
-        if (url.any { it.isWhitespace() }) return false
-        val punto = url.indexOf('.')
-        if (punto <= 0 || punto == url.lastIndex) return false
-        val sinCamino = url.substringBefore('/')
-        return sinCamino.contains('.')
-    }
-
     /** Una línea que abre o cierra una cercada de bloque. */
     private fun esCercada(linea: String): Boolean = regexCercada.matches(linea)
 

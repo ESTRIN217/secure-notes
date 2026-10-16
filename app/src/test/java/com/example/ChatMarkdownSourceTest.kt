@@ -1,6 +1,5 @@
 package com.example
 
-import com.example.ui.markdown.ChatMarkdownSource.isWebLink
 import com.example.ui.markdown.ChatMarkdownSource.markdownForMessage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -8,7 +7,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pruebas de lo que se entrega al motor de GFM del chat (spec 017, RF-99, RF-100).
+ * Pruebas de lo que se entrega al motor de GFM del chat (spec 017, RF-99).
+ *
+ * Lo que decide qué direcciones se abren (RF-100) vive ya en el módulo del motor y se prueba en
+ * `LinkPolicyTest`, porque lo usan las cinco superficies de Markdown y no solo el chat.
  *
  * Son **funciones puras** en un fichero que no importa nada de composición ni de la plataforma. No es
  * purismo: es la condición para poderlas ejercitar en esta plataforma, donde la mitad de la suite no corre
@@ -277,55 +279,5 @@ class ChatMarkdownSourceTest {
 
         assertTrue(salida.contains("- [x] hecho"))
         assertTrue(salida.contains("- [ ] pendiente"))
-    }
-
-    // ── Que direcciones se pueden abrir (RF-100) ──────────────────────────────────────────
-
-    @Test
-    fun `http y https si se abren`() {
-        assertTrue(isWebLink("http://ejemplo.com"))
-        assertTrue(isWebLink("https://ejemplo.com/a/b?c=d"))
-    }
-
-    @Test
-    fun `el esquema en mayusculas tambien cuenta`() {
-        assertTrue(isWebLink("HTTPS://ejemplo.com"))
-        assertTrue(isWebLink("Https://ejemplo.com"))
-    }
-
-    @Test
-    fun `un dominio sin esquema cuenta si parece un dominio`() {
-        assertTrue(isWebLink("www.ejemplo.com"))
-        assertTrue(isWebLink("ejemplo.com/a"))
-        assertTrue(isWebLink("sub.dominio.ejemplo.co.uk"))
-    }
-
-    @Test
-    fun `los esquemas que no son web no se abren`() {
-        listOf(
-            "javascript:alert(1)",
-            "intent://scan/#Intent;scheme=zxing;end",
-            "file:///etc/passwd",
-            "content://media/external/images/1",
-            "tel:+34600123456",
-            "mailto:correo@ejemplo.com",
-            "ftp://ejemplo.com",
-            "data:text/html,<b>x</b>"
-        ).forEach { url ->
-            assertFalse("no debe abrirse $url", isWebLink(url))
-        }
-    }
-
-    @Test
-    fun `nada de texto no es una direccion`() {
-        listOf("", "   ", "no tengo punto", "///", "...").forEach { url ->
-            assertFalse("no debe abrirse '$url'", isWebLink(url))
-        }
-    }
-
-    @Test
-    fun `los espacios al rededor no estropean la decision`() {
-        assertTrue(isWebLink("  https://ejemplo.com  "))
-        assertFalse(isWebLink("  javascript:alert(1)  "))
     }
 }

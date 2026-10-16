@@ -20,10 +20,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.estrin217.markdown.MarkdownEngine
+import com.estrin217.markdown.MarkdownText
+import com.example.ui.markdown.markdownColors
 import com.example.R
 import androidx.compose.material3.TopAppBar
-import com.example.util.RichTextParser
 
+/**
+ * Los textos legales, pintados con el motor de Markdown (spec 018, RF-104, RF-106).
+ *
+ * El contenido de las cinco secciones **es** Markdown —negrita, listas numeradas, párrafos separados— y venía
+ * por el analizador del markup heredado de las notas, que no es un motor de GFM: ahí un `1. Cláusula` no es una
+ * lista, es un párrafo que empieza por «1.». Lo que además trae es el único enlace de la pantalla, metido en
+ * paréntesis, que hoy **no** se podía pulsar porque era un `Text` sin manejador de toque.
+ *
+ * El motor va **por encima** del `Scaffold`, no dentro de cada sección: solo se pinta la que está desplegada, y
+ * un motor por elemento se reconstruiría en cada apertura y cierre.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegalInfoScreen(
@@ -33,6 +46,7 @@ fun LegalInfoScreen(
     BackHandler(onBack = onBack)
     var expandedSection by remember { mutableStateOf<Int?>(null) }
 
+    MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
     Scaffold(
         topBar = {
           TopAppBar(
@@ -127,6 +141,7 @@ fun LegalInfoScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -186,13 +201,10 @@ private fun LegalSection(
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
-                val annotatedContent = remember(content) {
-                    RichTextParser.parse(content, hideTags = true)
-                }
-                Text(
-                    text = annotatedContent,
-                    style = MaterialTheme.typography.bodyMedium,
+                MarkdownText(
+                    markdown = content,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textStyle = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 16.dp, start = 4.dp, end = 4.dp)
                 )
             }
