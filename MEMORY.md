@@ -3,230 +3,145 @@
 Memoria entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte. 
 
 ## Estado actual
-- **Spec 017 (Markdown en el chat con IA) IMPLEMENTADA**, T1-T7 cerradas. `specs/017-markdown-chat-ia/`, RF-98…RF-103, RNF-48…RNF-52. El cuerpo de los mensajes se pinta con **Markwon directo** (`ui/markdown/`, 3 ficheros: `ChatMarkdownSource` puro, `ChatMarkwon` con el motor y `ChatMarkdownText` con el `AndroidView`). **45 pruebas** nuevas (36 puras + 9 invariantes): suite **656/41**, línea base **611/41**, **cero regresiones**; `assembleDebug` verde; **cero artefactos nuevos** (647 coordenadas en el árbol de `:app` antes y después, comprobado con `comm`). **Nada de esto se ha visto en un dispositivo.** `compose-markdown` **se queda** para `ChangelogSheet` y `UpdateInfoScreen`.
+- **Spec 019 (la vista previa del Markdown del editor de código, con Markwon y sin `WebView`) IMPLEMENTADA**, T1-T11.
+  `specs/019-preview-markwon-sin-webview/`, RF-110…RF-116, RNF-57…RNF-62. **Nuevo módulo `:markdown`** con el motor,
+  el composable, `ImageSource` (puro) y `LocalFileImageLoader`; lo que es **del chat** (`ChatMarkdownSource`,
+  `ChatMarkdownText`) se queda en `:app`. El motor se llama con `imagenesLocalesDe: String?` —la ruta del
+  **archivo**—, no con un cargador. **`:app` 668/41** contra base 689/41 con el mismo conjunto de fallos **clase por
+  clase** (los 22 de menos se mudaron al módulo con su código); `:editor-de-codigo` 136/2; `:markdown` 49/0.
+  **Árbol de `:app` 630 → 630: 0 ganadas, 0 perdidas.** APK **+2.224 bytes**. Verificado **dentro de los 29 `dex`**:
+  `MarkdownRenderer` **0**, `WebView` del editor **0**. **Nada de esto se ha visto en un dispositivo.**
 
-- **Spec 016 (GFM en el markup heredado) IMPLEMENTADA**, T1-T8 cerradas. `specs/016-gfm-legacy/`, RF-90…RF-97, RNF-44…RNF-47. Gramática pura nueva en `util/GfmMarkup.kt` (**56** pruebas, 0 imports de Compose) y cableado en `RichTextParser`. **117 pruebas puras verdes** (56 + 61), `assembleDebug` verde, **cero dependencias nuevas** y **cero regresiones**: la suite completa da 609/41 y la línea base 529/**41**. **Nada de esto se ha visto en un dispositivo.**
+- **Spec 018 (Markdown con Markwon en Ajustes) IMPLEMENTADA**, T1-T10 cerradas. `specs/018-markdown-markwon-ajustes/`, RF-104…RF-109, RNF-53…RNF-56. La pantalla legal (que usaba `RichTextParser`), la de actualización y la hoja de novedades (que usaban `MarkdownText` de terceros) **pintan con el motor de la 017**. **`compose-markdown` RETIRADA**: `ChatMarkwon` → `MarkdownEngine`, composable genérico `MarkdownText`, y `ChatMarkdownText` reducido a delegar. **33 pruebas** nuevas (17 invariantes + 16 puras): suite **689/41** contra base **656/41**, **+0 regresiones** comparadas **clase por clase**; `:editor-de-codigo` 145/2. **Árbol de dependencias 650 → 630**: 20 perdidas, **0 ganadas** (`comm` en las dos direcciones). **APK 162.600.361 → 162.117.759 bytes** y sin ninguna clase `jeziellago` en los 29 `dex`. ✅ **VERIFICADO EN DISPOSITIVO por quien Decide: «ya revisé toda la UI y está todo perfecto».**
 
-- **Spec 014 (descomponer el editor de notas) IMPLEMENTADA**, T1-T8 cerradas. `NoteEditorScreen.kt` de **3504 a 2342 líneas**, partida en 4 ficheros (`NoteEditorDialogs` 445, `NoteEditorSheets` 595, `NoteEditorAiSurfaces` 244, más `TabsHost`). Paquete `com.example.ui.editor/` con **diez** lógicas puras (sin `import androidx.compose` ni `import android`, con una prueba que lo vigila) y **79 pruebas** nuevas en `:app` (72 de lógica + 6 invariantes). Invariantes en `EditorInvariantsTest`: tamaño (2342), estado muerto (0), nunca asignado (0), funciones largas (7), guardados (2) y **techo de 600 líneas por fichero extraído**. ✅ **VERIFICADO EN DISPOSITIVO por quien Decide tras T5: «todo perfecto en pantalla».** ⚠️ **T6-T8 NO se han visto en una pantalla**: son movimiento puro de superficie, y lo único que puede romperse es que una hoja no se abra o que su cierre haga otra cosa. RF-84…RF-89, RNF-39…RNF-43.
+- **Spec 017 (Markdown en el chat con IA) IMPLEMENTADA**, T1-T7. `specs/017-markdown-chat-ia/`. El cuerpo de los mensajes se pinta con **Markwon directo** (`ui/markdown/`). 45 pruebas, cero regresiones, cero artefactos nuevos. **Sin ver en dispositivo.**
 
-- **Spec 012 (Markdown GFM) IMPLEMENTADA**, T1-T8 cerradas. Resaltado GFM con tokenizador propio, modos `SPLIT` 50/50 y `PREVIEW` con `WebView` (sin JS, sin red). **133 pruebas** en `:editor-de-codigo`, `:app:assembleDebug` verde. **Nada se ha visto en un dispositivo.** `specs/012-markdown-gfm-editor/`, RF-64…RF-75 y RNF-26…RNF-32.
+- **Spec 016 (GFM en el markup heredado) IMPLEMENTADA**, T1-T8. `specs/016-gfm-legacy/`. Gramática pura en `util/GfmMarkup.kt` cableada en `RichTextParser`. **Sin ver en dispositivo.**
 
-- **Spec 013 (`.md` → base de notas) IMPLEMENTADA**, T1-T6 cerradas. Acción «Enviar a notas» en el editor de código: **siempre crea nota nueva**. **27 pruebas** nuevas en `:app`, `assembleDebug` verde. RF-76…RF-83 y RNF-33…RNF-38. **Sin verificación visual.**
+- **Spec 014 (descomponer el editor) IMPLEMENTADA**, T1-T8. `NoteEditorScreen.kt` de **3504 a 2342 líneas**, partida en 4 ficheros, con diez lógicas puras en `ui/editor/` y 79 pruebas. ✅ **VERIFICADO EN DISPOSITIVO** por quien Decide tras T5.
 
-- **Specs 005-011 (tabla) implementadas** y encadenadas; la 011 se **verificó en dispositivo** y deja el tirador entero dentro con carril de 36 dp. Sin verificación visual: 005, 008 y 009.
+- **Spec 012** y **013** implementadas; specs 005-011 encadenadas (la 011 **verificada en dispositivo**). Sin verificación visual: 005, 008, 009, 012, 013.
 
-- **Spec 006 (chat con IA) implementada**: tres prototipos adoptados y siete lógicas puras en `ui/chat/`, sin Compose ni reloj. 53 casos verdes. Sin ver en dispositivo.
+- **Spec 006 (chat con IA) implementada**: tres prototipos y siete lógicas puras en `ui/chat/`, sin Compose ni reloj.
 
 - **Inset del teclado unificado** en editor y chat (decisión 12): una sola fuente, en el `bottomBar`.
 
-- `./gradlew test` completo **no está verde** y no puede estarlo aquí: Robolectric sin runtime nativo para `linux/aarch64`. Los tests **puros sí se ejecutan**. Las 2 pruebas Robolectric de `ExternalFileStorageRobolectricTest` son la línea de base de `:editor-de-codigo`.
+- `./gradlew test` completo **no está verde** y no puede estarlo aquí: Robolectric sin runtime nativo para `linux/aarch64`. Los tests **puros sí se ejecutan**. Base: `:app` **656 / 41** y `:editor-de-codigo` **145 / 2**; de los 41, **38** son de plataforma y **3** son ajenos y preexistentes (`HtmlExportMediaTest.legacy item markup migrates to checklist html` y las dos de `OnDeviceModelSourceTest`).
 
 ## Decisiones (y por qué)
 
-- **19. El chat se pinta con Markwon directo, no con la librería de Markdown que usa el changelog.** Revisados sus AAR y su código: su «resaltado de sintaxis» solo pintaba nodos delimitados por `==` que nada produce (**no había resaltado real**), y su `AndroidView` va envuelto en una `key(markdown.hashCode())`, o sea que **destruye y recrea la vista en cada cambio de texto**. Escribir el `AndroidView` son ~60 líneas y a cambio el gesto y el color dejan de ser cosa de la librería. Las seis piezas de Markwon entran como `runtime` por `compose-markdown` y hay que declararlas aparte porque **`runtime` no llega al classpath de compilación**; el APK **no crece** (esto también se comprobó con `comm`, no de memoria).
+- **26. Las imágenes de la vista previa las pinta un cargador propio, sin Coil.** Tres razones y la tercera manda:
+  **cero dependencias nuevas**; la regla de `AGENTS.md` del `ImageLoader` único **no aplica**, porque aquí no hay
+  ningún `ImageLoader` que crear; y **la seguridad es del tipo, no de la configuración** —un cargador de Coil con la
+  máscara bien puesta se puede configurar mal, y este **no tiene el método** de pedir nada por red—. La decisión de
+  qué imagen se puede leer es una **función pura** (`clasificarImagen`) con cuatro salidas y no un `Boolean`,
+  porque «no es una imagen», «es remota» y «está fuera de la carpeta» son tres hechos distintos.
 
-- **20. El gesto se queda porque el `TextView` NO lleva método de movimiento.** Es lo que hace que no se quede con los toques: el menú de pulsación larga y el deslizamiento los sigue atendiendo la burbuja (RF-102), y de paso el motor **no abre nada por su cuenta** (su resolutor solo salta desde el toque de un enlace, y aquí no hay método de movimiento). El hit-test del enlace es nuestro: `getOffsetForHorizontal` → `getSpans(offset, offset, URLSpan)` → `isWebLink`, y **se devuelve `true` solo si abre de verdad**. Por eso RF-100 y RF-102 no se pisan: un `javascript:` no abre **ni se traga el menú**.
+- **27. La decisión va por ruta, no por esquema.** Porque `file:///sdcard/Download/x.png` es un `file://` y **no**
+  es del archivo abierto. Y de paso tapa un agujero que el `WebView` tenía abierto: un `![](../fuera.png)` sí podía
+  leer ficheros de fuera de la carpeta. Además el orden importa y no es arbitrario: **desenvolver `%20` antes de
+  normalizar `..`** es lo que para `%2e%2e`, y **mirar el esquema antes que la extensión** es lo que hace que
+  `data:image/png;base64,…` se bloquee en vez de decir «no es una imagen».
 
-- **21. `<item>` se traduce a casilla `[ ]` y no a viñeta `- `.** Decidido con una **sonda** contra `RichTextParser`, no de memoria: hoy `<item>` y `<item checked="false">` pintan **lo mismo**. Traducirlo a viñeta le quitaría una casilla a quien hoy la ve, y este cambio no va de eso. La sonda enseñó además dos cosas más: un `<url=…>` sin cerrar **oculta también la dirección** (va dentro de la etiqueta), y el cierre `</item>` **se ve a la vista** hoy (`☐ Comprar pan</item>`), un fallo que la traducción no arrastra. **Dos expectativas de la spec resultaron falsas y las corrigió la sonda.**
+- **28. El motor se llama con la ruta del archivo, no con un cargador.** `AsyncDrawableLoader` no cruza el módulo
+  (`implementation` no lo filtra) y necesitarlo habría obligado a exponerlo. Pasando la ruta, el panel **no nombra
+  ninguna clase de Markwon** y **no puede** dar al motor un cargador de red aunque quisiera: la garantía se vuelve
+  estructural en vez de una promesa del KDoc.
 
-- **22. La réplica en curso NO usa el motor (RF-103), y no porque no se pueda.** Se podría: la vista ya no se recrea. Es porque el texto a medio escribir **cambiaría de motor a mitad**, y una tabla sin línea separadora se vería como texto y un renglón después como tabla. Ese parpadeo se ve más que la inconsistencia con la burbuja ya guardada. Es la mejora natural de una spec posterior, y hay un invariante que lo vigila.
+- **29. `markwon-image` no hace falta, y casi se declara por error.** `ImagesPlugin` vive en un artefacto aparte que
+  **no está en el APK** —la librería que la 018 retiró se traía su propio fork, y de ahí salía—, así que declararlo
+  rompía RNF-57. Pero **toda** la maquinaria de imágenes (`AsyncDrawable`, `AsyncDrawableLoader`, `ImageSpanFactory`,
+  `MarkwonConfiguration.Builder.asyncDrawableLoader()`) **sí está dentro de `markwon-core`**: el plugin son diez
+  líneas escritas aquí.
 
-- **16. El setext GFM le gana a la raya, y por eso hubo que tocar también la capa de bloques.** `Texto\n---` es un encabezado de segundo nivel, no una raya (decidido por quien Decide; cambia notas existentes). Solo con `RichTextParser` **no se veía nunca**: `preprocessMarkdownBlocks` convertía ese `---` en `<hr/>` antes de que el texto llegara al analizador. Las dos capas tienen que decidir con la **misma** regla («¿la línea de arriba tenía texto?»), que es el mismo fallo que la spec 012 pagó con `---` dentro de una tabla.
+- **30. La comparación de dependencias tiene que ser la del `:app`.** El árbol de `:markdown` por su cuenta resuelve
+  **23 coordenadas por encima** de las de `:app`, y **ninguna** es nueva: son versiones **viejas** de librerías que
+  la app ya tiene, porque Gradle resuelve a la más alta al compilar `:app`. «Un módulo nuevo con 23 dependencias
+  extra» es exactamente lo que una comparación ingenua daría por malo. `:app` 630 → 630 es la medida.
 
-- **17. La regla de énfasis del editor de notas es la de `MarkdownInline` (spec 012), no una nueva.** El plan unggulava una regla propia —«letra o dígito pegado por cualquiera de los dos lados, no aplica»— y era **falsa**: rechazaba `*cursiva*`, porque el `*` de cierre va pegado a la letra. La correcta tiene dos mitades: **abrir** mira lo de detrás *y* lo de delante, **cerrar** solo lo de delante. Motivo: editor de código y editor de notas son **dos superficies del mismo dialecto** y no pueden decidir distinto. `MarkdownInline` es `internal` de otra biblioteca, así que se replicó la regla con una prueba a cada lado, y no el fichero.
+- **22. Las cuatro superficies de Markdown pintan con un motor y la segunda librería se retira.** Lo que obligaba salió del **bytecode** de `compose-markdown` 0.7.2, no de memoria: registraba **`ImagesPlugin` con su propio `ImageLoader` de Coil** —una `![img](url)` en unas notas de release **salía a la red**— y envolvía su vista en un `key(markdown.hashCode())`, que destruye y recrea la vista en cada cambio de texto. Retirarla **encogió** el APK y **arregló un agujero de licencias**: arrastraba un fork de Markwon (`com.github.jeziellago:Markwon`) que nunca estuvo en el inventario, más `coil-gif`, que se llevaba por delante el Coil 2.x y un `okhttp` 4.10 al árbol de resolución.
 
-- **18. Las referencias por referencia necesitan una pre-pasada**, porque una definición `[r]: url` puede estar **después** del enlace que la usa y el analizador es de una sola pasada. Sale temprano si el documento no tiene ni un corchete (la mayoría de las notas son HTML propio). Gana la **primera** definición si se repite: si una nota trajera una definición falsa al final, sobreescribir con ella una legítima al principio cambiaría a dónde lleva un enlace que el usuario escribió.
+- **23. `textStyle` es opcional y `null` significa «no toques la vista».** Si fuera obligatorio, el chat tendría que pasar `bodyMedium` y eso **cambiaría su apariencia** —hoy usa el tamaño por defecto de la plataforma, que además respeta el ajuste de fuente del usuario—. RNF-56 dice que el chat no cambia.
 
-- **15. El techo de 600 líneas de RNF-43 se aplica a lo que sale del composable, no al `NoteEditorScreen.kt`.** Escrita literal («ningún fichero del editor de notas supera las 600 líneas») es imposible: el propio `NoteEditorScreen.kt` mide 2342, y bajarlo de 600 exige **partir el composable**, que es justo lo que la 014 declara fuera de alcance. Así que el monolito se mide con su umbral propio, que baja en cada tarea, y las 600 líneas son el techo de lo extraído. Lo mismo con `BlockEditor` (1030), `EditableTableBlock` (1456) y `FloatingEditorToolbar` (759): ya pasaban de 600 antes de la 014 y son de otro fichero. **No se les baja el presupuesto para que pasen**: un invariante que nace rojo entrena a ignorar el rojo.
+- **24. Solo la burbuja adapta el markup heredado**; el texto legal y las notas de una release se entregan **literales**: en GitHub el HTML crudo es legítimo y adaptarlo **retiraría** etiquetas que ahí sí significan algo. Por eso `ChatMarkdownText` **no** se renombró aunque el motor sí: sigue siendo «lo que adapta una nota para una burbuja».
 
-- **14. Los `InsertMediaDialog` ×2 no se movieron, y no es un pendiente de movimiento.** Catorce parámetros cada uno, ocho de ellos «qué hacer cuando» repetidos en los dos. El problema no es dónde viven sino cómo están modelados, y eso es la primera decisión de la 015. 
+- **25. Una dirección se abre sin la puntuación de su frase.** El único enlace del texto legal va metido en paréntesis **en los nueve idiomas**, y un `URLSpan` es un texto con posición. **No se puede comprobar aquí** (`Linkify` es framework de Android, sin runtime nativo), así que es una **función pura** con pruebas: `.` `,` `;` `!` `?` van siempre; `)` `]` `}` `>` **solo si quedan sin parear**, porque `https://ejemplo.com/a_(b)` es válida.
 
-- **14. El editor de código NO escribe en la base de notas.** `CodeEditorActivity` vive **fuera** del flujo de bloqueo de la bóveda y no tiene el `NotesViewModel`: escribir desde ahí saltaría la contraseña maestra y el refresco de widgets. Deja un sobre en `cacheDir` con nombre **fijo** (`md_handoff.json`, porque la ruta acaba en un log y el nombre del archivo es del usuario) y `MainActivity` consume. Con la app bloqueada **espera**: no crea ni borra, que perdería el trabajo.
+- **19. El chat se pinta con Markwon directo.** Su «resaltado de sintaxis» en la librería retirada solo pintaba nodos delimitados por `==` que nada produce. Las seis piezas de Markwon entran como `runtime` por `compose-markdown` —**retirada en la 018**— y hubo que declararlas aparte porque **`runtime` no llega al classpath de compilación**.
 
-- **13. commonmark-java 0.13.0, no 0.22**: `compose-markdown` ya arrastra core + `ext-gfm-tables` + `ext-gfm-strikethrough` en el APK, así que declararlos en `:editor-de-codigo` **no descarga nada**. Subir a 0.22 forzaría la versión transitiva que usan `UpdateInfoScreen` y `ChangelogSheet`. En 0.13 no hay extensión de listas de tarea: se cubren con un post-proceso sobre el HTML propio. El jar es bytecode Java 7 sin `java.awt`/`java.sql`: comprobado antes de decidir.
+- **20. El gesto se queda porque el `TextView` NO lleva método de movimiento.** El menú de pulsación larga y el deslizamiento los sigue atendiendo la burbuja, y el motor **no abre nada por su cuenta**. El hit-test es nuestro: `getOffsetForHorizontal` → `getSpans(offset, offset, URLSpan)` → `isWebLink`, y **se devuelve `true` solo si abre de verdad**, así que un `javascript:` no abre **ni se traga el gesto**. La 018 **reutiliza** esa política tal cual en Ajustes.
 
-- **12. El inset del teclado se aplica UNA vez, en el `bottomBar`, con `union`**:  `WindowInsets.ime.union(WindowInsets.navigationBars)` gana el `ime` con el teclado abierto y las barras de navegación con el teclado cerrado, sin tener que decidir en código. El síntoma que había (barra invisible pero **su hueco visible**) era doble conteo: `innerPadding` del `Scaffold` ya reservaba la altura del `bottomBar`, y el `.imePadding()` del `Box` de contenido la volvía a sumar. Con `adjustResize` implícito y `enableEdgeToEdge()`, el teclado tapa el `bottomBar`: sin inset propio, la barra queda **detrás** del teclado. ⚠️ **Pendiente de revisión visual**: Both `Scaffold` conservan su `.navigationBarsPadding()`, que reduce la caja del Scaffold mientras el `union` actúa dentro del `bottomBar`. Superficies distintas, se cree que no se duplica, pero no está verificado en dispositivo.
+- **21. `<item>` se traduce a casilla `[ ]` y no a viñeta `- `.** Con una **sonda** contra `RichTextParser`: hoy `<item>` y `<item checked="false">` pintan **lo mismo**.
 
-- **9. La cabecera es una fila y una columna, no un dato aparte** (spec 008): «activar fila de cabecera» es estilo sobre la fila 0, igual que «activar columna de cabecera» lo es sobre la columna 0. Se descartó guardar en qué fila está la cabecera porque obligaría a la geometría a seguir distinguiéndola. Consecuencias aceptadas: desactivar la fila la convierte en dato (no la borra) y la fila 0 ya se puede borrar y mover. Al leer una nota vieja, los títulos antiguos se anteponen **siempre**: descartarlos sería borrar texto del usuario.
+- **22-bis. La réplica en curso NO usa el motor (RF-103)**: el texto a medio escribir cambiaría de motor a mitad, y una tabla sin línea separadora se vería como texto y un renglón después como tabla.
 
-- **5. La sugerencia de resumen conserva su visibilidad condicional** (texto seleccionado, contenido de nota o adjuntos): sin ella sería un botón que pide resumir la nada, y en los tres puntos de entrada el contexto llega vacío.
+- **16. El setext GFM le gana a la raya**, y por eso hubo que tocar también la capa de bloques: solo con `RichTextParser` **no se veía nunca**. Las dos capas deciden con la **misma** regla («¿la línea de arriba tenía texto?»).
 
-- **6. La rotación del saludo es diaria, determinista y cíclica**: es la única forma de ejercitarlo con JUnit puro y evita que el texto cambie bajo los ojos de quien mira. No se promete que dos días cualesquiera den saludos distintos.
+- **17. La regla de énfasis del editor de notas es la de `MarkdownInline` (spec 012), no una nueva.** Editor de código y editor de notas son **dos superficies del mismo dialecto** y no pueden decidir distinto.
 
-- **7. La clave de las fichas de adjuntos es posicional + nombre**, única por construcción: `FileAttachment` no tiene id estable y `removePendingAttachment` borra por índice, así que con dos adjuntos homónimos una clave por nombre lanza `IllegalArgumentException`. **Excepción consciente** a la `key` estable de `AGENTS.md`: al cambiar la clave Compose **destruye y recompone** los nodos, y aquí la ficha no tiene estado interno que perder.
+- **18. Las referencias por referencia necesitan una pre-pasada**: una definición `[r]: url` puede estar **después** del enlace que la usa. Gana la **primera** si se repite.
 
-- **8. Qué texto de ayuda corresponde lo decide la lógica pura**, que devuelve un identificador del dominio; el texto lo resuelve el Composable con `stringResource`. Así es comprobable sin recursos.
+- **15. El techo de 600 líneas de RNF-43 se aplica a lo que sale del composable, no al `NoteEditorScreen.kt`** (que mide 2342). **No se le baja el presupuesto a `BlockEditor`, `EditableTableBlock` ni `FloatingEditorToolbar` para que pasen**: un invariante que nace rojo entrena a ignorar el rojo.
 
-- **11. El mapeo acción→petición de la rama de envío se queda en el Composable**: existe desde antes y ninguna RF depende de él.
+- **13. `commonmark` ya no se declara en ninguna parte (spec 019).** Antes había **tres** caminos que podían
+  mover su versión —la librería de Markdown de terceros (retirada en la 018), el generador de HTML (borrado en la
+  019) y `markwon-core`— y por eso hacía falta un pin. Ya solo queda `markwon-core`, así que la versión es suya y
+  el pin era decoración. **Una línea de catálogo sin nada detrás no fija nada: solo lo aparenta**, y un invariante
+  que la comprobaba daba verde sobre un control que ya no existía.
 
-- **Sin visión en la capa de modelo**: se descartaron foto y cámara en la hoja de adjuntos porque los adjuntos llegan al modelo serializados como texto y el motor en el dispositivo es de solo texto. Añadirlas habría sido una hoja con opciones que no pueden funcionar.
+- **12. El inset del teclado se aplica UNA vez, en el `bottomBar`, con `union`.** La barra invisible con su hueco visible era doble conteo entre `innerPadding` del `Scaffold` y el `.imePadding()` del contenido.
 
-- El host de IA vive en la `Application`, no en el ViewModel: el ViewModel se destruye al salir de la Activity y el host debe sobrevivir. Descarga por **referencias + inactividad**: recargar re-lee el GGUF.
+- **9. La cabecera es una fila y una columna, no un dato aparte** (spec 008). Al leer una nota vieja, los títulos antiguos se anteponen **siempre**.
 
-- La barra de la tabla va en un **margen constante propio** (el salto venía de que `AnimatedVisibility` **cambiaba el alto**) y no se puede superponer porque **el editor no pone espacio entre bloques**: taparía el bloque de arriba.
+- **7. La clave de las fichas de adjuntos es posicional + nombre**, única por construcción: `FileAttachment` no tiene id estable. **Excepción consciente** a la `key` estable de `AGENTS.md`: al cambiar la clave Compose **destruye y recompone** el nodo, y la ficha no tiene estado interno.
 
-- Foco de un grupo con un **conjunto** de elementos, no con «el enfocado»: el desenfoque de A puede llegar tras el foco de B y con un solo valor se borrarían. El estado **final** no puede depender del orden.
-
-- Contorno de selección en **capa superpuesta**, no borde por celda: por eso `selectionOutline` devuelve **una** región o `null`; mientras pueda devolver varias, el dibujado no puede saber si las une, y no unirlas es la escalera.
+- El host de IA vive en la `Application`, no en el ViewModel. Descarga por **referencias + inactividad**.
 
 ## Aprendizajes y errores a evitar 
 
-- **Escribir las pruebas primero pagaba la cuarta parte de los bugs.** En la spec 016, de los tres bugs de gramática, **uno lo pilló una prueba ya escrita** (el autolink sin el `<` de apertura, que hacía que `<https://…>` siguiera desapareciendo: el fallo exacto que la spec venía a arreglar) y los otros dos salieron al copiar una regla que ya existía. Los tests primero no es un ritual, es lo que encuentra el fallo antes de cablearlo.
+- **Un invariante que lee comentarios no mide lo que dice medir.** Cuatro invariantes nuevos se pusieron rojos con el
+  código **correcto**, los cuatro porque buscaban `WebView` y `ChatMarkdownText` en el texto completo y solo quedaban
+  en el KDoc que explica que ya no se usan. Todo recorrido por fuente **quita comentarios antes de buscar**.
 
-- **Una regla de la spec 012 era justo lo que hacía falta, y el plan la había reescrito peor.** Antes de inventar una regla de énfasis, había que **leer la que ya está desplegada** en `MarkdownInline`. Dos superficies del mismo dialecto que decidan distinto es un bug esperando, y se evita copiando la regla y fijándola con una prueba a cada lado.
+- **Escribir las pruebas primero pagaba la cuarta parte de los bugs.** En la 016, uno de los tres fallos de gramática lo pilló una prueba ya escrita. En la 018, **dos** defectos de `direccionParaAbrir` los pillaron sus pruebas puras y **ninguno** se habría visto en una pantalla.
 
-- **Una tirada sin su cierre tiene que quedar visible ENTERA, no un carácter.** Devolver `null` y dejar que el bucle avance uno solo hace que el resto de la tirada vuelva a evaluarse como tirada nueva, y esa sí cierra con la que hay al final. Hay que copiar la tirada entera y saltar por encima.
+- **Dos guardas encadenadas sobre el mismo conjunto fallan; un `when` por carácter no.** `direccionParaAbrir` tenía `if (!esPuntuacion(c)) break` y `esPuntuacion` **no** incluía los cierres, así que un `)` no se recortaba nunca. La forma que no puede tener ese fallo nombra **qué hace** cada rama y deja `else` para «no se quita».
 
-- **El ancla `^` de Kotlin con `Regex.find(text, start)` no se mueve del índice 0.** Tercera vez que lo paga la spec 016 (ya en la 014). Buscar sobre **la línea**, no sobre el documento.
+- **Contar una diferencia no dice cuál sobra.** `estaPareado` acababa en `saldo > 0` y daba por huérfano un paréntesis **bien pareado**, rompiendo `https://ejemplo.com/a_(b)`. Lo correcto es preguntar por el **último** carácter: recorrer **parando antes** de él y sin bajar el saldo de cero.
 
-- **Una fila separadora que es de una columna no es tabla**, y `pipeCount - 1 >= 2` es lo que lo dice: la mutación que lo afloja a `>= 1` pone roja **una sola** prueba, y esa única prueba es la que sostiene el mínimo de columnas de GFM.
+- **Comparar los fallos por clase, no en cantidad.** «689/41 contra 656/41» suena a cero regresiones y no lo prueba: hay que comprobar que las mismas clases fallan lo mismo.
 
-- **Un test que reimplementa lo que prueba no prueba nada.** Pasó dos veces: `MarkdownPreviewContractTest` daba verde con el bug puesto (mutaba el Composable y el test llamaba al renderizador directamente), y `NoteHandoffTimingTest` reimplementaba la lógica. **O ejerce el código real, o su KDoc dice qué SÍ fija y qué NO.** Para lo segundo: extraer el cruce a una función real compartida.
+- **Cuando una prueba falla, leer el nombre además del mensaje.** Una expectativa mía decía «`?q=(a)` quita el `)`» con el nombre «se conserva», y la implementación tenía razón: el `(` sí lo abre.
 
-- **Un bug de integración es invisible a los tests por pieza**: `MarkdownRendererTest` comprobaba que el renderizador funciona (funciona), `PreviewLayoutTest` que se componen los paneles (se componen). El fallo estaba en *quién llamaba a qué*, un cruce que no existía como código.
+- **Una expectativa de memoria es una suposición**: `[a](b)` son **dos** tokens, `*b*` no incluye los espacios, `[ref]` **sí** es un enlace colapsado, `a*b*c` no es énfasis.
 
-- **Un estado escrito desde `onNewIntent` no lo ve un `LaunchedEffect` cuya clave no cambia.** El bug de «enviar a notas no hace nada»: el sobre se guardaba en una `var` estática y el efecto tenía por clave `isUnlocked`, que **ya no cambiaba** al llegar el Intent. **El error no era la guarda, era el reloj**; ningún `StateFlow` lo habría salvado. Arreglo: consumir en el acto donde llega.
+- **`commonmark` y `markwon` los fija un invariante que lee el fichero**, porque si Graddy resolviera otra versión se romperían el chat, el editor de código y las tres superficies de Ajustes **a la vez** y ninguna prueba funcional se pondría roja.
 
-- **Una `var` estática en el companion no dispara recomposición**, aunque la lea un `Snackbar`.
+- **Una dependencia `runtime` no llega al classpath de compilación**; `toPx` es **miembro de `Density`**, no extensión suelta (`with(densidad) { … }`); y Compose **no tiene API pública** para `FontFamily` → `Typeface` de Android (`fontFamilyName` es interno).
 
-- **`escapeHtml(true)` de commonmark vuelve visible un doble render**: reprocesar el documento lo
-  escapa entero, sin error. Hay un test que documenta que reprocesar **sí** lo cambia.
+- **Un `AndroidView` envuelto en `key(texto.hashCode())` destruye y recrea la vista en cada cambio.** `onRelease` de `AndroidView` se dispara con la vista aún en el árbol: `destroy()` ahí deja la pantalla en negro.
 
-- **Commonmark-java 0.13 hay que dársela a los DOS constructores**: solo en el `Parser`, la tabla y el
-  tachado se parsean bien y el `HtmlRenderer` los pinta **vacíos** (`<p></p>`).
+- **El ancla `^` de Kotlin con `Regex.find(text, start)` no se mueve del índice 0**, y `^` no ancla por línea sin `RegexOption.MULTILINE`. Buscar sobre **la línea**, no sobre el documento.
 
-- **`Regex("""…\s…""")` en Kotlin busca barra + `s`, no un espacio**, y falla en silencio. Con
-  comillas normales. Salió en un filtro de seguridad.
+- **Kotlin NO admite referencias adelantadas a funciones locales** (sí capturar una `var` declarada después desde una lambda).
 
-- **Para saber qué color gana en un `AnnotatedString`, el ÚLTIMO span que cubre el tramo**: el mayor es
-  el span base (cubre todo) y el menor es el de búsqueda. Y el de búsqueda **no cambia el color, solo
-  el fondo**: pedir `color` da transparente y no prueba nada.
+- **Apóstrofos crudos** en `strings.xml` rompen `mergeDebugResources`, **después** de que Kotlin compila limpio. Los saltos son `\n` literal, nunca 0x0A.
 
-- **Un índice escrito a ojo se desplaza en cuanto el fixture cambia**: anclar con `indexOf`, nunca con
-  números sueltos. Cuatro asserts apuntaban al carácter equivocado y seguían verdes.
+- **Un `BUILD SUCCESSFUL` puede no ejecutar nada**: `testDebugUnitTest` sale `UP-TO-DATE`; usar `--rerun`, y `--continue` porque si no para en el primer módulo que falla y el otro nunca se mide.
 
-- **Una expectativa de memoria es una suposición**: `[a](b)` son **dos** tokens, `*b*` no incluye los
-  espacios, `[ref]` **sí** es un enlace colapsado, `a*b*c` no es énfasis.
+- **Una tirada sin su cierre tiene que quedar visible ENTERA, no un carácter.** Copiar la tirada entera y saltar por encima.
 
-- **`onRelease` de `AndroidView` se dispara con la vista aún en el árbol**: `destroy()` ahí deja la
-  pantalla en negro. Guardar la referencia y destruir en `DisposableEffect`, como `InAppYouTubePlayer`.
-
-- **`Icons.AutoMirrored.Filled.Note` necesita su propio import**; `Icons.Filled.Note` está obsoleto.
-
-- **`StringIndexOutOfBounds: Index -1`** en un tokenizador es `md[i-1]` con `i==0`, o un `indexOf` que
-  devolvió −1 usado como posición.
-
-- **Los comentarios de bloque de Kotlin se ANIDAN.** Escribir `audio/*` dentro de un KDoc abre un
-  comentario dentro del comentario: el `*/` que cierra el KDoc cierra el anidado y el de fuera queda
-  abierto hasta el final del fichero. El error sale como `Syntax error: Unclosed comment` **en la
-  línea donde el comentario debería cerrar**, muy lejos de la causa. Salió en la 014.
-
-- **Kotlin NO admite referencias adelantadas a funciones locales.** Colocar el bloque **después** de
-  las funciones que llama. ⚠️ Matiz que costó un `BUILD FAILED` en la 014: **sí** se puede capturar una
-  `var` declarada después desde el cuerpo de una lambda (`LaunchedEffect`), porque la lambda se
-  evalúa cuando corre. Lo que se resuelve al compilar es la **llamada a la función local**, y esa sí
-  exige orden.
-
-- **`^` no ancla al principio de cada línea en Kotlin** sin `RegexOption.MULTILINE`, y el índice que
-  devuelve un `findAll` es un **desplazamiento en caracteres, no un número de línea**: usarlo como
-  índice de lista deja el rango vacío y descarta todas las coincidencias **en silencio**. Pasó en dos
-  invariantes de la 014 que daban verde sin comprobar nada. Todo recorrido por fuente lleva ahora una
-  **autocomprobación** que verifica que está leyendo el archivo.
-
-- **Al unificar dos código, comparar el comportamiento rama por rama, no la forma.** La 014: los dos
-  mandos de formato (conmutable y con valor) compartían esqueleto pero **decidían distinto** con el
-  cursor suelto —el conmutable mira la letra de debajo, el de valor solo lo pendiente—. Unificar sin
-  esa comparación habría cambiado el color al pulsar sobre una letra ya coloreada.
-
-- **`applyBlocksChange` repone el cursor al final del bloque.** No usarlo donde antes se asignaba
-  `blocks` directamente: al convertir a título, el cursor habría saltado al final en cada `h1`.
-
-- **Kotlin NO hace smart cast sobre una propiedad delegada.** `if (inPlaceAction != null)` con
-  `inPlaceAction` de `collectAsStateWithLifecycle()` no estrecha el tipo: salía «Smart cast to
-  'AiAction' is impossible». Se lee a un `val` y se pasa ese.
-
-- **Cerrar un diálogo son cuatro operaciones, no una.** `onDismissRequest`, «cancelar», «aceptar» y
-  «cerrar» **no coinciden** en ningún diálogo: el de URL limpia los campos en «cancelar» pero no al
-  tocar fuera; el de imagen y vídeo sí limpia en los dos. Y en `UrlActionDialog` al editar hay que
-  cerrarse **antes** de abrir el de escribir, así que un `onClose` compartido del padre las pisaría.
-  **Un patrón que acierta cinco de seis es el que hace que el sexto se rompa sin que se entienda por
-  qué**: hay que leer cada diálogo, no copiar el del vecino.
-
-- **Un `when` de un brazo por cada constante de una enumeración es una tabla de despacho, no lógica.**
-  Partirlo en varios ficheros lo hace más disperso, no más legible. Aplicar la regla de las 20 líneas
-  a lógica, y dejarlo escrito en el invariante para que el número no parezca arbitrario.
-
-- **Apóstrofos crudos** en `strings.xml` rompen `mergeDebugResources`, **después** de que Kotlin
-  compila limpio. Y en `strings.xml` los saltos son `\n` literal, nunca 0x0A.
-
-- **Un `BUILD SUCCESSFUL` puede no ejecutar nada**: `testDebugUnitTest` sale `UP-TO-DATE`; usar
-  `--rerun`. Misma familia que el de AAPT2 y que el del `catch` que traga excepciones.
-
-- **Un `try/catch` que se traga la excepción en un filtro de seguridad no da error, solo no filtra.**
-  Y `applyRegex` en el resaltador hace justo eso.
-
-- **Una mutación que nadie ve roja es un test que no prueba.** T3 de la spec 012: la primera mutación
-  dejó en verde el test que decía cubrir, porque lo defendía otra capa.
-
-- **Una tabla no oculta texto.** Ni `singleLine`, ni `maxLines`, ni alto máximo.
-
-- **Geometría**: un tirador más ancho que el carril solo funciona entero dentro; un carril más estrecho
-  que el tirador lo obliga a alinear por su borde derecho; una geometría que reparte un alto a todas las
-  filas miente en cuanto una crece.
-
-- **Una lista paralela obliga a un caso especial en cada capa**: los `headers` de la tabla obligaron a
-  `HEADER_ROW`, `headerHeightPx`, `setHeader` y `moveColumn` muerto. Montar el fixture **por la ruta de
-  lectura**, no por el constructor.
+- **Un `try/catch` que se traga la excepción en un filtro de seguridad no da error, solo no filtra.** Y una tabla no oculta texto: ni `singleLine`, ni `maxLines`.
 
 ## Próximos pasos
-- **Defecto encontrado en la 014, sin arreglar a propósito** (esta spec es de cero cambio de
-  comportamiento, así que queda reportado, no tocado): `removeTransformForTag("normal", …)` **no
-  tiene brazo `normal`** y cae en `else`, o sea que el botón «normal» de la barra **no hace nada**.
-  El brazo que sí limpia todo está en `applyTransformForTag`. Son ~2 líneas.
-- **Asimetría conservada a propósito, spec 014**: con el cursor sobre una letra ya coloreada y sin
-  color pendiente, pulsar el color **vuelve a colorear** en vez de borrarlo, porque el mando de valor
-  decide solo por el estilo pendiente. El conmutable sí mira la letra. Está documentado en
-  `applyTagToSelection` y fijado por dos pruebas. Corregirlo es otra spec.
-- **Spec 015 (siguiente)**, en este orden:
-  1. **Decidir cómo se modelan los `InsertMediaDialog` ×2** (14 parámetros, 8 de ellos eventos).
-     Es la primera decisión, porque de ella depende si salen como un diálogo o como dos.
-  2. Agrupar el estado del editor (95 declaraciones) y recordar los ~11 manejadores de las barras.
-     Es lo que queda de `NoteEditorScreen`, y es de riesgo alto porque el estado se comparte **por
-     identidad** con `BlockEditor` (`pendingInsert`, `pendingSelection` y `pendingTagInsert` se le
-     pasan como objetos `MutableState`, y `toolbarParseResult` lo escribe el hijo y lo lee la
-     barra). **Es también lo único que puede bajar `NoteEditorScreen.kt` de las 600 líneas**: sin
-     partir el composable, RNF-43 no se cumple para ese fichero.
-  3. Desbloquea partir `handlePickedFile`, `openExternalFile`, `moveBlockToAnotherNote` y
-     `handleSlashSelect`.
-- **Verificar en dispositivo, T6-T8 de la 014**: solo superficie movida, así que lo comprobable es
-  poco pero real: que la **hoja de voz** siga grabando y que cerrar con una grabación en curso la
-  detenga (es la trampa de la decisión 7: los `remember` viven dentro de la hoja); que la **paleta**
-  siga aplicando color e imagen de fondo; que el **panel de IA** mande la nota entera en resumir y
-  corregir, y que «generar» siga tomando lo seleccionado; y que los **cinco diálogos** acepten,
-  cancelen y cierren como antes. Nada de esto se ha visto en una pantalla.
-- **Verificar en dispositivo, specs 005-013**: **ninguna de las specs 005 a 013 se ha visto en una
-  pantalla**, y todas comparten el mismo riesgo: las pruebas puras comprueban **qué se compone** y la
-  aritmética, no que se vea. Por spec: 012, el `WebView` pinta y no deja la pantalla negra al
-  cambiar de modo, el reparto 50/50 no se desalinea y las listas de tarea salen con casilla. 009, que
-  una celda larga se lea **entera** en varias líneas. 008, que la fila 0 se comporte como las demás.
-  005, que el margen de 60 dp por tabla no sea excesivo. 006, que la píldora no quede tapada por el
-  teclado y que la hoja se cierre de verdad antes de abrir el otro selector (RF-35). 013, que la
-  acción del editor de código llegue a crear la nota. Detalle largo en `specs/*/plan.md`.
-- **Defecto conocido, sin spec**: el enfasis dentro de una celda de tabla o del texto de un título no
-  se tokeniza, porque el token de bloque cubre el texto entero. Sale del color de la celda, no del
-  enfasis. Es coherente con RF-65, pero conviene mirarlo en una pantalla.
-- **Verificar en dispositivo, spec 009**: que una celda larga se lea **entera** en varias líneas, que
-  el tinte de cabecera cubra la fila entera y no solo el alto de su texto, y que el contorno caiga
-  sobre la celda enfocada en una fila más alta que las de arriba. **Nada de esto se ha visto**: las
-  pruebas puras solo comprueban la aritmética de la geometría, no que las celdas alcancen esos altos.
-- **Verificar en dispositivo, spec 008**: que la fila 0 se pinte como cabecera y se pueda borrar y arrastrar como las demás; que con la opción apagada siga visible como fila de datos; que el tirador de columna salga al enfocar una celda de la fila 0 con la opción apagada; y que el HTML exportado conserve la cabecera. **Nada de esto se ha visto en una pantalla**: es riesgo declarado.
-- **Unificar el segundo modelo de tabla, sin spec**: `NoteContentBlock.TableBlock` sigue guardando los títulos aparte y lo usan la lectura sin edición, el TTS y la previsualización. Al unificarlo se arreglaría de paso el defecto conocido de `BlockEditor.kt:1011`.
-- **Verificar en dispositivo, spec 005**: el margen de 60dp por tabla puede resultar excesivo, y una tabla como primer bloque (nada de la 005 se ha visto); 90/120 Hz y jank con `FrameMetrics`; que abrir/cerrar el asistente carga/libera el modelo (`logcat -s AiModelHost`).
-- **Verificar en dispositivo, spec 006** (riesgo declarado): que la píldora no quede tapada por el
-  teclado, que el `errorContainer` en modo detener tenga contraste, que el campo bloqueado se lea como
-  bloqueado, que el saludo más largo (francés, 37 caracteres) quepa en pantalla estrecha y que las
-  etiquetas nuevas quepan en el `LazyRow`. El relleno horizontal de 32 dp del campo nuevo es
-  **explícitamente fuera del alcance** de la spec, así que no es incumplimiento.
-- **Defecto conocido, sin spec**: `BlockEditor.kt:1011` tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y previsualización. Son ~4 líneas.
-- **Defecto conocido, sin spec**: `BlockEditor.kt:92` comparte un único `pendingSelection` entre todos los bloques y `EditableChecklistBlock` no informa de su selección.
+- **Verificar en dispositivo, spec 019, EN ESTE ORDEN**: (1) **que la vista previa se desplace** —un `TextView` en un
+  panel con peso no se desplaza solo, y sin esto es inútil—; (2) que una **imagen local** salga; (3) que una
+  remota **no** salga a la red y salga el recuadro; (4) que `<script>` y `<iframe>` se vean **como texto**, que es lo
+  único que RF-114 no puede comprobar sin Android; (5) que editor, resaltado, búsqueda y cambio de modo sigan igual.
+- **Verificar en dispositivo, spec 018**: que una lista numerada del texto legal se vea como lista y la negrita salga; que la dirección de GitHub **se abra sin el paréntesis**; que un `##` de una release se vea como cabecera y una tabla como tabla; y —**el riesgo de verdad**— que las burbujas del chat se vean **igual** que antes. Lo único que no se puede comprobar aquí es si el detector mete el `)` dentro del `URLSpan`.
+- **Revisión pendiente, spec 018**: `ChatMarkdownText` **no** pasa `textStyle`, así que la burbuja conserva el tamaño por defecto de la plataforma. Pasarle `bodyMedium` sería coherente con el resto de la app, pero cambia su apariencia (decisión 23).
+- **Spec 015 (siguiente)**: (1) decidir cómo se modelan los `InsertMediaDialog` ×2 (14 parámetros, 8 de ellos eventos) — de ello depende si salen como un diálogo o como dos; (2) agrupar el estado del editor (95 declaraciones) y recordar los ~11 manejadores de las barras — es lo único que puede bajar `NoteEditorScreen.kt` de las 600 líneas; (3) desbloquear partir `handlePickedFile`, `openExternalFile`, `moveBlockToAnotherNote` y `handleSlashSelect`.
+- **Verificar en dispositivo, T6-T8 de la 014** (solo superficie movida): que la hoja de voz siga grabando y que cerrar con una grabación en curso la detenga; que la paleta siga aplicando color; y que los cinco diálogos acepten, cancelen y cierren como antes.
+- **Verificar en dispositivo, specs 005-013**: **ninguna se ha visto en una pantalla** salvo la 011. Detalle largo en `specs/*/plan.md`.
+- **Defectos conocidos, sin spec**: `removeTransformForTag("normal", …)` no tiene brazo `normal`, así que el botón «normal» de la barra no hace nada (~2 líneas); el enfasis dentro de una celda de tabla o del texto de un título no se tokeniza; `BlockEditor.kt:1011` tiene un stub para `BlockType.TABLE` que ignora `meta["table"]` → la tabla sale vacía en TTS y previsualización; `BlockEditor.kt:92` comparte un único `pendingSelection` entre todos los bloques; `NoteContentBlock.TableBlock` sigue guardando los títulos aparte (segundo modelo de tabla).
 - Spec 002, T4-T5: generar los dos goldens que faltan y fijar `roborazzi.test.verify`.

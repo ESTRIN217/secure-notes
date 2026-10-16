@@ -187,14 +187,28 @@ dejarlo en la memoria.
   la primera petición: **no hay crash, las imágenes simplemente no cargan**.
 - Jank: `perf/FrameMetricsMonitor` solo registra en DEBUG; para overdraw usar
   `adb shell setprop debug.hwui.overdraw show` + GPU Profiler.
-- **Markdown del chat**: el motor (`ui/markdown/ChatMarkwon.kt`) se construye **una vez por pantalla** y se
-  reparte con `CompositionLocal`; nunca uno por burbuja (la `LazyColumn` descarta lo que sale de pantalla).
-  El `TextView` **no** lleva `movementMethod` ni texto seleccionable: es lo que deja el menú de pulsación larga
-  y el deslizamiento en la burbuja, y lo que impide que el motor abra enlaces por su cuenta. Quien abra un
-  enlace devuelve `true` solo si abre de verdad, y solo si `isWebLink` (spec 017).
+- **Markdown (cinco superficies, no solo el chat)**: el motor vive en el módulo **`:markdown`**
+  (`MarkdownEngine.kt` + `MarkdownText.kt`), no en `:app`, porque lo necesitan `:app` y `:editor-de-codigo` y entre
+  ellos la dependencia va **en un solo sentido**. Se construye **una vez por pantalla** y se reparte con
+  `CompositionLocal` (`ProvidesMarkdownEngine`, **por encima** de la `LazyColumn`, nunca dentro de cada elemento).
+  Las cinco superficies: chat, texto legal, changelog, pantalla de actualización y **vista previa del editor de
+  código**. El `TextView` **no** lleva `movementMethod` ni texto seleccionable: es lo que deja el menú de pulsación
+  larga y el deslizamiento en la burbuja y lo que impide que el motor abra enlaces por su cuenta. Quien abre un
+  enlace devuelve `true` solo si abre de verdad y solo si es web (`isWebLink`, tras `direccionParaAbrir`, que quita
+  la puntuación de la frase y **conserva** los paréntesis pareados). El `AndroidView` **no** va envuelto en un
+  `key(texto.hashCode())`. El texto legal y las notas de una release se entregan **literales**; solo la burbuja
+  adapta el markup heredado (specs 017, 018 y 019).
+- **Las imágenes solo las pinta quien pide una ruta, y el cargador no tiene red.** `ProvidesMarkdownEngine` recibe
+  `imagenesLocalesDe: String?` —la ruta del **archivo**—, **no** un cargador. Consecuencia: **ninguna** superficie de
+  `:app` lo pasa, así que el chat no puede mostrar ninguna imagen (RNF-50), y **ninguna** puede darle un cargador de
+  red aunque quiera. El único cargador (`LocalFileImageLoader`) decodifica con `BitmapFactory` y **no** usa Coil:
+  por eso la regla del `ImageLoader` único de arriba no le aplica, porque no hay ningún `ImageLoader`. La ruta se
+  normaliza **antes** de comparar contra la carpeta, así que `../fuera.png` se marca como bloqueada.
+- **Ningún recorrido por código fuente busca en el texto completo**: primero quita comentarios, o acabará
+  comprobando el KDoc que explica por qué algo **no** está.
 - **Una dependencia `runtime` no llega al classpath de compilación.** Markwon venía así por
-  `compose-markdown` y hubo que declararlo aparte; **cero jars nuevos** era cierto y no se notó hasta que se
-  intentó importar (spec 017).
+  `compose-markdown` (librería **retirada** en la 018) y hubo que declararlo aparte; **cero jars nuevos** era
+  cierto y no se notó hasta que se intentó importar (spec 017).
 
 
 ## Limites
