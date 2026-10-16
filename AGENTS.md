@@ -39,6 +39,12 @@
   `https://huggingface.co`. Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
   Robolectric): sí corren aquí. Los dos únicos avisos del compilador en `src/test` son preexistentes y
   ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22` (`createComposeRule` v1→v2).
+- **Por eso, lo que se pueda decidir sin `Context` se decide en una función pura.** Si la alternativa necesita
+  un `Context` (o `android`/`androidx`), la regla se queda **sin prueba**, y una regla sin prueba es una regla
+  que nadie sabe si funciona. La decisión va a la pieza pura y el `Context` se queda en quien llama: es el
+  motivo por el que `CrashStore` recibe una `File`, por el que la poda de pestañas vive en `OpenNoteTabs`
+  (`isRemoteMediaSource`) y no en el lambda que necesita el `Context`, y por el que el rótulo de un vídeo web
+  vive en `VideoUrlHelper` (`webVideoLabel`) y no dentro del `@Composable` (spec 023).
 
 ## Architecture
 
@@ -142,6 +148,21 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     `Activity` propia: no toca `NoteDatabase` ni `NotesViewModel` por construcción.
   - El aviso de privacidad va **siempre**, sin mirar el informe: el mensaje de la excepción es el único campo
     que la app no controla, y mirar para decidir si hay que avisar es mirar justo lo que no se debe.
+- **Pestañas del editor** (`OpenTab`, `OpenNoteTabs`, `NoteEditorTabsHost`) — reglas permanentes:
+  - **Abrir algo en una pestaña obliga a mirar quién más mira esa pestaña.** La poda (`PruneMissingTabs` →
+    `pruneMissing` → «¿existe el archivo?»), el rótulo (`tabTitle`) y el guardado se escribieron cuando una
+    pestaña de medio solo podía apuntar a un **fichero local**. Una fuente que **no** es un fichero —una URL
+    web— necesita regla propia en cada uno: en la poda va **antes** del disco (`isRemoteMediaSource`, pura) y el
+    rótulo pregunta primero a la pieza compartida (`webVideoLabel`, pura). Spec 023.
+  - **Una pestaña de medio con fuente web no se cierra por la poda**, y esa comprobación **no** hace red: se da
+    por viva sin consultarla, porque la poda corre en cada cambio de pestañas o de notas. Los ficheros locales
+    cuya ruta ya no está **sí** se siguen cerrando (RF-150, RNF-89, RNF-90).
+  - El rótulo de una fuente web es el **identificador** del vídeo si es de YouTube —así las cuatro formas del
+    enlace dan el mismo— y, si no, el último tramo de la ruta **sin consulta ni fragmento**: `v.mp4?token=…` →
+    `v.mp4`. **Sin normalizar la caja**: el rótulo **enseña** la dirección; la caja solo se normaliza donde se
+    **compara** (`isDirectVideoFileUrl`), nunca donde se **enseña** ni al extraer el identificador —
+    `extractYouTubeId` **no** puede pasar a minúsculas: el id distingue caja y con él se arma la miniatura
+    (`youTubeThumbnail`). `null` para lo local, que conserva la regla de siempre (RF-151).
 - **MD3 Expressive opt-ins** (material3 `1.5.0-alpha28`):
   - `LoadingIndicator` requires `@OptIn(ExperimentalMaterial3ExpressiveApi::class)` — `@ExperimentalMaterial3Api` alone is NOT enough.
   - Its signature is `LoadingIndicator(modifier, color, polygons)` — there is **no `strokeWidth` param** (that is `CircularProgressIndicator`'s).

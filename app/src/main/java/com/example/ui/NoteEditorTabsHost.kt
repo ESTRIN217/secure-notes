@@ -33,6 +33,7 @@ import com.estrin217.pdfviewer.ui.PdfViewerScreen
 import com.estrin217.pdfviewer.ui.PdfViewerViewModel
 import com.example.R
 import com.estrin217.visormedia.ui.MediaViewerScreen
+import com.estrin217.visormedia.util.VideoUrlHelper
 import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.NotesViewModel
@@ -328,7 +329,11 @@ private fun tabTitle(tab: OpenTab, notes: List<DecryptedNote>): String {
             if (!title.isNullOrEmpty()) return title
             return stringResource(R.string.untitled_note)
         }
-        is OpenTab.Media -> return tab.src.substringAfterLast('/').substringAfterLast('\\').ifBlank { tab.type }
+        // El rótulo de una fuente web lo calcula la pieza compartida (RF-151): el identificador del vídeo si es
+        // de YouTube. Si no es una URL web, `null` y se aplica la regla de siempre, que es el nombre del
+        // archivo: lo local y el `content://` no cambian de rótulo.
+        is OpenTab.Media -> return VideoUrlHelper.webVideoLabel(tab.src)
+            ?: tab.src.substringAfterLast('/').substringAfterLast('\\').ifBlank { tab.type }
         is OpenTab.Pdf -> return tab.label
         is OpenTab.TextFile -> return tab.label
     }

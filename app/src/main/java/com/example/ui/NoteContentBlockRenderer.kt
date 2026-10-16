@@ -298,14 +298,21 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
     ) {
         MediaCard(modifier = Modifier.fillMaxWidth(widthFraction)) {
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+                val contexto = LocalContext.current
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
-                        .clickable { context.onNavigateToMediaViewer("video", src) },
+                        .clickable {
+                            // La misma regla que el bloque editable (spec 023, RF-149).
+                            if (VideoUrlHelper.opensInApp(src)) {
+                                context.onNavigateToMediaViewer("video", src)
+                            } else {
+                                abrirVideoFuera(contexto, src)
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    val contextForThumb = LocalContext.current
                     val youTubeThumb = if (VideoUrlHelper.isYouTubeUrl(src)) {
                         VideoUrlHelper.youTubeThumbnail(src)
                     } else {
@@ -322,7 +329,7 @@ private fun NoteContentBlock.VideoBlock.renderVideoBlock(
                         )
                     } else if (!VideoUrlHelper.isWebVideoUrl(src)) {
                         SubcomposeAsyncImage(
-                            model = ImageRequest.Builder(contextForThumb)
+                            model = ImageRequest.Builder(contexto)
                                 .data(src)
                                 .videoFrameMillis(0)
                                 .build(),

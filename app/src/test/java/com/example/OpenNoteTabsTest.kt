@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.runtime.saveable.SaverScope
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -184,6 +185,61 @@ class OpenNoteTabsTest {
         tabs.pruneMissing(emptySet()) { src -> src == "/here.png" }
 
         assertEquals(listOf("media:image:/here.png"), tabs.tabs.value.map { it.key })
+    }
+
+    // ── RF-150, RNF-89: la pestaña de un vídeo web no se cierra sola ─────────────────────────
+
+    @Test
+    fun `pruneMissing keeps media whose source is a web video`() {
+        tabs.openMedia("video", "https://cdn.ejemplo.com/v.mp4", null, now = 1L)
+        tabs.openMedia("video", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", null, now = 2L)
+        tabs.openMedia("video", "youtu.be/dQw4w9WgXcQ", null, now = 3L)
+
+        // El lambda dice que **ningún** archivo existe, que es lo que responde de verdad para una URL.
+        tabs.pruneMissing(emptySet()) { false }
+
+        assertEquals(
+            listOf(
+                "media:video:https://cdn.ejemplo.com/v.mp4",
+                "media:video:https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "media:video:youtu.be/dQw4w9WgXcQ"
+            ),
+            tabs.tabs.value.map { it.key }
+        )
+    }
+
+    @Test
+    fun `pruneMissing does not ask the disk about a web source`() {
+        tabs.openMedia("video", "https://cdn.ejemplo.com/v.mp4", null, now = 1L)
+        tabs.openMedia("image", "/gone.png", null, now = 2L)
+        var consultas = 0
+
+        tabs.pruneMissing(emptySet()) { consultas++; false }
+
+        // RNF-89: preguntar por una fuente web sería una petición de red por cada cambio de pestañas.
+        assertEquals("solo se debe preguntar por la fuente local", 1, consultas)
+    }
+
+    @Test
+    fun `pruneMissing still drops a local media file that is gone`() {
+        tabs.openMedia("video", "/local/gone.mp4", null, now = 1L)
+        tabs.openMedia("video", "/local/here.mp4", null, now = 2L)
+
+        tabs.pruneMissing(emptySet()) { src -> src == "/local/here.mp4" }
+
+        assertEquals(listOf("media:video:/local/here.mp4"), tabs.tabs.value.map { it.key })
+    }
+
+    @Test
+    fun `a media tab with a web source is not a local source`() {
+        // La regla, en corto: lo que no es un fichero local no se comprueba como fichero.
+        assertTrue(isRemoteMediaSource("https://cdn.ejemplo.com/v.mp4"))
+        assertTrue(isRemoteMediaSource("http://cdn.ejemplo.com/v.mp4"))
+        assertTrue(isRemoteMediaSource("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+        assertTrue(isRemoteMediaSource("youtu.be/dQw4w9WgXcQ"))
+        assertFalse(isRemoteMediaSource("/local/v.mp4"))
+        assertFalse(isRemoteMediaSource("content://media/external/video/1"))
+        assertFalse(isRemoteMediaSource("file:///storage/emulated/0/v.mp4"))
     }
 
     @Test

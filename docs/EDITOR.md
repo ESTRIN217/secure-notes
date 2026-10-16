@@ -74,7 +74,7 @@ Todas las opciones se aplican a la **selección** actual. Si no hay selección, 
 |---|---|
 | **Código** | Bloque de código con resaltado de sintaxis, ajuste de línea y lenguaje seleccionable |
 | **Imagen** | Inserta una imagen (galería o cámara) en línea, con leyenda, alineación y reemplazo |
-| **Vídeo** | Inserta un vídeo local o de YouTube/shorts con miniatura 16:9; se abre externamente |
+| **Vídeo** | Inserta un vídeo local o web con miniatura 16:9. Al pulsarlo, **se reproduce dentro de la app** si la app sabe hacerlo —YouTube (incluidos *shorts* y `youtu.be`) y archivos de vídeo directos (`.mp4`, `.m4v`, `.mov`, `.webm`, `.mkv`, `.m3u8`, `.ts`, `.flv`, `.ogv`, `.ogg`)—, y **se abre fuera** (navegador o app de YouTube) en cualquier otro caso, como las páginas de Vimeo o Dailymotion |
 | **Audio** | Adjunta un archivo de audio con reproductor embebido (velocidad, salto, título editable) |
 | **Voz** | Graba y adjunta una nota de voz |
 | **Archivo** | Adjunta cualquier archivo con apertura externa (FileProvider), color y descripción |

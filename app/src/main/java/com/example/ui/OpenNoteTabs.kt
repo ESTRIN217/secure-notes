@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
+import com.estrin217.visormedia.util.VideoUrlHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -163,7 +164,9 @@ class OpenNoteTabs {
     private fun isTabAlive(tab: OpenTab, existingIds: Set<Int>, fileExists: (String) -> Boolean): Boolean {
         return when (tab) {
             is OpenTab.Note -> tab.noteId == 0 || tab.noteId in existingIds
-            is OpenTab.Media -> fileExists(tab.src)
+            // El corto-circuito es la regla (RF-150): a una fuente web **no** se le pregunta si existe,
+            // porque no es un fichero y comprobarla pediría red (RNF-89).
+            is OpenTab.Media -> isRemoteMediaSource(tab.src) || fileExists(tab.src)
             is OpenTab.Pdf -> fileExists(tab.uri)
             is OpenTab.TextFile -> fileExists(tab.uri)
         }
@@ -201,6 +204,20 @@ class OpenNoteTabs {
 
 val OpenTab.isDraft: Boolean
     get() = this is OpenTab.Note && noteId == 0
+
+/**
+ * ¿La fuente de una pestaña de medio es **web** —y por tanto no hay fichero local que comprobar—?
+ * (spec 023, RF-150, RNF-89).
+ *
+ * Cubre `http(s)` **y** el enlace de YouTube sin esquema (`youtu.be/ID`), que el bloque también abre dentro y
+ * que tampoco es un fichero: si se colara, la pestaña se abriría y se cerraría sola, que es el defecto que la
+ * verificación en dispositivo encontró. Se apoya en la clasificación compartida en vez de repetir la lista.
+ *
+ * **No** consulta la red ni el disco: la poda corre en cada cambio de pestañas o de notas, y una petición por
+ * cambio sería una fuga de datos de la persona (constitution 5) además de un tirón de interfaz.
+ */
+internal fun isRemoteMediaSource(ref: String): Boolean =
+    VideoUrlHelper.isWebVideoUrl(ref) || VideoUrlHelper.isYouTubeUrl(ref)
 
 val TabsSaver: Saver<OpenNoteTabs, Any> = listSaver(
     save = { manager ->
