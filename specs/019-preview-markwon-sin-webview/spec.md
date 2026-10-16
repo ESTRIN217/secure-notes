@@ -1,6 +1,6 @@
 # Spec 019 — La vista previa de Markdown del editor de código, con Markwon y sin WebView
 
-Estado: **implementada** (2026-10-16), T1-T11 cerradas; **sin verificación visual**
+Estado: **implementada** (2026-10-16), T1-T11 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** Encadena con la 018, que retiró `compose-markdown` y dejó el motor de GFM
 > (`ui/markdown/`) como **el** motor de Markdown de la app. Esta spec lo extiende a la **quinta** superficie, que
@@ -118,6 +118,7 @@ motor que el resto de la app, con el tema del editor, con las imágenes locales 
 - **RNF-62 — Nada de esto se ha visto en un dispositivo.** Es lo primero que hay que hacer al terminar, porque hay
   tres cosas que ninguna prueba de este repositorio puede cerrar: que la vista previa **se desplace** —un
   `TextView` dentro de un panel no se desplaza solo—, que una **imagen local** salga, y que una larga no se corte.
+  **✅ Cerrado (2026-10-16)**: verificado en dispositivo por quien Decide, «todo se ve bien».
 
 ## Casos límite
 

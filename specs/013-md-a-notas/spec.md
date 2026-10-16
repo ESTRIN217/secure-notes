@@ -1,6 +1,6 @@
 # Spec 013 — Del Markdown del editor a la base de notas
 
-Estado: implementada (2026-10-10), T1-T6 cerradas; **sin verificación visual**
+Estado: implementada (2026-10-10), T1-T6 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** Encadena con `specs/012-markdown-gfm-editor/` (**cerrada**), que dejó
 > preparado el hueco: el tokenizador, el renderizador y la conversión de Markdown a bloques ya

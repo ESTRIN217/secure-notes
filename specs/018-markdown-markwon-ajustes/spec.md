@@ -1,6 +1,6 @@
 # Spec 018 — Un solo motor de Markdown (Markwon) fuera del chat
 
-Estado: **implementada** (2026-10-15), T1-T10 cerradas; **sin verificación visual**
+Estado: **implementada** (2026-10-15), T1-T10 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** Encadena con la 017, que construyó el motor (`ui/markdown/`) para el chat y dejó
 > explícitamente fuera de alcance estas tres pantallas («*Las pantallas de changelog y de actualización.

@@ -1,6 +1,6 @@
 # Spec 012 — Markdown GFM: resaltado, mitad y mitad y vista previa
 
-Estado: implementada (2026-10-10), T1-T8 cerradas; **sin verificación visual**
+Estado: implementada (2026-10-10), T1-T8 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** No hereda de ninguna spec anterior: es el primer trabajo sobre Markdown en
 > `:editor-de-codigo`. Encadena con `specs/013-md-a-notas/`, que se redactará después y que recogerá

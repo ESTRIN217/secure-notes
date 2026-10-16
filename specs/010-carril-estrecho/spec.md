@@ -1,6 +1,6 @@
 # Spec 010 — El carril del tirador de fila se estrecha
 
-Estado: implementada (2026-10-09), T1-T3 cerradas; **sin verificación visual**
+Estado: implementada (2026-10-09), T1-T3 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Enmienda posterior.** Su **decisión 2** (ensanchar la capa de tiradores para que el desborde sea
 > pulsable) y su **RF-61** quedan **enmendados** por `specs/011-sin-desborde/spec.md`: en dispositivo

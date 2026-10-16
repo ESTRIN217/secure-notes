@@ -1,6 +1,6 @@
 # Spec 007 — Tiradores del bloque de tabla con objetivo táctil real
 
-Estado: borrador
+Estado: **implementada** (2026-10-07), T1-T8 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** Hija de `specs/001-limites-constitucion/spec.md` (**aprobada**), que
 > sigue siendo la ley. Hereda sin modificar **RF-3, RF-19, RF-20** y **RNF-4, RNF-5, RNF-6**.

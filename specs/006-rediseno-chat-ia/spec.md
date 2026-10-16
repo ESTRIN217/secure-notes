@@ -1,6 +1,6 @@
 # Spec 006 — Rediseño de la pantalla de chat con IA
 
-Estado: **aprobada** (2026-10-05), con el plan aprobado en la misma puerta. Antes de eso pasó **dos
+Estado: **implementada** (2026-10-06), T1-T13 cerradas. ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien». Con el plan aprobado en la misma puerta. Antes de eso pasó **dos
 vueltas de revisión** con los 20 + 12 puntos y los 11 + 12 menores resueltos (ver «Revisión QA»), y una
 **corrección posterior a la implementación** que ajustó cuatro criterios demostrados imposibles
 (ver «Correcciones posteriores a la implementación»).

@@ -1,6 +1,6 @@
 # Spec 016 — GFM en el markup heredado de las notas
 
-Estado: **implementada** (2026-10-13), T1-T8 cerradas; **sin verificación visual**
+Estado: **implementada** (2026-10-13), T1-T8 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**.
 
 > **Nota de procedencia.** Encadena con `specs/012-markdown-gfm-editor/spec.md` (**implementada**),
 > que dejó este trabajo **explícitamente fuera de alcance** en su sección «Fuera de alcance»: «**Resaltado
@@ -205,7 +205,7 @@ formato almacenado ni obligar a quien escribe a recordar el dialecto propio de l
       puro, 56 pruebas, y por eso **sí se ejecutan** en esta plataforma.
 - [x] `:app:assembleDebug` sin errores.
 - [x] `MEMORY.md` actualizado con las decisiones y con el hecho de que esto no se ha visto en un
-      dispositivo.
+      dispositivo. **✅ Cerrado (2026-10-16): verificado en dispositivo por quien Decide.**
 
 > **Lo que falta, y solo se puede cerrar en un dispositivo:** que las tablas de texto se vean como
 > tablas, que el setext se vea como encabezado y no como raya, que el cursor no salte de forma rara al
@@ -213,6 +213,8 @@ formato almacenado ni obligar a quien escribe a recordar el dialecto propio de l
 > referencia **sea pulsable** y abra la URL correcta. Las pruebas fijan el texto pintado, los estilos y
 > los rangos protegidos; **no** que el cursor se mueva bien en una pantalla ni que un toque abra el
 > enlace.
+>
+> **✅ Cerrado (2026-10-16)**: verificado en dispositivo por quien Decide, «todo se ve bien».
 
 ## Dudas abiertas
 

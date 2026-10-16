@@ -1,6 +1,6 @@
 # Spec 008 — La fila de cabecera es una fila más
 
-Estado: implementada (2026-10-08), T1-T9 cerradas; **sin verificación visual**
+Estado: implementada (2026-10-08), T1-T9 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Enmienda posterior.** Su **RF-54** («una sola línea») queda **enmendado** por
 > `specs/009-celda-multilinea/spec.md`: una tabla no puede ocultar texto. Ver la nota de

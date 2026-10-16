@@ -1,6 +1,6 @@
 # Spec 014 — El editor de notas, partido en capas
 
-Estado: aprobada (2026-10-10)
+Estado: **implementada** (2026-10-11), T1-T8 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**.
 
 > **Nota de procedencia.** Hija de `specs/001-limites-constitucion/spec.md` (**aprobada**), que sigue
 > siendo la ley. Hereda sin modificar **RF-3, RF-19, RF-20** y **RNF-4, RNF-5, RNF-6**.
@@ -128,15 +128,15 @@ Se registran para que consten. **No se hacen en esta entrega.**
 
 ## Criterios de finalización
 
-- [ ] La prueba de tamaño del editor pasa con el umbral **bajo** respecto del punto de partida, y se
+- [x] La prueba de tamaño del editor pasa con el umbral **bajo** respecto del punto de partida, y se
       documenta el antes y el después.
-- [ ] La búsqueda de estado muerto en el editor de notas no devuelve nada.
-- [ ] El editor de notas tiene **una** llamada al guardado con el juego completo de campos.
-- [ ] Los cuatro ficheros de lógica comprobable no importan nada de composición, y sus pruebas
+- [x] La búsqueda de estado muerto en el editor de notas no devuelve nada.
+- [x] El editor de notas tiene **una** llamada al guardado con el juego completo de campos.
+- [x] Los cuatro ficheros de lógica comprobable no importan nada de composición, y sus pruebas
       pasan sin emulador.
-- [ ] El recuento de pruebas comprobables es **mayor** que el de la línea base, con todo en verde.
-- [ ] `:app:compileDebugKotlin` y `:app:assembleDebug` sin errores ni avisos nuevos.
-- [ ] `MEMORY.md` registra el corte y lo que queda para la 015.
+- [x] El recuento de pruebas comprobables es **mayor** que el de la línea base, con todo en verde.
+- [x] `:app:compileDebugKotlin` y `:app:assembleDebug` sin errores ni avisos nuevos.
+- [x] `MEMORY.md` registra el corte y lo que queda para la 015.
 
 ## Dudas abiertas
 

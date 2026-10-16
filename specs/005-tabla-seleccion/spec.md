@@ -1,6 +1,6 @@
 # Spec 005 — Selección y foco del bloque de tabla
 
-Estado: implementada (2026-10-04) — T1-T9 cerradas; **sin verificación visual**
+Estado: implementada (2026-10-04) — T1-T9 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** Esta spec es una hija de `specs/001-limites-constitucion/spec.md`
 > (**aprobada**), que es la spec madre y sigue siendo la ley. No la sustituye ni la contradice.

@@ -1,6 +1,6 @@
 # Spec 017 — Markdown (GFM) en el chat de IA
 
-Estado: **implementada** (2026-10-14), T1-T7 cerradas; **sin verificación visual**
+Estado: **implementada** (2026-10-14), T1-T7 cerradas ✅ **VERIFICADA EN DISPOSITIVO por quien Decide (2026-10-16)**: «todo se ve bien».
 
 > **Nota de procedencia.** No encadena con ninguna spec anterior: es la primera que cambia el **motor de
 > pintado** del chat. Las specs 006 (rediseño del chat), 012 (Markdown GFM en el editor de código) y 016
@@ -207,6 +207,8 @@ gestos que ya funcionan**.
 > la pulsación larga y el deslizamiento sigan respondiendo. Las pruebas fijan **qué texto llega al pintado** y
 > **qué direcciones cuentan como enlace**; no fijan que un toque abra lo correcto ni que el menú siga
 > apareciendo.
+>
+> **✅ Cerrado (2026-10-16)**: verificado en dispositivo por quien Decide.
 
 ## Dudas abiertas
 
