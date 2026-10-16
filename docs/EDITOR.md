@@ -150,6 +150,6 @@ El cuerpo de cada bloque de texto usa tags tipo HTML que parsea `RichTextParser`
 | **Barra flotante** | `FloatingEditorToolbar.kt` (modos MAIN / TEXT_FORMAT / SEARCH) + `MoreFormattingSheet.kt`, `FontSizeSheet.kt`, `TextBgColorSheet.kt`, `ColorSelectionDialog.kt` |
 | **Conversión markup ⇄ segmentos** | `RichTextConverter.kt` (`markupToSegments`, `segmentsToMarkup`, `applySpanStyle`, `segmentsToAnnotatedString`), `OffsetMapper.kt` |
 | **Renderizado legacy / preview** | `RichTextParser.kt`, `HtmlTagParser.kt`, `NoteContentBlockRenderer.kt`, `NoteContentBlockCard.kt` |
-| **Utilidades de bloque** | `VideoUrlHelper.kt` (YouTube/shorts), `BookmarkMetadataFetcher.kt` (Jsoup), `DrawingStrokeCodec.kt` / `DrawingStroke.kt`, `AudioPlayerWidget.kt`, `CodeHighlighter.kt`, `CodeLanguages.kt`, `MathRenderer.kt` (LaTeX) |
+| **Utilidades de bloque** | `VideoUrlHelper.kt` (YouTube/shorts), `BookmarkMetadataFetcher.kt` (Jsoup), `DrawingStrokeCodec.kt` / `DrawingStroke.kt`, `AudioPlayerWidget.kt`, `CodeSyntax.kt` (fachada del resaltado compartido con `:editor-de-codigo`), `:editor-de-codigo/.../syntax/` (`SyntaxHighlighter`, `SupportedLanguage`), `MathRenderer.kt` (LaTeX) |
 | **Exportación** | `RichTextConverter` (markdown/html), `util/export/` (`MarkdownExporter`, `HtmlExporter`, `TxtExporter`, `JsonExporter`, `PdfExporter`) |
 | **Modelo** | `DataBlock.kt`, `RichText.kt` (`TextSegment`), `DrawingStroke.kt` (`com.example.data.model`) |

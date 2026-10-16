@@ -6,7 +6,8 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 - **Spec 024 cerrada, implementada y verificada en dispositivo**, T1–T8: archivos del editor excluidos de
   huérfanos; permisos persistentes para URI `content://`. Decisiones y guion: `specs/024-.../`.
 - **Specs 023 y 022 implementadas y verificadas en dispositivo.** Specs 016–019 también verificadas.
-- **Spec 021 implementada**, falta verificar los atajos manteniendo pulsado el icono del lanzador.
+- **Spec 021 implementada y verificada en dispositivo**: la persona usuaria confirmó los atajos
+  manteniendo pulsado el icono del lanzador.
 - **Spec 020 implementada**, falta la verificación manual provocando un fallo real.
 - `./gradlew test` no pasa en este entorno: Robolectric carece de runtime nativo para `linux/aarch64`.
   Línea base tras 024: `:app` 746/41; `:editor-de-codigo` 149/2; fallos conocidos documentados en specs.
@@ -34,7 +35,9 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 - Consultar `AGENTS.md` para reglas de listas Compose, I/O, crash log, pestañas, almacenamiento y rendimiento.
 
 ## Próximos pasos y notas
-- Verificar en dispositivo las specs 020 y 021; continuar con la spec 015 según su plan.
+- Verificar en dispositivo la spec 020 provocando un fallo real.
+- Spec 015 redactada como borrador: incluye estado/selección del editor y tablas en preview/TTS;
+  excluye el rediseño de diálogos de medios. Falta aprobarla antes de planificar o implementar.
 - Spec 002: generar los dos goldens pendientes y fijar `roborazzi.test.verify`.
-- Pendientes conocidos: faltan claves en `values-en-rGB`; `docs/EDITOR.md` aún cita el resaltador borrado por 022;
-  `BlockEditor` no procesa tablas en TTS/preview y comparte `pendingSelection`.
+- `values-en-rGB` ahora contiene las 1.179 claves del inglés base; `docs/EDITOR.md` apunta al resaltador
+  compartido de la spec 022. Los defectos de tabla/TTS/preview y selección quedan descritos en la 015.
