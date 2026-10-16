@@ -14,8 +14,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.data.model.CodeFile
-import com.estrin217.editordecodigo.markdown.MarkdownPreview
-import com.estrin217.editordecodigo.markdown.PreviewTheme
 import com.estrin217.editordecodigo.data.repository.CodeFileRepository
 import com.estrin217.editordecodigo.formatter.CodeFormattingManager
 import com.estrin217.editordecodigo.formatter.FormatOptions
@@ -97,40 +95,40 @@ class CodeEditorViewModel(
     val isEditMode: Boolean get() = _viewMode.value.isEditable()
 
     /**
-     * HTML de la vista previa, o `null` si no hay nada que pintar.
+     * El Markdown de la vista previa, o `null` si no hay nada que pintar (spec 019, RF-115).
      *
-     * Se calcula **fuera del hilo principal** y con retardo (RF-75): convertir en cada recomposición de
-     * `BasicTextField` sería parsear el documento entero por cada tecla que se pulsa, en el hilo de la
-     * interfaz. Aquí solo se publica el resultado y la composición lo lee.
+     * ## Lo que **no** hace ya, y por qué está escrito
      *
-     * El `debounce` es la mitad de la protección; el `catch` es la otra: si el motor falla, el HTML se
-     * queda en su último valor y el editor sigue ahí (RF-74).
+     * Antes este `StateFlow` llevaba el **documento HTML** y se generaba con `Dispatchers.Default`. Con el motor
+     * de Markwon **no hay documento que generar**: el motor parsea dentro de `setMarkdown`, en el hilo principal.
+     * Por eso aquí solo se publica **el texto**, y lo único que sigue haciendo falta es el **retardo**.
+     *
+     * El retardo no es un adorno: sin él, cada tecla pulsada reconstruiría los spans del documento entero en la
+     * vista previa. Es el mismo trabajo que ya hacía el `WebView` en un hilo aparte, y ahora lo hace el motor en el
+     * hilo de la interfaz: **ese es el coste asumido** de esta spec, y no está escondido.
+     *
+     * El editor sigue visible pase lo que pase con la vista previa (RF-74).
      */
-    private val _previewHtml = MutableStateFlow<String?>(null)
-    val previewHtml: StateFlow<String?> = _previewHtml.asStateFlow()
+    private val _previewMarkdown = MutableStateFlow<String?>(null)
+    val previewMarkdown: StateFlow<String?> = _previewMarkdown.asStateFlow()
 
     private var previewJob: Job? = null
 
-    /** Repide el HTML si hay vista previa visible. Si no, no gasta ni un ciclo de reloj. */
+    /** Repide el Markdown si hay vista previa visible. Si no, no gasta ni un ciclo de reloj. */
     private fun refreshPreview() {
         if (!_viewMode.value.showsPreview()) {
             previewJob?.cancel()
-            _previewHtml.value = null
+            _previewMarkdown.value = null
             return
         }
-        schedulePreview(_textFieldValue.value.text, _syntaxTheme.value.toPreviewTheme())
+        schedulePreview(_textFieldValue.value.text)
     }
 
-    private fun schedulePreview(text: String, previewTheme: PreviewTheme) {
+    private fun schedulePreview(text: String) {
         previewJob?.cancel()
         previewJob = viewModelScope.launch {
             delay(PREVIEW_DEBOUNCE_MS)
-            val html = withContext(Dispatchers.Default) {
-                runCatching {
-                    MarkdownPreview.render(text, previewTheme)
-                }.getOrNull()
-            }
-            _previewHtml.value = html
+            _previewMarkdown.value = text
         }
     }
 
@@ -403,7 +401,7 @@ class CodeEditorViewModel(
         // El modo se restaura del archivo y se revalida contra SU lenguaje: un `.md` en vista previa
         // no puede dejar al `.kt` siguiente mirando una vista previa que no existe (RF-69, caso 7).
         _viewMode.value = EditorModes.sanitized(modeRegistry.modeOf(file.id), file.language)
-        _previewHtml.value = null
+        _previewMarkdown.value = null
         refreshPreview()
 
         if (initialText != file.content && bufferedText != null) {

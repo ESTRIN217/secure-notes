@@ -101,7 +101,6 @@ import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxTheme
 import com.estrin217.editordecodigo.ui.components.CodeEditorView
-import com.estrin217.editordecodigo.ui.components.MarkdownPreview
 import com.estrin217.editordecodigo.ui.components.FilesDrawerSheet
 import com.estrin217.editordecodigo.ui.components.JumpToLineDialog
 import com.estrin217.editordecodigo.ui.components.LanguageSelectorDialog
@@ -186,7 +185,7 @@ fun CodeEditorApp(
     val viewMode by viewModel.viewMode.collectAsState()
     val isEditMode = viewMode.isEditable()
     val availableModes = viewModel.availableModes()
-    val previewHtml by viewModel.previewHtml.collectAsState()
+    val previewMarkdown by viewModel.previewMarkdown.collectAsState()
     val layout = remember(viewMode) { PreviewLayout.forMode(viewMode) }
     val showLineNumbers by viewModel.showLineNumbers.collectAsState()
     val wordWrap by viewModel.wordWrap.collectAsState()
@@ -670,17 +669,17 @@ fun CodeEditorApp(
                             modifier = Modifier.weight(PreviewLayout.EDITOR_WEIGHT)
                         )
                         VerticalDivider(color = theme.lineNumber.copy(alpha = 0.25f))
-                        PreviewPane(
-                            html = previewHtml,
+                        MarkdownPreviewPane(
+                            markdown = previewMarkdown,
                             theme = theme,
-                            basePath = currentFile?.filePath,
+                            rutaArchivo = currentFile?.filePath,
                             modifier = Modifier.weight(PreviewLayout.PREVIEW_WEIGHT)
                         )
                     }
-                    layout.showsPreview -> PreviewPane(
-                        html = previewHtml,
+                    layout.showsPreview -> MarkdownPreviewPane(
+                        markdown = previewMarkdown,
                         theme = theme,
-                        basePath = currentFile?.filePath,
+                        rutaArchivo = currentFile?.filePath,
                         modifier = Modifier.fillMaxSize()
                     )
                     else -> EditorPane(
@@ -944,24 +943,6 @@ private fun EditorPane(
         searchQuery = searchQuery,
         modifier = modifier
     )
-}
-
-/**
- * El lado de la vista previa. Con el HTML a `null` pinta el fondo del tema y nada más: es el estado
- * de los 300 ms de retardo, y un hueco con el color del tema se lee mejor que un hueco blanco.
- */
-@Composable
-private fun PreviewPane(
-    html: String?,
-    theme: SyntaxTheme,
-    basePath: String?,
-    modifier: Modifier
-) {
-    if (html == null) {
-        Box(modifier = modifier.background(theme.background))
-        return
-    }
-    MarkdownPreview(documentHtml = html, basePath = basePath, modifier = modifier)
 }
 
 @Composable
