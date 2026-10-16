@@ -119,7 +119,7 @@ fun WysiwygCodeBlock(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = CodeLanguages.resolveLabel(language),
+                        text = codeLanguageLabel(language),
                         style = MaterialTheme.typography.labelLarge
                     )
                     Icon(

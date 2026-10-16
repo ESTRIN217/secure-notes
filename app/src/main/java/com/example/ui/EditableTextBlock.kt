@@ -172,7 +172,7 @@ fun EditableTextBlock(
 
     val displayAnnotated = remember(annotated, highlightLanguage) {
         if (highlightLanguage != null) {
-            com.example.util.CodeHighlighter.highlight(annotated, highlightLanguage)
+            com.example.util.CodeSyntax.highlight(annotated.text, highlightLanguage)
         } else {
             annotated
         }
