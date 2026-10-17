@@ -161,11 +161,22 @@ fun MainListScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isFabExpanded by remember { mutableStateOf(false) }
+    var selectedNoteIds by remember { mutableStateOf(emptySet<Int>()) }
 
-    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME || isFabExpanded || drawerState.isOpen) {
-        viewModel.currentSection.value = com.example.data.model.NavigationSection.HOME
-        isFabExpanded = false
-        scope.launch { drawerState.close() }
+    BackHandler(
+        enabled = NoteSelection.isActive(selectedNoteIds) ||
+            currentSection != com.example.data.model.NavigationSection.HOME ||
+            isFabExpanded ||
+            drawerState.isOpen
+    ) {
+        if (NoteSelection.isActive(selectedNoteIds)) {
+            // RF-177: el modo selección se cierra antes que la navegación; no cambia de sección ni sale
+            selectedNoteIds = emptySet()
+        } else {
+            viewModel.currentSection.value = com.example.data.model.NavigationSection.HOME
+            isFabExpanded = false
+            scope.launch { drawerState.close() }
+        }
     }
 
     val sortedNotes = remember(notes, sortOption, customOrderStr) {
@@ -202,7 +213,6 @@ fun MainListScreen(
     var showCreateTagDialog by remember { mutableStateOf(false) }
     var tagToEdit by remember { mutableStateOf<com.example.data.model.Tag?>(null) }
     var showManageTagsDialog by remember { mutableStateOf(false) }
-    var selectedNoteIds by remember { mutableStateOf(emptySet<Int>()) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var showBatchTagDialog by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
@@ -373,7 +383,7 @@ fun MainListScreen(
                     topBar = {
                         TopAppBar(
                             title = {
-                                if (selectedNoteIds.isNotEmpty()) {
+                                if (NoteSelection.isActive(selectedNoteIds)) {
                                     Text(
                                             text = selectedNoteIds.size.toString(),
                                             fontSize = 18.sp,
@@ -461,7 +471,7 @@ fun MainListScreen(
                                 }
                             },
                             navigationIcon = {
-                                if (selectedNoteIds.isNotEmpty()) {
+                                if (NoteSelection.isActive(selectedNoteIds)) {
                                     IconButton(
                                             onClick = { selectedNoteIds = emptySet() },
                                             modifier = Modifier.testTag("cancel_selection_btn")
@@ -491,7 +501,7 @@ fun MainListScreen(
                                 }
                             },
                             actions = {
-                                if (selectedNoteIds.isNotEmpty()) {
+                                if (NoteSelection.isActive(selectedNoteIds)) {
                                     IconButton(
                                             onClick = {
                                                 viewModel.batchTogglePin(selectedNoteIds)
@@ -663,7 +673,7 @@ fun MainListScreen(
                         )
                     },
                     floatingActionButton = {
-                        if (selectedNoteIds.isEmpty() && currentSection != com.example.data.model.NavigationSection.TRASH) {
+                        if (!NoteSelection.isActive(selectedNoteIds) && currentSection != com.example.data.model.NavigationSection.TRASH) {
                           FloatingActionButtonMenu(
                             expanded = isFabExpanded,
                             button = {
@@ -1090,24 +1100,20 @@ fun MainListScreen(
                                                     Toast.makeText(context, context.getString(R.string.toast_deleted_perm), Toast.LENGTH_SHORT).show()
                                                 },
                                                 onClick = {
-                                                    if (selectedNoteIds.isNotEmpty()) {
-                                                        selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
+                                                    if (NoteSelection.isActive(selectedNoteIds)) {
+                                                        // RF-173: en modo selección el toque alterna; nunca abre la nota
+                                                        selectedNoteIds = NoteSelection.toggle(selectedNoteIds, decryptedNote.note.id)
+                                                    } else if (currentSection != com.example.data.model.NavigationSection.TRASH) {
+                                                        onNavigateToEditor(decryptedNote.note.id)
                                                     } else {
-                                                        if (currentSection != com.example.data.model.NavigationSection.TRASH) {
-                                                            onNavigateToEditor(decryptedNote.note.id)
-                                                        } else {
-                                                            viewModel.restoreFromTrash(decryptedNote.note)
-                                                            Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
-                                                        }
+                                                        viewModel.restoreFromTrash(decryptedNote.note)
+                                                        Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
                                                     }
                                                 },
                                                 onLongClick = {
                                                     if (currentSection != com.example.data.model.NavigationSection.TRASH) {
-                                                        selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                                            selectedNoteIds - decryptedNote.note.id
-                                                        } else {
-                                                            selectedNoteIds + decryptedNote.note.id
-                                                        }
+                                                        // RF-175: la pulsación larga alterna con la misma regla que el toque
+                                                        selectedNoteIds = NoteSelection.toggle(selectedNoteIds, decryptedNote.note.id)
                                                     }
                                                 },
                                                 dragModifier = dragModifier
@@ -1157,24 +1163,20 @@ fun MainListScreen(
                                                 Toast.makeText(context, context.getString(R.string.toast_deleted_perm), Toast.LENGTH_SHORT).show()
                                             },
                                             onClick = {
-                                                if (selectedNoteIds.isNotEmpty()) {
-                                                    selectedNoteIds = emptySet() // Exit selection mode when tapping any note card
+                                                if (NoteSelection.isActive(selectedNoteIds)) {
+                                                    // RF-173: en modo selección el toque alterna; nunca abre la nota
+                                                    selectedNoteIds = NoteSelection.toggle(selectedNoteIds, decryptedNote.note.id)
+                                                } else if (currentSection != com.example.data.model.NavigationSection.TRASH) {
+                                                    onNavigateToEditor(decryptedNote.note.id)
                                                 } else {
-                                                    if (currentSection != com.example.data.model.NavigationSection.TRASH) {
-                                                        onNavigateToEditor(decryptedNote.note.id)
-                                                    } else {
-                                                        viewModel.restoreFromTrash(decryptedNote.note)
-                                                        Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
-                                                    }
+                                                    viewModel.restoreFromTrash(decryptedNote.note)
+                                                    Toast.makeText(context, context.getString(R.string.toast_restored), Toast.LENGTH_SHORT).show()
                                                 }
                                             },
                                             onLongClick = {
                                                 if (currentSection != com.example.data.model.NavigationSection.TRASH) {
-                                                    selectedNoteIds = if (selectedNoteIds.contains(decryptedNote.note.id)) {
-                                                        selectedNoteIds - decryptedNote.note.id
-                                                    } else {
-                                                        selectedNoteIds + decryptedNote.note.id
-                                                    }
+                                                    // RF-175: la pulsación larga alterna con la misma regla que el toque
+                                                    selectedNoteIds = NoteSelection.toggle(selectedNoteIds, decryptedNote.note.id)
                                                 }
                                             }
                                         )
