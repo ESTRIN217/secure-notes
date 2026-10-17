@@ -93,33 +93,6 @@ class StorageViewModel(
         }
     }
 
-    /** Borra audios no adjuntos a ninguna nota. Los adjuntos quedan protegidos. */
-    fun deleteAudioFiles(files: List<StorageItem>) {
-        viewModelScope.launch {
-            val attachedPaths = _audioFiles.value
-                .filter { it.isAttached }
-                .map { it.item.path }
-                .toSet()
-            val deletable = files.filter { it.path !in attachedPaths }
-            if (deletable.isEmpty()) return@launch
-            val freed = deletable.sumOf { it.size }
-            val deleted = withContext(Dispatchers.IO) {
-                StorageAnalyzer.deleteFiles(deletable)
-            }
-            _lastCleanupMessage.value = getApplication<Application>().resources.getQuantityString(
-                R.plurals.storage_deleted_audio,
-                deleted,
-                deleted,
-                StorageAnalyzer.formatSize(freed)
-            )
-            scanStorage()
-        }
-    }
-
-    fun deleteOrphanAudioFiles() {
-        deleteAudioFiles(_audioFiles.value.filter { !it.isAttached }.map { it.item })
-    }
-
     fun clearCache() {
         viewModelScope.launch {
             val freed = withContext(Dispatchers.IO) {

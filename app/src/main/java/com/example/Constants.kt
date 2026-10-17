@@ -1,11 +1,8 @@
 package com.example
 
-import androidx.compose.ui.graphics.Color
-
 object AppConstants {
     const val WEB_CLIENT_ID = "53440468121-eba9s7mkgrl8958p7grusf7vmgtsgihq.apps.googleusercontent.com"
     const val PREFS_NAME = "secure_notes_prefs"
-    const val SECURE_PREFS_NAME = "secure_notes_secure_prefs"
     const val CUSTOM_ORDER_KEY = "custom_order_ids"
 
     // Master password verification — stored in SecurePrefsStore (Keystore-encrypted)
@@ -59,8 +56,6 @@ object AppConstants {
     const val AUTO_LOCK_TIMEOUT_KEY = "auto_lock_timeout"
     const val AUTO_LOCK_TIMEOUT_DEFAULT = 5L
 
-    const val FLOATING_MODE_ENABLED_KEY = "floating_mode_enabled"
-
     // AI preferences
     const val AI_ENABLED_KEY = "ai_enabled"
     const val AI_BACKEND_KEY = "ai_backend"
@@ -78,8 +73,6 @@ object AppConstants {
     const val AUTO_CLEANUP_ENABLED_KEY = "auto_cleanup_enabled"
     const val LARGE_FILE_THRESHOLD_MB = 5L
     const val LARGE_FILE_THRESHOLD_BYTES = LARGE_FILE_THRESHOLD_MB * 1024 * 1024
-
-    val SecurityGreen = Color(0xFF43A047)
 }
 
 enum class AutoLockTimeout(val minutes: Long) {
@@ -89,13 +82,6 @@ enum class AutoLockTimeout(val minutes: Long) {
     MINUTES_5(5),
     MINUTES_15(15),
     MINUTES_30(30)
-}
-
-enum class BackupInterval(val hours: Long) {
-    HOURS_6(6),
-    HOURS_12(12),
-    HOURS_24(24),
-    WEEKLY(168)
 }
 
 enum class DarkModeOption { SYSTEM, OFF, ON }

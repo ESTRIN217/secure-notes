@@ -179,7 +179,7 @@ formato almacenado ni obligar a quien escribe a recordar el dialecto propio de l
   llegan como texto; no toca `DataBlock`, ni `migrateLegacyContent`, ni la capa de bloques.
 - **Escribir Markdown.** `MarkdownConverter` y los exportadores no cambian: lo que la app reconoce al
   leer no tiene que saberse escribir al exportar.
-- **Notas al modelo de IA.** `cleanForAI` y `markdownForAI` siguen usando `RichTextConverter`, que ya
+- **Notas al modelo de IA.** `markdownForAI` sigue usando `RichTextConverter`, que ya
   traduce el markup a Markdown y a texto plano. Si el texto plano no recoge alguna construcción nueva, es
   otro spec.
 - **Front matter.** `---` al principio del documento con una línea `---` de cierre es *front matter* en GFM

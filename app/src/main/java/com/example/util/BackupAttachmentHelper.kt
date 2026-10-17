@@ -18,7 +18,6 @@ object BackupAttachmentHelper {
     private const val TAG = "BackupAttachmentHelper"
 
     private const val BACKUP_JSON_ENTRY = "backup.json"
-    private const val ZIP_MAGIC = "PK"
 
     /**
      * Scan note content for URIs/image paths and copy all referenced files
@@ -266,13 +265,6 @@ object BackupAttachmentHelper {
             Log.e(TAG, "extractBackupZip failed", e)
             null
         }
-    }
-
-    /**
-     * Check if content is a ZIP (starts with PK magic bytes).
-     */
-    fun isZipContent(content: String): Boolean {
-        return content.startsWith(ZIP_MAGIC)
     }
 
     /**

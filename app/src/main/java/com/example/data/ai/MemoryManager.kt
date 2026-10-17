@@ -12,7 +12,6 @@ class MemoryManager(
         private const val MAX_CONTEXT_MEMORIES = 3
         const val TYPE_SUMMARY = "summary"
         const val TYPE_PINNED = "pinned"
-        const val TYPE_USER = "user"
     }
 
     suspend fun shouldSummarize(sessionId: Int): Boolean {

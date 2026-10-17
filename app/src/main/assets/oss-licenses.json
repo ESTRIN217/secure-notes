@@ -92,28 +92,12 @@
       "use": "StateFlow, I/O"
     },
     {
-      "name": "OkHttp (+ logging-interceptor)",
+      "name": "OkHttp",
       "version": "5.4.0",
       "license": "Apache-2.0",
       "copyright": "Square",
       "url": "https://github.com/square/okhttp/blob/master/LICENSE.txt",
       "use": "Backend Ollama/LM Studio"
-    },
-    {
-      "name": "Retrofit (+ converter-moshi)",
-      "version": "3.0.0",
-      "license": "Apache-2.0",
-      "copyright": "Square",
-      "url": "https://github.com/square/retrofit/blob/master/LICENSE.txt",
-      "use": "Cliente HTTP Google Drive"
-    },
-    {
-      "name": "Moshi (moshi-kotlin)",
-      "version": "1.15.2",
-      "license": "Apache-2.0",
-      "copyright": "Square",
-      "url": "https://github.com/square/moshi/blob/master/LICENSE.txt",
-      "use": "JSON de bloques DataBlock"
     },
     {
       "name": "Coil 3 (compose, video, network-okhttp, svg)",

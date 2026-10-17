@@ -104,8 +104,6 @@ import com.example.ui.table.rowHeightOr
 import com.example.ui.table.without
 import kotlin.math.roundToInt
 
-private data class FocusedCell(val row: Int, val col: Int)
-
 // Solo el hex: la etiqueta no se pintaba en ninguna parte y quedaba hardcodeada
 // en inglés. El swatch ya se explica solo con el color.
 private val BG_OPTIONS = listOf<String?>(
@@ -119,7 +117,6 @@ private val BG_OPTIONS = listOf<String?>(
 )
 
 // Tokens MD3 en vez de literales: los colores fijos rompían el tema oscuro.
-private val TableHighlightBgAlpha = 0.08f
 private val TableDropAlpha = 0.12f
 private val TableHeaderAlpha = 0.25f
 private val TableRowActiveAlpha = 0.06f

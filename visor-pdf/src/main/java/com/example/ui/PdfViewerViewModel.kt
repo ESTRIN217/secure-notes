@@ -128,24 +128,6 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
         _useAndroidXPdf.value = !_useAndroidXPdf.value
     }
 
-    fun fallbackToClassicEngine(context: Context? = null) {
-        if (_useAndroidXPdf.value) {
-            _useAndroidXPdf.value = false
-            context?.let {
-                Toast.makeText(
-                    it,
-                    it.getString(com.estrin217.pdfviewer.R.string.engine_not_supported_notice),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    fun setUseAndroidXPdf(enabled: Boolean) {
-        if (enabled && !isAndroidXPdfSupported) return
-        _useAndroidXPdf.value = enabled
-    }
-
     suspend fun renderPage(pageIndex: Int, targetWidthPx: Int): Bitmap? {
         return engine.renderPage(pageIndex, targetWidthPx)
     }
@@ -180,10 +162,6 @@ class PdfViewerViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleControls() {
         _controlsVisible.value = !_controlsVisible.value
-    }
-
-    fun setControlsVisible(visible: Boolean) {
-        _controlsVisible.value = visible
     }
 
     fun showJumpToPageDialog(show: Boolean) {

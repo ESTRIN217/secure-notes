@@ -134,8 +134,6 @@ internal object MarkdownInline {
     // Enlaces e imagenes
     // ==========================================
 
-    private val LABEL_RE = Regex("[^\\[\\]]*")
-
     /**
      * `[texto](destino)`, `![alt](destino)`, `[texto][ref]` y el colapsado `[ref]`.
      *

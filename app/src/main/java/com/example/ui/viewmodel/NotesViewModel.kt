@@ -327,10 +327,6 @@ class NotesViewModel(
     // drawing block is inserted back at the block the user was editing. Null = no pending.
     var pendingDrawingInsertIndex: Int? = null
 
-    fun setAutoUpdateCheck(enabled: Boolean) {
-        setBooleanPref(autoUpdateCheck, AppConstants.AUTO_UPDATE_CHECK_KEY, enabled)
-    }
-
     fun setMasterPassword(password: String) {
         val salt = cipherService.generateSalt()
         val iv = cipherService.generateIv()
@@ -1037,16 +1033,6 @@ class NotesViewModel(
         } catch (e: Exception) {
             Log.e("NotesViewModel", "Token refresh failed", e)
             null
-        }
-    }
-
-    private suspend fun performSyncWithToken(currentToken: String, finalPayload: String): Boolean {
-        val existingFileId = syncService.searchBackupFile(currentToken).getOrNull()?.id
-        return if (existingFileId != null) {
-            syncService.uploadFileContent(currentToken, existingFileId, finalPayload).getOrDefault(false)
-        } else {
-            val createdFileId = syncService.createBackupFile(currentToken, finalPayload).getOrNull()
-            createdFileId != null
         }
     }
 

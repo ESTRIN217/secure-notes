@@ -27,7 +27,6 @@ data class BackupUiState(
     val isDriveLinked: Boolean = false,
     val isLoading: Boolean = false,
     val lastSyncTime: String = "",
-    val lastLocalBackup: String = "",
     val syncStage: SyncStage = SyncStage.IDLE,
     val restorePasswordRequired: Boolean = false,
     val isPasswordSet: Boolean = false,

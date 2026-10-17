@@ -1,9 +1,4 @@
 <resources>
-    <string name="open_with_pdf">Abrir documento PDF</string>
-    <string name="select_pdf">Selecionar PDF</string>
-    <string name="recent_files">Arquivos recentes</string>
-    <string name="no_file_opened">Nenhum documento aberto</string>
-    <string name="tap_to_open_pdf">Toque no botão para escolher um arquivo PDF ou abra-o diretamente de outro app com "Abrir com"</string>
     <string name="page_counter">Pág. %1$d de %2$d</string>
     <string name="page_label">Página %1$d</string>
     <string name="error_loading_pdf">Erro ao abrir o documento PDF</string>
@@ -13,7 +8,6 @@
     <string name="jump_to_page">Ir para a página</string>
     <string name="go_to">Ir</string>
     <string name="night_mode">Modo escuro</string>
-    <string name="fit_width">Ajustar à largura</string>
     <string name="zoom_in">Aumentar zoom</string>
     <string name="zoom_out">Reduzir zoom</string>
     <string name="search_in_document">Buscar texto</string>

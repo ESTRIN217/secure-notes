@@ -71,7 +71,6 @@ fun NoteEditorTabsHost(
     // El aviso del envío va en un Snackbar del host, no en un diálogo: el usuario acaba de pulsar
     // una acción y quiere saber si funcionó, no confirmar nada (RF-79).
     val sendHostState = remember { SnackbarHostState() }
-    val sendScope = rememberCoroutineScope()
     var sendOk by remember { mutableStateOf<Boolean?>(null) }
     // El nombre del archivo que se conversion, que es lo que el usuario reconoce como su.
     var enviadoNombre by remember { mutableStateOf("") }

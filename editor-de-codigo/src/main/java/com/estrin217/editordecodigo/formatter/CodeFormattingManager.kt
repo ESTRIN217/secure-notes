@@ -80,11 +80,6 @@ object CodeFormattingManager {
     }
 
     /**
-     * Indica si el lenguaje soporta minificación (compactado).
-     */
-    fun canMinify(language: SupportedLanguage): Boolean = language == SupportedLanguage.JSON
-
-    /**
      * Ejecuta minificación para lenguajes compatibles.
      */
     fun minify(code: String, language: SupportedLanguage): FormattingResult {

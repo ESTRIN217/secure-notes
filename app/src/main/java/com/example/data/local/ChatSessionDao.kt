@@ -46,9 +46,6 @@ interface ChatSessionDao {
         ORDER BY cs.updatedAt DESC
     """)
     fun searchSessions(query: String): Flow<List<ChatSessionWithPreview>>
-
-    @Query("SELECT * FROM chat_sessions WHERE noteId = :noteId ORDER BY updatedAt DESC")
-    suspend fun getSessionsForNote(noteId: Int): List<ChatSessionEntity>
 }
 
 data class ChatSessionWithPreview(

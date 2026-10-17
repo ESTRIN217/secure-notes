@@ -13,8 +13,6 @@ class ToolRegistry(
         tools.add(ToolWithHandler(spec, handler))
     }
 
-    fun getSpecs(): List<ToolSpec> = tools.map { it.spec }
-
     fun getSpecsForApi(): List<Map<String, Any>> = tools.map { tool ->
         mapOf(
             "type" to "function",

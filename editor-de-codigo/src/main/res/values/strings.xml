@@ -11,12 +11,10 @@
     <string name="menu_open_external">Open external file...</string>
     <string name="menu_new_file">New file...</string>
     <string name="menu_jump_line">Go to line...</string>
-    <string name="menu_syntax">Syntax highlighting</string>
     <string name="menu_hide_lines">Hide line numbers</string>
     <string name="menu_show_lines">Show line numbers</string>
     <string name="menu_wrap_off">Disable word wrap</string>
     <string name="menu_wrap_on">Word wrap</string>
-    <string name="menu_format_options">Format options...</string>
     <string name="menu_minify">Minify JSON</string>
     <string name="copy_code">Copy code</string>
     <string name="copied_clipboard">Code copied to clipboard</string>
@@ -50,21 +48,6 @@
     <string name="syntax_search_hint">Search language (e.g. Rust, SQL)...</string>
     <string name="selected_cd">Selected</string>
     <!-- FormatOptionsDialog -->
-    <string name="format_title">Code Formatter</string>
-    <string name="format_subtitle">Adjust indentation and style rules for %1$s:</string>
-    <string name="format_indent_section">Indentation spacing</string>
-    <string name="format_indent_2">2 spaces</string>
-    <string name="format_indent_2_desc">Recommended for JSON, Web, CSS</string>
-    <string name="format_indent_4">4 spaces</string>
-    <string name="format_indent_4_desc">Standard Kotlin, Java, Python, C++</string>
-    <string name="format_indent_tab">Tabs (\t)</string>
-    <string name="format_indent_tab_desc">Use real tab characters</string>
-    <string name="format_cleanup_title">Cleanup rules</string>
-    <string name="format_trim_title">Trim trailing spaces</string>
-    <string name="format_trim_desc">Remove whitespace at the end of each line</string>
-    <string name="format_eof_title">Final newline (EOF)</string>
-    <string name="format_eof_desc">Ensure the file ends with a clean line</string>
-    <string name="format_apply">Format now</string>
     <!-- FilesDrawerSheet -->
     <string name="files_title">Files</string>
     <string name="open">Open</string>
@@ -83,21 +66,7 @@
     <string name="snackbar_folder_no_code">No compatible code files found in the folder</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
-    <string name="tabs_welcome">Welcome</string>
-    <string name="cd_new_file">New file</string>
-    <string name="cd_close_tab">Close tab</string>
-    <string name="cd_close_welcome_tab">Close welcome tab</string>
-    <string name="menu_tab_close">Close tab</string>
-    <string name="menu_tab_close_others">Close other tabs</string>
-    <string name="menu_tab_close_all">Close all tabs</string>
     <!-- VSCodeWelcomeScreen -->
-    <string name="welcome_app_title">Code Editor</string>
-    <string name="welcome_home">Home</string>
-    <string name="welcome_new_file">New file...</string>
-    <string name="welcome_open_file">Open file...</string>
-    <string name="welcome_open_folder">Open folder...</string>
-    <string name="welcome_recent">Recent</string>
-    <string name="welcome_no_recent">No recent files yet. Create or open a file to get started.</string>
     <!-- Empty workspace -->
     <string name="empty_workspace_title">No open tabs</string>
     <string name="empty_workspace_desc">You don\'t have any file open yet. Open the welcome page or start a new one.</string>

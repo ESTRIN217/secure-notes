@@ -81,7 +81,7 @@ El editor de código es un módulo librería (`:editor-de-codigo`, paquete `com.
 
 ### UI / State
 - `StateFlow` + `collectAsStateWithLifecycle()` for reactive UI. No additional reactive libraries.
-- `UiState` uses separate data classes (`AuthState`, `ListState`, `SyncState`) rather than sealed Loading/Success/Error.
+- `UiState` uses small flat data classes (`SyncState`) plus enums (`SyncStage`) rather than sealed Loading/Success/Error.
 - Screen navigation via `Navigator` class with `Screen` sealed hierarchy and `AnimatedContent` transitions.
 
 ### Conventions

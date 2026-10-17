@@ -56,8 +56,6 @@ private fun fallbackLicenses(): List<OssLibrary> = listOf(
     OssLibrary("Material 3", "1.5.0-alpha28", "Apache-2.0", "https://github.com/material-components/material-components-android/blob/master/LICENSE"),
     OssLibrary("Room", "2.8.4", "Apache-2.0", "https://developer.android.com/jetpack/androidx/releases/room"),
     OssLibrary("OkHttp", "5.4.0", "Apache-2.0", "https://github.com/square/okhttp/blob/master/LICENSE.txt"),
-    OssLibrary("Retrofit", "3.0.0", "Apache-2.0", "https://github.com/square/retrofit/blob/master/LICENSE.txt"),
-    OssLibrary("Moshi", "1.15.2", "Apache-2.0", "https://github.com/square/moshi/blob/master/LICENSE.txt"),
     OssLibrary("Coil 3", "3.6.3", "Apache-2.0", "https://github.com/coil-kt/coil/blob/main/LICENSE.txt"),
     OssLibrary("Kotlinx Coroutines", "1.11.0", "Apache-2.0", "https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt"),
     OssLibrary("WorkManager", "2.11.2", "Apache-2.0", "https://developer.android.com/jetpack/androidx/releases/work"),

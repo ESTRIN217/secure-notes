@@ -236,8 +236,6 @@ object RichTextConverter {
     fun containsMarkup(text: String): Boolean =
         markupTagRegex.containsMatchIn(text) || "**" in text || "~~" in text || '`' in text
 
-    fun toPlainText(markup: String): String = segmentsToPlainText(markupToSegments(markup))
-
     // ── Segments → AnnotatedString ─────────────────────────────────────────
 
     fun segmentsToAnnotatedString(segments: List<TextSegment>): AnnotatedString {

@@ -50,9 +50,6 @@ class AiModelHost(private val appContext: Context) {
     private var holders = 0
     private var loader: (suspend (OnDeviceService) -> Result<Unit>)? = null
 
-    /** `true` solo si ya se construyó el grafo de servicios (NO implica pesos en memoria). */
-    val isGraphCreated: Boolean get() = synchronized(graphLock) { service != null }
-
     /** El servicio existente, o `null` sin crearlo. Nunca inicializa nada por efecto secundario. */
     fun serviceOrNull(): OnDeviceService? = synchronized(graphLock) { service }
 

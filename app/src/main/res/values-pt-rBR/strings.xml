@@ -3,20 +3,12 @@
     <string name="search_placeholder">Pesquisar notas…</string>
     <string name="btn_new_note">Nova Nota</string>
     <string name="btn_save">Salvar</string>
-    <string name="btn_edit">Editar</string>
     <string name="btn_delete">Excluir</string>
-    <string name="btn_sync">Sincronizar Nuvem</string>
-    <string name="btn_export">Exportar Nota</string>
-    <string name="btn_markdown">Exportar Markdown</string>
-    <string name="btn_pdf">Exportar PDF</string>
     <string name="btn_cancel">Cancelar</string>
     <string name="btn_ok">OK</string>
     <string name="btn_add">Adicionar</string>
-    <string name="btn_manage_tags">Gerenciar Etiquetas</string>
-    <string name="title_all_notes">Todas as Notas</string>
     <string name="title_lock_settings">Privacidade e Segurança</string>
     <string name="title_cloud_sync">Sincronização em Nuvem</string>
-    <string name="title_tags">Filtrar por Etiquetas</string>
     <string name="status_encrypted">Criptografia de Ponta a Ponta (E2EE)</string>
     <string name="status_empty">Nenhuma nota encontrada. Crie sua primeira nota segura!</string>
     <string name="status_empty_favorites">Nenhuma nota favorita ainda</string>
@@ -24,28 +16,20 @@
     <string name="status_empty_trash">A lixeira está vazia</string>
     <string name="status_empty_trash_subtitle">Notas excluídas há mais de 90 dias são excluídas permanentemente</string>
     <string name="label_title">Título</string>
-    <string name="label_content">Digite algo…</string>
-    <string name="label_tags">Etiquetas</string>
     <string name="label_enter_password">Digite a Senha Mestra</string>
     <string name="label_setup_password">Criar Senha de Segurança</string>
     <string name="label_set_password_msg">Defina uma senha mestra para criptografar suas notas de ponta a ponta. Suas notas não poderão ser descriptografadas sem ela!</string>
     <string name="label_unlock">Desbloquear Aplicativo</string>
     <string name="error_wrong_password">Senha incorreta. Tente novamente!</string>
     <string name="sync_success">Sincronizado com o Google Drive com sucesso!</string>
-    <string name="sync_error">Falha na sincronização. Verifique a conexão ou autorização.</string>
-    <string name="export_success">Nota exportada com sucesso!</string>
     <string name="drive_linked">Google Drive Conectado</string>
     <string name="drive_unlinked">Google Drive Desconectado</string>
     <string name="dialog_create_tag">Criar Etiqueta Personalizada</string>
     <string name="tag_name_hint">Nome da Etiqueta</string>
-    <string name="encryption_active">Criptografia AES-256 E2E Ativa</string>
     <string name="toggle_dark_theme">Modo Escuro</string>
-    <string name="info_cloud">Suas notas são compactadas, criptografadas de ponta a ponta localmente e salvas em um arquivo seguro no seu Google Drive.</string>
     <string name="btn_link_drive">Vincular Google Drive</string>
     <string name="btn_unlink_drive">Desconectar Drive</string>
-    <string name="sync_now">Sincronizar Agora</string>
     <string name="last_synced">Última sinc.: %s</string>
-    <string name="selection_count">%1$d selecionadas</string>
     <string name="menu_delete_selected">Excluir selecionadas</string>
     <string name="menu_cancel_selection">Cancelar seleção</string>
     <string name="confirm_delete_title">Confirmar Exclusão</string>
@@ -70,7 +54,6 @@
     <string name="nav_trash">Lixeira</string>
     <string name="nav_settings">Configurações</string>
 
-    <string name="nav_favorites_title">Favoritos</string>
     <string name="nav_archived_title">Notas Arquivadas</string>
     <string name="nav_trash_title">Lixeira</string>
 
@@ -83,10 +66,8 @@
     <string name="toast_deleted_perm">Excluído permanentemente</string>
 
     <string name="menu_batch_pin">Fixar</string>
-    <string name="menu_batch_unpin">Desafixar</string>
     <string name="menu_batch_favorite">Favorito</string>
     <string name="menu_batch_archive">Arquivar</string>
-    <string name="menu_batch_unarchive">Desarquivar</string>
     <string name="menu_batch_tag">Etiquetar</string>
     <string name="menu_batch_share">Compartilhar</string>
 
@@ -101,10 +82,6 @@
     <string name="toast_unlocked">Aplicativo desbloqueado</string>
     <string name="toast_password_too_short">A senha deve ter pelo menos 4 caracteres!</string>
     <string name="toast_passwords_do_not_match">As senhas não coincidem!</string>
-    <string name="toast_password_configured">Senha configurada com sucesso!</string>
-    <string name="toast_password_removed">Senha mestra removida. Notas descriptografadas.</string>
-    <string name="toast_note_deleted">Nota excluída</string>
-    <string name="toast_cannot_save_empty_note">Não é possível salvar uma nota vazia</string>
     <string name="toast_note_saved">Nota salva com sucesso</string>
     <string name="toast_setup_password_first">Defina uma senha mestra nas configurações primeiro!</string>
     <string name="dialog_edit_tag">Editar etiqueta</string>
@@ -148,42 +125,18 @@
     <string name="tooltip_unfavorite">Remover dos favoritos</string>
     <string name="tooltip_archive">Arquivar nota</string>
     <string name="tooltip_unarchive">Desarquivar nota</string>
-    <string name="rich_undo">Desfazer</string>
-    <string name="rich_redo">Refazer</string>
     <string name="rich_font_family">Fonte</string>
     <string name="rich_font_size">Tamanho</string>
     <string name="rich_bold">Negrito</string>
     <string name="rich_italic">Itálico</string>
-    <string name="rich_underline">Sublinhado</string>
-    <string name="rich_strikethrough">Tachado</string>
-    <string name="rich_toggle_edit">Editar</string>
-    <string name="rich_toggle_preview">Visualização</string>
-    <string name="rich_editor_title">Editor Rico</string>
     <string name="rich_inline_code">Código Inline</string>
-    <string name="rich_subscript">Subscrito</string>
-    <string name="rich_superscript">Sobrescrito</string>
-    <string name="rich_font_color">Cor da Fonte</string>
-    <string name="rich_bg_color">Cor do Fundo</string>
-    <string name="rich_remove_format">Limpar Formatação</string>
     <string name="rich_insert_image">Inserir Imagem</string>
     <string name="rich_insert_video">Inserir Vídeo</string>
-    <string name="rich_heading">Título</string>
     <string name="dialog_insert_image_title">Inserir Imagem</string>
     <string name="dialog_insert_video_title">Inserir Vídeo</string>
     <string name="label_media_url">URL da Mídia (Link web ou caminho local)</string>
     <string name="btn_insert">Inserir</string>
 
-    <string name="rich_numbered_list">Lista Numerada</string>
-    <string name="rich_bulleted_list">Lista com Marcadores</string>
-    <string name="rich_checklist">Lista de Tarefas</string>
-    <string name="rich_code_block">Bloco de Código</string>
-    <string name="rich_quote">Citação em Bloco</string>
-    <string name="rich_increase_indent">Aumentar Recuo</string>
-    <string name="rich_decrease_indent">Diminuir Recuo</string>
-    <string name="rich_insert_url">Inserir Link</string>
-    <string name="rich_paste">Colar da Área de Transferência</string>
-    <string name="rich_insert_date">Inserir Data Atual</string>
-    <string name="rich_search">Buscar texto</string>
     <string name="dialog_insert_url_title">Inserir Link URL</string>
     <string name="label_url_address">Endereço do Link URL</string>
     <string name="label_url_text">Texto de Exibição (Opcional)</string>
@@ -205,24 +158,10 @@
     <string name="label_option_link">Link da Web</string>
     <string name="desc_insert_image">Adicione uma imagem da sua galeria, câmera ou link da web</string>
     <string name="desc_insert_video">Adicione um vídeo da sua galeria, câmera ou link da web</string>
-    <string name="desc_insert_audio">Grave uma nota de voz ou vincule arquivos de áudio</string>
-    <string name="rich_insert_audio">Inserir Áudio</string>
-    <string name="label_empty_preview">Conteúdo vazio</string>
-    <string name="desc_switch_edit">Alternar para o Modo de Edição</string>
-    <string name="desc_switch_preview">Alternar para o Modo de Visualização</string>
     <string name="url_dialog_title">Ações do Link</string>
     <string name="url_dialog_open">Abrir</string>
     <string name="url_dialog_copy">Copiar</string>
     <string name="url_dialog_delete">Excluir</string>
-    <string name="search_up">Subir</string>
-    <string name="search_down">Descer</string>
-    <string name="search_more">Mais</string>
-    <string name="search_case_sensitive">Diferenciar maiúsculas/minúsculas</string>
-    <string name="search_full_word">Palavra inteira</string>
-    <string name="search_letter_found_one">1 letra encontrada</string>
-    <string name="search_letter_found_many">%1$d letras encontradas</string>
-    <string name="search_word_found_one">1 palavra encontrada</string>
-    <string name="search_word_found_many">%1$d palavras encontradas</string>
     <string name="search_results_empty">Nenhum resultado encontrado</string>
 
     <!-- Drawing Canvas -->
@@ -232,8 +171,6 @@
     <string name="drawing_stroke_width">Espessura do traço</string>
     <string name="drawing_color_picker">Seletor de cor</string>
     <string name="drawing_size_label">Tamanho: %d</string>
-    <string name="toast_drawing_saved">Desenho adicionado à nota</string>
-    <string name="toast_drawing_load_error">Erro ao carregar desenho</string>
     <string name="toast_drawing_empty">A tela está vazia ou não inicializada</string>
     <string name="toast_drawing_save_error">Erro ao salvar desenho</string>
 
@@ -241,20 +178,14 @@
     <string name="attachment_drawing">Desenho anexo</string>
     <string name="attachment_file">Arquivo anexo</string>
     <string name="attachment_image">Imagem anexa</string>
-    <string name="attachment_remove">Remover anexo</string>
-    <string name="add_drawing">Adicionar desenho</string>
     <string name="add_attachment">Adicionar arquivo</string>
-    <string name="attachments_title">Anexos</string>
 
     <!-- Editor -->
     <string name="untitled_note">Nota sem título</string>
-    <string name="normal_text">Texto normal</string>
     <string name="heading_1">Título 1</string>
     <string name="heading_2">Título 2</string>
     <string name="heading_3">Título 3</string>
     <string name="text_default">Padrão</string>
-    <string name="read_aloud">Ler nota em voz alta</string>
-    <string name="stop_speaking">Parar de falar</string>
     <string name="nothing_to_read">Nada para ler em voz alta</string>
     <string name="tts_engine_missing">Nenhum mecanismo de texto-para-fala encontrado. Instale o Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Gravador de nota de voz</string>
@@ -264,21 +195,18 @@
     <string name="select_external_file">Selecionar arquivo externo</string>
     <string name="select_file_desc">Escolha documentos, áudio ou outros arquivos para vincular</string>
     <string name="toast_imported">Nota importada!</string>
-    <string name="toast_no_app_video">Nenhum aplicativo para reproduzir vídeo</string>
     <string name="toast_cannot_open_url">Não é possível abrir URL</string>
     <string name="toast_file_attached">Arquivo anexado com sucesso</string>
     <string name="toast_file_select_error">Erro ao selecionar arquivo</string>
     <string name="toast_recording_error">Erro ao iniciar gravação</string>
     <string name="toast_audio_play_error">Erro ao reproduzir áudio</string>
     <string name="toast_audio_preview_error">Erro ao reproduzir prévia</string>
-    <string name="toast_video_play_error">Erro ao reproduzir vídeo</string>
     <string name="toast_voice_note_attached">Nota de voz anexada</string>
     <string name="toast_camera_error">Erro ao iniciar câmera</string>
     <string name="camera_permission_required">Permissão de câmera é necessária para tirar fotos/vídeos</string>
     <string name="mic_permission_required">Permissão de microfone é necessária para gravar notas de voz</string>
 
     <!-- Navigation / common -->
-    <string name="page_block_icon">Ícone da página</string>
     <string name="page_block_emoji">Emoji</string>
     <string name="page_block_icons">Ícones</string>
     <string name="page_block_upload">Enviar</string>
@@ -288,13 +216,10 @@
     <string name="page_block_next">Próximo</string>
     <string name="back">Voltar</string>
     <string name="close">Fechar</string>
-    <string name="sync">Sincronizar</string>
-    <string name="unlink">Desvincular</string>
     <string name="search_icon">Pesquisar</string>
     <string name="create_note">Criar nota</string>
     <string name="create_tag">Criar etiqueta</string>
     <string name="manage_tags">Gerenciar etiquetas</string>
-    <string name="empty_trash">Esvaziar lixeira</string>
     <string name="selected_label">Selecionado</string>
     <string name="pinned_label">Fixado</string>
     <string name="encrypted_label">Criptografado</string>
@@ -309,22 +234,13 @@
     <string name="no_results_icon">Sem resultados</string>
     <string name="remove_recent_search">Remover pesquisa recente</string>
     <string name="search_icon_placeholder">Pesquisar</string>
-    <string name="e2ee_active">Criptografia de ponta a ponta ativa</string>
     <string name="security_active">Segurança ativa</string>
     <string name="setup_credentials">Configurar credenciais</string>
     <string name="remove_protection">Remover credenciais de proteção</string>
     <string name="delete_master_password">Excluir senha mestra</string>
-    <string name="disconnect">Desconectar</string>
-    <string name="deleted_notes_info">Notas excluídas podem ser restauradas aqui ou removidas permanentemente.</string>
     <string name="all_notes">Tudo</string>
 
     <!-- Cloud / Sync -->
-    <string name="btn_upload_backup">Enviar backup</string>
-    <string name="btn_download_backup">Baixar backup</string>
-    <string name="cloud_sync_title">Sincronização na nuvem</string>
-    <string name="link_account">Vincular conta</string>
-    <string name="backup_cloud">Backup na nuvem</string>
-    <string name="restore_notes">Restaurar notas</string>
     <string name="toast_drive_connected">Google Drive conectado!</string>
     <string name="toast_drive_disconnected">Google Drive desconectado.</string>
     <string name="toast_drive_auth_first">Autorize o Google Drive primeiro!</string>
@@ -334,7 +250,6 @@
     <string name="toast_searching_backup">Procurando arquivo de backup…</string>
     <string name="toast_no_backup_found">Nenhum arquivo de backup encontrado no Google Drive.</string>
     <string name="toast_backup_download_failed">Falha ao baixar backup.</string>
-    <string name="toast_unlock_first">Desbloqueie o aplicativo com a senha mestra primeiro!</string>
     <string name="toast_decrypt_failed">Falha na descriptografia! A senha mestra não corresponde ao backup.</string>
     <string name="toast_restore_success">Notas restauradas com sucesso da nuvem!</string>
     <string name="toast_restore_error">Erro ao restaurar: %1$s</string>
@@ -374,15 +289,8 @@ O que deseja fazer?</string>
     <string name="clear_all">Limpar tudo</string>
     <string name="toggle_navigation_rail">Alternar barra de navegação</string>
     <string name="lock_icon">Ícone de cadeado</string>
-    <string name="shield_guard">Escudo de segurança</string>
-    <string name="cloud_icon">Ícone de nuvem</string>
 
     <!-- Media Viewer -->
-    <string name="attachment_video">Vídeo</string>
-    <string name="option_save">Salvar</string>
-    <string name="toast_share_error">Erro ao compartilhar arquivo</string>
-    <string name="toast_saved_to_gallery">Salvo na galeria</string>
-    <string name="toast_save_error">Erro ao salvar arquivo</string>
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Aparência</string>
@@ -390,7 +298,6 @@ O que deseja fazer?</string>
     <string name="settings_dark_mode_on">Ligado</string>
     <string name="settings_dark_mode_off">Desligado</string>
     <string name="settings_language">Idioma</string>
-    <string name="settings_language_desc">Alterar idioma do aplicativo</string>
     <string name="settings_lang_default">Padrão (Sistema)</string>
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_en_gb">Inglês (Reino Unido)</string>
@@ -416,11 +323,9 @@ O que deseja fazer?</string>
     <string name="backup_export">Exportar Backup</string>
     <string name="backup_export_desc">Salvar todas as notas e tags em um arquivo JSON</string>
     <string name="backup_import">Importar Backup</string>
-    <string name="backup_import_desc">Restaurar notas de um arquivo JSON</string>
     <string name="backup_cloud_section">Backup na Nuvem</string>
     <string name="backup_upload">Enviar para o Drive</string>
     <string name="backup_download">Baixar do Drive</string>
-    <string name="update_title">Informações de Atualização</string>
     <string name="update_current_version">Versão Atual</string>
     <string name="update_current_version_label">v%s</string>
     <string name="update_auto_check">Verificar atualizações automaticamente</string>
@@ -428,12 +333,9 @@ O que deseja fazer?</string>
     <string name="update_settings_title">Configurações de Atualização</string>
     <string name="update_check_now">Verificar Atualização</string>
     <string name="update_checking">Verificando atualizações…</string>
-    <string name="update_up_to_date">Você está atualizado!</string>
-    <string name="update_available">Atualização disponível: %s</string>
     <string name="update_latest_version">Última: %s</string>
     <string name="update_show_changelog">Ver registro de alterações</string>
     <string name="update_hide_changelog">Ocultar registro de alterações</string>
-    <string name="update_error">Falha ao verificar atualizações</string>
     <string name="update_download_title">Baixar e Instalar</string>
     <string name="update_download_install">Baixar e Instalar APK</string>
     <string name="update_download_subtitle">Das versões do GitHub de %s</string>
@@ -458,12 +360,9 @@ O que deseja fazer?</string>
     <string name="about_license">Licença MIT</string>
     <string name="about_license_desc">Software de código aberto</string>
     <string name="about_footer">Feito com ❤️ na Venezuela</string>
-    <string name="about_web">Web</string>
-    <string name="changelog_title">Registro de Alterações</string>
     <string name="changelog_loading">Carregando registro de alterações…</string>
     <string name="changelog_error">Falha ao carregar registro de alterações</string>
     <string name="changelog_empty">Nenhum changelog disponível.</string>
-    <string name="toast_export_backup_success">Backup exportado com sucesso!</string>
     <string name="toast_export_backup_error">Erro ao exportar backup</string>
     <string name="toast_import_backup_success">Backup importado com sucesso!</string>
     <string name="toast_import_backup_error">Erro ao importar backup</string>
@@ -476,11 +375,6 @@ O que deseja fazer?</string>
     <string name="cd_empty_notes_banner">Fundo de notas vazias</string>
     <string name="cd_account_avatar">Avatar da conta</string>
     <string name="cd_play_video">Reproduzir vídeo</string>
-    <string name="cd_txt_icon">Ícone TXT</string>
-    <string name="cd_markdown_icon">Ícone Markdown</string>
-    <string name="cd_pdf_icon">Ícone PDF</string>
-    <string name="cd_html_icon">Ícone HTML</string>
-    <string name="cd_json_icon">Ícone JSON</string>
     <string name="cd_delete_tag">Excluir etiqueta</string>
     <string name="cd_edit_tag">Editar etiqueta</string>
     <string name="cd_remove">Remover</string>
@@ -502,20 +396,13 @@ O que deseja fazer?</string>
 
     <!-- v4.0 Export / Share chooser titles -->
     <string name="export_title_markdown">Exportar Markdown</string>
-    <string name="export_title_pdf">Exportar PDF</string>
     <string name="share_title_text">Compartilhar notas como texto</string>
-    <string name="share_title_markdown">Compartilhar notas como Markdown</string>
     <string name="share_title_html">Compartilhar notas como HTML</string>
     <string name="share_title_json">Compartilhar notas como JSON</string>
-    <string name="export_title_json">Exportar JSON</string>
     <string name="share_title_pdf">Compartilhar notas como PDF</string>
 
     <!-- v4.0 PDF / Export content labels -->
-    <string name="pdf_watermark_encrypted">🛡️ CRIPTOGRAFADO AES-256 DE PONTA A PONTA</string>
-    <string name="pdf_watermark_plain">📝 CÓPIA LOCAL SEM CRIPTOGRAFIA</string>
-    <string name="export_label_modified">Modificado: %s</string>
     <string name="export_label_tags">Etiquetas: %s</string>
-    <string name="export_label_last_modified">Última modificação: %s</string>
 
     <!-- v4.0 Default / Seed data -->
     <string name="label_never">Nunca</string>
@@ -572,7 +459,6 @@ O que deseja fazer?</string>
     <string name="biometric_key_error">A chave biométrica é inválida. Reative-a nas configurações.</string>
 
     <!-- v4.0 Attachment Settings -->
-    <string name="attachment_settings_title">Anexos</string>
 
     <!-- Security improvements -->
     <string name="auto_lock_title">Bloqueio automático</string>
@@ -648,24 +534,7 @@ O que deseja fazer?</string>
     <string name="ai_model_name">Nome do Modelo</string>
     <string name="ai_generate">Gerar</string>
     <string name="ai_summarize">Resumir</string>
-    <string name="ai_summarize_selection">O texto selecionado será resumido.</string>
-    <string name="ai_summarize_full">O conteúdo completo da nota será resumido.</string>
-    <string name="ai_rewrite">Reescrever</string>
-    <string name="ai_translate">Traduzir</string>
-    <string name="ai_prompt_hint">O que você gostaria que eu escrevesse?</string>
     <string name="ai_insert">Inserir</string>
-    <string name="ai_regenerate">Regenerar</string>
-    <string name="ai_retry">Tentar novamente</string>
-    <string name="ai_processing">Processando…</string>
-    <string name="ai_error">Erro</string>
-    <string name="ai_style_label">Estilo</string>
-    <string name="ai_style_formal">Formal</string>
-    <string name="ai_style_casual">Casual</string>
-    <string name="ai_style_poetic">Poético</string>
-    <string name="ai_style_professional">Profissional</string>
-    <string name="ai_language_target">Idioma de Destino</string>
-    <string name="ai_new_chat">Novo chat</string>
-    <string name="ai_copy">Copiar</string>
     <string name="ai_resend">Reenviar</string>
     <string name="ai_stop">Parar</string>
     <string name="ai_suggestion_poem">Escreva um poema</string>
@@ -728,60 +597,26 @@ O que deseja fazer?</string>
     <string name="storage_database">Banco de dados</string>
     <string name="storage_orphan_waste">Desperdício (órfãos)</string>
     <string name="ai_chat_ai">IA</string>
-    <string name="ai_chat_empty_desc">Faça perguntas, gere conteúdo ou obtenha ajuda com suas notas.</string>
-    <string name="ai_chat_empty_title">Inicie uma conversa com a IA</string>
-    <string name="ai_chat_hint_explain">Texto para explicar</string>
     <string name="ai_chat_hint_fix_grammar">Texto para corrigir</string>
     <string name="ai_chat_hint_followup">Faça uma pergunta complementar…</string>
     <string name="ai_chat_hint_generate">Escreva uma mensagem…</string>
-    <string name="ai_chat_hint_make_shorter">Texto para encurtar</string>
-    <string name="ai_chat_hint_rewrite">Reescrever texto selecionado</string>
     <string name="ai_chat_hint_summarize">Resumir a nota</string>
-    <string name="ai_chat_hint_translate">Traduzir texto selecionado</string>
-    <string name="ai_chat_prompt_explain">Explicar este texto</string>
     <string name="ai_chat_prompt_fix_grammar">Corrigir gramática e ortografia</string>
-    <string name="ai_chat_prompt_make_shorter">Tornar este texto mais conciso</string>
-    <string name="ai_chat_prompt_rewrite">Reescrever em estilo %1$s</string>
     <string name="ai_chat_prompt_summarize">Resumir o seguinte texto</string>
-    <string name="ai_chat_prompt_translate">Traduzir para %1$s</string>
     <string name="ai_chat_title">Chat IA</string>
-    <string name="ai_chat_welcome">Olá! Sou seu assistente de IA local. Como posso ajudar hoje?</string>
     <string name="ai_chat_you">Você</string>
-    <string name="ai_chip_explain">💬 Explicar</string>
     <string name="ai_chip_fix_grammar">✅ Corrigir</string>
-    <string name="ai_chip_make_shorter">📏 Encurtar</string>
-    <string name="ai_chip_rewrite">✏️ Reescrever</string>
     <string name="ai_chip_summarize">📝 Resumir</string>
-    <string name="ai_chip_translate">🌐 Traduzir</string>
-    <string name="ai_clear_history">Limpar histórico</string>
     <string name="ai_context_quick_actions">Ações rápidas</string>
-    <string name="ai_context_rewrite_style">Estilo de reescrita:</string>
-    <string name="ai_context_target_language">Idioma alvo:</string>
-    <string name="ai_desc_explain">O texto selecionado será explicado em termos simples.</string>
-    <string name="ai_desc_fix_grammar">Gramática, ortografia e pontuação serão corrigidas.</string>
-    <string name="ai_desc_make_shorter">O texto selecionado será reescrito de forma mais concisa.</string>
     <string name="ai_error_connection">Erro de conexão</string>
     <string name="ai_error_inplace">Erro durante o processamento da IA</string>
     <string name="ai_error_load_model">Erro ao carregar modelo</string>
     <string name="ai_error_no_session">Nenhuma sessão ativa</string>
     <string name="ai_error_unexpected">Erro inesperado</string>
     <string name="ai_error_unknown">Erro desconhecido</string>
-    <string name="ai_explain">Explicar</string>
     <string name="ai_fix_grammar">Corrigir gramática</string>
     <string name="ai_generating">Gerando…</string>
     <string name="ai_generation_failed">Falha ao gerar resposta</string>
-    <string name="ai_history">Histórico</string>
-    <string name="ai_lang_ar">العربية</string>
-    <string name="ai_lang_de">Deutsch</string>
-    <string name="ai_lang_en">English</string>
-    <string name="ai_lang_es">Español</string>
-    <string name="ai_lang_fr">Français</string>
-    <string name="ai_lang_it">Italiano</string>
-    <string name="ai_lang_ja">日本語</string>
-    <string name="ai_lang_pt">Português</string>
-    <string name="ai_lang_ru">Русский</string>
-    <string name="ai_lang_zh">中文</string>
-    <string name="ai_make_shorter">Encurtar</string>
     <string name="ai_max_tokens">Máx. tokens</string>
     <string name="ai_max_tokens_desc">Comprimento máximo da resposta gerada</string>
     <string name="ai_model_not_available">Modelo indisponível. Verifique sua configuração de IA nas Configurações.</string>
@@ -792,7 +627,6 @@ O que deseja fazer?</string>
     <string name="ai_ondevice_download">Baixar</string>
     <string name="ai_ondevice_download_complete">Download concluído</string>
     <string name="ai_ondevice_download_failed">Falha no download: %1$s</string>
-    <string name="ai_ondevice_downloading">Baixando…</string>
     <string name="ai_ondevice_load">Carregar modelo</string>
     <string name="ai_ondevice_loading">Carregando…</string>
     <string name="ai_ondevice_no_compatible">Nenhum modelo compatível para este dispositivo</string>
@@ -812,57 +646,34 @@ O que deseja fazer?</string>
     <string name="ai_ondevice_retry">Tentar novamente</string>
     <string name="ai_ondevice_status_error">Erro ao carregar modelo</string>
     <string name="ai_ondevice_status_ready">Modelo carregado e pronto</string>
-    <string name="ai_ondevice_text_formats">Formatos de arquivo suportados</string>
-    <string name="ai_ondevice_text_models">Modelos de texto</string>
     <string name="ai_ondevice_unload">Descarregar</string>
     <string name="ai_panel_chat">Chat</string>
     <string name="ai_panel_placeholder">Peça à IA para gerar, reescrever ou sugerir…</string>
-    <string name="ai_progress_explaining">Explicando…</string>
     <string name="ai_progress_fixing_grammar">Corrigindo gramática…</string>
-    <string name="ai_progress_making_shorter">Encurtando…</string>
-    <string name="ai_progress_rewriting">Reescrevendo…</string>
     <string name="ai_progress_summarizing">Resumindo…</string>
     <string name="ai_progress_title">Processando IA…</string>
-    <string name="ai_progress_translating">Traduzindo…</string>
-    <string name="ai_prompt_explain">Explique o texto a seguir em termos simples e fáceis de entender. Divida conceitos complexos e forneça exemplos claros quando útil.</string>
     <string name="ai_prompt_fix_grammar">Corrija erros de gramática, ortografia e pontuação no texto a seguir. Preserve o significado original e o estilo de escrita.</string>
     <string name="ai_prompt_generate">Você é um assistente de escrita criativa. Gere texto com base na solicitação do usuário usando formatação markdown quando apropriado.</string>
-    <string name="ai_prompt_make_shorter">Reescreva o texto a seguir para torná-lo mais conciso, preservando todas as informações principais. Remova palavras e repetições desnecessárias.</string>
-    <string name="ai_prompt_rewrite">Você é um assistente de escrita. Reescreva o texto no estilo indicado.</string>
     <string name="ai_prompt_summarize">Resuma o texto a seguir de forma concisa, preservando as informações principais.</string>
-    <string name="ai_prompt_translate">Traduza o texto a seguir para o idioma especificado. Retorne apenas a tradução sem explicações.</string>
     <string name="ai_repetition_penalty">Penalidade de repetição</string>
     <string name="ai_repetition_penalty_desc">Penalizar tokens repetidos (1.0 = desativado)</string>
-    <string name="ai_rewrite_note">Reescrever nota</string>
     <string name="ai_sampling_params">Parâmetros de amostragem</string>
     <string name="ai_send">Enviar</string>
-    <string name="ai_session_title_new">Novo chat</string>
-    <string name="ai_suggestion_another_example">Outro exemplo</string>
-    <string name="ai_suggestion_explain_more">Explique mais</string>
-    <string name="ai_suggestion_shorten">Encurtar</string>
-    <string name="ai_summarize_notes">Resumir notas</string>
     <string name="ai_temperature">Temperatura</string>
     <string name="ai_temperature_desc">Controla aleatoriedade (0 = determinístico, 2 = muito aleatório)</string>
     <string name="ai_top_k">Top K</string>
     <string name="ai_top_k_desc">Considerar apenas os K melhores tokens (0 = desativado)</string>
     <string name="ai_top_p">Top P</string>
     <string name="ai_top_p_desc">Limiar de amostragem por núcleo</string>
-    <string name="ai_translate_note">Traduzir nota</string>
-    <string name="ai_user_msg_explain">Explicar: %1$s</string>
     <string name="ai_user_msg_fix_grammar">Corrigir gramática: %1$s</string>
     <string name="ai_user_msg_generate">Gerar texto</string>
-    <string name="ai_user_msg_make_shorter">Encurtar: %1$s</string>
-    <string name="ai_user_msg_rewrite">Reescrever em estilo %1$s: %2$s</string>
     <string name="ai_user_msg_summarize">Resumir: %1$s</string>
-    <string name="ai_user_msg_translate">Traduzir para %1$s: %2$s</string>
     <string name="attach">Anexar</string>
     <string name="chat_delete">Excluir</string>
     <string name="chat_delete_confirm">Excluir este chat?</string>
     <string name="chat_empty_desc">Inicie uma conversa com a IA</string>
     <string name="chat_empty_title">Nenhum chat ainda</string>
     <string name="chat_export">Exportar chat</string>
-    <string name="chat_export_failed">Falha na exportação: %1$s</string>
-    <string name="chat_export_success">Chat exportado para a pasta Downloads</string>
     <string name="chat_history_title">Histórico de chats</string>
     <string name="chat_new">Novo chat</string>
     <string name="chat_pin">Fixar</string>
@@ -872,7 +683,6 @@ O que deseja fazer?</string>
     <string name="chat_search_hint">Pesquisar chats…</string>
     <string name="chat_title_hint">Título do chat</string>
     <string name="chat_unpin">Desafixar</string>
-    <string name="dismiss">Dispensar</string>
     <string name="encrypted_note_locked">Bloqueado — desbloqueie para anexar</string>
     <string name="fab_audio">Áudio</string>
     <string name="fab_drawing">Desenho</string>
@@ -880,10 +690,8 @@ O que deseja fazer?</string>
     <string name="fab_text">Texto</string>
     <string name="nav_chats">Chats</string>
     <string name="no_notes_found">Nenhuma nota encontrada</string>
-    <string name="remove_note_context">Remover contexto da nota</string>
     <string name="search_notes">Pesquisar notas</string>
     <string name="select_note_to_attach">Selecione uma nota para anexar</string>
-    <string name="share">Compartilhar</string>
     <string name="toast_auth_error">Erro de autenticação</string>
     <string name="toast_note_created_with_audio">Nota criada com áudio</string>
     <string name="toast_note_created_with_image">Nota criada com imagem</string>
@@ -899,9 +707,6 @@ O que deseja fazer?</string>
     <string name="file_open_view_pdf">Ver PDF</string>
     <string name="file_open_import_error">Não foi possível importar este arquivo</string>
     <string name="pdf_viewer_title">Visualizador de PDF</string>
-    <string name="pdf_open_error">Não foi possível abrir este PDF</string>
-    <string name="pdf_page_indicator">Página %1$d de %2$d</string>
-    <string name="pdf_page_count">%1$d páginas</string>
 
     <!-- v4.0 Modo Flutuante -->
     <string name="floating_mode_title">Modo Flutuante</string>
@@ -998,8 +803,6 @@ O que deseja fazer?</string>
     <string name="block_video_description">Descrição</string>
     <string name="block_video_align">Alinhamento</string>
     <string name="block_video_open">Abrir vídeo</string>
-    <string name="video_open_external">Abrir vídeo externamente</string>
-    <string name="video_open_youtube">Abrir no YouTube</string>
     <string name="block_audio">Áudio</string>
     <string name="block_audio_desc">Inserir áudio ou nota de voz</string>
     <string name="block_audio_replace">Escolher áudio</string>
@@ -1032,7 +835,6 @@ O que deseja fazer?</string>
     <string name="block_bookmark_url_hint">Cole um link</string>
     <string name="block_bookmark_open">Abrir link</string>
     <string name="block_bookmark_fetching">Carregando prévia do link…</string>
-    <string name="block_bookmark_error">Não foi possível carregar a prévia</string>
     <string name="block_bookmark_caption_hint">Adicione uma legenda…</string>
     <string name="block_bookmark_description">Descrição</string>
     <string name="block_bookmark_color">Cor</string>
@@ -1080,14 +882,6 @@ O que deseja fazer?</string>
     <string name="backup_err_encryption">Falha na criptografia</string>
     <string name="attach_note">Anexar nota</string>
     <string name="attach_file">Anexar arquivo</string>
-    <string name="ai_pin_memory">Fixar na memória</string>
-    <string name="storage_audio_files">Arquivos de áudio</string>
-    <string name="storage_audio_desc">O áudio anexado às notas está protegido. Só é possível excluir áudio órfão.</string>
-    <string name="storage_audio_attached">Anexado a uma nota</string>
-    <string name="storage_audio_attached_to">Anexado a: %1$s</string>
-    <string name="storage_audio_delete_orphans">Excluir %1$d áudio(s) órfão(s)</string>
-    <string name="storage_audio_delete_title">Excluir áudio órfão?</string>
-    <string name="storage_audio_delete_confirm">Excluir %1$d arquivo(s) de áudio órfão(s)? Eles não são mais referenciados por nenhuma nota.</string>
     <string name="storage_audio">Áudio</string>
     <string name="ai_err_ollama_ssl">Erro de conexão SSL. Para servidores locais use \'http://\' em vez de \'https://\', ou instale um certificado válido.</string>
     <string name="ai_err_ollama_empty">Resposta vazia do modelo</string>
@@ -1152,8 +946,6 @@ O que deseja fazer?</string>
     <string name="insert_row_above">Inserir linha acima</string>
     <string name="insert_row_below">Inserir linha abaixo</string>
     <string name="delete_row">Excluir linha</string>
-    <string name="add_column">Adicionar coluna</string>
-    <string name="add_row">Adicionar linha</string>
     <string name="more">Mais</string>
     <string name="remove">Remover</string>
     <string name="ai">IA</string>
@@ -1242,14 +1034,6 @@ O que deseja fazer?</string>
     <plurals name="storage_deleted_files">
         <item quantity="one">Excluído %1$d arquivo</item>
         <item quantity="other">Excluídos %1$d arquivos</item>
-    </plurals>
-    <plurals name="storage_deleted_audio">
-        <item quantity="one">Excluído %1$d arquivo de áudio — %2$s</item>
-        <item quantity="other">Excluídos %1$d arquivos de áudio — %2$s</item>
-    </plurals>
-    <plurals name="chat_active_memories">
-        <item quantity="one">1 memória</item>
-        <item quantity="other">%1$d memórias</item>
     </plurals>
     <string name="ai_ondevice_lazy_note">O modelo é carregado na primeira vez que você usa um recurso de IA e é liberado automaticamente quando o app vai para segundo plano.</string>
     <string name="note_created_from">Nota criada a partir de %1$s</string>

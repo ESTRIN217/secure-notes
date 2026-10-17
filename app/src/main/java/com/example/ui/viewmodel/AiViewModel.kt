@@ -184,7 +184,6 @@ class AiViewModel(
     val modelName: StateFlow<String> = _modelName.asStateFlow()
 
     private val _onDeviceModelPath = MutableStateFlow(prefsRepository.getAiOnDeviceModelPath())
-    val onDeviceModelPath: StateFlow<String> = _onDeviceModelPath.asStateFlow()
 
     private val _selectedOnDeviceModel = MutableStateFlow<OnDeviceModel?>(null)
     val selectedOnDeviceModel: StateFlow<OnDeviceModel?> = _selectedOnDeviceModel.asStateFlow()
@@ -400,15 +399,6 @@ class AiViewModel(
         return _conversationHistory.value[sessionId] ?: emptyList()
     }
 
-    fun clearConversationHistory(sessionId: Int) {
-        _conversationHistory.update { current ->
-            current.toMutableMap().apply { remove(sessionId) }.toMap()
-        }
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) { conversationDao.deleteBySessionId(sessionId) }
-        }
-    }
-
     fun setAiEnabled(enabled: Boolean) {
         _aiEnabled.value = enabled
         prefsRepository.setAiEnabled(enabled)
@@ -589,9 +579,6 @@ class AiViewModel(
     }
 
     /** Lectura desde caché reactiva: cero I/O dentro de la composición. */
-    fun isModelDownloaded(model: OnDeviceModel): Boolean =
-        _downloadedModelIds.value.contains(model.id)
-
     fun getModelPath(model: OnDeviceModel): String? {
         return modelDownloader.getModelPath(model)
     }
@@ -683,10 +670,6 @@ class AiViewModel(
 
     fun removePendingAttachment(index: Int) {
         _pendingAttachments.update { it.toMutableList().apply { removeAt(index) } }
-    }
-
-    fun clearPendingAttachments() {
-        _pendingAttachments.value = emptyList()
     }
 
     fun attachNoteAsAttachment(noteId: Int, title: String, content: String) {
@@ -1009,14 +992,6 @@ class AiViewModel(
         viewModelScope.launch {
             memoryManager.clearSessionMemories(sessionId)
         }
-    }
-
-    fun clearResult() {
-        _resultText.value = null
-        _errorMessage.value = null
-        _isProcessing.value = false
-        _streamingText.value = null
-        _processingTimeMs.value = null
     }
 
     fun exportConversation(context: android.content.Context, sessionId: Int): String? {

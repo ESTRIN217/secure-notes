@@ -7,7 +7,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.estrin217.editordecodigo.data.model.CodeFile
-import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -31,9 +30,6 @@ interface CodeFileDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFile(file: CodeFile): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFiles(files: List<CodeFile>)
-
     @Update
     suspend fun updateFile(file: CodeFile)
 
@@ -42,10 +38,4 @@ interface CodeFileDao {
 
     @Query("DELETE FROM code_files WHERE id = :id")
     suspend fun deleteFileById(id: Long)
-
-    @Query("SELECT COUNT(*) FROM code_files")
-    suspend fun countFiles(): Int
-
-    @Query("SELECT COUNT(*) FROM code_files WHERE language = :language")
-    suspend fun countFilesByLanguage(language: SupportedLanguage): Int
 }

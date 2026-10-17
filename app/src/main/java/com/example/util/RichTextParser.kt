@@ -958,7 +958,6 @@ class RichTextParser {
             return if (raw.contains(delimiter)) raw.substringBefore(delimiter) else raw
         }
 
-        fun cleanForAI(raw: String): String = RichTextConverter.contentToPlainText(stripAttachmentsSuffix(raw))
         fun markdownForAI(raw: String): String = RichTextConverter.contentToMarkdown(stripAttachmentsSuffix(raw))
         fun convertToHtml(raw: String) = HtmlConverter.convertToHtml(raw)
         fun convertHtmlToSecureNotes(html: String) = HtmlConverter.convertHtmlToSecureNotes(html)

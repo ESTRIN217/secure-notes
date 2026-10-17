@@ -35,9 +35,6 @@ object LatexEquationRenderer {
         color = Color(0xFFE91E63)
     )
 
-    fun hasEquations(segments: List<TextSegment>): Boolean =
-        segments.any { it.equationLatex != null }
-
     fun isValidLatex(latex: String): Boolean {
         if (latex.isBlank()) return false
         return try {

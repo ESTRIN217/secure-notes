@@ -93,11 +93,8 @@ secrets {
   defaultPropertiesFileName = ".env.example"
 }
 
-// Some unused dependencies are commented out below instead of being removed.
-// This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  // implementation(libs.accompanist.permissions)
   implementation(project(":lib"))
   implementation(project(":visor-pdf"))
   // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
@@ -106,10 +103,6 @@ dependencies {
   implementation(project(":editor-de-codigo"))
   implementation(project(":visor-media"))
   implementation(libs.androidx.activity.compose)
-  // implementation(libs.androidx.camera.camera2)
-  // implementation(libs.androidx.camera.core)
-  // implementation(libs.androidx.camera.lifecycle)
-  // implementation(libs.androidx.camera.view)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
@@ -118,18 +111,15 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
-  // implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
-  implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
   implementation(libs.coil.video)
   implementation(libs.coil.network.okhttp)
   implementation(libs.coil.svg)
-  implementation(libs.converter.moshi)
   // El motor de GFM de TODA superficie de Markdown de la app: spec 017 lo construyó para el chat, la 018
   // lo extió a la pantalla legal y a las dos de novedades, y la 019 a la vista previa del editor de código.
   // Vive en `:markdown` porque lo necesitan dos módulos y entre ellos la dependencia va **en un solo
@@ -142,8 +132,6 @@ dependencies {
   implementation(libs.latex.renderer)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.logging.interceptor)
-  implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services.auth)
@@ -152,14 +140,9 @@ dependencies {
   implementation(libs.androidx.work.ktx)
   implementation(libs.androidx.biometric)
   implementation(libs.androidx.biometric.compose)
-  implementation(libs.androidx.pdf.viewer)
-  implementation(libs.androidx.pdf.document.service)
-  implementation(libs.androidx.pdf.compose)
   implementation(libs.androidx.glance.appwidget)
   implementation(libs.androidx.glance.material3)
-  // implementation(libs.play.services.location)
   implementation(libs.play.services.auth)
-  implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
@@ -178,5 +161,4 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
-  "ksp"(libs.moshi.kotlin.codegen)
 }

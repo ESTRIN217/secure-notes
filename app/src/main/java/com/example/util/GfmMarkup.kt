@@ -317,8 +317,6 @@ object GfmMarkup {
     private fun normalizeLabel(label: String): String =
         label.trim().replace(whitespaceRegex, " ").lowercase()
 
-    private fun isWordChar(char: Char): Boolean = char.isLetterOrDigit()
-
     private val whitespaceRegex = Regex("\\s+")
 
     // Hasta tres espacios de sangría, `[etiqueta]:` y la URL: entre ángulos completa, o hasta el primer

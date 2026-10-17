@@ -10,7 +10,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -293,19 +292,6 @@ class UpdaterViewModel(application: Application) : AndroidViewModel(application)
         currentCall?.cancel()
         currentCall = null
         _uiState.update { it.copy(downloadState = UpdateDownloadState.Idle) }
-    }
-
-    fun requestInstallPermission() {
-        val intent = Intent(
-            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-            Uri.parse("package:${appContext.packageName}")
-        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try {
-            appContext.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "install permission intent failed", e)
-            _uiState.update { it.copy(needsInstallPermission = false, downloadState = UpdateDownloadState.Idle) }
-        }
     }
 
     fun onInstallPermissionResult() {

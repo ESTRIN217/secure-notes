@@ -58,14 +58,3 @@ data class ToolSpec(
     val description: String,
     val parameters: List<ToolParam>
 )
-
-data class ToolCall(
-    val id: String,
-    val name: String,
-    val arguments: Map<String, Any>
-)
-
-data class AiResult(
-    val text: String,
-    val action: AiAction
-)

@@ -181,10 +181,6 @@ class CodeEditorViewModel(
         }
     }
 
-    fun showToast(message: String) {
-        _toastMessage.value = message
-    }
-
     fun clearToast() {
         _toastMessage.value = null
     }
@@ -308,10 +304,6 @@ class CodeEditorViewModel(
      */
     fun toggleEditMode() {
         setViewMode(if (_viewMode.value == ViewMode.EDIT) ViewMode.VIEW else ViewMode.EDIT)
-    }
-
-    fun setEditMode(isEdit: Boolean) {
-        setViewMode(if (isEdit) ViewMode.EDIT else ViewMode.VIEW)
     }
 
     /**
@@ -438,35 +430,6 @@ class CodeEditorViewModel(
         }
     }
 
-    fun closeOtherTabs(fileId: Long) {
-        val keep = _openTabs.value.find { it.id == fileId } ?: return
-        val removed = _openTabs.value.filter { it.id != fileId }
-        removed.forEach {
-            unsavedBuffers.remove(it.id)
-            undoStacks.remove(it.id)
-            redoStacks.remove(it.id)
-            _dirtyFileIds.value = _dirtyFileIds.value - it.id
-        }
-        _openTabs.value = listOf(keep)
-        if (_currentFile.value?.id != fileId) {
-            selectFile(keep)
-        }
-    }
-
-    fun closeAllTabs() {
-        _openTabs.value.forEach {
-            unsavedBuffers.remove(it.id)
-            undoStacks.remove(it.id)
-            redoStacks.remove(it.id)
-        }
-        _openTabs.value = emptyList()
-        _dirtyFileIds.value = emptySet()
-        _currentFile.value = null
-        _isWelcomeTabOpen.value = true
-        _textFieldValue.value = TextFieldValue("")
-        updateUndoRedoAvailability(null)
-    }
-
     /**
      * Abre y enfoca la pestaña de bienvenida estilo VS Code.
      * Guarda el búfer del archivo activo si existe.
@@ -479,28 +442,6 @@ class CodeEditorViewModel(
         _currentFile.value = null
         _textFieldValue.value = TextFieldValue("")
         updateUndoRedoAvailability(null)
-    }
-
-    /**
-     * Cierra la pestaña de bienvenida. Si hay archivos abiertos en las pestañas,
-     * selecciona el primer archivo disponible.
-     */
-    fun closeWelcomeTab() {
-        _isWelcomeTabOpen.value = false
-        if (_currentFile.value == null) {
-            val tabs = _openTabs.value
-            if (tabs.isNotEmpty()) {
-                selectFile(tabs.first())
-            }
-        }
-    }
-
-    /**
-     * Deselecciona el archivo actual para mostrar la pantalla de bienvenida estilo VS Code.
-     * Mantiene las pestañas abiertas en la barra para volver a ellas rápidamente.
-     */
-    fun closeActiveTabToWelcome() {
-        openWelcomeTab()
     }
 
     fun createNewFile(name: String, language: SupportedLanguage = SupportedLanguage.fromFileName(name)) {
@@ -870,10 +811,6 @@ class CodeEditorViewModel(
             selection = TextRange(charOffset.coerceIn(0, text.length))
         )
         _toastMessage.value = str(R.string.toast_go_to_line, lineNumber)
-    }
-
-    fun updateFormatOptions(options: FormatOptions) {
-        _formatOptions.value = options
     }
 
     /**

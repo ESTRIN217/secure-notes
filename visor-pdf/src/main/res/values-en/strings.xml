@@ -1,9 +1,4 @@
 <resources>
-    <string name="open_with_pdf">Open PDF document</string>
-    <string name="select_pdf">Select PDF</string>
-    <string name="recent_files">Recent files</string>
-    <string name="no_file_opened">No document open</string>
-    <string name="tap_to_open_pdf">Tap the button to pick a PDF file or open it directly from another app with "Open with"</string>
     <string name="page_counter">Pg. %1$d of %2$d</string>
     <string name="page_label">Page %1$d</string>
     <string name="error_loading_pdf">Error opening the PDF document</string>
@@ -13,7 +8,6 @@
     <string name="jump_to_page">Go to page</string>
     <string name="go_to">Go</string>
     <string name="night_mode">Dark mode</string>
-    <string name="fit_width">Fit width</string>
     <string name="zoom_in">Zoom in</string>
     <string name="zoom_out">Zoom out</string>
     <string name="search_in_document">Search text</string>

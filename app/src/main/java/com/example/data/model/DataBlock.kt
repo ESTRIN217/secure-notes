@@ -28,9 +28,6 @@ data class TableData(
     val columnCount: Int
         get() = rows.maxOfOrNull { it.size } ?: 0
 
-    fun withWeights(weights: List<Float>): TableData =
-        copy(columnWeights = weights.take(columnCount))
-
     fun toJson(): String = JSONObject().apply {
         put("rows", JSONArray(rows.map { JSONArray(it) }))
         if (columnWeights.isNotEmpty()) {
@@ -197,9 +194,6 @@ data class DataBlock(
 
     /** Tipos cuyo `content` almacenaba markup legacy y migran a richTextJson. */
     val contentIsText: Boolean get() = type in segmentsBlockTypes
-
-    fun withSegments(segments: List<TextSegment>): DataBlock =
-        copy(richTextJson = TextSegment.serialize(segments))
 
     fun ensureSegments(): List<TextSegment> {
         segments()?.let { return RichTextConverter.canonicalizeEquations(it) }

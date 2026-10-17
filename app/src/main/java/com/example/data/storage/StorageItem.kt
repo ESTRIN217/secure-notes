@@ -51,8 +51,4 @@ data class StorageOverview(
     val freeSpace: Long = 0L,
     val totalSpace: Long = 0L,
     val orphanCount: Int = 0
-) {
-    val totalUncategorized: Long
-        get() = attachmentsSize + audioSize + cacheSize + exportsSize + tempSize +
-                databaseSize + drawingsSize + voiceSize + filesSize + aiModelSize + otherSize
-}
+)

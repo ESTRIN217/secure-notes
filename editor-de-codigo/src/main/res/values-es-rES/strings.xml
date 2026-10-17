@@ -11,12 +11,10 @@
     <string name="menu_open_external">Abrir archivo externo...</string>
     <string name="menu_new_file">Nuevo archivo...</string>
     <string name="menu_jump_line">Ir a la línea...</string>
-    <string name="menu_syntax">Resaltado de sintaxis</string>
     <string name="menu_hide_lines">Ocultar número de líneas</string>
     <string name="menu_show_lines">Mostrar número de líneas</string>
     <string name="menu_wrap_off">Desactivar ajuste de línea</string>
     <string name="menu_wrap_on">Ajuste de línea (Word Wrap)</string>
-    <string name="menu_format_options">Opciones de formateo...</string>
     <string name="menu_minify">Compactar JSON (Minify)</string>
     <string name="copy_code">Copiar código</string>
     <string name="copied_clipboard">Código copiado al portapapeles</string>
@@ -50,21 +48,6 @@
     <string name="syntax_search_hint">Buscar lenguaje (ej. Rust, SQL)...</string>
     <string name="selected_cd">Seleccionado</string>
     <!-- FormatOptionsDialog -->
-    <string name="format_title">Formateador de código</string>
-    <string name="format_subtitle">Ajusta la sangría y reglas de estilo para %1$s:</string>
-    <string name="format_indent_section">Espaciado de sangría</string>
-    <string name="format_indent_2">2 espacios</string>
-    <string name="format_indent_2_desc">Recomendado para JSON, Web, CSS</string>
-    <string name="format_indent_4">4 espacios</string>
-    <string name="format_indent_4_desc">Estándar Kotlin, Java, Python, C++</string>
-    <string name="format_indent_tab">Tabulaciones (\t)</string>
-    <string name="format_indent_tab_desc">Usa caracteres de tabulador reales</string>
-    <string name="format_cleanup_title">Reglas de limpieza</string>
-    <string name="format_trim_title">Recortar espacios finales</string>
-    <string name="format_trim_desc">Quita espacios en blanco al final de cada línea</string>
-    <string name="format_eof_title">Salto de línea final (EOF)</string>
-    <string name="format_eof_desc">Garantiza que el archivo termine con un renglón limpio</string>
-    <string name="format_apply">Formatear ahora</string>
     <!-- FilesDrawerSheet -->
     <string name="files_title">Archivos</string>
     <string name="open">Abrir</string>
@@ -83,21 +66,7 @@
     <string name="snackbar_folder_no_code">No se encontraron archivos de código compatibles en la carpeta</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
-    <string name="tabs_welcome">Bienvenida</string>
-    <string name="cd_new_file">Nuevo archivo</string>
-    <string name="cd_close_tab">Cerrar pestaña</string>
-    <string name="cd_close_welcome_tab">Cerrar pestaña de bienvenida</string>
-    <string name="menu_tab_close">Cerrar pestaña</string>
-    <string name="menu_tab_close_others">Cerrar otras pestañas</string>
-    <string name="menu_tab_close_all">Cerrar todas las pestañas</string>
     <!-- VSCodeWelcomeScreen -->
-    <string name="welcome_app_title">Editor de código</string>
-    <string name="welcome_home">Inicio</string>
-    <string name="welcome_new_file">Nuevo archivo...</string>
-    <string name="welcome_open_file">Abrir archivo...</string>
-    <string name="welcome_open_folder">Abrir carpeta...</string>
-    <string name="welcome_recent">Recientes</string>
-    <string name="welcome_no_recent">Aún no hay archivos recientes. Cree o abra un archivo para empezar.</string>
     <!-- Empty workspace -->
     <string name="empty_workspace_title">Sin pestañas abiertas</string>
     <string name="empty_workspace_desc">No tiene ningún archivo abierto por ahora. Abra la bienvenida o empiece uno nuevo.</string>
