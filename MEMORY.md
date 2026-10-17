@@ -10,6 +10,8 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
   `:visor-pdf:assembleDebug` compilan.
 - **`:tema` es un módulo nuevo**: el catálogo de temas se fue de `:editor-de-codigo` y de `:app/ui/theme/`. Al
   buscar paletas o el tema, ahora están ahí, no en el editor ni en la app.
+- Ya no queda trabajo ajeno sin commitear: el `BackHandler` de `MainListScreen.kt` y la config de herramientas
+  (`opencode.json`, `.opencode/agents/coordinator.md`) se commitearon el 2026-10-17.
 
 ## Decisiones que conviene recordar
 - **El tono de Material 3 es L\* de CIELAB, no OKLab L**: tomarlos por la misma escala dejó las superficies
@@ -35,5 +37,3 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 ## Próximos pasos y notas
 - Verificar en dispositivo la spec 020 provocando un fallo real.
 - Spec 002: generar los dos goldens pendientes y fijar `roborazzi.test.verify`.
-- Cambio ajeno sin commitear en `app/src/main/java/com/example/ui/MainListScreen.kt` (`&&` → `||` en un
-  `BackHandler`): es trabajo en curso de la persona, no de la spec 025, y se ha dejado como estaba.
