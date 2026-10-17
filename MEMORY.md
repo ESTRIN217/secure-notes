@@ -36,8 +36,12 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 
 ## Próximos pasos y notas
 - Verificar en dispositivo la spec 020 provocando un fallo real.
-- Spec 015 redactada como borrador: incluye estado/selección del editor y tablas en preview/TTS;
-  excluye el rediseño de diálogos de medios. Falta aprobarla antes de planificar o implementar.
+- Spec 015 implementada: estado/selección, tablas en preview/TTS; excluye rediseñar diálogos de
+  medios. T1–T10 completas (slash, archivos, movimiento, tablas y estado agrupado). T10: 132 tests
+  dirigidos, compile y assemble pasan; `./gradlew test` conserva línea base app 768/41, editor
+  149/2 (40 fallos Robolectric `linux/aarch64`, 3 conocidos). En el Infinix se verificaron tablas
+  con/sin cabecera, TTS, selección entre bloques/notas, slash e importación; la persona usuaria
+  confirmó el orden audible. Fixtures temporales limpios. `NoteEditorScreen.kt`: 2277 líneas.
 - Spec 002: generar los dos goldens pendientes y fijar `roborazzi.test.verify`.
 - `values-en-rGB` ahora contiene las 1.179 claves del inglés base; `docs/EDITOR.md` apunta al resaltador
   compartido de la spec 022. Los defectos de tabla/TTS/preview y selección quedan descritos en la 015.

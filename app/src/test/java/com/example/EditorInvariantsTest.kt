@@ -1,6 +1,7 @@
 package com.example
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -48,9 +49,9 @@ class EditorInvariantsTest {
         const val MIN_FUNCIONES = 25
 
         /**
-         * RF-88: el archivo no crece. Baja en cada tarea, y a 0 en T8 con el resto del recorte.
+         * RF-88: el archivo no crece. T9 lo reduce de 2284 a 2277 líneas.
          */
-        const val MAX_LINEAS = 2342
+        const val MAX_LINEAS = 2277
 
         /** RF-84: lo que nadie lee. Llega a 0 en T3. */
         const val MAX_ESTADO_MUERTO = 0
@@ -61,21 +62,9 @@ class EditorInvariantsTest {
         /**
          * Por `GUIDELINES.md` §4, ninguna función local pasa de 20 líneas. Bajó de 10 a 7.
          *
-         * Las que quedan, y por qué se quedan, para que el número no sea un misterio:
-         *
-         * - `handleBlockCommand` (109): es una **tabla de despacho**, un brazo del `when` por cada
-         *   acción del editor. Se lee de un vistazo: `BlockAction.URL_DIALOG` hace lo que dice. Partir
-         *   un `when` así en varios ficheros no lo hace más legible, solo más disperso. Lo que sí era
-         *   ilegible —un brazo que hacía cuatro cosas— ya se ha sacado.
-         * - `handlePickedFile` (40) y `openExternalFile` (31): son lógica de verdad y **quedan
-         *   pendientes** de partir en la spec 015, que es quien les puede dar un hogar.
-         * - `moveBlockToAnotherNote` (27) y `handleSlashSelect` (25): cierran sobre 17 y 14 variables
-         *   de la pantalla. No son separables sin inventar un contenedor de estado, que es justo lo
-         *   que hace la 015.
-         * - `applyTag` (31) y `applyTagWithVal` (22): bajaron de 50 y 70 extrayendo el esqueleto
-         *   común a `applyTagToSelection` y las tres tablas de valor. Lo que queda es la escalera de
-         *   salidas tempranas y la llamada, y partirlo más ya sería trocar el código por cumplir la
-         *   cuenta.
+         * Las funciones largas restantes y por qué se quedan: `handleBlockCommand` es una tabla de
+         * despacho legible; `applyTag` y `applyTagWithVal` conservan la escalera de salidas tempranas.
+         * La spec 015 ya extrajo slash, archivos y movimiento entre notas.
          */
         const val MAX_FUNCIONES_LARGAS = 7
 
@@ -145,7 +134,7 @@ class EditorInvariantsTest {
      * **El alcance son los ficheros en que se partió el editor, y `NoteEditorScreen.kt` queda
      * fuera a propósito.** RNF-43 escrita sin más dice «ningún fichero del editor de notas supera
      * las 600 líneas», y eso es imposible mientras el composable siga entero: el propio
-     * `NoteEditorScreen.kt` mide 2342. Que baje de 600 exige partir el composable, que es
+     * `NoteEditorScreen.kt` mide 2284. Que baje de 600 exige partir el composable, que es
      * justamente lo que la spec 014 declara **fuera de alcance** (agrupar el estado de las 95
      * declaraciones, que es lo que le daría un hogar a cada mitad). Por eso el monolito se mide con
      * su propio invariante, [MAX_LINEAS], que baja en cada tarea, y las 600 líneas son el techo de
@@ -162,7 +151,8 @@ class EditorInvariantsTest {
     @Test
     fun `ningun fichero extraido del editor supera las seiscientas lineas`() {
         val declarados = listOf(
-            "NoteEditorDialogs", "NoteEditorSheets", "NoteEditorAiSurfaces", "NoteEditorTabsHost"
+            "NoteEditorDialogs", "NoteEditorSheets", "NoteEditorAiSurfaces", "NoteEditorTabsHost",
+            "NoteEditorFileOperations"
         )
         val medidos = declarados.map { nombre ->
             val ruta = java.io.File("src/main/java/com/example/ui/$nombre.kt")
@@ -299,5 +289,44 @@ class EditorInvariantsTest {
             MAX_GUARDADOS,
             guardados
         )
+    }
+
+    @Test
+    fun `la seleccion y el estado de la barra tienen un propietario por nota`() {
+        val rutaEstado = File("src/main/java/com/example/ui/NoteEditorInteractionState.kt")
+        assertTrue("Falta el propietario del estado compartido del editor", rutaEstado.exists())
+        val estado = rutaEstado.readText()
+        assertTrue(estado.contains("toolbarActiveBlockIndex = mutableIntStateOf(0)"))
+        assertTrue(estado.contains("toolbarActiveCursorOffset = mutableIntStateOf(0)"))
+        assertTrue(estado.contains("activeSelection = mutableStateOf(IntRange(0, 0))"))
+        assertTrue(estado.contains("pendingTypingStyle = mutableStateOf<TextSegment?>(null)"))
+        assertTrue(estado.contains("pendingFocusBlockIndex = mutableIntStateOf(-1)"))
+        assertTrue(estado.contains("pendingSelection = mutableStateOf(PendingTextSelectionState())"))
+        assertTrue(estado.contains("toolbarParseResult = mutableStateOf("))
+        assertTrue(estado.contains("contentValue = mutableStateOf(TextFieldValue(\"\"))"))
+        assertTrue(fuente.contains("remember(noteId) { NoteEditorInteractionState() }"))
+        assertFalse(Regex("var toolbarActiveBlockIndex by remember").containsMatchIn(fuente))
+        assertFalse(Regex("var activeSelection by remember").containsMatchIn(fuente))
+    }
+
+    @Test
+    fun `los comandos y las operaciones de archivo tienen un hogar fuera de la pantalla`() {
+        assertTrue(fuente.contains("selectSlashCommand(blocks, toolbarActiveBlockIndex"))
+        assertFalse(Regex("^ {4}fun handlePickedFile\\(", RegexOption.MULTILINE).containsMatchIn(fuente))
+        assertFalse(Regex("^ {4}fun openExternalFile\\(", RegexOption.MULTILINE).containsMatchIn(fuente))
+        assertTrue(fuente.contains("fileOperations::handlePickedFile"))
+        assertTrue(fuente.contains("fileOperations.openExternalFile(path)"))
+        val files = File("src/main/java/com/example/ui/NoteEditorFileOperations.kt")
+        assertTrue("Falta el propietario de las operaciones de archivo", files.exists())
+    }
+
+    @Test
+    fun `el movimiento de bloque conserva datos y mantiene el guardado destino`() {
+        val plan = File("src/main/java/com/example/ui/editor/NoteBlockMovePlan.kt")
+        assertTrue("Falta el plan puro de movimiento entre notas", plan.exists())
+        assertTrue(fuente.contains("prepareNoteBlockMove(blocks, index, target.content)"))
+        assertTrue(fuente.contains("content = move.destinationContent"))
+        assertTrue(fuente.contains("applyBlocksChange(move.sourceBlocks)"))
+        assertTrue(fuente.contains("return move.movedBlock"))
     }
 }

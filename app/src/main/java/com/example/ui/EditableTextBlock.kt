@@ -54,7 +54,11 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.data.model.BlockType
+import com.example.data.model.DataBlock
 import com.example.data.model.TextSegment
+import com.example.ui.editor.PendingSelectionDecision
+import com.example.ui.editor.PendingTextSelectionState
+import com.example.ui.editor.consumePendingTextSelection
 import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
@@ -81,7 +85,12 @@ fun EditableTextBlock(
     onFocusRequested: () -> Unit = {},
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
     initialSelection: Int? = null,
-    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    pendingSelection: MutableState<PendingTextSelectionState> = remember {
+        mutableStateOf(PendingTextSelectionState())
+    },
+    selectionNoteId: Int? = null,
+    selectionBlockIndex: Int? = null,
+    selectionBlock: DataBlock? = null,
     pendingTypingStyle: TextSegment? = null,
     showPrefix: Boolean = true,
     forcePlain: Boolean = false,
@@ -135,15 +144,25 @@ fun EditableTextBlock(
         onParseResult?.invoke(parseResult)
     }
 
-    LaunchedEffect(pendingSelection.value) {
-        val range = pendingSelection.value ?: return@LaunchedEffect
+    LaunchedEffect(pendingSelection.value, selectionNoteId, selectionBlockIndex, selectionBlock) {
+        if (selectionNoteId == null || selectionBlockIndex == null || selectionBlock == null) {
+            return@LaunchedEffect
+        }
+        val consumption = consumePendingTextSelection(
+            pendingSelection.value,
+            selectionNoteId,
+            selectionBlockIndex,
+            selectionBlock
+        )
+        pendingSelection.value = consumption.state
+        val range = (consumption.decision as? PendingSelectionDecision.Apply)?.range
+            ?: return@LaunchedEffect
         val text = fieldValue.text
         val start = range.first.coerceIn(0, text.length)
         val end = range.last.coerceIn(0, text.length).coerceAtLeast(start)
         fieldValue = fieldValue.copy(selection = TextRange(start, end))
         onCursorChange(start)
         onSelectionChange(start..end)
-        pendingSelection.value = null
     }
 
     LaunchedEffect(pendingInsert.value) {

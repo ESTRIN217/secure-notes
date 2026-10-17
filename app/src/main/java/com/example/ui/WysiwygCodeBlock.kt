@@ -58,6 +58,7 @@ import com.example.R
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.TextSegment
+import com.example.ui.editor.PendingTextSelectionState
 import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
@@ -85,7 +86,10 @@ fun WysiwygCodeBlock(
     initialSelection: Int?,
     onFocusRequested: () -> Unit,
     pendingInsert: MutableState<String?>,
-    pendingSelection: MutableState<IntRange?>,
+    pendingSelection: MutableState<PendingTextSelectionState>,
+    selectionNoteId: Int,
+    selectionBlockIndex: Int,
+    selectionBlock: DataBlock,
     modifier: Modifier = Modifier
 ) {
     val segments = block.segments() ?: listOf(TextSegment(text = block.content))
@@ -171,7 +175,10 @@ fun WysiwygCodeBlock(
                     onFocusRequested = onFocusRequested,
                     pendingInsert = pendingInsert,
                     initialSelection = initialSelection,
-                    pendingSelection = pendingSelection
+                    pendingSelection = pendingSelection,
+                    selectionNoteId = selectionNoteId,
+                    selectionBlockIndex = selectionBlockIndex,
+                    selectionBlock = selectionBlock
                 )
             } else {
                 ReadOnlyTextBlock(

@@ -72,10 +72,9 @@ import com.example.ui.editor.deleteBlockAt
 import com.example.ui.editor.headingTypeForTag
 import com.example.ui.editor.insertPlanFor
 import com.example.ui.editor.insertionIndex
-import com.example.ui.editor.ExternalTarget
-import com.example.ui.editor.externalTargetFor
-import com.example.ui.editor.isAudioFile
+import com.example.ui.editor.selectSlashCommand
 import com.example.ui.editor.moveBlockBy
+import com.example.ui.editor.prepareNoteBlockMove
 import com.example.ui.editor.removeTransformForTag
 import com.example.ui.editor.styleApplies
 import com.example.util.RichTextConverter
@@ -232,27 +231,26 @@ fun NoteEditorScreen(
     var title by remember { mutableStateOf("") }
     var isEncrypted by remember { mutableStateOf(isPasswordSet) }
     var blocks by remember { mutableStateOf<List<DataBlock>>(emptyList()) }
-    var contentValue by remember { mutableStateOf(TextFieldValue("")) }
+    val editorInteractionState = remember(noteId) { NoteEditorInteractionState() }
+    var contentValue by editorInteractionState.contentValue
     val content by remember { derivedStateOf { DataBlock.serialize(blocks) } }
     val history = remember { mutableStateListOf<List<DataBlock>>() }
     var historyIndex by remember { mutableStateOf(-1) }
     var showSlashMenu by remember { mutableStateOf(false) }
     var slashFilter by remember { mutableStateOf("") }
     var contentLoaded by remember { mutableStateOf(noteId == 0) }
+    var toolbarActiveBlockIndex by editorInteractionState.toolbarActiveBlockIndex
+    var toolbarActiveCursorOffset by editorInteractionState.toolbarActiveCursorOffset
+    var activeSelection by editorInteractionState.activeSelection
+    var pendingTypingStyle by editorInteractionState.pendingTypingStyle
+    var pendingFocusBlockIndex by editorInteractionState.pendingFocusBlockIndex
     val pendingTagInsert = remember { mutableStateOf<String?>(null) }
     val pendingInsert = remember { mutableStateOf<String?>(null) }
-    val pendingSelection = remember { mutableStateOf<IntRange?>(null) }
-
-    var toolbarActiveBlockIndex by remember { mutableIntStateOf(0) }
-    var toolbarActiveCursorOffset by remember { mutableIntStateOf(0) }
-    var activeSelection by remember { mutableStateOf(IntRange(0, 0)) }
-    var pendingTypingStyle by remember { mutableStateOf<com.example.data.model.TextSegment?>(null) }
-    var pendingFocusBlockIndex by remember { mutableIntStateOf(-1) }
+    val pendingSelection = editorInteractionState.pendingSelection
+    var toolbarParseResult by editorInteractionState.toolbarParseResult
 
     fun setContentValue(v: TextFieldValue) {
-        contentValue = v
-        activeSelection = v.selection.start..v.selection.end
-        pendingSelection.value = v.selection.start..v.selection.end
+        editorInteractionState.setContentValue(v, noteId, toolbarActiveBlockIndex, blocks)
     }
     
     var showInsertImageDialog by remember { mutableStateOf(false) }
@@ -419,7 +417,7 @@ fun NoteEditorScreen(
         val clamped = cursor.coerceIn(0, plain.length)
         contentValue = TextFieldValue(text = plain, selection = TextRange(clamped))
         activeSelection = clamped..clamped
-        pendingSelection.value = clamped..clamped
+        editorInteractionState.publishPendingSelection(noteId, toolbarActiveBlockIndex, blocks, clamped..clamped)
     }
 
     fun applyEquationEdit(blockIndex: Int, offset: Int, latex: String) {
@@ -699,20 +697,14 @@ fun NoteEditorScreen(
     val allTags by viewModel.availableTags.collectAsState()
     val allNotes by viewModel.notesList.collectAsState()
 
-    fun moveBlockToAnotherNote(index: Int, targetNoteId: Int) {
-        if (index !in blocks.indices) return
-        val target = allNotes.find { it.note.id == targetNoteId } ?: return
-        val moved = blocks[index]
-        val (textPart, targetAttachments) = parseNoteContentAndAttachments(target.content)
-        val targetBlocks = (com.example.util.RichTextConverter.contentToBlocks(textPart)
-            ?: DataBlock.migrateLegacyContent(textPart))
-            .let { DataBlock.migrateToSegments(it).first }
-            .toMutableList()
-        targetBlocks.add(moved)
+    fun moveBlockToAnotherNote(index: Int, targetNoteId: Int): DataBlock? {
+        if (index !in blocks.indices) return null
+        val target = allNotes.find { it.note.id == targetNoteId } ?: return null
+        val move = prepareNoteBlockMove(blocks, index, target.content) ?: return null
         viewModel.saveNote(
             id = target.note.id,
             title = target.title,
-            content = createRawContent(DataBlock.serialize(targetBlocks), targetAttachments),
+            content = move.destinationContent,
             isEncrypted = target.note.isEncrypted,
             tagsList = target.note.parseTags(),
             backgroundColor = target.note.backgroundColor,
@@ -721,10 +713,9 @@ fun NoteEditorScreen(
             isFavorite = target.note.isFavorite,
             isArchived = target.note.isArchived
         )
-        val newBlocks = blocks.toMutableList()
-        newBlocks.removeAt(index)
-        applyBlocksChange(newBlocks)
+        applyBlocksChange(move.sourceBlocks)
         Toast.makeText(context, context.getString(R.string.toast_block_moved, target.title), Toast.LENGTH_SHORT).show()
+        return move.movedBlock
     }
 
     var selectedNoteTags by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -801,6 +792,7 @@ fun NoteEditorScreen(
         val newCursor = selStart + result.length
         setContentValue(TextFieldValue(text = newText, selection = TextRange(newCursor)))
         syncActiveBlock(); saveBlocksToHistory()
+        editorInteractionState.publishPendingSelection(noteId, toolbarActiveBlockIndex, blocks, newCursor..newCursor)
         persistNote(contentForSave())
         aiViewModel.clearInPlaceResult()
     }
@@ -936,8 +928,6 @@ fun NoteEditorScreen(
 
     var originalNote: Note? by remember { mutableStateOf(null) }
     var showTextBgColorSheet by remember { mutableStateOf(false) }
-    var toolbarParseResult by remember { mutableStateOf(com.example.util.RichTextConverter.parseResultFor(emptyList())) }
-
     // Load note data initially, and reactively reload when externally updated
     LaunchedEffect(noteId) {
         if (noteId == 0) return@LaunchedEffect
@@ -1082,27 +1072,13 @@ fun NoteEditorScreen(
 
     fun handleSlashSelect(block: DataBlock) {
         showSlashMenu = false
-        val currentIdx = toolbarActiveBlockIndex.coerceIn(0, blocks.size)
-        // Sustituye el bloque cuando **es la barra que se estaba escribiendo**, no cuando está
-        // vacío: es la misma forma que al insertar un medio, pero otra regla, y por eso la regla
-        // se queda aquí y el índice es lo único que se comparte.
-        val esPlaceholder = blocks.getOrNull(currentIdx)
-            ?.ensureSegments()
-            ?.let { com.example.util.RichTextConverter.segmentsToPlainText(it) }
-            ?.startsWith("/") == true
-        val idx = insertionIndex(currentIdx, esPlaceholder, blocks.size)
-        val newBlocks = blocks.toMutableList()
-        if (esPlaceholder) {
-            newBlocks[currentIdx] = block
-        } else {
-            newBlocks.add(idx, block)
-            pendingFocusBlockIndex = idx
-        }
-        blocks = newBlocks
+        val selection = selectSlashCommand(blocks, toolbarActiveBlockIndex, pendingFocusBlockIndex, block)
+        blocks = selection.blocks
+        toolbarActiveBlockIndex = selection.activeBlockIndex
+        pendingFocusBlockIndex = selection.pendingFocusBlockIndex
         val blockPlain = com.example.util.RichTextConverter.segmentsToPlainText(block.ensureSegments())
         contentValue = TextFieldValue(text = blockPlain, selection = TextRange(blockPlain.length))
         activeSelection = blockPlain.length..blockPlain.length
-        toolbarActiveBlockIndex = idx.coerceAtMost(newBlocks.size - 1)
         saveBlocksToHistory()
     }
 
@@ -1150,81 +1126,41 @@ fun NoteEditorScreen(
     }
 
 
-    fun handlePickedFile(selectedUri: Uri) {
-        try {
-            val contentResolver = context.contentResolver
-            var name = "selected_file"
-            contentResolver.query(selectedUri, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (cursor.moveToFirst() && nameIndex >= 0) {
-                    name = cursor.getString(nameIndex)
-                }
-            }
-
-            val extension = if (name.contains(".")) name.substringAfterLast(".") else ""
-            val mime = contentResolver.getType(selectedUri) ?: ""
-            // Si es un audio o un archivo cualquiera lo decide la lógica pura; aquí solo el I/O.
-            val esAudio = isAudioFile(mime, extension)
-            val prefix = if (esAudio) "audio" else "file"
-            val localFile = File(context.filesDir, "${prefix}_${noteId}_${System.currentTimeMillis()}.${extension}")
-            contentResolver.openInputStream(selectedUri)?.use { input ->
-                FileOutputStream(localFile).use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            if (esAudio) {
-                applyAudioSelection(localFile.absolutePath)
-                Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
-            } else {
-                applyFileSelection(localFile.absolutePath, name)
-                Toast.makeText(context, context.getString(R.string.toast_file_attached), Toast.LENGTH_SHORT).show()
-            }
-            showVoiceFileSheet = false
-            scope.launch {
-                persistNote(contentForSave())
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(context, context.getString(R.string.toast_file_select_error) + ": ${e.message}", Toast.LENGTH_SHORT).show()
+    val fileOperations = NoteEditorFileOperations(
+        context = context,
+        noteId = noteId,
+        scope = scope,
+        onAudioAttached = { path ->
+            applyAudioSelection(path)
+            Toast.makeText(context, context.getString(R.string.toast_audio_attached), Toast.LENGTH_SHORT).show()
+        },
+        onFileAttached = { path, name ->
+            applyFileSelection(path, name)
+            Toast.makeText(context, context.getString(R.string.toast_file_attached), Toast.LENGTH_SHORT).show()
+        },
+        onPickerCompleted = { showVoiceFileSheet = false },
+        persistNote = { persistNote(contentForSave()) },
+        onPickedFileError = { error ->
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_file_select_error) + ": ${error.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        },
+        onOpenPdfTab = onOpenPdfTab,
+        onOpenTextTab = onOpenTextTab,
+        onOpenFileError = {
+            Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
         }
-    }
+    )
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { handlePickedFile(it) }
+        uri?.let(fileOperations::handlePickedFile)
     }
     val decreaseIndent: () -> Unit = {
                 adjustIndent(-1)
-    }
-
-    fun openExternalFile(path: String) {
-        try {
-            val file = File(path)
-            if (!file.exists()) {
-                Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
-                return
-            }
-            val ext = path.substringAfterLast('.', "").lowercase()
-            val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            when (externalTargetFor(mime, ext)) {
-                ExternalTarget.PDF -> onOpenPdfTab(uri, file.name)
-                ExternalTarget.TEXTO -> onOpenTextTab(uri, file.name)
-                // Sin tipo no hay Intent que construir: callar es mejor que abrir un error.
-                ExternalTarget.SIN_TIPO -> return
-                ExternalTarget.VER_CON_OTRA_APP -> context.startActivity(
-                    Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, mime)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                )
-            }
-        } catch (e: Exception) {
-            Log.e("NoteEditorScreen", "openExternalFile failed", e)
-            Toast.makeText(context, context.getString(R.string.toast_file_open_error), Toast.LENGTH_SHORT).show()
-        }
     }
 
     fun handleBlockCommand(cmd: BlockCommand) {
@@ -1839,7 +1775,7 @@ fun NoteEditorScreen(
                         },
                         bookmarkFetchingIndexes = fetchingBookmarkIndices.value,
                         onOpenFile = { path, _ ->
-                            openExternalFile(path)
+                            fileOperations.openExternalFile(path)
                         },
                         onUrlClicked = handleUrlClick,
                         pendingTagInsert = pendingTagInsert,
@@ -2302,8 +2238,7 @@ fun NoteEditorScreen(
                     showMoveBlockPicker = false
                     moveBlockIndex = -1
                     if (idx >= 0) {
-                        val movedBlock = blocks.getOrNull(idx)
-                        moveBlockToAnotherNote(idx, targetId)
+                        val movedBlock = moveBlockToAnotherNote(idx, targetId)
                         if (movedBlock?.isLegacyDrawing == true) {
                             attachments = attachments.filterNot { it.type == "drawing" && it.path == movedBlock.content }
                         }

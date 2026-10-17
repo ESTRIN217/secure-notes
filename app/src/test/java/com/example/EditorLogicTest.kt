@@ -669,7 +669,8 @@ class EditorLogicTest {
     fun `la logica comprobable del editor no importa nada de composicion`() {
         val paquetes = listOf(
             "SegmentTagTransforms", "ToolbarStyleState", "NoteSearchMatches", "BlockFileKinds",
-            "BlockInsertPlan", "BlockCommands", "TagApplication", "NoteFileImport", "TableShape", "LinkLookup"
+            "BlockInsertPlan", "BlockCommands", "TagApplication", "NoteFileImport", "TableShape",
+            "LinkLookup", "SlashCommandSelection", "NoteBlockMovePlan"
         )
         for (nombre in paquetes) {
             val fuente = java.io.File("src/main/java/com/example/ui/editor/$nombre.kt").readText()

@@ -1,6 +1,6 @@
 # Spec 015 — Editor de notas: estado aislado y tablas completas
 
-Estado: **borrador**
+Estado: **implementada** (2026-10-16).
 
 > **Procedencia.** Continuación de `specs/014-descomponer-editor/`: completa el trabajo que quedó
 > fuera de aquella entrega. Los identificadores nuevos empiezan en **RF-153** y **RNF-93**, tras
@@ -112,16 +112,16 @@ estable de edición, y hacer que las tablas se vean y se lean con sus datos.
 
 ## Criterios de finalización
 
-- [ ] La vista previa conserva contenido, orden y dimensiones de las tablas.
-- [ ] La lectura en voz alta incluye solo celdas no vacías, por filas, y mantiene el orden y el
+- [x] La vista previa conserva contenido, orden y dimensiones de las tablas.
+- [x] La lectura en voz alta incluye solo celdas no vacías, por filas, y mantiene el orden y el
       contenido del resto de la nota.
-- [ ] Una selección pendiente nunca se aplica a un bloque o nota distintos de su origen.
-- [ ] Las acciones existentes del editor conservan su destino, posición y resultado.
-- [ ] Las pruebas puras cubren celdas vacías, orden de filas, selección obsoleta y cambio de nota.
-- [ ] Las pruebas existentes relacionadas siguen presentes; no se eliminan ni se saltan casos.
-- [ ] Se ejecutan las validaciones aplicables y se distinguen los fallos conocidos de plataforma de
+- [x] Una selección pendiente nunca se aplica a un bloque o nota distintos de su origen.
+- [x] Las acciones existentes del editor conservan su destino, posición y resultado.
+- [x] Las pruebas puras cubren celdas vacías, orden de filas, selección obsoleta y cambio de nota.
+- [x] Las pruebas existentes relacionadas siguen presentes; no se eliminan ni se saltan casos.
+- [x] Se ejecutan las validaciones aplicables y se distinguen los fallos conocidos de plataforma de
       cualquier regresión nueva.
-- [ ] `MEMORY.md` queda actualizado con el resultado de la implementación y la verificación manual.
+- [x] `MEMORY.md` queda actualizado con el resultado de la implementación y la verificación manual.
 
 ## Dudas abiertas
 

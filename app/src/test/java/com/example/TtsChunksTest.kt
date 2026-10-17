@@ -2,6 +2,7 @@ package com.example
 
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
+import com.example.data.model.TableData
 import com.example.data.model.TextSegment
 import com.example.util.buildTtsChunks
 import org.junit.Assert.assertEquals
@@ -19,6 +20,32 @@ class TtsChunksTest {
             listOf(textBlock("Comprar pan"), textBlock("Comprar leche"))
         )
         assertEquals(listOf("Mi lista", "Comprar pan", "Comprar leche"), chunks)
+    }
+
+    @Test
+    fun `reads nonblank table cells by row in document order`() {
+        val table = DataBlock(
+            type = BlockType.TABLE,
+            meta = mapOf(
+                "table" to TableData(
+                    rows = listOf(
+                        listOf("Producto", "Precio"),
+                        listOf("Té", "  "),
+                        listOf("", "£2")
+                    )
+                ).toJson()
+            )
+        )
+
+        val chunks = buildTtsChunks(
+            "Lista",
+            listOf(textBlock("Antes"), table, textBlock("Después"))
+        )
+
+        assertEquals(
+            listOf("Lista", "Antes", "Producto", "Precio", "Té", "£2", "Después"),
+            chunks
+        )
     }
 
     @Test

@@ -59,6 +59,7 @@ import com.example.data.model.DrawingStrokeCodec
 import com.example.data.model.NoteContentBlock
 import com.example.data.model.TableData
 import com.example.data.model.TextSegment
+import com.example.ui.editor.PendingTextSelectionState
 import com.example.util.RichTextConverter
 import com.example.util.RichTextParser
 
@@ -89,7 +90,9 @@ fun BlockEditor(
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
-    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    pendingSelection: MutableState<PendingTextSelectionState> = remember {
+        mutableStateOf(PendingTextSelectionState())
+    },
     onActiveCursorChange: (Int) -> Unit = {},
     onActiveSelectionChange: (IntRange) -> Unit = {},
     onParseResult: ((RichTextParser.ParseResult) -> Unit)? = null,
@@ -179,6 +182,7 @@ fun BlockEditor(
                     BlockRow(
                         block = block,
                         index = index,
+                        noteId = noteId,
                         numberIndex = numberedCounter.takeIf { block.type == BlockType.NUMBERED_LIST },
                         onActivate = { onActiveBlockChange(index) },
                         onNavigateToNote = onNavigateToNote,
@@ -401,6 +405,7 @@ private fun BlockType.dragViaLongPress(isActive: Boolean): Boolean = when (this)
 private fun BlockRow(
     block: DataBlock,
     index: Int,
+    noteId: Int,
     numberIndex: Int? = null,
     onActivate: () -> Unit,
     onNavigateToNote: (Int) -> Unit = { _ -> },
@@ -429,7 +434,9 @@ private fun BlockRow(
     onEquationClicked: (blockIndex: Int, latex: String, range: IntRange) -> Unit = { _, _, _ -> },
     pendingTagInsert: MutableState<String?>,
     pendingInsert: MutableState<String?> = remember { mutableStateOf(null) },
-    pendingSelection: MutableState<IntRange?> = remember { mutableStateOf(null) },
+    pendingSelection: MutableState<PendingTextSelectionState> = remember {
+        mutableStateOf(PendingTextSelectionState())
+    },
     pendingTypingStyle: TextSegment? = null,
     onTapToEdit: (Int) -> Unit = { _ -> },
     onUrlClicked: (String, Int) -> Unit = { _, _ -> },
@@ -492,6 +499,9 @@ private fun BlockRow(
                         pendingInsert = pendingInsert,
                         initialSelection = initialSelection,
                         pendingSelection = pendingSelection,
+                        selectionNoteId = noteId,
+                        selectionBlockIndex = index,
+                        selectionBlock = block,
                         pendingTypingStyle = pendingTypingStyle
                     )
                 } else {
@@ -530,6 +540,9 @@ private fun BlockRow(
                     onFocusRequested = onFocusRequested,
                     pendingInsert = pendingInsert,
                     pendingSelection = pendingSelection,
+                    selectionNoteId = noteId,
+                    selectionBlockIndex = index,
+                    selectionBlock = block,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -969,7 +982,7 @@ private fun BlockType.blockVerticalMargins(): Pair<Dp, Dp> = when (this) {
     else -> 0.dp to 0.dp
 }
 
-private fun DataBlock.toRenderingBlock(): NoteContentBlock {
+internal fun DataBlock.toRenderingBlock(): NoteContentBlock {
     return when (type) {
         BlockType.IMAGE -> {
             val link = meta["linkUrl"]
@@ -1008,12 +1021,7 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
             favicon = meta["favicon"]?.takeIf { it.isNotBlank() },
             caption = meta["caption"]?.takeIf { it.isNotBlank() }
         )
-        BlockType.TABLE -> NoteContentBlock.TableBlock(
-            headers = emptyList(),
-            rows = listOf(listOf(content)),
-            columnAlignment = emptyList(),
-            cellAlignment = emptyList()
-        )
+        BlockType.TABLE -> toTableRenderingBlock()
         BlockType.HORIZONTAL_RULE -> NoteContentBlock.HorizontalRuleBlock
         BlockType.COLLAPSIBLE -> NoteContentBlock.CollapsibleBlock(
             summary = meta["summary"] ?: "",
@@ -1027,4 +1035,14 @@ private fun DataBlock.toRenderingBlock(): NoteContentBlock {
             NoteContentBlock.TextBlock(parseResult = parseResult, rawStart = 0)
         }
     }
+}
+
+private fun DataBlock.toTableRenderingBlock(): NoteContentBlock.TableBlock {
+    val table = TableData.fromJson(meta["table"])
+        ?: TableData.fromLegacyHtml(content)
+        ?: return NoteContentBlock.TableBlock(headers = emptyList(), rows = listOf(listOf(content)))
+    val hasHeader = table.showHeader && table.rows.isNotEmpty()
+    val headers = if (hasHeader) table.rows.first() else emptyList()
+    val rows = if (hasHeader) table.rows.drop(1) else table.rows
+    return NoteContentBlock.TableBlock(headers = headers, rows = rows)
 }

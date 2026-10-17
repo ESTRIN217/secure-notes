@@ -1,21 +1,33 @@
 package com.example.util
 
 import com.example.data.model.Attachment
+import com.example.data.model.BlockType
 import com.example.data.model.ColumnAlignment
 import com.example.data.model.DataBlock
 import com.example.data.model.NoteContentBlock
-import com.example.data.model.parseNoteContentAndAttachments
+import com.example.data.model.TableData
 import com.example.data.model.createRawContent
+import com.example.data.model.parseNoteContentAndAttachments
 
 fun buildTtsChunks(title: String, blocks: List<DataBlock>): List<String> {
     val chunks = mutableListOf<String>()
     if (title.isNotBlank()) chunks.add(title.trim())
     for (block in blocks) {
+        if (block.type == BlockType.TABLE) {
+            val table = TableData.fromJson(block.meta["table"])
+                ?: TableData.fromLegacyHtml(block.content)
+                ?: continue
+            chunks.addAll(tableCellsForTts(table))
+            continue
+        }
         val text = RichTextConverter.segmentsToPlainText(block.ensureSegments()).trim()
         if (text.isNotBlank()) chunks.add(text)
     }
     return chunks
 }
+
+private fun tableCellsForTts(table: TableData): List<String> =
+    table.rows.flatMap { row -> row.map { it.trim() }.filter { it.isNotEmpty() } }
 
 fun highlightMatches(
     annotatedString: androidx.compose.ui.text.AnnotatedString,
