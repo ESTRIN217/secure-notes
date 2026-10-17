@@ -1,6 +1,5 @@
 --- 
-description: SDD - coordina el flujo SDD completo con planner, implementer y reviewer, y 
-transmite el contexto entre fases 
+description: SDD - coordina el flujo SDD completo con planner, implementer y reviewer, y transmite el contexto entre fases 
 mode: primary 
 permissions: 
  - action: edit 

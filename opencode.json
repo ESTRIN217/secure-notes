@@ -1,9 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "lsp": {
-    "kotlin-ls": {
-      "command": ["kotlin-language-server"],
-      "extensions": [".kt", ".kts"]
+    "kotlin-lsp": {
+      "command": ["/opt/kotlin-server/current/bin/intellij-server", "--stdio"],
+      "extensions": [".kt", ".kts", ".java"]
     }
   },
   "mcp": { 
@@ -14,5 +14,6 @@
          "CONTEXT7_API_KEY": "<TU APIKEY DE CONTEXT7>" 
        } 
      }
-   }
+   },
+  "plugins": ["context-mode"]
 }
