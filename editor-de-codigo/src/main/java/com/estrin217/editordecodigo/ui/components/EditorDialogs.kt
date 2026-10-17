@@ -53,8 +53,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
-import com.estrin217.editordecodigo.syntax.SyntaxThemes
 
 @Composable
 fun JumpToLineDialog(
@@ -392,77 +390,6 @@ fun LanguageSelectorDialog(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = stringResource(R.string.selected_cd),
                                     tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close))
-            }
-        }
-    )
-}
-
-@Composable
-fun ThemeSelectorDialog(
-    currentTheme: SyntaxTheme,
-    onDismiss: () -> Unit,
-    onSelectTheme: (SyntaxTheme) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.theme_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SyntaxThemes.all.forEach { theme ->
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = theme.background,
-                        onClick = {
-                            onSelectTheme(theme)
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(theme.keyword)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(theme.string)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = theme.name,
-                                    color = theme.text,
-                                    fontWeight = if (theme.id == currentTheme.id) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 15.sp
-                                )
-                            }
-                            if (theme.id == currentTheme.id) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = stringResource(R.string.active_cd),
-                                    tint = theme.function
                                 )
                             }
                         }

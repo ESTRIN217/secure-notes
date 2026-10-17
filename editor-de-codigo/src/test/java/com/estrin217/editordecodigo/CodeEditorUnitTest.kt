@@ -5,7 +5,7 @@ import com.estrin217.editordecodigo.formatter.FormatOptions
 import com.estrin217.editordecodigo.formatter.FormattingResult
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxHighlighter
-import com.estrin217.editordecodigo.syntax.SyntaxThemes
+import com.estrin217.tema.SyntaxThemes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -246,7 +246,7 @@ class CodeToolsUnitTest {
   @Test
   fun testKotlinAnnotationHighlightingUniformColor() {
     val kotlinCode = "@Suppress(\"unused\")\n@Composable\nclass Servicio"
-    val theme = com.estrin217.editordecodigo.syntax.SyntaxThemes.OneDark
+    val theme = com.estrin217.tema.SyntaxThemes.OneDark
     val highlighted = com.estrin217.editordecodigo.syntax.SyntaxHighlighter.highlight(kotlinCode, SupportedLanguage.KOTLIN, theme)
 
     // Verify spans

@@ -12,7 +12,6 @@
     <string name="menu_new_file">Novo ficheiro...</string>
     <string name="menu_jump_line">Ir para a linha...</string>
     <string name="menu_syntax">Destaque de sintaxe</string>
-    <string name="menu_theme">Tema do editor</string>
     <string name="menu_hide_lines">Ocultar números de linha</string>
     <string name="menu_show_lines">Mostrar números de linha</string>
     <string name="menu_wrap_off">Desativar quebra de linha</string>
@@ -50,8 +49,6 @@
     <string name="syntax_title">Destaque de sintaxe</string>
     <string name="syntax_search_hint">Procurar linguagem (ex.: Rust, SQL)...</string>
     <string name="selected_cd">Selecionado</string>
-    <string name="theme_title">Tema do editor</string>
-    <string name="active_cd">Ativo</string>
     <!-- FormatOptionsDialog -->
     <string name="format_title">Formatador de código</string>
     <string name="format_subtitle">Ajuste o avanço e as regras de estilo para %1$s:</string>

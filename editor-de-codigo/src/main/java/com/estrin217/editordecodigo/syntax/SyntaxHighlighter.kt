@@ -10,6 +10,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import com.estrin217.tema.SyntaxTheme
 import java.util.regex.Pattern
 
 object SyntaxHighlighter {

@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,13 +27,18 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
 import com.example.R
+import com.example.data.SharedPreferencesRepository
 import com.example.data.model.Note
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 import kotlinx.coroutines.launch
 
 class SingleNoteConfigActivity : ComponentActivity() {
 
     private var notes by mutableStateOf<List<Note>>(emptyList())
+
+    /** El tema y el modo, leídos una vez (RF-162): esta pantalla no cambia el tema, así que no hace falta observar. */
+    private val prefsRepository by lazy { SharedPreferencesRepository(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +55,12 @@ class SingleNoteConfigActivity : ComponentActivity() {
             val glanceId = GlanceAppWidgetManager(this@SingleNoteConfigActivity).getGlanceIdBy(appWidgetId)
             notes = runCatching { loadWidgetNotes(this@SingleNoteConfigActivity) }.getOrDefault(emptyList())
             setContent {
-                MyApplicationTheme {
+                val appTheme = remember { prefsRepository.getAppTheme() }
+                val darkModeOption = remember { prefsRepository.getDarkModeOption() }
+                MyApplicationTheme(
+                    appTheme = appTheme,
+                    darkTheme = darkModeOption.isDark(isSystemInDarkTheme()),
+                ) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         ConfigList { note ->
                             lifecycleScope.launch {

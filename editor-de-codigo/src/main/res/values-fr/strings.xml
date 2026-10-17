@@ -12,7 +12,6 @@
     <string name="menu_new_file">Nouveau fichier...</string>
     <string name="menu_jump_line">Aller à la ligne...</string>
     <string name="menu_syntax">Coloration syntaxique</string>
-    <string name="menu_theme">Thème de l\'éditeur</string>
     <string name="menu_hide_lines">Masquer les numéros de ligne</string>
     <string name="menu_show_lines">Afficher les numéros de ligne</string>
     <string name="menu_wrap_off">Désactiver le retour à la ligne</string>
@@ -50,8 +49,6 @@
     <string name="syntax_title">Coloration syntaxique</string>
     <string name="syntax_search_hint">Rechercher un langage (p. ex. Rust, SQL)...</string>
     <string name="selected_cd">Sélectionné</string>
-    <string name="theme_title">Thème de l\'éditeur</string>
-    <string name="active_cd">Actif</string>
     <!-- FormatOptionsDialog -->
     <string name="format_title">Formateur de code</string>
     <string name="format_subtitle">Ajustez l\'indentation et les règles de style pour %1$s :</string>

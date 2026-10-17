@@ -18,6 +18,17 @@ object AppConstants {
 
     const val DARK_MODE_KEY = "dark_mode"
     const val DARK_MODE_OPTION_KEY = "dark_mode_option"
+
+    /** Qué tema se está usando (spec 025, RF-163). Antes no existía: el tema era un interruptor. */
+    const val THEME_ID_KEY = "theme_id"
+
+    /**
+     * El interruptor de colores dinámicos, **solo lectura** (spec 025, RF-164).
+     *
+     * Ya no hay nada que lo escriba —el interruptor salió de Ajustes—, pero se lee para saber qué tema tenía
+     *选用 quien ya usaba la app: apagado significaba el morado de siempre, y ese es ahora el tema `default`.
+     * No se borra, porque borrarla sería escribir en la preferencia de alguien sin que lo pidiera.
+     */
     const val DYNAMIC_COLORS_KEY = "dynamic_colors"
     const val LANGUAGE_KEY = "language"
     const val AUTO_UPDATE_CHECK_KEY = "auto_update_check"

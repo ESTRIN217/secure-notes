@@ -385,8 +385,6 @@ O que deseja fazer?</string>
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Aparência</string>
-    <string name="settings_dynamic_colors">Cores Dinâmicas</string>
-    <string name="settings_dynamic_colors_desc">Utilizar esquema de cores dinâmicas Material You (Android 12+)</string>
     <string name="settings_dark_mode_system">Sistema</string>
     <string name="settings_dark_mode_on">Ligado</string>
     <string name="settings_dark_mode_off">Desligado</string>
@@ -1276,4 +1274,13 @@ O que deseja fazer?</string>
     <string name="crash_notice_title">A aplicação terminou inesperadamente</string>
     <string name="crash_notice_text">Existe um relatório do último erro. Pode copiá-lo, partilhá-lo ou enviá-lo para o GitHub.</string>
     <string name="crash_notice_view">Ver relatório</string>
+    <string name="settings_theme">Tema</string>
+    <string name="theme_picker_title">Tema da aplicação</string>
+    <string name="theme_dynamic">Dinâmico (Material You)</string>
+    <string name="theme_default">Predefinido</string>
+    <string name="theme_vscode_dark">VS Code Dark Modern</string>
+    <string name="theme_one_dark">One Dark (IDE)</string>
+    <string name="theme_monokai">Monokai Pro</string>
+    <string name="theme_github_light">GitHub Light</string>
+    <string name="theme_active_cd">Ativo</string>
 </resources>

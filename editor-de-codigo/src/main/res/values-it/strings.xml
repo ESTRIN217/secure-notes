@@ -12,7 +12,6 @@
     <string name="menu_new_file">Nuovo file...</string>
     <string name="menu_jump_line">Vai alla riga...</string>
     <string name="menu_syntax">Evidenziazione sintassi</string>
-    <string name="menu_theme">Tema editor</string>
     <string name="menu_hide_lines">Nascondi numeri di riga</string>
     <string name="menu_show_lines">Mostra numeri di riga</string>
     <string name="menu_wrap_off">Disattiva ritorno a capo</string>
@@ -50,8 +49,6 @@
     <string name="syntax_title">Evidenziazione sintassi</string>
     <string name="syntax_search_hint">Cerca linguaggio (es. Rust, SQL)...</string>
     <string name="selected_cd">Selezionato</string>
-    <string name="theme_title">Tema editor</string>
-    <string name="active_cd">Attivo</string>
     <!-- FormatOptionsDialog -->
     <string name="format_title">Formattatore di codice</string>
     <string name="format_subtitle">Regola indentazione e stile per %1$s:</string>

@@ -43,6 +43,10 @@ dependencies {
   // El motor de GFM que pinta la vista previa del Markdown (spec 019). Vive en `:markdown` porque lo
   // comparten `:app` y esta libreria, y entre ellas la dependencia va **en un solo sentido**.
   implementation(project(":markdown"))
+  // El catálogo de temas: las paletas de resaltado que la app y esta librería comparten (spec 025). Vive en
+  // `:tema` por la misma razón que `:markdown`: la dependencia entre los dos va **en un solo sentido**, y un
+  // catálogo en `:app` dejaría al editor sin él.
+  implementation(project(":tema"))
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   testImplementation(libs.junit)

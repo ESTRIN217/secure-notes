@@ -2,6 +2,10 @@
 agp = "9.4.1"
 coreKtx = "1.19.0"
 junit = "6.1.2"
+# JUnit 4 es el framework con el que están escritas todas las pruebas del repo. `junit` (arriba) es el de
+# Jupiter, que no llega al classpath de ejecución sin `useJUnitPlatform()`; este alias existe para que un módulo
+# **puro** (sin Robolectric, que es lo que arrastraba el 4 de forma transitiva) pueda declarar el suyo.
+junit4 = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.11.0"
@@ -67,6 +71,7 @@ markwon = "4.6.2"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "junit" }
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

@@ -100,6 +100,9 @@ dependencies {
   // implementation(libs.accompanist.permissions)
   implementation(project(":lib"))
   implementation(project(":visor-pdf"))
+  // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
+  // dirección: `:app` -> `:editor-de-codigo` -> `:tema`.
+  implementation(project(":tema"))
   implementation(project(":editor-de-codigo"))
   implementation(project(":visor-media"))
   implementation(libs.androidx.activity.compose)

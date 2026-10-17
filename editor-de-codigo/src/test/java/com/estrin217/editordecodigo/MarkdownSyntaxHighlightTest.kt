@@ -7,8 +7,8 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import com.estrin217.editordecodigo.syntax.MarkdownTokenizer
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxHighlighter
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
-import com.estrin217.editordecodigo.syntax.SyntaxThemes
+import com.estrin217.tema.SyntaxTheme
+import com.estrin217.tema.SyntaxThemes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue

@@ -1,12 +1,13 @@
 package com.example.data
 
+import com.estrin217.tema.AppTheme
 import com.example.DarkModeOption
 
 interface PreferencesRepository {
     fun getDarkModeOption(): DarkModeOption
     fun setDarkModeOption(option: DarkModeOption)
-    fun getIsDynamicColor(): Boolean
-    fun setIsDynamicColor(enabled: Boolean)
+    fun getAppTheme(): AppTheme
+    fun setAppTheme(theme: AppTheme)
     fun getLanguage(): String
     fun setLanguage(locale: String)
 

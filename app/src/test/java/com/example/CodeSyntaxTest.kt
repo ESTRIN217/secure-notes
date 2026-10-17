@@ -1,6 +1,7 @@
 package com.example
 
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
+import com.estrin217.tema.AppThemes
 import com.example.util.CodeSyntax
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -17,6 +18,15 @@ import org.junit.Test
  * sigan siendo las de hoy. El resaltado en sí es del módulo `:editor-de-codigo`.
  */
 class CodeSyntaxTest {
+
+    /**
+     * La paleta con la que se resaltan las pruebas: la del bloque de nota, sin superficie.
+     *
+     * Da igual cuál sea —aquí se comprueba el resaltado, no el color—, y por eso se usa la del tema por defecto
+     * en vez de inventarse una: si algún día las pruebas fallaran por un cambio de paleta, el sitio donde mirar
+     * sería el catálogo, no el test.
+     */
+    private val paleta = AppThemes.notePalette(AppThemes.byId(null))
 
     /** Todo identificador que la app guarda hoy (los del selector) o detecta por nombre de fichero. */
     private val storedIdsTheAppWrites = listOf(
@@ -53,14 +63,14 @@ class CodeSyntaxTest {
         assertNull(CodeSyntax.fromStoredId(null))
         assertNull(CodeSyntax.fromStoredId(""))
         assertNull(CodeSyntax.fromStoredId("   "))
-        assertTrue(CodeSyntax.highlight("val x = 1", null).spanStyles.isEmpty())
-        assertTrue(CodeSyntax.highlight("val x = 1", "").spanStyles.isEmpty())
+        assertTrue(CodeSyntax.highlight("val x = 1", null, paleta).spanStyles.isEmpty())
+        assertTrue(CodeSyntax.highlight("val x = 1", "", paleta).spanStyles.isEmpty())
     }
 
     @Test
     fun `unknown language highlights nothing and does not fail`() {
         assertNull(CodeSyntax.fromStoredId("rust2020"))
-        val result = CodeSyntax.highlight("val x = 1", "rust2020")
+        val result = CodeSyntax.highlight("val x = 1", "rust2020", paleta)
         assertTrue(result.spanStyles.isEmpty())
         assertEquals("val x = 1", result.text)
     }
@@ -71,7 +81,7 @@ class CodeSyntaxTest {
     fun `highlighting never changes the text`() {
         val code = "fun main() {\n    val s = \"hola\"\n}\n"
         for (id in storedIdsTheAppWrites) {
-            assertEquals("el texto cambió con $id", code, CodeSyntax.highlight(code, id).text)
+            assertEquals("el texto cambió con $id", code, CodeSyntax.highlight(code, id, paleta).text)
         }
     }
 
@@ -79,7 +89,7 @@ class CodeSyntaxTest {
     fun `a known language actually highlights`() {
         assertTrue(
             "kotlin no resalta nada",
-            CodeSyntax.highlight("val x = 1", "kotlin").spanStyles.isNotEmpty()
+            CodeSyntax.highlight("val x = 1", "kotlin", paleta).spanStyles.isNotEmpty()
         )
     }
 

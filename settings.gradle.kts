@@ -32,6 +32,10 @@ include(":visor-media")
 // El motor de GFM que pintan las superficies de Markdown de la app. Existe como módulo porque lo necesitan
 // `:app` y `:editor-de-codigo`, y entre ellos la dependencia va **en un solo sentido** (spec 019).
 include(":markdown")
+// El catálogo de temas (paletas de resaltado y esquemas de color) que comparten `:app` y `:editor-de-codigo`
+// (spec 025). Existe por la misma razón que `:markdown`: la dependencia entre los dos va en un solo sentido, y
+// un catálogo queviviera en `ui/theme/` de `:app` dejaría al editor sin él.
+include(":tema")
 
 val llamaLibDir = file("/root/llama.cpp/examples/llama.android/lib")
 if (llamaLibDir.exists()) {

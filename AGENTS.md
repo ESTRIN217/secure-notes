@@ -66,6 +66,7 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | Library `:editor-de-codigo` | `com.estrin217.editordecodigo` | `CodeEditor.kt` (facade), `ui/CodeEditorApp.kt`, `ui/CodeEditorViewModel.kt`, `ui/components/` (VS Code-style tabs, welcome screen, search/replace, quick-symbol bar), `syntax/`, `formatter/`, `utils/FileStorageManager.kt` |
 | Library `:visor-pdf` | `com.estrin217.pdfviewer` | `PdfViewerScreen.kt`, `PdfViewerViewModel.kt` |
 | Library `:visor-media` | `com.estrin217.visormedia` | `MediaViewerScreen.kt`, `Media3VideoPlayer.kt` |
+| Library `:tema` | `com.estrin217.tema` | `SyntaxColors.kt` (`SyntaxTheme` + `SyntaxThemes`), `AppTheme.kt` (`AppTheme` + `AppThemes`), `TonalScheme.kt` (generador OKLCH), `Contrast.kt` (WCAG), `LocalAppTheme.kt`. **Cero recursos**: los nombres visibles salen de `:app` con `ui/theme/ThemeLabels.kt` |
 
 **Entrypoint**: `com.example.MainActivity` (package `com.example`, applicationId `com.estrin217.securenotes`).
 
@@ -192,6 +193,32 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
 - **Localizations**: `values/` (en), `values-es-rVE/` (es-VE), `values-pt-rBR/` (pt-BR), `values-fr/` (fr), `values-it/` (it), `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
 - `compileSdk = 37`, `targetSdk = 36`, `minSdk = 33`.
 - Gradle 9.7.0, AGP 9.3.1, Kotlin 2.4.10.
+
+## Temas (`:tema`, spec 025) — reglas permanentes
+- **Un catálogo que comparten dos módulos va en un módulo propio**, no en la carpeta `theme/` de `:app`: la
+  dependencia va en **un solo sentido** (`:app` → `:editor-de-codigo` → `:tema`), así que un catálogo en `:app`
+  dejaría al editor sin él. Precedente: `:markdown` (spec 019).
+- **Un `CompositionLocal` lleva el dato, no lo derivado.** `LocalAppTheme` lleva el `AppTheme` entero porque el
+  editor y el bloque de nota derivan cosas distintas de él; llevar una sola paleta ya derivada obligaría a
+  elegir una y perder la otra. Añadir una tercera superficie que pinte con el tema no obliga a tocar las otras.
+- **El tema `dynamic` no tiene paleta propia y sus dos caídas son distintas a propósito**: el editor cae a
+  `SyntaxThemes.VSCodeDark` y el bloque de nota a `SyntaxThemes.Standard`. Es lo que mantiene el aspecto de quien
+  ya usaba la app (RF-164, HU-4): si el dinámico trajera paleta, el editor cambiaría de color al instalar.
+- **El tono de Material 3 es un `L*` de CIELAB, no OKLab L.** Tomarlos por la misma escala dejó las superficies
+  oscuras en `#000101` en vez de `#121316`. La traducción está en `ligereza(tone)` de `TonalScheme.kt`; con el
+  error, **todos los tonos bajos** salen casi negros.
+- **Un acento tiene que cumplir dos contrastes**, no uno: 3:1 contra la superficie (es color, no texto) y 4.5:1 con
+  `onPrimary`/`onSecondary`/`onTertiary`, que en claro es blanco. Un azul claro a tono 40 se ve bien sobre el
+  blanco y el blanco encima queda justo.
+- **`ColorScheme` tiene tres constructores y tres `copy`** por compatibilidad con las paletas que Material fue
+  añadiendo. Pasar los **48** roles con nombre es lo único no ambiguo, y es la única forma de que no queden
+  morados de la línea base sin pintar. Sus cachés de colores de botón en `null` son seguros: `ButtonDefaults`
+  comprueba el caso sin valor y lo calcula.
+- **Los nombres visibles de los temas están en `:app`**, en `ui/theme/ThemeLabels.kt`, no en el catálogo: son
+  palabras de la interfaz, y `:tema` no tiene ni un recurso.
+- **Una paleta que cambia de módulo no cambia de valor**: `ThemeCatalogPalettesTest` escribe los 22 colores de las
+  cuatro paletas del editor. El campo `name` se eliminó cuando el editor perdió su selector, porque los nombres
+  salen de `strings.xml` y dejarlo era código muerto.
 
 ## Memoria 
 - Al empezar, lee `MEMORY.md` para conocer el estado del proyecto y las decisiones 

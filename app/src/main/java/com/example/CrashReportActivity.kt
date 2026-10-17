@@ -32,6 +32,7 @@ import com.example.crash.CrashIssueUrl
 import com.example.data.SharedPreferencesRepository
 import com.example.ui.crash.CrashReportScreen
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 import com.example.ui.viewmodel.CrashReportViewModel
 import com.example.ui.viewmodel.ThemeViewModel
 
@@ -82,16 +83,12 @@ class CrashReportActivity : ComponentActivity() {
                 }
             )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
-            val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
-            val isDark = when (darkModeOption) {
-                DarkModeOption.SYSTEM -> isSystemInDarkTheme()
-                DarkModeOption.ON -> true
-                DarkModeOption.OFF -> false
-            }
+            val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
+            val isDark = darkModeOption.isDark(isSystemInDarkTheme())
             val estado by crashViewModel.informe.collectAsStateWithLifecycle()
             var confirmarDescarte by remember { mutableStateOf(false) }
 
-            MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamicColor) {
+            MyApplicationTheme(appTheme = appTheme, darkTheme = isDark) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

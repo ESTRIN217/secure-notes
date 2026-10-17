@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxHighlighter
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
+import com.estrin217.tema.SyntaxTheme
 import com.estrin217.editordecodigo.syntax.SyntaxVisualTransformation
 import com.estrin217.editordecodigo.ui.theme.JetBrainsMono
 

@@ -1,8 +1,10 @@
 package com.example.data
 
 import android.content.Context
+import com.estrin217.tema.AppTheme
 import com.example.AppConstants
 import com.example.DarkModeOption
+import com.example.data.theme.resolveStoredTheme
 
 class SharedPreferencesRepository(context: Context) : PreferencesRepository {
 
@@ -25,12 +27,24 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
         prefs.edit().putString(AppConstants.DARK_MODE_OPTION_KEY, option.name).apply()
     }
 
-    override fun getIsDynamicColor(): Boolean {
-        return prefs.getBoolean(AppConstants.DYNAMIC_COLORS_KEY, true)
+    /**
+     * El tema guardado, o el que le toba a quien ya usaba la app (spec 025, RF-163, RF-164).
+     *
+     * El interruptor antiguo solo se mira si **no** hay tema guardado, y solo se lee: la migración está en
+     * `resolveStoredTheme`, que es pura, y aquí solo hay que darle los dos valores.
+     */
+    override fun getAppTheme(): AppTheme {
+        val guardado = prefs.getString(AppConstants.THEME_ID_KEY, null)
+        val antiguo = if (prefs.contains(AppConstants.DYNAMIC_COLORS_KEY)) {
+            prefs.getBoolean(AppConstants.DYNAMIC_COLORS_KEY, true)
+        } else {
+            null
+        }
+        return resolveStoredTheme(guardado, antiguo)
     }
 
-    override fun setIsDynamicColor(enabled: Boolean) {
-        prefs.edit().putBoolean(AppConstants.DYNAMIC_COLORS_KEY, enabled).apply()
+    override fun setAppTheme(theme: AppTheme) {
+        prefs.edit().putString(AppConstants.THEME_ID_KEY, theme.id).apply()
     }
 
     override fun getLanguage(): String {

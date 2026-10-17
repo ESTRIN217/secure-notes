@@ -19,8 +19,6 @@ import com.estrin217.editordecodigo.formatter.CodeFormattingManager
 import com.estrin217.editordecodigo.formatter.FormatOptions
 import com.estrin217.editordecodigo.formatter.FormattingResult
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
-import com.estrin217.editordecodigo.syntax.SyntaxThemes
 import com.estrin217.editordecodigo.utils.ExternalFileInfo
 import com.estrin217.editordecodigo.utils.FileImportExportHelper
 import kotlinx.coroutines.Dispatchers
@@ -141,9 +139,6 @@ class CodeEditorViewModel(
 
     private val _fontSizeSp = MutableStateFlow(13f)
     val fontSizeSp: StateFlow<Float> = _fontSizeSp.asStateFlow()
-
-    private val _syntaxTheme = MutableStateFlow<SyntaxTheme>(SyntaxThemes.VSCodeDark)
-    val syntaxTheme: StateFlow<SyntaxTheme> = _syntaxTheme.asStateFlow()
 
     // Search and replace state
     private val _isSearchVisible = MutableStateFlow(false)
@@ -353,11 +348,6 @@ class CodeEditorViewModel(
         if (_fontSizeSp.value > 10f) {
             _fontSizeSp.value -= 1f
         }
-    }
-
-    fun setSyntaxTheme(theme: SyntaxTheme) {
-        _syntaxTheme.value = theme
-        refreshPreview()
     }
 
     /**

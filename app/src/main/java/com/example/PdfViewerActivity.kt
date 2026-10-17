@@ -8,21 +8,36 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.remember
 import androidx.fragment.app.FragmentActivity
 import com.estrin217.pdfviewer.ui.PdfViewerScreen
 import com.estrin217.pdfviewer.ui.PdfViewerViewModel
+import com.example.data.SharedPreferencesRepository
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 
 class PdfViewerActivity : FragmentActivity() {
 
     private val viewModel: PdfViewerViewModel by viewModels()
+
+    /**
+     * El tema y el modo, leídos una vez (RF-162).
+     *
+     * Esta pantalla no cambia el tema, así que no necesita un `ViewModel` para enterarse: leer la preferencia al
+     * abrir es suficiente y evita que el visor de PDF sea la única pantalla con un `ThemeViewModel` que nunca
+     * emite nada.
+     */
+    private val prefsRepository by lazy { SharedPreferencesRepository(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIntent(intent)
         setContent {
-            MyApplicationTheme {
+            val appTheme = remember { prefsRepository.getAppTheme() }
+            val darkModeOption = remember { prefsRepository.getDarkModeOption() }
+            MyApplicationTheme(appTheme = appTheme, darkTheme = darkModeOption.isDark(isSystemInDarkTheme())) {
                 PdfViewerScreen(viewModel = viewModel)
             }
         }

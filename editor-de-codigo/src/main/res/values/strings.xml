@@ -12,7 +12,6 @@
     <string name="menu_new_file">New file...</string>
     <string name="menu_jump_line">Go to line...</string>
     <string name="menu_syntax">Syntax highlighting</string>
-    <string name="menu_theme">Editor theme</string>
     <string name="menu_hide_lines">Hide line numbers</string>
     <string name="menu_show_lines">Show line numbers</string>
     <string name="menu_wrap_off">Disable word wrap</string>
@@ -50,8 +49,6 @@
     <string name="syntax_title">Syntax Highlighting</string>
     <string name="syntax_search_hint">Search language (e.g. Rust, SQL)...</string>
     <string name="selected_cd">Selected</string>
-    <string name="theme_title">Editor Theme</string>
-    <string name="active_cd">Active</string>
     <!-- FormatOptionsDialog -->
     <string name="format_title">Code Formatter</string>
     <string name="format_subtitle">Adjust indentation and style rules for %1$s:</string>

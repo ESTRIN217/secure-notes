@@ -83,6 +83,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Note
 import com.example.data.model.Tag
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 import com.example.ui.NoteEditorScreen
 import com.example.ui.DrawingCanvasScreen
 import com.example.ui.settings.AboutScreen
@@ -281,15 +282,11 @@ class MainActivity : FragmentActivity() {
                 }
             )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
-            val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
+            val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
 
-            val isDark = when (darkModeOption) {
-                DarkModeOption.SYSTEM -> isSystemInDarkTheme()
-                DarkModeOption.ON -> true
-                DarkModeOption.OFF -> false
-            }
+            val isDark = darkModeOption.isDark(isSystemInDarkTheme())
 
-            MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamicColor) {
+            MyApplicationTheme(appTheme = appTheme, darkTheme = isDark) {
                 ProvidePerformanceProfile(profile = app.performanceProfile) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),

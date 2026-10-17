@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
+import com.estrin217.tema.SyntaxTheme
 import com.estrin217.markdown.MarkdownColors
 import com.estrin217.markdown.MarkdownEngine
 import com.estrin217.markdown.MarkdownText

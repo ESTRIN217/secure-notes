@@ -362,8 +362,6 @@ Cosa vuoi fare?</string>
     <string name="toast_saved_to_gallery">Salvato in galleria</string>
     <string name="toast_save_error">Errore durante il salvataggio del file</string>
     <string name="settings_appearance">Aspetto</string>
-    <string name="settings_dynamic_colors">Colori dinamici</string>
-    <string name="settings_dynamic_colors_desc">Usa lo schema di colori dinamici Material You (Android 12+)</string>
     <string name="settings_dark_mode_system">Sistema</string>
     <string name="settings_dark_mode_on">Attivo</string>
     <string name="settings_dark_mode_off">Disattivo</string>
@@ -1212,4 +1210,13 @@ Cosa vuoi fare?</string>
     <string name="crash_notice_title">L\'app si è chiusa in modo inatteso</string>
     <string name="crash_notice_text">C\'è un rapporto dell\'ultimo errore. Puoi copiarlo, condividerlo o inviarlo a GitHub.</string>
     <string name="crash_notice_view">Vedi il rapporto</string>
+    <string name="settings_theme">Tema</string>
+    <string name="theme_picker_title">Tema dell\'app</string>
+    <string name="theme_dynamic">Dinamico (Material You)</string>
+    <string name="theme_default">Predefinito</string>
+    <string name="theme_vscode_dark">VS Code Dark Modern</string>
+    <string name="theme_one_dark">One Dark (IDE)</string>
+    <string name="theme_monokai">Monokai Pro</string>
+    <string name="theme_github_light">GitHub Light</string>
+    <string name="theme_active_cd">Attivo</string>
 </resources>

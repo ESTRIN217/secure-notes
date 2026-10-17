@@ -520,8 +520,6 @@
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_dynamic_colors">Dynamic Colors</string>
-    <string name="settings_dynamic_colors_desc">Use Material You dynamic color scheme (Android 12+)</string>
     <string name="settings_dark_mode_system">System</string>
     <string name="settings_dark_mode_on">On</string>
     <string name="settings_dark_mode_off">Off</string>
@@ -1312,4 +1310,13 @@
     <string name="crash_notice_title">The app closed unexpectedly</string>
     <string name="crash_notice_text">There is a report from the last failure. You can copy it, share it or send it to GitHub.</string>
     <string name="crash_notice_view">See report</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_picker_title">App theme</string>
+    <string name="theme_dynamic">Dynamic (Material You)</string>
+    <string name="theme_default">Default</string>
+    <string name="theme_vscode_dark">VS Code Dark Modern</string>
+    <string name="theme_one_dark">One Dark (IDE)</string>
+    <string name="theme_monokai">Monokai Pro</string>
+    <string name="theme_github_light">GitHub Light</string>
+    <string name="theme_active_cd">Active</string>
 </resources>

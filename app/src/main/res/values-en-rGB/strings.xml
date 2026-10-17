@@ -386,8 +386,6 @@ What would you like to do?</string>
 
     <!-- v3.0 Settings -->
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_dynamic_colors">Dynamic Colours</string>
-    <string name="settings_dynamic_colors_desc">Use Material You dynamic color scheme (Android 12+)</string>
     <string name="settings_dark_mode_system">System</string>
     <string name="settings_dark_mode_on">On</string>
     <string name="settings_dark_mode_off">Off</string>
@@ -1267,4 +1265,13 @@ What would you like to do?</string>
     <string name="ai_download_progress">%1$sMB / %2$sMB (%3$d%%) · %4$s</string>
     <string name="ai_model_min_ram">%1$sMB · Min %2$sMB RAM</string>
     <string name="license_mit_estrin">MIT — ESTRIN217</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_picker_title">App theme</string>
+    <string name="theme_dynamic">Dynamic (Material You)</string>
+    <string name="theme_default">Default</string>
+    <string name="theme_vscode_dark">VS Code Dark Modern</string>
+    <string name="theme_one_dark">One Dark (IDE)</string>
+    <string name="theme_monokai">Monokai Pro</string>
+    <string name="theme_github_light">GitHub Light</string>
+    <string name="theme_active_cd">Active</string>
 </resources>

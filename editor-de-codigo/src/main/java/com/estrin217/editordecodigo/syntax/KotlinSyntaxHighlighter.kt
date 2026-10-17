@@ -3,6 +3,7 @@ package com.estrin217.editordecodigo.syntax
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.estrin217.tema.SyntaxTheme
 import java.util.regex.Pattern
 
 /**

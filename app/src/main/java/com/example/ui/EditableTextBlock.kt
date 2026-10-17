@@ -53,6 +53,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.estrin217.tema.AppThemes
+import com.estrin217.tema.LocalAppTheme
 import com.example.data.model.BlockType
 import com.example.data.model.DataBlock
 import com.example.data.model.TextSegment
@@ -189,9 +191,13 @@ fun EditableTextBlock(
         }
     }
 
-    val displayAnnotated = remember(annotated, highlightLanguage) {
+    // La paleta del tema **va en la clave del remember**: sin ella, cambiar de tema no repinta el bloque y el
+    // texto se queda con los colores del tema anterior hasta que se vuelva a teclear.
+    val appTheme = LocalAppTheme.current
+    val syntaxPalette = remember(appTheme) { AppThemes.notePalette(appTheme) }
+    val displayAnnotated = remember(annotated, highlightLanguage, syntaxPalette) {
         if (highlightLanguage != null) {
-            com.example.util.CodeSyntax.highlight(annotated.text, highlightLanguage)
+            com.example.util.CodeSyntax.highlight(annotated.text, highlightLanguage, syntaxPalette)
         } else {
             annotated
         }

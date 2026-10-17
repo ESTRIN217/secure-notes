@@ -33,6 +33,7 @@ import com.example.ui.floating.FloatingNoteCard
 import com.example.ui.floating.FloatingQuickNoteViewModel
 import com.example.ui.floating.ResizeCorner
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 import com.example.util.RichTextConverter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,7 +173,7 @@ class FloatingBubbleService : Service() {
             setContent {
                 val repo = remember { SharedPreferencesRepository(applicationContext) }
                 val isDark = isDarkThemeEnabled(repo)
-                val isDynamic = repo.getIsDynamicColor()
+                val appTheme = repo.getAppTheme()
                 val recentNotes by recentNotesState.collectAsState()
                 val quickNoteViewModel: FloatingQuickNoteViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
@@ -188,7 +189,7 @@ class FloatingBubbleService : Service() {
                 val quickPendingStyle by quickNoteViewModel.pendingTypingStyle.collectAsState()
                 val quickActiveStyles by quickNoteViewModel.activeTextStyles.collectAsState()
 
-                MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamic) {
+                MyApplicationTheme(appTheme = appTheme, darkTheme = isDark) {
                     if (!isExpanded) {
                         FloatingBubbleContent(
                             onClick = { expandOverlay() },
@@ -231,16 +232,15 @@ class FloatingBubbleService : Service() {
         windowManager.addView(view, params)
     }
 
-    private fun isDarkThemeEnabled(repo: SharedPreferencesRepository): Boolean {
-        val option = repo.getDarkModeOption()
-        return when (option) {
-            com.example.DarkModeOption.ON -> true
-            com.example.DarkModeOption.OFF -> false
-            com.example.DarkModeOption.SYSTEM -> {
-                (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-            }
-        }
-    }
+    /**
+     * El modo, sin Compose: un `ComposeView` superpuesto no tiene `isSystemInDarkTheme`.
+     *
+     * La decisión es la misma de [com.example.ui.theme.isDark] — por eso delega en ella — y lo único que esta
+     * función pone es cómo se pregunta al sistema, que aquí es `Configuration` y allí es una composición.
+     */
+    private fun isDarkThemeEnabled(repo: SharedPreferencesRepository): Boolean = repo.getDarkModeOption().isDark(
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES,
+    )
 
     private fun buildBubbleParams(): WindowManager.LayoutParams {
         val sizePx = (56 * resources.displayMetrics.density).toInt()

@@ -3,45 +3,37 @@
 Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas permanentes viven en `AGENTS.md`.
 
 ## Estado actual
-- **Spec 024 cerrada, implementada y verificada en dispositivo**, T1–T8: archivos del editor excluidos de
-  huérfanos; permisos persistentes para URI `content://`. Decisiones y guion: `specs/024-.../`.
-- **Specs 023 y 022 implementadas y verificadas en dispositivo.** Specs 016–019 también verificadas.
-- **Spec 021 implementada y verificada en dispositivo**: la persona usuaria confirmó los atajos
-  manteniendo pulsado el icono del lanzador.
-- **Spec 020 implementada**, falta la verificación manual provocando un fallo real.
-- `./gradlew test` no pasa en este entorno: Robolectric carece de runtime nativo para `linux/aarch64`.
-  Línea base tras 024: `:app` 746/41; `:editor-de-codigo` 149/2; fallos conocidos documentados en specs.
-- Para 024, compilan `:editor-de-codigo` y `:app`; las pruebas `StorageEditorFiles` pasan. Las dos fallas
-  del editor son las mismas de plataforma (`DefaultNativeRuntimeLoader`).
+- **Spec 025 cerrada: implementada y verificada en dispositivo** (2026-10-17), T1–T11. Un tema para toda la app.
+  Specs 016–025 implementadas y verificadas.
+- Pruebas: `:tema` **53/0**, `:editor-de-codigo` 149/2, `:app` 786/41 (38 de plataforma + los 3 preexistentes de
+  `HtmlExportMediaTest` y `OnDeviceModelSourceTest`). **Ninguno nuevo.** `:app:assembleDebug` y
+  `:visor-pdf:assembleDebug` compilan.
+- **`:tema` es un módulo nuevo**: el catálogo de temas se fue de `:editor-de-codigo` y de `:app/ui/theme/`. Al
+  buscar paletas o el tema, ahora están ahí, no en el editor ni en la app.
 
 ## Decisiones que conviene recordar
-- El índice de archivos del editor se consulta por la fachada `CodeEditor`; comprobar `databaseExists` antes
-  de abrir Room, pues abrirla crea la base. Las reglas de almacenamiento están en `AGENTS.md`.
-- Persistir permisos dentro de `readExternalFile`/`readExternalFolder`: cubre picker e intents externos;
-  pedir lectura/escritura con caída a lectura. No crear categoría nueva para archivos del editor.
-- La app reutiliza módulos existentes; no añadir dependencias sin justificarlo en la spec.
-- El motor de IA se materializa solo mediante `AiModelHost` en `SecureNotesApplication`; no cargarlo desde
-  `AiViewModel.init`.
-- Markdown vive en `:markdown`, se comparte por pantalla; solo el chat adapta el markup heredado. El cargador
-  de imágenes locales no tiene red.
+- **El tono de Material 3 es L\* de CIELAB, no OKLab L**: tomarlos por la misma escala dejó las superficies
+  oscuras en `#000101` en vez de `#121316`. Traducción en `ligereza(tone)`.
+- Un acento cumple **dos** contrastes: 3:1 con la superficie y 4.5:1 con `onPrimary`.
+- **Catálogo compartido = módulo propio** cuando la dependencia va en un solo sentido.
+- `dynamic` **no tiene paleta propia**: editor → `VSCodeDark`, nota → `Standard`. Por eso `LocalAppTheme` lleva
+  el `AppTheme` entero y no una paleta derivada.
+- Migración sin escribir nada: sin `theme_id` + interruptor apagado → `default`; nada → `dynamic`. La clave
+  antigua solo se lee, nunca se borra.
+- `ColorScheme` tiene 3 constructores: solo pasar los 48 roles con nombre es no ambiguo y no deja morados.
+- El índice de archivos del editor se consulta por la fachada `CodeEditor`; comprobar `databaseExists` antes de
+  abrir Room. El motor de IA solo se materializa mediante `AiModelHost`. Markdown vive en `:markdown`.
 
 ## Aprendizajes
-- Las decisiones comprobables sin `Context` deben vivir en funciones puras; el `Context` se queda en quien llama.
-- Los invariantes de fuente quitan comentarios y comprueban que realmente leyeron el archivo; medir el repo
-  antes de fijar umbrales.
-- Comparar regresiones por clase de test, no solo por número; `--rerun` evita confundir un build sin tests con verde.
-- `strings.xml` requiere apóstrofo escapado (`\'`); compilar Kotlin no valida recursos.
-- En el XML de atajos, los extras son literales; `LaunchedEffect` puede repetirse tras rotación, retirar el extra.
-- Consultar `AGENTS.md` para reglas de listas Compose, I/O, crash log, pestañas, almacenamiento y rendimiento.
+- `Color` es una value class: `assertEquals` con literales hexadecimales necesita `.toInt()`.
+- Compilar Kotlin **no** valida `strings.xml`; el apóstrofo sin escapar sale en `mergeDebugResources`. Hay una
+  prueba (`ThemeLabelsTest`) que mira los nueve ficheros antes.
+- Las decisiones comprobables sin `Context` van en funciones puras; el `Context` se queda en quien llama.
+- Los invariantes de fuente quitan comentarios y comprueban que realmente leyeron el archivo.
+- Una superficie que no cambia un ajuste no necesita `ViewModel`: leer la preferencia una vez con `remember`.
 
 ## Próximos pasos y notas
 - Verificar en dispositivo la spec 020 provocando un fallo real.
-- Spec 015 implementada: estado/selección, tablas en preview/TTS; excluye rediseñar diálogos de
-  medios. T1–T10 completas (slash, archivos, movimiento, tablas y estado agrupado). T10: 132 tests
-  dirigidos, compile y assemble pasan; `./gradlew test` conserva línea base app 768/41, editor
-  149/2 (40 fallos Robolectric `linux/aarch64`, 3 conocidos). En el Infinix se verificaron tablas
-  con/sin cabecera, TTS, selección entre bloques/notas, slash e importación; la persona usuaria
-  confirmó el orden audible. Fixtures temporales limpios. `NoteEditorScreen.kt`: 2277 líneas.
 - Spec 002: generar los dos goldens pendientes y fijar `roborazzi.test.verify`.
-- `values-en-rGB` ahora contiene las 1.179 claves del inglés base; `docs/EDITOR.md` apunta al resaltador
-  compartido de la spec 022. Los defectos de tabla/TTS/preview y selección quedan descritos en la 015.
+- Cambio ajeno sin commitear en `app/src/main/java/com/example/ui/MainListScreen.kt` (`&&` → `||` en un
+  `BackHandler`): es trabajo en curso de la persona, no de la spec 025, y se ha dejado como estaba.

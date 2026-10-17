@@ -24,6 +24,7 @@ import com.estrin217.editordecodigo.ui.CodeEditorViewModel
 import com.example.data.SharedPreferencesRepository
 import com.example.util.MarkdownHandoff
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.isDark
 import com.example.ui.viewmodel.ThemeViewModel
 
 /**
@@ -82,14 +83,10 @@ class CodeEditorActivity : ComponentActivity() {
                 }
             )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
-            val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
-            val isDark = when (darkModeOption) {
-                DarkModeOption.SYSTEM -> isSystemInDarkTheme()
-                DarkModeOption.ON -> true
-                DarkModeOption.OFF -> false
-            }
+            val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
+            val isDark = darkModeOption.isDark(isSystemInDarkTheme())
 
-            MyApplicationTheme(darkTheme = isDark, dynamicColor = isDynamicColor) {
+            MyApplicationTheme(appTheme = appTheme, darkTheme = isDark) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

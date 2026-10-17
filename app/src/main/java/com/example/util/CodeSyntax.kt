@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
 import com.estrin217.editordecodigo.syntax.SyntaxHighlighter
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
+import com.estrin217.tema.SyntaxTheme
 import com.example.R
 
 /** Una opción del selector de idioma de un bloque de código: el identificador que se guarda y su etiqueta. */
@@ -25,39 +25,6 @@ data class CodeLanguageOption(
  * Es **puro**: no importa `android` ni `androidx.compose.runtime`, para poder probarse sin Robolectric.
  */
 object CodeSyntax {
-
-    /**
-     * Paleta del bloque de código **dentro de la nota** (RF-134).
-     *
-     * Son los mismos colores que usaba la implementación retirada. `text` va **sin especificar** a propósito:
-     * el color base lo sigue poniendo el tema Material del bloque (`onSurface`), no un tema de editor. Las
-     * entradas de fondo y de números de línea también van sin especificar, porque el bloque no las usa y no
-     * debe pintar fondo propio.
-     */
-    val blockTheme = SyntaxTheme(
-        id = "app_block",
-        name = "Bloque de nota",
-        isDark = false,
-        background = Color.Unspecified,
-        gutterBackground = Color.Unspecified,
-        activeLineBackground = Color.Unspecified,
-        text = Color.Unspecified,
-        lineNumber = Color.Unspecified,
-        activeLineNumber = Color.Unspecified,
-        keyword = Color(0xFF3B82F6),
-        string = Color(0xFF16A34A),
-        comment = Color(0xFF8B93A3),
-        number = Color(0xFF0891B2),
-        function = Color(0xFFA855F7),
-        variable = Color(0xFFF59E0B),
-        propertyKey = Color(0xFFF59E0B),
-        operator = Color(0xFF0D9488),
-        punctuation = Color(0xFF8B93A3),
-        booleanNull = Color(0xFF3B82F6),
-        annotation = Color(0xFF10B981),
-        type = Color(0xFF9333EA),
-        searchMatchBackground = Color.Unspecified
-    )
 
     /**
      * Identificador guardado en la nota → idioma del catálogo compartido.
@@ -138,12 +105,16 @@ object CodeSyntax {
     }
 
     /**
-     * Resalta [code] según el identificador guardado. Sin idioma (o desconocido) devuelve el texto **plano**.
-     * El texto nunca cambia: el resaltado es solo visualización (RF-138).
+     * Resalta [code] según el identificador guardado y la paleta del tema (RF-138, RF-167).
+     *
+     * La paleta la pasa quien pinta, no este pegamento: el bloque **no** tiene tema propio desde la spec 025, y
+     * el que trae la es `AppThemes.notePalette`, que ya le ha soltado la superficie para que la ponga el tema
+     * Material. Sin idioma (o desconocido) devuelve el texto **plano**, y el texto nunca cambia: el resaltado es
+     * solo visualización.
      */
-    fun highlight(code: String, storedId: String?): AnnotatedString {
+    fun highlight(code: String, storedId: String?, syntax: SyntaxTheme): AnnotatedString {
         val language = fromStoredId(storedId) ?: return AnnotatedString(code)
-        return SyntaxHighlighter.highlight(code, language, blockTheme)
+        return SyntaxHighlighter.highlight(code, language, syntax)
     }
 
     private fun literal(storedId: String, language: SupportedLanguage, label: String) =

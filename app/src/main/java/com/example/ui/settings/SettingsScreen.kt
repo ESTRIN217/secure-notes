@@ -30,6 +30,7 @@ import com.example.data.ai.AiBackend
 import androidx.compose.material3.TopAppBar
 import com.example.ui.floating.FloatingPermissionDialog
 import com.example.ui.viewmodel.AiViewModel
+import com.example.ui.theme.labelRes
 import com.example.ui.viewmodel.ThemeViewModel
 import com.example.util.FloatingBubbleManager
 
@@ -51,17 +52,17 @@ fun SettingsScreen(
 ) {
     BackHandler(onBack = onBack)
     val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
-    val isDynamicColor by themeViewModel.isDynamicColor.collectAsStateWithLifecycle()
+    val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
     val language by themeViewModel.language.collectAsStateWithLifecycle()
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
     val isFloatingActive by FloatingBubbleManager.isRunningFlow().collectAsStateWithLifecycle()
 
+    var showThemePicker by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
     var showFloatingPermissionDialog by remember { mutableStateOf(false) }
 
-    val isDynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
@@ -98,19 +99,17 @@ fun SettingsScreen(
 
                 item {
                     SettingsCardGroup {
-                        if (isDynamicColorSupported) {
-                        SettingsSwitchTile(
-                            title = stringResource(R.string.settings_dynamic_colors),
-                            icon = Icons.Default.Palette,
-                            checked = isDynamicColor,
-                            onCheckedChange = { themeViewModel.setDynamicColor(it) }
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        }
-                    
+                    SettingsListTile(
+                        leadingIcon = Icons.Default.Palette,
+                        title = stringResource(R.string.settings_theme),
+                        subtitle = stringResource(labelRes(appTheme)),
+                        trailingIcon = Icons.Default.ChevronRight,
+                        onClick = { showThemePicker = true }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
                     val currentThemeLabel = when (darkModeOption) {
                         DarkModeOption.SYSTEM -> stringResource(R.string.settings_dark_mode_system)
                         DarkModeOption.ON -> stringResource(R.string.settings_dark_mode_on)
@@ -347,6 +346,14 @@ fun SettingsScreen(
     }
 
     // --- DIALOGS & SHEETS ---
+
+    if (showThemePicker) {
+        ThemePickerDialog(
+            currentTheme = appTheme,
+            onDismiss = { showThemePicker = false },
+            onSelectTheme = { themeViewModel.setAppTheme(it) }
+        )
+    }
 
     if (showThemeDialog) {
         ThemeDialog(

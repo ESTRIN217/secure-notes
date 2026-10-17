@@ -99,7 +99,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.estrin217.editordecodigo.R
 import com.estrin217.editordecodigo.syntax.SupportedLanguage
-import com.estrin217.editordecodigo.syntax.SyntaxTheme
+import com.estrin217.tema.AppThemes
+import com.estrin217.tema.LocalAppTheme
+import com.estrin217.tema.SyntaxTheme
 import com.estrin217.editordecodigo.ui.components.CodeEditorView
 import com.estrin217.editordecodigo.ui.components.FilesDrawerSheet
 import com.estrin217.editordecodigo.ui.components.JumpToLineDialog
@@ -107,7 +109,6 @@ import com.estrin217.editordecodigo.ui.components.LanguageSelectorDialog
 import com.estrin217.editordecodigo.ui.components.NewFileDialog
 import com.estrin217.editordecodigo.ui.components.QuickSymbolBar
 import com.estrin217.editordecodigo.ui.components.SearchReplaceBar
-import com.estrin217.editordecodigo.ui.components.ThemeSelectorDialog
 import com.estrin217.editordecodigo.ui.theme.JetBrainsMono
 import com.estrin217.editordecodigo.utils.FileImportExportHelper
 import kotlinx.coroutines.launch
@@ -190,7 +191,7 @@ fun CodeEditorApp(
     val showLineNumbers by viewModel.showLineNumbers.collectAsState()
     val wordWrap by viewModel.wordWrap.collectAsState()
     val fontSizeSp by viewModel.fontSizeSp.collectAsState()
-    val theme by viewModel.syntaxTheme.collectAsState()
+    val theme = AppThemes.editorPalette(LocalAppTheme.current)
     val isSearchVisible by viewModel.isSearchVisible.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val replaceQuery by viewModel.replaceQuery.collectAsState()
@@ -208,7 +209,6 @@ fun CodeEditorApp(
     var showNewFileDialog by remember { mutableStateOf(false) }
     var showJumpToLineDialog by remember { mutableStateOf(false) }
     var showLanguageSelector by remember { mutableStateOf(false) }
-    var showThemeSelector by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
 
     @Suppress("DEPRECATION")
@@ -443,15 +443,6 @@ fun CodeEditorApp(
                                         showJumpToLineDialog = true
                                     },
                                     modifier = Modifier.testTag("menu_jump_line")
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.menu_theme)) },
-                                    leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        showThemeSelector = true
-                                    },
-                                    modifier = Modifier.testTag("menu_theme")
                                 )
                                 DropdownMenuItem(
                                     text = {
@@ -845,14 +836,6 @@ fun CodeEditorApp(
             currentLanguage = language,
             onDismiss = { showLanguageSelector = false },
             onSelectLanguage = { viewModel.setLanguage(it) }
-        )
-    }
-
-    if (showThemeSelector) {
-        ThemeSelectorDialog(
-            currentTheme = theme,
-            onDismiss = { showThemeSelector = false },
-            onSelectTheme = { viewModel.setSyntaxTheme(it) }
         )
     }
 }

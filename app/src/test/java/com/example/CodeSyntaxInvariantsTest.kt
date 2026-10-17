@@ -1,6 +1,8 @@
 package com.example
 
 import androidx.compose.ui.graphics.Color
+import com.estrin217.tema.AppThemes
+import com.estrin217.tema.SyntaxThemes
 import com.example.util.CodeSyntax
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -129,12 +131,23 @@ class CodeSyntaxInvariantsTest {
     // ── RNF-78: el resaltado va dentro de un remember ───────────────────────────────────────
 
     @Test
-    fun `el resaltado se memoriza por texto e idioma`() {
-        val memorizado = Regex("""remember\(\s*annotated\s*,\s*highlightLanguage\s*\)\s*\{[\s\S]{0,400}?CodeSyntax\.highlight\(""")
+    fun `el resaltado se memoriza por texto, idioma y paleta`() {
+        // La paleta del tema es parte de la clave desde la spec 025, y no por prolijidad: si se queda fuera,
+        // cambiar de tema no repinta el bloque y el texto conserva los colores del tema anterior.
+        val memorizado = Regex("""remember\(\s*annotated\s*,\s*highlightLanguage\s*,\s*syntaxPalette\s*\)\s*\{[\s\S]{0,600}?CodeSyntax\.highlight\(""")
 
         listOf(READ_ONLY, EDITABLE).forEach { ruta ->
             val codigo = leerCodigoComprobando(ruta, ruta)
             assertTrue("${ruta} resalta sin memorizar: se recalcularía en cada fotograma", memorizado.containsMatchIn(codigo))
+        }
+    }
+
+    @Test
+    fun `el bloque saca la paleta del tema activo`() {
+        listOf(READ_ONLY, EDITABLE).forEach { ruta ->
+            val codigo = leerCodigoComprobando(ruta, ruta)
+            assertTrue("$ruta no lee el tema activo", codigo.contains("LocalAppTheme.current"))
+            assertTrue("$ruta no pide la paleta del bloque al catálogo", codigo.contains("AppThemes.notePalette("))
         }
     }
 
@@ -154,10 +167,13 @@ class CodeSyntaxInvariantsTest {
     // ── RF-134: la paleta del bloque se conserva y no pinta fondo propio ────────────────────
 
     @Test
-    fun `la paleta del bloque son los colores de siempre y sin fondo propio`() {
-        val tema = CodeSyntax.blockTheme
+    fun `la paleta del bloque viene del tema y sin fondo propio`() {
+        // Antes de la spec 025 el bloque traía su propia paleta, escrita a mano aquí (RF-134). Ahora la pone el
+        // tema, y lo que se comprueba es que sigue siendo la de siempre para el tema de fábrica: si alguien
+        // cambiara un acento del catálogo, las notas de quien no toca el tema cambiarían de color sin avisar.
+        val tema = AppThemes.notePalette(AppThemes.byId(null))
 
-        assertEquals("el color base lo pone el tema de la app, no el editor", Color.Unspecified, tema.text)
+        assertEquals("el color base lo pone el tema Material, no el editor", Color.Unspecified, tema.text)
         assertEquals("el bloque no pinta fondo propio", Color.Unspecified, tema.background)
         assertEquals("el bloque no pinta canal propio", Color.Unspecified, tema.gutterBackground)
 
@@ -168,6 +184,17 @@ class CodeSyntaxInvariantsTest {
         assertEquals("function", Color(0xFFA855F7), tema.function)
         assertEquals("type", Color(0xFF9333EA), tema.type)
         assertEquals("annotation", Color(0xFF10B981), tema.annotation)
+    }
+
+    @Test
+    fun `un tema del editor cambia los acentos del bloque`() {
+        // La otra mitad del cambio de la spec 025: el bloque sigue al tema, así que con Monokai los acentos son
+        // los de Monokai. No es un accidente: es lo que se pidió, y esta prueba lo deja escrito.
+        val tema = AppThemes.notePalette(AppThemes.byId("monokai"))
+
+        assertEquals("keyword", SyntaxThemes.Monokai.keyword, tema.keyword)
+        assertEquals("string", SyntaxThemes.Monokai.string, tema.string)
+        assertEquals(Color.Unspecified, tema.background)
     }
 
     // ── RNF-80: cero cadenas nuevas ─────────────────────────────────────────────────────────
