@@ -162,9 +162,10 @@ fun MainListScreen(
     val scope = rememberCoroutineScope()
     var isFabExpanded by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME && isFabExpanded) {
+    BackHandler(enabled = currentSection != com.example.data.model.NavigationSection.HOME || isFabExpanded || drawerState.isOpen) {
         viewModel.currentSection.value = com.example.data.model.NavigationSection.HOME
         isFabExpanded = false
+        scope.launch { drawerState.close() }
     }
 
     val sortedNotes = remember(notes, sortOption, customOrderStr) {
