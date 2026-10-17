@@ -164,6 +164,23 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     **compara** (`isDirectVideoFileUrl`), nunca donde se **enseña** ni al extraer el identificador —
     `extractYouTubeId` **no** puede pasar a minúsculas: el id distingue caja y con él se arma la miniatura
     (`youTubeThumbnail`). `null` para lo local, que conserva la regla de siempre (RF-151).
+- **La nota nueva (`noteId == 0`)** (`ui/DraftWrite.kt`, spec 027) — reglas permanentes:
+  - **`noteId == 0` son dos hechos, no uno**: «no hay nota todavía» y «la nota es esta pero ya tiene fila». Quien
+    escriba con `id = noteId` inserta **una nota por cada escritura** — fue el duplicado reportado— y quien deduzca
+    «sin guardar» de `noteId == 0` preguntará por contenido que ya está en la base de datos. Las dos reglas están
+    en `draftWriteId(noteId, estado)` e `isDraftUnsaved(noteId, estado, hayContenido)`, y el editor **no** las
+    reescribe (lo vigila un invariante de fuentes).
+  - **El editor recuerda el id que le devolvió su propia escritura** (`DraftWriteGate`, en `remember(noteId)`), no
+    la barra de pestañas: promover la pestaña en cuanto hay fila recrearía el editor a mitad de uso y con ella se
+    pierden el cursor y el historial de deshacer. El candado (`Mutex`) va **dentro** de la puerta y el id se lee
+    **dentro** del candado: dos escrituras seguidas —adjuntar un fichero y pulsar atrás— leen las dos que no hay
+    fila si se lee antes.
+  - **Una escritura lanzada apaga el aviso de «descartar» en el acto**, no en el `LaunchedEffect`: el botón de
+    atrás lee `hasUnsaved` en la línea siguiente, y un efecto llega un fotograma más tarde. Y el autoguardado
+    decide con `draftWriteId(...) != 0`, no con `noteId != 0`: así lo que se escribe **después** de adjuntar algo a
+    una nota nueva también se guarda.
+  - **Atrás guarda y sale sin preguntar** (decidido en la spec 027): el aviso «¿guardar o descartar?» es de
+    **cerrar la pestaña** del borrador con la ✕, que es donde perder el contenido sí es una pérdida.
 - **Archivos del editor y almacenamiento** (`StorageAnalyzer`, `CodeEditor`, `FileImportExportHelper`) — reglas permanentes:
   - **El administrador de almacenamiento solo borra lo que no referencian ni las notas ni el índice de recientes
     del editor.** «Huérfano» sigue siendo «no referenciado»; lo único que cambia es **qué** cuenta como

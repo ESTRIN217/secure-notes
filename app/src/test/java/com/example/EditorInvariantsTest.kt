@@ -50,8 +50,12 @@ class EditorInvariantsTest {
 
         /**
          * RF-88: el archivo no crece. T9 lo reduce de 2284 a 2277 líneas.
+         *
+         * La spec 027 (la escritura de un borrador) lo baja a **2268**: el «Guardar» del aviso duplicaba la
+         * lista de campos del guardado y desaparece al pasar por el camino único, y el comando «/» → página
+         * tenía una **tercera** copia de esa misma lista, que además escribía con `id = noteId`.
          */
-        const val MAX_LINEAS = 2277
+        const val MAX_LINEAS = 2268
 
         /** RF-84: lo que nadie lee. Llega a 0 en T3. */
         const val MAX_ESTADO_MUERTO = 0
@@ -69,11 +73,15 @@ class EditorInvariantsTest {
         const val MAX_FUNCIONES_LARGAS = 7
 
         /**
-         * RF-85: el guardado completo ocurre en un único sitio. Llega a 2 en T3, no a 1: la
-         * llamada que mueve un bloque a otra nota guarda **esa** nota, con sus campos, y no es un
-         * duplicado del guardado de la nota que se está editando.
+         * RF-85: el guardado completo ocurre en un único sitio.
+         *
+         * Baja de 2 a 1 con la spec 027. El guardado de la nota que se está editando pasó de
+         * `viewModel.saveNote(id = noteId, …)` a la variante que **devuelve el id**, porque en una nota
+         * nueva ese id es el único que impide el duplicado: escrito a `0`, cada escritura inserta una nota.
+         * La llamada que queda es la que mueve un bloque a **otra** nota, con los campos de aquella, y no es
+         * un duplicado del guardado del editor.
          */
-        const val MAX_GUARDADOS = 2
+        const val MAX_GUARDADOS = 1
 
         /**
          * RNF-43: el techo por fichero de **lo que se extrajo del composable**, no del monolito —
@@ -81,6 +89,9 @@ class EditorInvariantsTest {
          * que el editor no sea lo único que se salga del molde.
          */
         const val MAX_LINEAS_FICHERO = 600
+
+        /** RNF-113: suelo del recorrido de imports de `DraftWrite.kt`, para que un `^` sin `MULTILINE` se note. */
+        const val MIN_IMPORTS = 5
     }
 
     private val fuente: String = File(RUTA).readText()
@@ -329,4 +340,83 @@ class EditorInvariantsTest {
         assertTrue(fuente.contains("applyBlocksChange(move.sourceBlocks)"))
         assertTrue(fuente.contains("return move.movedBlock"))
     }
+
+    // ── Spec 027: la escritura de un borrador ────────────────────────────────────────────────
+
+    /**
+     * RF-186, RF-184 y RF-185: **el editor no deduce nada de `noteId == 0`**.
+     *
+     * Es el invariante que vigila el defecto de la spec 027. La bandera del aviso se escribía como
+     * `noteId == 0 && …`, que lee «no hay nota todavía» donde en realidad hay **dos** hechos —«no hay nota» y
+     * «la nota es esta pero ya tiene fila»—, y por eso preguntaba por contenido que ya estaba guardado y el
+     * «Guardar» insertaba una segunda nota con el mismo contenido.
+     */
+    @Test
+    fun `la bandera del borrador y el autoguardado deciden con la pieza`() {
+        val codigo = sinComentarios(fuente)
+        assertFalse(
+            "El editor vuelve a deducir el borrador de `noteId == 0`",
+            codigo.contains("noteId == 0 &&")
+        )
+        assertEquals(
+            "`isDraftUnsaved` se usa en el efecto y en `persistNote`, y en ningún otro sitio",
+            2,
+            Regex("isDraftUnsaved\\(noteId, draftWrite\\.state, hasContentToSave\\(\\)\\)").findAll(codigo).count()
+        )
+        assertEquals(
+            "El autoguardado y el `ON_STOP` deciden con `draftWriteId`, no con `noteId`",
+            2,
+            Regex("draftWriteId\\(noteId, draftWrite\\.state\\) != 0").findAll(codigo).count()
+        )
+    }
+
+    /**
+     * RF-184: el «Guardar» del aviso es el **mismo** camino que el del botón de atrás.
+     *
+     * Su propio `saveNoteAndGetId(id = 0, …)` era la segunda escritura de la nota: la que insertaba la copia
+     * duplicada mientras la primera ya estaba en la lista.
+     */
+    @Test
+    fun `el guardar del aviso pasa por el guardado del editor`() {
+        val codigo = sinComentarios(fuente)
+        val declarations = codigo.split("\n").filter { it.contains("draftGuard?.saveAction") }
+        assertEquals("El aviso debe tener un único `saveAction`", 1, declarations.size)
+        assertTrue(
+            "El «Guardar» del aviso tiene que llamar a `persistNote`: ${declarations[0]}",
+            declarations[0].contains("persistNote(contentForSave(), onSaved)")
+        )
+        assertTrue(
+            "El editor tiene que escribir por la puerta de la pieza pura",
+            codigo.contains("val draftWrite = remember(noteId) { DraftWriteGate(noteId) }")
+        )
+    }
+
+    /**
+     * RNF-113: la pieza de las reglas **no depende de la plataforma**, para poder probarse sin Robolectric.
+     *
+     * Se permite `androidx.compose.runtime` y nada más: es el estado observable, sin el cual el aviso no
+     * reaccionaría a que la inserción devuelva el id.
+     */
+    @Test
+    fun `la pieza de la escritura no depende de la plataforma`() {
+        val ruta = File("src/main/java/com/example/ui/DraftWrite.kt")
+        assertTrue("Falta la pieza de la escritura del borrador", ruta.exists())
+        val fuente = ruta.readText()
+        val imports = Regex("^import .+$", RegexOption.MULTILINE).findAll(fuente).toList()
+        assertTrue(
+            "El recorrido solo ve ${imports.size} imports; el regex se ha roto",
+            imports.size >= MIN_IMPORTS
+        )
+        val platform = imports.map { it.value }.filter { it != "import androidx.compose.runtime.getValue" && it != "import androidx.compose.runtime.mutableIntStateOf" && it != "import androidx.compose.runtime.setValue" && !it.startsWith("import kotlinx.coroutines.") }
+        assertEquals(
+            "La pieza solo puede importar `androidx.compose.runtime` y `kotlinx.coroutines`: " +
+                platform.joinToString(),
+            0,
+            platform.size
+        )
+    }
+
+    /** El fichero sin comentarios: buscar en el texto de un `//` acaba hallando el propio invariante. */
+    private fun sinComentarios(codigo: String): String =
+        codigo.lines().joinToString("\n") { it.substringBefore("//") }
 }

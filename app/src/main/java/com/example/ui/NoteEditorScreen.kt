@@ -232,6 +232,8 @@ fun NoteEditorScreen(
     var isEncrypted by remember { mutableStateOf(isPasswordSet) }
     var blocks by remember { mutableStateOf<List<DataBlock>>(emptyList()) }
     val editorInteractionState = remember(noteId) { NoteEditorInteractionState() }
+    // La puerta de escritura, con la misma clave: al promoverse el borrador la pantalla se recrea (spec 027).
+    val draftWrite = remember(noteId) { DraftWriteGate(noteId) }
     var contentValue by editorInteractionState.contentValue
     val content by remember { derivedStateOf { DataBlock.serialize(blocks) } }
     val history = remember { mutableStateListOf<List<DataBlock>>() }
@@ -755,6 +757,25 @@ fun NoteEditorScreen(
         else createRawContent(jsonContent, attachments)
     }
 
+    // Vive aquí y no más abajo por el motivo del comentario de [contentForSave]: `persistNote` la necesita.
+    val hasContentToSave: () -> Boolean = {
+        title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()
+    }
+
+    /** El guardado completo, con el id que le toque. Va **antes** que [persistNote] por lo de arriba. */
+    suspend fun guardarConId(destino: Int, content: String): Int = viewModel.saveNoteAndGetId(
+        id = destino,
+        title = title.trim(),
+        content = content,
+        isEncrypted = isEncrypted,
+        tagsList = selectedNoteTags,
+        backgroundColor = selectedBgColorId,
+        backgroundImagePath = selectedBgImagePath,
+        isPinned = isPinned,
+        isFavorite = isFavorite,
+        isArchived = isArchived
+    )
+
     /**
      * Guarda la nota que se está editando (RF-85).
      *
@@ -765,20 +786,17 @@ fun NoteEditorScreen(
      * **No lleva guarda de «¿hay algo que guardar?»**: esa vigilancia se queda donde ya estaba, que
      * es [saveCurrentNote] y el guardado al salir. Añadirla aquí cambiaría lo que se guarda en los
      * caminos que hoy guardan siempre (RF-85, RNF-39).
+     *
+     * **El id no es el de la pestaña** sino el de la puerta: en una nota nueva, el id de su primera
+     * inserción —sin eso se inserta una nota por escritura (RF-180)—. [onWritten] promueve el borrador.
      */
-    fun persistNote(content: String) {
-        viewModel.saveNote(
-            id = noteId,
-            title = title.trim(),
-            content = content,
-            isEncrypted = isEncrypted,
-            tagsList = selectedNoteTags,
-            backgroundColor = selectedBgColorId,
-            backgroundImagePath = selectedBgImagePath,
-            isPinned = isPinned,
-            isFavorite = isFavorite,
-            isArchived = isArchived
-        )
+    fun persistNote(content: String, onWritten: (Int) -> Unit = {}) {
+        draftWrite.launch()
+        // La bandera se recalcula aquí, no solo en el efecto: el atrás lee `hasUnsaved` en la línea siguiente.
+        draftGuard?.hasUnsaved = isDraftUnsaved(noteId, draftWrite.state, hasContentToSave())
+        viewModel.launchInViewModelScope {
+            onWritten(draftWrite.write { destino -> guardarConId(destino, content) })
+        }
     }
 
     // Replace selection with AI in-place result
@@ -1082,31 +1100,13 @@ fun NoteEditorScreen(
         saveBlocksToHistory()
     }
 
-    val hasContentToSave: () -> Boolean = {
-        title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()
+    LaunchedEffect(title, content, attachments.size, noteId, draftWrite.state) {
+        draftGuard?.hasUnsaved = isDraftUnsaved(noteId, draftWrite.state, hasContentToSave())
     }
 
-    LaunchedEffect(title, content, attachments.size, noteId) {
-        draftGuard?.hasUnsaved = noteId == 0 && hasContentToSave()
-    }
-
-    draftGuard?.saveAction = { onSaved ->
-        scope.launch {
-            val newId = viewModel.saveNoteAndGetId(
-                id = 0,
-                title = title.trim(),
-                content = contentForSave(),
-                isEncrypted = isEncrypted,
-                tagsList = selectedNoteTags,
-                backgroundColor = selectedBgColorId,
-                backgroundImagePath = selectedBgImagePath,
-                isPinned = isPinned,
-                isFavorite = isFavorite,
-                isArchived = isArchived
-            )
-            onSaved(newId)
-        }
-    }
+    // El «Guardar» del aviso es el mismo guardado que el de atrás, no otra copia con `id = 0`: esa era la
+    // que insertaba la nota duplicada (spec 027, RF-184).
+    draftGuard?.saveAction = { onSaved -> persistNote(contentForSave(), onSaved) }
 
     fun saveCurrentNote() {
         if (!hasContentToSave()) return
@@ -1117,7 +1117,7 @@ fun NoteEditorScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, noteId) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP && noteId != 0) {
+            if (event == Lifecycle.Event.ON_STOP && draftWriteId(noteId, draftWrite.state) != 0) {
                 saveCurrentNote()
             }
         }
@@ -1235,20 +1235,10 @@ fun NoteEditorScreen(
                 )
                 if (newId != 0) {
                     handleSlashSelect(DataBlock(type = BlockType.PAGE, content = "", meta = mapOf("noteId" to newId.toString())))
-                    if (noteId != 0) {
-                        viewModel.saveNoteAndGetId(
-                            id = noteId,
-                            title = title.trim(),
-                            content = contentForSave(),
-                            isEncrypted = isEncrypted,
-                            tagsList = selectedNoteTags,
-                            backgroundColor = selectedBgColorId,
-                            backgroundImagePath = selectedBgImagePath,
-                            isPinned = isPinned,
-                            isFavorite = isFavorite,
-                            isArchived = isArchived
-                        )
-                    }
+                    // El mismo guardado que el resto, por la puerta: era una tercera copia de la lista de
+                    // campos escribiendo con `id = noteId` (RF-85, RF-186). La guarda se queda: insertar una
+                    // página no debe crear la nota en borrador.
+                    if (noteId != 0) persistNote(contentForSave())
                     onNavigateToNote(newId)
                 }
             }
@@ -1280,7 +1270,8 @@ fun NoteEditorScreen(
         .debounce(2000)
         .collectLatest {
             syncActiveBlock()
-            if ((title.isNotBlank() || content.isNotBlank()) && noteId != 0) {
+            // `draftWriteId` y no `noteId`: una nota nueva que ya tiene fila —se le adjuntó algo— se actualiza (RF-185).
+            if ((title.isNotBlank() || content.isNotBlank()) && draftWriteId(noteId, draftWrite.state) != 0) {
                 persistNote(contentForSave())
             }
         }
