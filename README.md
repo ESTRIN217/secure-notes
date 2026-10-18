@@ -119,6 +119,7 @@ secure-notes/
 ├── editor-de-codigo/    # :editor-de-codigo — editor de código con resaltado
 ├── markdown/            # :markdown — motor GFM compartido (chat, legal, preview)
 ├── tema/                # :tema — catálogo de temas compartido (paletas y esquemas)
+├── public/              # raíz publicada en Firebase Hosting (página de marca, HTML/CSS)
 ├── docs/                # EDITOR, EDITOR_DEV, GUIDELINES, ARCHITECTURE, ROADMAP, adr/
 ├── .github/             # CI + plantillas de issues/PRs
 ├── CHANGELOG.md         # historial por versión (Keep a Changelog)

@@ -3,7 +3,13 @@
 Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas permanentes viven en `AGENTS.md`.
 
 ## Estado actual
-- Specs 016–030 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- Specs 016–031 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- **Spec 031 (2026-10-18)**: sitio de marca estático en `public/` (HTML/CSS planos, sin JS ni CDN) — esa es la
+  raíz de Firebase Hosting, la que crea `firebase init`. `firebase.json` con `cleanUrls` + caché y **sin**
+  reescritura SPA (si la hubiera, `404.html` no se serviría nunca). Proyecto: `secure-notes-502213` en
+  `.firebaserc`. **Publicado en https://notes-502213.web.app** (10 ficheros, 404 propio verificado con 404 real).
+  Las imágenes viven **una sola vez**, en `public/assets/`, y el `README.md` apunta ahí: la carpeta `assets/` de la
+  raíz se borró para que no haya dos copias que se desfasen. Para actualizar el sitio: editar `public/` y desplegar.
 - **v4.0.0 publicada** (2026-10-18): tag `v4.0.0` + release en GitHub (Latest) con los APK debug y
   release `arm64-v8a`; `versionName = "4.0.0"` / `versionCode = 4`; `CHANGELOG.md` cerrado con fecha.
 - Spec 028: los ajustes de tema viajan en la copia de seguridad; `BACKUP_SETTINGS` centraliza los valores.
