@@ -100,9 +100,14 @@ secrets {
   defaultPropertiesFileName = ".env.example"
 }
 
+// `:lib` (binding nativo de llama.cpp) solo está en el grafo si el checkout existe: `settings.gradle.kts`
+// lo incluye condicionalmente. Referenciarlo siempre rompe la configuración del proyecto en cualquier
+// máquina sin el checkout (CI incluida) con «Project with path ':lib' could not be found».
+val hasLlamaLib = findProject(":lib") != null
+
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  implementation(project(":lib"))
+  if (hasLlamaLib) implementation(project(":lib"))
   implementation(project(":visor-pdf"))
   // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
   // dirección: `:app` -> `:editor-de-codigo` -> `:tema`.

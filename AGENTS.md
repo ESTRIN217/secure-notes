@@ -14,8 +14,13 @@
 - **Native AI (llama.cpp)**: uses the official Android binding from llama.cpp's `examples/llama.android/lib`
   (`com.arm.aichat.AiChat` facade), consumed as Gradle module `:lib`. `settings.gradle.kts` points at
   `/root/llama.cpp/examples/llama.android/lib` and **conditionally** does `include(":lib")` only if that
-  directory exists (`if (llamaLibDir.exists())`) — if the checkout is missing the module is silently dropped
-  and the build proceeds without native AI. Native code is compiled from source by `:lib`'s CMake during
+  directory exists (`if (llamaLibDir.exists())`) — if the checkout is missing the module is silently dropped.
+  `app/build.gradle.kts` mirrors that with `if (findProject(":lib") != null)` around
+  `implementation(project(":lib"))`; **sin ese guard la configuración de `:app` falla** en cualquier máquina
+  sin el checkout («Project with path ':lib' could not be found»). Pero `:app` **no** compila sin `:lib`,
+  porque `LlamaCppEngine` importa `com.arm.aichat`; por eso CI solo ejecuta los tests de los módulos
+  librería (`:visor-pdf`, `:visor-media`, `:editor-de-codigo`) y nunca compila `:app`.
+  Native code is compiled from source by `:lib`'s CMake during
   Gradle sync — no `CMakeLists.txt` or prebuilt `.so` in this repo. Build only supports `arm64-v8a`.
 
 ## Tests

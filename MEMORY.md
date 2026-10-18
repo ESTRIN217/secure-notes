@@ -17,6 +17,10 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 - Suite completa dirigida más reciente: `:editor-de-codigo` **149/0**, `:visor-pdf` **4/0**, `:lib` **1/0**.
 - Limpieza de código muerto (2026-10-17): 69 archivos, –3 482 líneas; build debug y compilación de tests
   validados correctamente.
+- CI (2026-10-18): `app/build.gradle.kts` referenciaba `project(":lib")` sin condicionar mientras
+  `settings.gradle.kts` sí condicionaba el `include`; en CI no existía el checkout y fallaba la
+  configuración. Guardado con `findProject(":lib") != null`. Verificado con `./gradlew projects` sin el
+  checkout: `BUILD SUCCESSFUL`.
 
 ## Decisiones que conviene recordar
 - Las reglas permanentes sobre nota nueva, tema, `AiModelHost`, `CodeEditor`, markdown, almacenamiento,
@@ -36,6 +40,9 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 - Un `^` sin `RegexOption.MULTILINE` puede hacer que un invariante pase por vacío.
 - Kotlin no admite referencias adelantadas a funciones locales; `Color` requiere `.toInt()` en asserts
   hexadecimales; compilar Kotlin no valida recursos XML.
+- Un `include(":x")` condicional en `settings.gradle.kts` no basta: **toda** referencia `project(":x")` en
+  cualquier otro build script tiene que usar la misma condición, o la configuración falla donde el módulo
+  no existe. Comprobarlo con `./gradlew projects`, no con una compilación.
 
 ## Próximos pasos
 - Validar PDF real en dispositivo; verificar spec 020 provocando un fallo real.
