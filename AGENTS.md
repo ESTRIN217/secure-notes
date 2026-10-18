@@ -31,12 +31,13 @@
 - La tarea de pruebas **compila y ejecuta**: `:app:compileDebugUnitTestKotlin --rerun` → `BUILD SUCCESSFUL`
   (la nota que la daba por rota, por `PdfExporterTest` y `WidgetNotesTest`, era falsa: sus llamadas
   coinciden con las firmas reales). ⚠️ La suite **con entorno de pruebas no se ejecuta en esta plataforma**:
-  `./gradlew test` falla con `355 tests completed, 41 failed` en `:app` (`16 completed, 2 failed` en
-  `:editor-de-codigo`), y **40** de ellos son de plataforma —
+  `./gradlew test` falla con `842 tests completed, 41 failed` en `:app` (`16 completed, 2 failed` en
+  `:editor-de-codigo`), y **38** de ellos son de plataforma —
   `java.lang.AssertionError at DefaultNativeRuntimeLoader.java:212`, porque **Robolectric no tiene runtime
   nativo para `linux/aarch64`**. Los **3** restantes son aserciones preexistentes y ajenas:
   `HtmlExportMediaTest.kt:117`, `OnDeviceModelSourceTest.kt:63` y una comparación `huggingface.co` vs
-  `https://huggingface.co`. Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
+  `https://huggingface.co`. (La cuenta de «40 de plataforma» que había aquí estaba mal: son 38, y con los 3
+  preexistentes son 41. Medido sobre los XML en la spec 028.) Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
   Robolectric): sí corren aquí. Los dos únicos avisos del compilador en `src/test` son preexistentes y
   ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22` (`createComposeRule` v1→v2).
 - **Por eso, lo que se pueda decidir sin `Context` se decide en una función pura.** Si la alternativa necesita
@@ -181,6 +182,30 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     una nota nueva también se guarda.
   - **Atrás guarda y sale sin preguntar** (decidido en la spec 027): el aviso «¿guardar o descartar?» es de
     **cerrar la pestaña** del borrador con la ✕, que es donde perder el contenido sí es una pérdida.
+- **Los ajustes de la copia de seguridad** (`data/backup/BackupSettings.kt`, spec 028) — reglas permanentes:
+  - **La lista de ajustes que viajan está en un solo sitio.** `BACKUP_SETTINGS`: quien añade una preferencia a
+    la copia añade **una línea** ahí y nadie más. Los **tres** que crean la copia —local que se comparte, Drive a
+    mano y Drive automático— y los **dos** que la restauran pasan por la pieza, y ninguno escribe un
+    `put(AppConstants.<CLAVE>_KEY, …)`. La lista estaba replicada en cinco sitios y por eso el tema elegido se
+    quedó fuera de las cinco: no fue un descuido al añadir el tema, fue el precio de no tener un sitio único.
+    Dos invariantes de fuentes lo vigilan (`BackupSettingsInvariantsTest`), porque volver a escribir la lista
+    **no cambia ninguna salida** y ninguna prueba de comportamiento lo notaría.
+  - **La copia es un formato aparte del de la copia de Android.** `backup_rules.xml` y
+    `data_extraction_rules.xml` excluyen preferencias, base de datos y ficheros: la copia de la app es la única
+    que restaura alguien, así que no hay una segunda red que la compense.
+  - **Al copiar, el tema se resuelve; al restaurar, se valida.** Son dos mitades distintas y van en dos
+    funciones. **Resolver** al copiar (con `resolveStoredTheme`, de la 025) es lo que hace que la copia describa
+    la app **como se ve**: quien nunca abrió el selector tiene el interruptor antiguo apagado y ningún
+    `theme_id`, y copiando el identificador en crudo su copia no llevaría tema — el caso al que esta spec vino.
+    **Validar** al restaurar es lo otro: un tema que esta versión no tiene **no se escribe** y se conserva el
+    que hay, y se pregunta al **catálogo** (`AppThemes.all.any`), no a `AppThemes.byId`, que cae al dinámico:
+    `byId` sirve para pintar, y aquí lo que se quiere es saber si el tema existe.
+  - **El tema restaurado se ve al abrir la app**, como el modo oscuro y el idioma que la copia ya restaura. Sin
+    puente en caliente: `ThemeViewModel` se crea por `Activity`, así que hacerlo en vivo convertiría al tema en
+    el único ajuste que se ve al instante mientras los otros trece no.
+  - **Las dos adaptadoras de `SharedPreferences` son fontantería y se prueban con un doble escrito a mano**
+    (`PrefsFalso`, sin Robolectric). La decisión —qué viaja y qué se aplica— vive en las dos funciones puras;
+    donde un error de tipos se colaría sin que ninguna prueba de arriba lo notase es justo en las adaptadoras.
 - **Archivos del editor y almacenamiento** (`StorageAnalyzer`, `CodeEditor`, `FileImportExportHelper`) — reglas permanentes:
   - **El administrador de almacenamiento solo borra lo que no referencian ni las notas ni el índice de recientes
     del editor.** «Huérfano» sigue siendo «no referenciado»; lo único que cambia es **qué** cuenta como

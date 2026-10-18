@@ -4,13 +4,18 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 
 ## Estado actual
 - **Spec 027 implementada y verificada en dispositivo** (2026-10-17): **una nota nueva ya no se duplica**.
-  Specs 016–027 implementadas y verificadas.
+  Specs 016–028 implementadas y verificadas.
+- **Spec 028 implementada y verificada en dispositivo** (2026-10-18): **el tema elegido viaja en la copia de
+  seguridad** y la lista de ajustes que viajan vive en **un solo sitio** (`data/backup/BackupSettings.kt`), no en
+  los 5 donde estaba replicada. `:app` **842/41** = 816/41 + 26 pruebas nuevas y **los mismos** 41 fallos (38 de
+  plataforma + 3 preexistentes). Decidido: **tema desconocido → no escribir**, se queda el actual; **se aplica al
+  abrir la app**.
 - **Limpieza de código muerto (2026-10-17)**: 69 archivos, **–3 482 líneas**. Símbolos sin uso en `:app`,
   `:editor-de-codigo`, `:visor-pdf`, `:visor-media`; `CodeFont.kt` + 2 fuentes; `OpenUrlDialog.kt`; 2 438
   elementos `string`/`plurals` sin referencia en 9 locales; deps muertas del `build.gradle.kts` y del catálogo.
   Validado: `:app:assembleDebug` + `:app:compileDebugUnitTestKotlin` → `BUILD SUCCESSFUL` (con config cache).
-- Pruebas: `:app` **816/41**, los 41 son los de siempre (plataforma). Ninguna clase roja nueva.
-- El editor de notas está en **2268 líneas** (presupuesto 2268).
+- Pruebas: `:app` **842/41** tras la 028 (816/41 antes). Los 41 fallos son los de siempre: **38** de
+  plataforma (`DefaultNativeRuntimeLoader`) y **3** aserciones preexistentes. Ninguna clase roja nueva.
 
 ## Decisiones que conviene recordar
 - **Purga de código muerto: qué no se toca.** Overrides, `@Preview`, entradas del `AndroidManifest`, *type

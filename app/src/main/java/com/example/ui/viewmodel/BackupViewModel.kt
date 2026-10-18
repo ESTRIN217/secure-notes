@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.AppConstants
 import com.example.R
 import com.example.data.model.SyncStage
+import com.example.data.backup.applyRestoredSettings
+import com.example.data.backup.backupSettingsJson
+import com.example.data.backup.readBackupSettings
+import com.example.data.backup.restorableSettings
 import com.example.data.model.SyncState
 import com.example.data.security.CipherService
 import com.example.data.security.EncryptionServiceImpl
@@ -247,21 +251,7 @@ class BackupViewModel(
         val tagsArray = JSONArray()
         cloudSyncManager.availableTags.value.forEach { tag -> tagsArray.put(tag.toJson()) }
 
-        val settings = JSONObject().apply {
-            put(AppConstants.DARK_MODE_OPTION_KEY, sharedPrefs.getString(AppConstants.DARK_MODE_OPTION_KEY, "SYSTEM"))
-            put(AppConstants.DYNAMIC_COLORS_KEY, sharedPrefs.getBoolean(AppConstants.DYNAMIC_COLORS_KEY, true))
-            put(AppConstants.LANGUAGE_KEY, sharedPrefs.getString(AppConstants.LANGUAGE_KEY, "") ?: "")
-            put(AppConstants.AUTO_UPDATE_CHECK_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, true))
-            put(AppConstants.UPDATE_NOTIFICATIONS_KEY, sharedPrefs.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, true))
-            put(AppConstants.CUSTOM_ORDER_KEY, sharedPrefs.getString(AppConstants.CUSTOM_ORDER_KEY, "") ?: "")
-            put(AppConstants.PASSWORD_TYPE_KEY, sharedPrefs.getString(AppConstants.PASSWORD_TYPE_KEY, com.example.PasswordType.PASSWORD.name))
-            put(AppConstants.BIOMETRIC_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, false))
-            put(AppConstants.SCREENSHOT_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, false))
-            put(AppConstants.AUTO_LOCK_TIMEOUT_KEY, sharedPrefs.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, AppConstants.AUTO_LOCK_TIMEOUT_DEFAULT))
-            put(AppConstants.ENCRYPT_BACKUPS_KEY, sharedPrefs.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, false))
-            put(AppConstants.AUTO_BACKUP_ENABLED_KEY, sharedPrefs.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, false))
-            put(AppConstants.AUTO_BACKUP_INTERVAL_KEY, sharedPrefs.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, "6h") ?: "6h")
-        }
+        val settings = backupSettingsJson(readBackupSettings(sharedPrefs))
 
         val localBackupTime = System.currentTimeMillis()
         val innerJson = JSONObject().apply {
@@ -375,36 +365,10 @@ class BackupViewModel(
             cloudSyncManager.createTag(tagName, tagObj.getString("colorHex"))
         }
 
+        // Una copia que no trae bloque de ajustes no toca ninguna preferencia: es la de una copia
+        // anterior a que estos ajustes viajaran, y seguir restaurándola tiene que ser seguro.
         if (container.has("settings")) {
-            val settings = container.getJSONObject("settings")
-            val editor = sharedPrefs.edit()
-            if (settings.has(AppConstants.DARK_MODE_OPTION_KEY))
-                editor.putString(AppConstants.DARK_MODE_OPTION_KEY, settings.getString(AppConstants.DARK_MODE_OPTION_KEY))
-            if (settings.has(AppConstants.DYNAMIC_COLORS_KEY))
-                editor.putBoolean(AppConstants.DYNAMIC_COLORS_KEY, settings.getBoolean(AppConstants.DYNAMIC_COLORS_KEY))
-            if (settings.has(AppConstants.LANGUAGE_KEY))
-                editor.putString(AppConstants.LANGUAGE_KEY, settings.getString(AppConstants.LANGUAGE_KEY))
-            if (settings.has(AppConstants.AUTO_UPDATE_CHECK_KEY))
-                editor.putBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY, settings.getBoolean(AppConstants.AUTO_UPDATE_CHECK_KEY))
-            if (settings.has(AppConstants.UPDATE_NOTIFICATIONS_KEY))
-                editor.putBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY, settings.getBoolean(AppConstants.UPDATE_NOTIFICATIONS_KEY))
-            if (settings.has(AppConstants.CUSTOM_ORDER_KEY))
-                editor.putString(AppConstants.CUSTOM_ORDER_KEY, settings.getString(AppConstants.CUSTOM_ORDER_KEY))
-            if (settings.has(AppConstants.PASSWORD_TYPE_KEY))
-                editor.putString(AppConstants.PASSWORD_TYPE_KEY, settings.getString(AppConstants.PASSWORD_TYPE_KEY))
-            if (settings.has(AppConstants.BIOMETRIC_ENABLED_KEY))
-                editor.putBoolean(AppConstants.BIOMETRIC_ENABLED_KEY, settings.getBoolean(AppConstants.BIOMETRIC_ENABLED_KEY))
-            if (settings.has(AppConstants.SCREENSHOT_ENABLED_KEY))
-                editor.putBoolean(AppConstants.SCREENSHOT_ENABLED_KEY, settings.getBoolean(AppConstants.SCREENSHOT_ENABLED_KEY))
-            if (settings.has(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
-                editor.putLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY, settings.getLong(AppConstants.AUTO_LOCK_TIMEOUT_KEY))
-            if (settings.has(AppConstants.ENCRYPT_BACKUPS_KEY))
-                editor.putBoolean(AppConstants.ENCRYPT_BACKUPS_KEY, settings.getBoolean(AppConstants.ENCRYPT_BACKUPS_KEY))
-            if (settings.has(AppConstants.AUTO_BACKUP_ENABLED_KEY))
-                editor.putBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY, settings.getBoolean(AppConstants.AUTO_BACKUP_ENABLED_KEY))
-            if (settings.has(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
-                editor.putString(AppConstants.AUTO_BACKUP_INTERVAL_KEY, settings.getString(AppConstants.AUTO_BACKUP_INTERVAL_KEY))
-            editor.apply()
+            applyRestoredSettings(sharedPrefs, restorableSettings(container.getJSONObject("settings")))
         }
     }
 
