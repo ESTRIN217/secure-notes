@@ -6,7 +6,7 @@
 
 ## 1. Stack tecnológico
 
-* **Lenguaje:** Kotlin 2.4.10.
+* **Lenguaje:** Kotlin 2.4.20.
 * **UI:** Jetpack Compose (BOM 2026.06.01) con Material Design 3 Expressive.
 * **Estado:** MVVM + `StateFlow` y `collectAsStateWithLifecycle()`. Sin otras librerías reactivas.
 * **Persistencia:** Room 2.8.4 (única fuente local). KSP para Room y Moshi.

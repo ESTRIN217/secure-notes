@@ -234,7 +234,7 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
   just falls back to `values/` at runtime.
 - **Localizations**: `values/` (en), `values-es-rVE/` (es-VE), `values-pt-rBR/` (pt-BR), `values-fr/` (fr), `values-it/` (it), `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
 - `compileSdk = 37`, `targetSdk = 36`, `minSdk = 33`.
-- Gradle 9.7.0, AGP 9.3.1, Kotlin 2.4.10.
+- Gradle 9.7.1, AGP 9.4.1, Kotlin 2.4.20.
 
 ## Temas (`:tema`, spec 025) — reglas permanentes
 - **Un catálogo que comparten dos módulos va en un módulo propio**, no en la carpeta `theme/` de `:app`: la

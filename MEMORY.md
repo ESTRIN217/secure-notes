@@ -3,6 +3,7 @@
 Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas permanentes viven en `AGENTS.md`.
 
 ## Estado actual
+- **Documentación actualizada** (2026-10-18): se alinean versiones del stack y el resumen del estado del proyecto en `README.md`, `AGENTS.md` y `docs/GUIDELINES.md`.
 - **Spec 027 implementada y verificada en dispositivo** (2026-10-17): **una nota nueva ya no se duplica**.
   Specs 016–028 implementadas y verificadas.
 - **Spec 028 implementada y verificada en dispositivo** (2026-10-18): **el tema elegido viaja en la copia de
