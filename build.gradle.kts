@@ -8,3 +8,9 @@ plugins {
   alias(libs.plugins.secrets) apply false
   alias(libs.plugins.google.services) apply false
 }
+
+findProject(":lib")?.let { lib ->
+  lib.pluginManager.withPlugin("com.android.library") {
+    lib.dependencies.add("testRuntimeOnly", libs.junit.jupiter.engine)
+  }
+}

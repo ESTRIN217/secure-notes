@@ -3,50 +3,39 @@
 Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas permanentes viven en `AGENTS.md`.
 
 ## Estado actual
-- **Documentación actualizada** (2026-10-18): se alinean versiones del stack y el resumen del estado del proyecto en `README.md`, `AGENTS.md` y `docs/GUIDELINES.md`.
-- **Spec 027 implementada y verificada en dispositivo** (2026-10-17): **una nota nueva ya no se duplica**.
-  Specs 016–028 implementadas y verificadas.
-- **Spec 028 implementada y verificada en dispositivo** (2026-10-18): **el tema elegido viaja en la copia de
-  seguridad** y la lista de ajustes que viajan vive en **un solo sitio** (`data/backup/BackupSettings.kt`), no en
-  los 5 donde estaba replicada. `:app` **842/41** = 816/41 + 26 pruebas nuevas y **los mismos** 41 fallos (38 de
-  plataforma + 3 preexistentes). Decidido: **tema desconocido → no escribir**, se queda el actual; **se aplica al
-  abrir la app**.
-- **Limpieza de código muerto (2026-10-17)**: 69 archivos, **–3 482 líneas**. Símbolos sin uso en `:app`,
-  `:editor-de-codigo`, `:visor-pdf`, `:visor-media`; `CodeFont.kt` + 2 fuentes; `OpenUrlDialog.kt`; 2 438
-  elementos `string`/`plurals` sin referencia en 9 locales; deps muertas del `build.gradle.kts` y del catálogo.
-  Validado: `:app:assembleDebug` + `:app:compileDebugUnitTestKotlin` → `BUILD SUCCESSFUL` (con config cache).
-- Pruebas: `:app` **842/41** tras la 028 (816/41 antes). Los 41 fallos son los de siempre: **38** de
-  plataforma (`DefaultNativeRuntimeLoader`) y **3** aserciones preexistentes. Ninguna clase roja nueva.
+- Specs 016–028 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- Spec 028: los ajustes de tema viajan en la copia de seguridad; `BACKUP_SETTINGS` centraliza los valores.
+- Spec 029: las suites dirigidas de HTML, catálogo y PDF pasan **26/0**. La prueba PDF usa un backend de test;
+  queda validar exportación PDF real en dispositivo.
+- Spec 030: `GreetingScreenshotTest` renderiza bloqueo desde estado explícito, sin `NotesViewModel`, Room ni
+  Keystore. `LockScreen(viewModel)` conserva el cableado de producción. Screenshot dirigido y
+  `:app:compileDebugUnitTestKotlin`: **BUILD SUCCESSFUL**. Después, la spec 002 regeneró el golden preexistente
+  `greeting.png`, cuya firma PNG estaba dañada.
+- Spec 002 implementada (2026-10-18): T1-T5 completadas; `./gradlew test` → **BUILD SUCCESSFUL**,
+  con 842 tests, 0 fallos y 0 omitidos en `:app`. Goldens de ecuaciones y bloqueo verificados;
+  `roborazzi.test.verify=true`.
+- Suite completa dirigida más reciente: `:editor-de-codigo` **149/0**, `:visor-pdf` **4/0**, `:lib` **1/0**.
+- Limpieza de código muerto (2026-10-17): 69 archivos, –3 482 líneas; build debug y compilación de tests
+  validados correctamente.
 
 ## Decisiones que conviene recordar
-- **Purga de código muerto: qué no se toca.** Overrides, `@Preview`, entradas del `AndroidManifest`, *type
-  converters* de Room y miembros usados por generación/posición (`fromLanguage`/`toLanguage`, `toolCallId`).
-  Toda clave de `strings.xml` se quita **en los 9 locales a la vez**. Antes de purgar `libs.versions.toml` hay
-  que mirar el módulo **externo** `:lib` (`/root/llama.cpp/examples/llama.android/lib/build.gradle.kts`):
-  consume `androidx-datastore-preferences` y `junit-platform-launcher` (se restauraron por eso).
-- Las reglas de la 027 (nota nueva, `DraftWriteGate`, «atrás guarda y sale») están en `AGENTS.md`: no repetirlas aquí.
-- **Selección de notas: una sola regla (`ui/NoteSelection`)**, compartida por barra, los dos toques, las dos
-  pulsaciones largas y el atrás; el atrás cierra el modo antes que la navegación (spec 026).
-- El tono de Material 3, el catálogo compartido, `CodeEditor`/`databaseExists`, `AiModelHost` y `:markdown`
-  son reglas permanentes: viven en `AGENTS.md`.
+- Las reglas permanentes sobre nota nueva, tema, `AiModelHost`, `CodeEditor`, markdown, almacenamiento,
+  rendimiento y seguridad viven en `AGENTS.md`; no duplicarlas aquí.
+- Antes de purgar `libs.versions.toml`, revisar el módulo externo `:lib`
+  (`/root/llama.cpp/examples/llama.android/lib/build.gradle.kts`): consume datastore-preferences y
+  junit-platform-launcher.
+- Robolectric 4.17 en Java 25 necesita `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` en tareas
+  `Test` que inicializan estado Android.
+- El módulo externo `:lib` usa JUnit Platform/Jupiter; API y launcher no bastan, también hace falta Jupiter
+  Engine cuando se incluye el módulo.
+- `mutableIntStateOf` funciona en tests JVM puros; decisiones que no necesitan `Context` van en piezas puras.
 
 ## Aprendizajes
-- **La configuration cache funciona aquí**: `BUILD SUCCESSFUL` sin `--no-configuration-cache`; ese flag solo si
-  la build actúa obsoleta tras KSP. Un «Gradle build daemon has been stopped: stop command received» **no** es
-  un fallo de compilación: es un `gradlew --stop` de fuera.
-- **Buscar código muerto**: usar el buscador con `path`/`include`; un `grep -r` por el repo entero entra en
-  `build/` y se va de timeout. El detector de «una sola aparición» sirve, pero **no** para imports.
-- **`mutableIntStateOf` funciona en una prueba pura de JVM**: el sistema de instantáneas de Compose no necesita
-  Android, así que un estado observable con `Mutex` se prueba entero aquí, con `runBlocking`.
-- Un `^` sin `RegexOption.MULTILINE` **no encuentra nada** y el invariante pasa por vacío (suelo `MIN_IMPORTS`).
-- Kotlin **no admite referencias adelantadas a funciones locales**: `guardarConId` va antes que `persistNote`, y
-  tiene que ser `suspend`. Una `val` sí se puede capturar desde una lambda declarada antes.
-- Un `BackHandler` u `onBack` que leen un estado obligan a **declarar ese estado por encima** y a recalcularlo en
-  el acto: un `LaunchedEffect` llega un fotograma tarde y el diálogo salía igual.
-- `Color` es una value class: `assertEquals` con hexadecimales necesita `.toInt()`. Compilar Kotlin no valida
-  `strings.xml`. Las decisiones comprobables sin `Context` van en funciones puras.
+- Configuration cache funciona; usar `--no-configuration-cache` solo ante síntomas de caché/KSP obsoleta.
+- Buscar código muerto con rutas acotadas; `grep -r` global recorre `build/` y puede agotar tiempo.
+- Un `^` sin `RegexOption.MULTILINE` puede hacer que un invariante pase por vacío.
+- Kotlin no admite referencias adelantadas a funciones locales; `Color` requiere `.toInt()` en asserts
+  hexadecimales; compilar Kotlin no valida recursos XML.
 
-## Próximos pasos y notas
-- Verificar en dispositivo la spec 020 provocando un fallo real. Spec 002: los dos goldens pendientes.
-- Opcional y **fuera de la 027**: al salir de una nota nueva por la flecha atrás, la pestaña sigue siendo el
-  borrador vacío junto a la nota ya escrita; promoverla recrearía el editor (ver dudas abiertas de la spec).
+## Próximos pasos
+- Validar PDF real en dispositivo; verificar spec 020 provocando un fallo real.

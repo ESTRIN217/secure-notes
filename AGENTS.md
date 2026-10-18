@@ -40,6 +40,9 @@
   preexistentes son 41. Medido sobre los XML en la spec 028.) Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
   Robolectric): sí corren aquí. Los dos únicos avisos del compilador en `src/test` son preexistentes y
   ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22` (`createComposeRule` v1→v2).
+- Robolectric 4.17 en **Java 25** necesita que las tareas `Test` reciban
+  `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED`; está configurado en `:app`,
+  `:editor-de-codigo` y `:visor-pdf`. Sin esto, falla en el arranque del entorno Android antes de entrar al test.
 - **Por eso, lo que se pueda decidir sin `Context` se decide en una función pura.** Si la alternativa necesita
   un `Context` (o `android`/`androidx`), la regla se queda **sin prueba**, y una regla sin prueba es una regla
   que nadie sabe si funciona. La decisión va a la pieza pura y el `Context` se queda en quien llama: es el

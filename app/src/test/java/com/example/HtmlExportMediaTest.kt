@@ -113,6 +113,6 @@ class HtmlExportMediaTest {
     fun `legacy item markup migrates to checklist html`() {
         val html = RichTextConverter.contentToHtml("<item checked=\"true\">hecho</item>")
 
-        assertTrue(html.contains("""<li data-checked="checked">hecho</li>"""))
+        assertTrue(html.contains("""<li data-checked="checked"><input type="checkbox" checked>hecho</li>"""))
     }
 }

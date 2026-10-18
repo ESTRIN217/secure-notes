@@ -35,8 +35,8 @@ class OnDeviceModelSourceTest {
     }
 
     @Test
-    fun `source label drops the scheme and the file`() {
-        assertEquals("huggingface.co/org/repo", model("model.gguf").sourceLabel)
+    fun `source label includes the https scheme and repository`() {
+        assertEquals("https://huggingface.co/org/repo", model("model.gguf").sourceLabel)
     }
 
     @Test
@@ -60,7 +60,7 @@ class OnDeviceModelSourceTest {
             assertTrue(m.huggingFaceRepo.contains('/'))
             assertTrue(m.downloadUrl.startsWith("https://huggingface.co/"))
             assertTrue(m.downloadUrl.endsWith(m.ggufFileName))
-            assertTrue(m.sourceLabel.startsWith("huggingface.co/"))
+            assertTrue(m.sourceLabel.startsWith("https://huggingface.co/"))
             assertTrue("missing quant label for ${m.id}", m.quantLabel.isNotEmpty())
         }
     }

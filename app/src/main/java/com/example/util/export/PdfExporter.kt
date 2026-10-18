@@ -22,7 +22,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class PdfExporter : Exporter {
+class PdfExporter internal constructor(
+    private val pdfDocumentFactory: PdfDocumentFactory
+) : Exporter {
+    constructor() : this(PdfDocumentFactory { AndroidPdfDocumentBackend() })
+
     override val formatKey = "PDF"
 
     override fun export(context: Context, notes: List<DecryptedNote>) {
@@ -35,10 +39,9 @@ class PdfExporter : Exporter {
 
     private fun exportSingle(context: Context, dec: DecryptedNote) {
         try {
-            val pdfDocument = PdfDocument()
+            val pdfDocument = pdfDocumentFactory.create()
             val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
-            var page = pdfDocument.startPage(pageInfo)
-            var canvas: Canvas = page.canvas
+            var canvas = pdfDocument.startPage(pageInfo)
 
             val renderer = PdfBlockRenderer()
             val embedder = HtmlMediaEmbedder(context)
@@ -49,19 +52,18 @@ class PdfExporter : Exporter {
             for (block in blocks) {
                 val needed = renderer.measureBlock(block, embedder, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight, context)
                 if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
-                    pdfDocument.finishPage(page)
+                    pdfDocument.finishPage()
                     pageNumber++
-                    page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
-                    canvas = page.canvas
+                    canvas = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
                     y = MARGIN
                 }
                 y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, PAGE_WIDTH - (MARGIN * 2).toInt(), maxHeight, context)
             }
-            pdfDocument.finishPage(page)
+            pdfDocument.finishPage()
 
             val fileName = dec.title.replace("[^a-zA-Z0-9]".toRegex(), "_") + ".pdf"
             val file = File(context.cacheDir, fileName)
-            FileOutputStream(file).use { out -> pdfDocument.writeTo(out) }
+            FileOutputStream(file).use(pdfDocument::writeTo)
             pdfDocument.close()
             shareFile(context, file, "application/pdf", context.getString(R.string.share_title_pdf))
         } catch (e: Exception) {
@@ -72,10 +74,9 @@ class PdfExporter : Exporter {
 
     private fun exportMultiple(context: Context, notes: List<DecryptedNote>) {
         try {
-            val pdfDocument = PdfDocument()
+            val pdfDocument = pdfDocumentFactory.create()
             var pageNumber = 1
-            var page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
-            var canvas: Canvas = page.canvas
+            var canvas = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
             var y = MARGIN
             val renderer = PdfBlockRenderer()
             val embedder = HtmlMediaEmbedder(context)
@@ -93,10 +94,9 @@ class PdfExporter : Exporter {
                     y += 20f
                 }
                 if (y + titleLayout.height + 30f > PAGE_HEIGHT - MARGIN) {
-                    pdfDocument.finishPage(page)
+                    pdfDocument.finishPage()
                     pageNumber++
-                    page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
-                    canvas = page.canvas
+                    canvas = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
                     y = MARGIN
                 }
                 canvas.save(); canvas.translate(MARGIN, y); titleLayout.draw(canvas); canvas.restore()
@@ -113,20 +113,19 @@ class PdfExporter : Exporter {
                 for (block in blocks) {
                     val needed = renderer.measureBlock(block, embedder, maxWidth, maxHeight, context)
                     if (needed > 0f && y + needed > PAGE_HEIGHT - MARGIN) {
-                        pdfDocument.finishPage(page)
+                        pdfDocument.finishPage()
                         pageNumber++
-                        page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
-                        canvas = page.canvas
+                        canvas = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageNumber).create())
                         y = MARGIN
                     }
                     y += renderer.drawBlock(canvas, block, embedder, MARGIN, y, maxWidth, maxHeight, context)
                 }
                 y += 25f
             }
-            pdfDocument.finishPage(page)
+            pdfDocument.finishPage()
 
             val file = File(context.cacheDir, "Exported_Notes.pdf")
-            FileOutputStream(file).use { out -> pdfDocument.writeTo(out) }
+            FileOutputStream(file).use(pdfDocument::writeTo)
             pdfDocument.close()
             shareFile(context, file, "application/pdf", context.getString(R.string.share_title_pdf))
         } catch (e: Exception) {

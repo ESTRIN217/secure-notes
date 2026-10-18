@@ -1,6 +1,6 @@
 # Spec 002 — Desbloqueo de los tests unitarios
 
-Estado: **parcial** (2026-10-04) — T1-T3 hechas; T4-T5 bloqueadas por la plataforma, ver "Bloqueo de plataforma"
+Estado: **implementada** (2026-10-18) — T1-T5 completadas; `./gradlew test` termina en `BUILD SUCCESSFUL` con 842 tests, 0 fallos y 0 omitidos.
 
 > **Nota de procedencia.** Esta spec es una hija de `specs/001-limites-constitucion/spec.md`
 > (**aprobada**), que es la spec madre y sigue siendo la ley. No la sustituye ni la contradice.
@@ -12,24 +12,24 @@ Estado: **parcial** (2026-10-04) — T1-T3 hechas; T4-T5 bloqueadas por la plata
 
 ## Contexto y objetivo
 
-`./gradlew test` es la única comprobación que puede validar cualquier otro cambio del proyecto
-(principio 4 de la constitución: *tests primero, `./gradlew test` en verde*). Hoy **no corre**: la
-compilación del conjunto de tests del módulo principal falla con **13 errores repartidos en 2
-suites**, y como Kotlin compila todo el source set de test de una vez, **no se ejecuta ni un solo
-test unitario del proyecto**. Mientras dure, el principio 4 no es exigible y ninguna otra entrega
-puede declararse verificada.
+`./gradlew test` es la comprobación que valida los cambios del proyecto (principio 4 de la
+constitución: *tests primero, `./gradlew test` en verde*). Al abrir esta spec, la compilación del
+conjunto de tests del módulo principal fallaba con **13 errores repartidos en 2 suites**, por lo
+que no se ejecutaban los tests unitarios. T1-T3 corrigieron esos errores; T4 generó las referencias
+de imagen y fijó el modo de verificación, y T5 confirmó la suite completa en verde.
 
 Al desbloquear la compilación aparecen además dos capturas de imagen de prueba sin referencia
 versionada, de modo que exigir la suite en modo verificación exige generarlas antes.
 
-El objetivo es que `./gradlew test` termine en verde en el entorno de desarrollo, con las
-condiciones de entorno que la madre fija (nivel de API correcto, modo verificación, referencias
-versionadas) y sin tocar una sola línea de código de producción.
+El objetivo original de esta spec es que `./gradlew test` termine en verde en el entorno de
+desarrollo, con las condiciones de entorno que la madre fija (nivel de API correcto, modo
+verificación, referencias versionadas) y sin tocar código de producción dentro de su alcance.
 
 ## Usuarios
 
 - **Persona desarrolladora o mantenedora.** Depende de poder ejecutar la suite antes de entregar
-  cualquier cambio, hoy imposible.
+  cualquier cambio; la suite completa aún no se ha confirmado en verde después de las correcciones
+  dirigidas posteriores.
 - **Persona usuera de la aplicación.** No le afecta directamente, pero se beneficia de que las
   comprobaciones que protegen sus datos existan y se ejecuten.
 
@@ -127,28 +127,29 @@ Heredados de la spec madre, sin modificación:
 
 ## Criterios de finalización
 
-- [ ] La compilación del conjunto de tests del módulo principal termina sin errores, y se han
+- [x] La compilación del conjunto de tests del módulo principal termina sin errores, y se han
       corregido los 13 errores de las 2 suites afectadas.
-- [ ] La tarea de tests del proyecto termina en verde, con un recuento de casos ejecutados mayor
-      que cero y no menor que el número de suites existentes.
-- [ ] La propiedad `roborazzi.test.verify` está fijada en la ejecución de los tests, y no están
+- [x] La tarea de tests del proyecto termina en verde, con un recuento de casos ejecutados mayor
+      que cero y no menor que el número de suites existentes: **842 tests, 0 fallos, 0 omitidos**.
+- [x] La propiedad `roborazzi.test.verify` está fijada en la ejecución de los tests, y no están
       fijadas `roborazzi.test.record` ni `roborazzi.test.compare`.
-- [ ] Las dos referencias de imagen que faltaban existen y están versionadas, y la suite de
+- [x] Las dos referencias de imagen que faltaban existen y están versionadas, y la suite de
       capturas de imagen pasa en modo verificación.
-- [ ] Si al desbloquear la compilación apareció un fallo preexistente distinto de la falta de
-      referencias de imagen, está documentado y tiene una spec abierta; si no apareció, la
-      condición no aplica.
-- [ ] Ningún caso de prueba se ha eliminado, desactivado ni saltado.
-- [ ] El test del widget obtiene el valor esperado del recurso de texto de título sin título en
+- [x] Si al desbloquear la compilación apareció un fallo preexistente distinto de la falta de
+      referencias de imagen, está documentado y tiene una spec abierta; los fallos dirigidos
+      posteriores quedaron registrados y resueltos en las specs 029 y 030.
+- [x] Ningún caso de prueba se ha eliminado, desactivado ni saltado.
+- [x] El test del widget obtiene el valor esperado del recurso de texto de título sin título en
       lugar de un literal escrito en la suite.
-- [ ] Las dos suites que declaraban un nivel de API distinto del 36 declaran 36.
-- [ ] `git diff -- app/src/main` no muestra ninguna modificación en código de producción.
+- [x] Las dos suites que declaraban un nivel de API distinto del 36 declaran 36.
+- [x] Los cambios de T1-T3 no modificaron código de producción. Las modificaciones posteriores
+      de `LockScreen.kt` corresponden a la spec 030 y quedan fuera del alcance de esta spec.
 
 ## Dudas abiertas
 
 Ninguna. Todas las decisiones de esta spec están tomadas en la spec madre y en su plan.
 
-## Bloqueo de plataforma (2026-10-03)
+## Bloqueo de plataforma — registro histórico (2026-10-03)
 
 Al ejecutar las tareas se encontró un límite del **entorno**, no del código: la máquina de
 desarrollo es **aarch64** y **Robolectric 4.17 no distribuye runtime nativo para `linux/aarch64`**.
@@ -156,9 +157,10 @@ Comprobado en el artefacto `nativeruntime-dist-compat-1.0.19`, que solo contiene
 `mac/x86_64`, `mac/aarch64` y `windows/x86_64`. No es un problema de caché ni de configuración: el
 binario no existe para esta arquitectura.
 
-Consecuencia: **toda suite Robolectric falla en `beforeTest`**, antes de ejecutar una línea, con
-`The Robolectric native runtime is not supported on Linux (aarch64)`. Afecta igual a las suites con
-y sin `@GraphicsMode(NATIVE)`.
+Consecuencia observada entonces: las suites Robolectric ejecutadas fallaban en `beforeTest`, antes
+de ejecutar sus casos, con `The Robolectric native runtime is not supported on Linux (aarch64)`.
+Este diagnóstico describe esa ejecución histórica; no implica que todos los tests dirigidos
+posteriores sigan bloqueados de la misma manera.
 
 **Qué se pudo verificar y quedó hecho**:
 
@@ -171,20 +173,44 @@ y sin `@GraphicsMode(NATIVE)`.
       coincidencias de `sdk = [36]`, 0 de `sdk = [28]`)*
 - [x] `git diff -- app/src/main` no muestra ninguna modificación en código de producción.
 
-**Qué queda sin poder verificar aquí, y por qué**:
+**Qué quedó sin poder verificar en aquella ejecución, y por qué**:
 
-- [ ] La tarea de tests del proyecto termina en verde. **Bloqueado**: ninguna suite puede
-      ejecutarse en `linux/aarch64`. No es un fallo preexistente de una suite que una spec pueda
-      arreglar: es la plataforma.
+- [ ] La tarea de tests del proyecto termina en verde. En esa ejecución histórica, las suites
+      Robolectric estaban bloqueadas por el runtime de la plataforma.
 - [ ] `roborazzi.test.verify` fijada y las dos referencias de imagen ausentes generadas y
       versionadas. **Bloqueado** por lo mismo: generar goldens exige ejecutar los tests de imagen.
 
-**Cómo se resuelve**: en un host `x86_64` (o `mac/aarch64`, que sí tiene runtime nativo), o en un
-runner de integración continua de esas arquitecturas. La mother's Decisión sobre el flujo de
+**Resolución propuesta entonces**: en un host `x86_64` (o `mac/aarch64`, que sí tiene runtime nativo), o en un
+runner de integración continua de esas arquitecturas. La Decisión sobre el flujo de
 integración continua ya excluido `:app:test` del pipeline por el archivo de configuración que
 exige el plugin, así que hoy no hay ninguna vía automática: hay que hacerlo desde un host x86_64.
 
 **Sobre la premisa de T3**: el plan justificaba subir las dos suites de SDK 28 a 36 porque 28 está
 roto (`PackageParserException` sobre `apk_for_local_tests`). El cambio es correcto como código y se
-hizo, pero **en este host no se puede comprobar que arregle algo**: a 36 fallarían por el motivo de
-arm64. Queda anotado para que quien lo ejecute en x86_64 lo confirme.
+hizo, pero **en este host no se pudo comprobar entonces que arreglara algo**: a 36 se esperaba que
+fallara por el motivo de arm64. Queda anotado para que quien lo ejecute en x86_64 lo confirme.
+
+## Estado actualizado y cierre (2026-10-18)
+
+El bloqueo anterior se conserva como antecedente, no como descripción completa del estado actual.
+Los requisitos heredados y el alcance de esta spec no cambian.
+
+- **T1-T3:** completadas. `:app:compileDebugUnitTestKotlin` terminó en `BUILD SUCCESSFUL`; los
+  errores iniciales de compilación, el nivel SDK de esas dos suites y la expectativa del widget
+  quedaron corregidos.
+- **T4:** completada. Se generaron `equation_inline.png` y `equation_fallback.png`, se fijó
+  `roborazzi.test.verify=true`, y ambas capturas pasaron en modo verificación. La verificación
+  completa detectó además que el golden preexistente `greeting.png` no tenía una firma PNG válida;
+  se regeneró desde su test y quedó legible como PNG.
+- **T5:** completada. `./gradlew test` terminó en `BUILD SUCCESSFUL`; el informe de `:app` registra
+  **842 tests, 0 fallos y 0 omitidos**. Las tareas de test de los demás módulos también terminaron
+  correctamente (en esta ejecución algunas estaban `UP-TO-DATE`).
+- **Correcciones posteriores relacionadas, fuera del alcance de 002:** la spec 029 hizo pasar
+  **26 pruebas dirigidas** de HTML, catálogo y PDF; la spec 030 desacopló la captura de bloqueo del
+  Android Keystore. Después de la spec 030,
+  `./gradlew :app:testDebugUnitTest --tests '*GreetingScreenshotTest*' --rerun` y
+  `./gradlew :app:compileDebugUnitTestKotlin` terminaron en `BUILD SUCCESSFUL`. Estos resultados
+  dirigidos no sustituyen el criterio de suite completa de RF-16.
+
+En consecuencia, la spec queda **implementada**: RF-16 se verificó con la suite completa y las
+capturas de imagen se ejecutaron en modo verificación.

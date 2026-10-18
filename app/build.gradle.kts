@@ -3,6 +3,8 @@ import java.io.FileInputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import org.gradle.api.tasks.testing.Test
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -71,6 +73,11 @@ android {
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
+
+tasks.withType<Test>().configureEach {
+  jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+}
+
 androidComponents {
   onVariants { variant ->
     val appName = "Secure-Notes"

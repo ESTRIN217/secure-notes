@@ -2,6 +2,11 @@
 
 Spec: `specs/002-desbloqueo-tests/spec.md` · Madre: `specs/001-limites-constitucion/` (**aprobada**)
 
+**Estado de ejecución (2026-10-18):** T1-T5 completadas. Se generaron y verificaron las referencias
+de ecuaciones, se reparó el golden PNG preexistente de bloqueo y `./gradlew test` terminó en
+`BUILD SUCCESSFUL` (842 tests, 0 fallos, 0 omitidos en `:app`). Las specs 029 y 030 son trabajo
+posterior y no amplían el alcance de este plan.
+
 Este plan es el bloque «Fase 0» del `plan.md` de la spec madre (sección 2), movido tal cual y
 ajustado a la nueva numeración de tareas. No reescribe nada: fija las firmas de producción que hay
 que llamar y concreta las decisiones que la madre dejaba abiertas.

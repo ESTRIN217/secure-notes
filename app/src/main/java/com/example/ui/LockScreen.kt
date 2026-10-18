@@ -100,6 +100,49 @@ fun LockScreen(viewModel: NotesViewModel) {
         if (isBiometricEnabled) triggerBiometric()
     }
 
+    LockScreenContent(
+        state = LockScreenUiState(
+            password = password,
+            hasError = hasError,
+            passwordType = passwordType,
+            isRateLimited = isRateLimited,
+            rateLimitRemaining = rateLimitRemaining,
+            isBiometricEnabled = isBiometricEnabled,
+            isBiometricAvailable = isBiometricEnabled && biometricManager.isBiometricAvailable(),
+        ),
+        onPasswordChange = {
+            password = it
+            hasError = false
+        },
+        onUnlock = {
+            if (viewModel.unlockApp(password)) {
+                hasError = false
+                Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
+            } else {
+                hasError = true
+            }
+        },
+        onBiometricUnlock = ::triggerBiometric,
+    )
+}
+
+internal data class LockScreenUiState(
+    val password: String,
+    val hasError: Boolean,
+    val passwordType: PasswordType,
+    val isRateLimited: Boolean,
+    val rateLimitRemaining: Long,
+    val isBiometricEnabled: Boolean,
+    val isBiometricAvailable: Boolean,
+)
+
+@Composable
+internal fun LockScreenContent(
+    state: LockScreenUiState,
+    onPasswordChange: (String) -> Unit,
+    onUnlock: () -> Unit,
+    onBiometricUnlock: () -> Unit,
+) {
     Scaffold { innerPadding ->
         Box(
             modifier = Modifier
@@ -108,133 +151,165 @@ fun LockScreen(viewModel: NotesViewModel) {
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            OutlinedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
-                colors = CardDefaults.outlinedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = stringResource(R.string.lock_icon),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(id = R.string.status_encrypted),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF43A047),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            hasError = false
-                        },
-                        label = { Text(stringResource(id = R.string.label_enter_password)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("password_input"),
-                        singleLine = true,
-                        isError = hasError,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
-                    )
-                    if (hasError) {
-                        Text(
-                            text = stringResource(id = R.string.error_wrong_password),
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .align(Alignment.Start)
-                                .padding(top = 4.dp)
-                        )
-                    }
-                    if (isRateLimited) {
-                        Text(
-                            text = stringResource(R.string.error_rate_limit, rateLimitRemaining),
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .align(Alignment.Start)
-                                .padding(top = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = {
-                            if (viewModel.unlockApp(password)) {
-                                hasError = false
-                                Toast.makeText(context, context.getString(R.string.toast_unlocked), Toast.LENGTH_SHORT).show()
-                            } else {
-                                hasError = true
-                            }
-                        },
-                        enabled = !isRateLimited,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("unlock_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.label_unlock),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Biometric unlock button
-                    if (isBiometricEnabled && biometricManager.isBiometricAvailable()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedButton(
-                            onClick = { triggerBiometric() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Fingerprint,
-                                contentDescription = stringResource(R.string.biometric_unlock_button),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.biometric_unlock_button),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
+            LockCard(state, onPasswordChange, onUnlock, onBiometricUnlock)
         }
+    }
+}
+
+@Composable
+private fun LockCard(
+    state: LockScreenUiState,
+    onPasswordChange: (String) -> Unit,
+    onUnlock: () -> Unit,
+    onBiometricUnlock: () -> Unit,
+) {
+    OutlinedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            LockHeader()
+            Spacer(modifier = Modifier.height(24.dp))
+            LockPasswordInput(state.password, state.passwordType, state.hasError, onPasswordChange)
+            LockFeedback(state)
+            Spacer(modifier = Modifier.height(24.dp))
+            LockActions(state, onUnlock, onBiometricUnlock)
+        }
+    }
+}
+
+@Composable
+private fun LockHeader() {
+    Icon(
+        imageVector = Icons.Default.Lock,
+        contentDescription = stringResource(R.string.lock_icon),
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size(64.dp)
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Text(
+        text = stringResource(id = R.string.app_name),
+        fontSize = 28.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Text(
+        text = stringResource(id = R.string.status_encrypted),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = Color(0xFF43A047),
+        modifier = Modifier.padding(vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun LockPasswordInput(
+    password: String,
+    passwordType: PasswordType,
+    hasError: Boolean,
+    onPasswordChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = password,
+        onValueChange = onPasswordChange,
+        label = { Text(stringResource(id = R.string.label_enter_password)) },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (passwordType == PasswordType.PIN) KeyboardType.NumberPassword else KeyboardType.Password
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("password_input"),
+        singleLine = true,
+        isError = hasError,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        )
+    )
+}
+
+@Composable
+private fun ColumnScope.LockFeedback(state: LockScreenUiState) {
+    if (state.hasError) {
+        Text(
+            text = stringResource(id = R.string.error_wrong_password),
+            color = MaterialTheme.colorScheme.error,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(top = 4.dp)
+        )
+    }
+    if (state.isRateLimited) {
+        Text(
+            text = stringResource(R.string.error_rate_limit, state.rateLimitRemaining),
+            color = MaterialTheme.colorScheme.error,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun LockActions(
+    state: LockScreenUiState,
+    onUnlock: () -> Unit,
+    onBiometricUnlock: () -> Unit,
+) {
+    Button(
+        onClick = onUnlock,
+        enabled = !state.isRateLimited,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .testTag("unlock_button"),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Text(
+            text = stringResource(id = R.string.label_unlock),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    if (state.isBiometricEnabled && state.isBiometricAvailable) {
+        Spacer(modifier = Modifier.height(16.dp))
+        BiometricUnlockButton(onBiometricUnlock)
+    }
+}
+
+@Composable
+private fun BiometricUnlockButton(onBiometricUnlock: () -> Unit) {
+    OutlinedButton(
+        onClick = onBiometricUnlock,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Fingerprint,
+            contentDescription = stringResource(R.string.biometric_unlock_button),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.biometric_unlock_button),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

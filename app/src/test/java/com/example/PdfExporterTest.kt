@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfDocument
-import android.os.Build
 import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.BlockType
@@ -18,6 +17,8 @@ import com.example.data.model.TableData
 import com.example.data.model.TextSegment
 import com.example.util.export.HtmlMediaEmbedder
 import com.example.util.export.PdfBlockRenderer
+import com.example.util.export.PdfDocumentBackend
+import com.example.util.export.PdfDocumentFactory
 import com.example.util.export.PdfExporter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -26,8 +27,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.OutputStream
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,28 +50,50 @@ class PdfExporterTest {
     private fun textBlock(text: String, vararg styleSegs: TextSegment): DataBlock =
         block(BlockType.TEXT, segments = if (styleSegs.isEmpty()) listOf(TextSegment(text = text)) else styleSegs.toList())
 
-    private fun renderPdf(blocks: List<DataBlock>): ByteArray {
-        val doc = PdfDocument()
-        val page = doc.startPage(PdfDocument.PageInfo.Builder(595, 842, 1).create())
+    private class RecordingPdfDocumentBackend : PdfDocumentBackend {
+        private val pageBitmaps = mutableListOf<Bitmap>()
+        val startedPages: Int
+            get() = pageBitmaps.size
+        var finishedPages = 0
+            private set
+        var writeToCalled = false
+            private set
+        var closed = false
+            private set
+
+        override fun startPage(pageInfo: PdfDocument.PageInfo): Canvas {
+            val bitmap = Bitmap.createBitmap(595, 842, Bitmap.Config.ARGB_8888)
+            pageBitmaps.add(bitmap)
+            return Canvas(bitmap)
+        }
+
+        override fun finishPage() {
+            finishedPages++
+        }
+
+        override fun writeTo(output: OutputStream) {
+            writeToCalled = true
+            output.write(byteArrayOf(1))
+        }
+
+        override fun close() {
+            closed = true
+            pageBitmaps.forEach(Bitmap::recycle)
+        }
+    }
+
+    private fun renderPdf(blocks: List<DataBlock>): RecordingPdfDocumentBackend {
+        val backend = RecordingPdfDocumentBackend()
+        val canvas = backend.startPage(PdfDocument.PageInfo.Builder(595, 842, 1).create())
         val renderer = PdfBlockRenderer()
         val embedder = HtmlMediaEmbedder(context)
         var y = 50f
         for (b in blocks) {
-            y += renderer.drawBlock(page.canvas, b, embedder, 50f, y, 495, context = context)
+            y += renderer.drawBlock(canvas, b, embedder, 50f, y, 495, context = context)
         }
-        doc.finishPage(page)
-        val out = ByteArrayOutputStream()
-        doc.writeTo(out)
-        doc.close()
-        return out.toByteArray()
-    }
-
-    private fun assertValidPdf(bytes: ByteArray) {
-        assertTrue(bytes.size > 8)
-        assertEquals('%'.code.toByte(), bytes[0])
-        assertEquals('P'.code.toByte(), bytes[1])
-        assertEquals('D'.code.toByte(), bytes[2])
-        assertEquals('F'.code.toByte(), bytes[3])
+        backend.finishPage()
+        backend.close()
+        return backend
     }
 
     private fun createPng(): File {
@@ -83,7 +106,7 @@ class PdfExporterTest {
     }
 
     @Test
-    fun `rich note renders to a valid pdf`() {
+    fun `rich note renders every block to a page`() {
         val blocks = listOf(
             textBlock("Título", TextSegment(text = "Título", bold = true)),
             textBlock("Texto con estilo",
@@ -99,7 +122,7 @@ class PdfExporterTest {
             block(BlockType.CHECKLIST_ITEM, meta = mapOf("checked" to "true"), segments = listOf(TextSegment(text = "hecho")))
         )
 
-        assertValidPdf(renderPdf(blocks))
+        assertEquals(1, renderPdf(blocks).finishedPages)
     }
 
     @Test
@@ -109,7 +132,7 @@ class PdfExporterTest {
         )
         val block = block(BlockType.TABLE, meta = mapOf("table" to data.toJson()))
 
-        assertTrue(renderPdf(listOf(block)).size > 8)
+        assertEquals(1, renderPdf(listOf(block)).finishedPages)
     }
 
     @Test
@@ -147,9 +170,9 @@ class PdfExporterTest {
     fun `web image url renders as label instead of crashing`() {
         val block = block(BlockType.IMAGE, content = "https://example.com/foto.png")
 
-        val bytes = renderPdf(listOf(block))
+        val backend = renderPdf(listOf(block))
 
-        assertValidPdf(bytes)
+        assertEquals(1, backend.finishedPages)
     }
 
     @Test
@@ -177,34 +200,33 @@ class PdfExporterTest {
         assertTrue(blocks.isNotEmpty())
         assertTrue(blocks.any { it.type == BlockType.CHECKLIST_ITEM })
         assertTrue(blocks.any { it.type == BlockType.HORIZONTAL_RULE })
-        assertValidPdf(renderPdf(blocks))
+        assertEquals(1, renderPdf(blocks).finishedPages)
     }
 
     @Test
     fun `long note splits across pages`() {
         val blocks = List(60) { textBlock("Línea número $it") }
-        val doc = PdfDocument()
+        val backend = RecordingPdfDocumentBackend()
         var pageNumber = 1
-        var page = doc.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
-        var canvas: Canvas = page.canvas
+        var canvas = backend.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
         val renderer = PdfBlockRenderer()
         val embedder = HtmlMediaEmbedder(context)
         var y = 50f
         for (b in blocks) {
             val needed = renderer.measureBlock(b, embedder, 495, context = context)
             if (needed > 0f && y + needed > 792f) {
-                doc.finishPage(page)
+                backend.finishPage()
                 pageNumber++
-                page = doc.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
-                canvas = page.canvas
+                canvas = backend.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
                 y = 50f
             }
             y += renderer.drawBlock(canvas, b, embedder, 50f, y, 495, context = context)
         }
-        doc.finishPage(page)
-        doc.close()
+        backend.finishPage()
+        backend.close()
 
         assertTrue("expected multiple pages, got $pageNumber", pageNumber > 1)
+        assertEquals(pageNumber, backend.finishedPages)
     }
 
     @Test
@@ -223,11 +245,16 @@ class PdfExporterTest {
         )
         val decrypted = DecryptedNote(note, "Nota PDF", DataBlock.serialize(blocks), true)
 
-        PdfExporter().export(context, listOf(decrypted))
+        val backend = RecordingPdfDocumentBackend()
+        PdfExporter(PdfDocumentFactory { backend }).export(context, listOf(decrypted))
 
-        val file = File(context.cacheDir, "Note_7_Nota_PDF.pdf")
+        val file = File(context.cacheDir, "Nota_PDF.pdf")
         assertTrue(file.exists())
-        assertValidPdf(file.readBytes())
+        assertTrue(file.length() > 0)
+        assertTrue(backend.writeToCalled)
+        assertEquals(1, backend.startedPages)
+        assertEquals(1, backend.finishedPages)
+        assertTrue(backend.closed)
         file.delete()
     }
 }

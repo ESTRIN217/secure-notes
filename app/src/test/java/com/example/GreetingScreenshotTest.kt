@@ -2,9 +2,9 @@ package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import com.example.ui.LockScreen
+import com.example.ui.LockScreenContent
+import com.example.ui.LockScreenUiState
 import com.example.ui.theme.MyApplicationTheme
-import com.example.ui.viewmodel.NotesViewModel
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -23,11 +23,23 @@ class GreetingScreenshotTest {
 
   @Test
   fun greeting_screenshot() {
-    val application = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
-    composeTestRule.setContent { 
-      MyApplicationTheme { 
-        LockScreen(viewModel = NotesViewModel(application, com.example.data.local.NoteDatabase.getDatabase(application))) 
-      } 
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        LockScreenContent(
+          state = LockScreenUiState(
+            password = "",
+            hasError = false,
+            passwordType = PasswordType.PASSWORD,
+            isRateLimited = false,
+            rateLimitRemaining = 0L,
+            isBiometricEnabled = false,
+            isBiometricAvailable = false,
+          ),
+          onPasswordChange = {},
+          onUnlock = {},
+          onBiometricUnlock = {},
+        )
+      }
     }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/greeting.png")
