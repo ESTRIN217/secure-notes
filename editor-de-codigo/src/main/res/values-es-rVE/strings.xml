@@ -1,7 +1,7 @@
 <resources>
     <!-- CodeToolsApp -->
-    <string name="file_too_large">El archivo es demasiado grande (máx. 2 MB)</string>
-    <string name="file_read_error">No se pudo leer el archivo seleccionado</string>
+    <string name="file_too_large">El archivo es demasiado pesado (máx. 2 MB)</string>
+    <string name="file_read_error">No se pudo leer ese archivo, chamo</string>
     <string name="cd_view_files">Ver archivos</string>
     <string name="mode_edit">Editar</string>
     <string name="mode_view">Ver</string>
@@ -17,7 +17,7 @@
     <string name="menu_wrap_on">Ajuste de línea (Word Wrap)</string>
     <string name="menu_minify">Compactar JSON (Minify)</string>
     <string name="copy_code">Copiar código</string>
-    <string name="copied_clipboard">Código copiado al portapapeles</string>
+    <string name="copied_clipboard">¡Código copiado al pelo!</string>
     <string name="share_script">Compartir script</string>
     <string name="share_subject_default">script</string>
     <string name="share_chooser">Compartir código</string>
@@ -63,20 +63,20 @@
     <string name="cd_undo">Deshacer</string>
     <string name="cd_redo">Rehacer</string>
     <string name="menu_open_folder">Abrir carpeta...</string>
-    <string name="snackbar_folder_no_code">No se encontraron archivos de código compatibles en la carpeta</string>
+    <string name="snackbar_folder_no_code">No conseguimos ningún archivo de código en esa carpeta</string>
     <string name="status_font_size">%1$dpt</string>
     <!-- EditorTabsBar -->
     <!-- VSCodeWelcomeScreen -->
     <!-- Empty workspace -->
     <string name="empty_workspace_title">Sin pestañas abiertas</string>
-    <string name="empty_workspace_desc">No tienes ningún archivo abierto por ahora. Abre la bienvenida o empieza uno nuevo.</string>
+    <string name="empty_workspace_desc">No tienes ningún archivo abierto ahorita. Abre la bienvenida o arranca uno nuevo.</string>
     <string name="empty_new_file">Nuevo archivo</string>
     <!-- EditorDialogs extra -->
     <string name="cd_clear">Limpiar</string>
     <string name="new_file_invalid_name">El nombre no puede tener caracteres como / \ : * ?  &quot; &lt; &gt; |</string>
     <string name="new_file_name_helper">Introduce el nombre del archivo con su extensión (ej. script.py, app.js, index.html, estilos.css).</string>
     <string name="new_file_detected_type">Tipo: %1$s (.%2$s)</string>
-    <string name="new_file_extension_tip">Tip: si no colocas extensión, se guardará como texto plano (.txt).</string>
+    <string name="new_file_extension_tip">Tip: si no le pones extensión, se guardará como texto plano (.txt).</string>
     <!-- QuickSymbolBar -->
     <string name="qsb_tab">TAB</string>
     <string name="qsb_comment"># Comentar</string>
@@ -87,11 +87,11 @@
     <string name="storage_label_external">SAF</string>
     <string name="storage_label_internal">Almacenamiento</string>
     <!-- ViewModel toasts -->
-    <string name="toast_file_created">Archivo creado: %1$s</string>
+    <string name="toast_file_created">¡Listo! Archivo creado: %1$s</string>
     <string name="toast_file_opened">¡Fino! Archivo abierto: %1$s</string>
-    <string name="toast_file_too_large">El archivo es demasiado grande (máx. 2 MB)</string>
-    <string name="toast_file_read_error">No se pudo leer el archivo</string>
-    <string name="toast_file_saved">Guardado: %1$s</string>
+    <string name="toast_file_too_large">El archivo es demasiado pesado (máx. 2 MB)</string>
+    <string name="toast_file_read_error">No pudimos leer ese archivo, chamo</string>
+    <string name="toast_file_saved">¡Guardado al pelo! %1$s</string>
     <string name="toast_file_deleted">Archivo eliminado</string>
     <string name="toast_line_duplicated">Línea duplicada</string>
     <string name="toast_line_deleted">Línea eliminada</string>
@@ -100,7 +100,7 @@
     <string name="toast_code_formatted">¡Código formateado al pelo! (%1$s)</string>
     <string name="toast_json_minified">JSON compactado correctamente</string>
     <string name="toast_replaced">Reemplazadas %1$d coincidencias</string>
-    <string name="toast_import_empty">No se encontraron archivos de texto para importar</string>
+    <string name="toast_import_empty">No conseguimos ningún archivo de texto para importar, pana</string>
     <string name="toast_folder_imported">%1$s: %2$d archivos cargados</string>
     <string name="mode_split">Mitad y mitad</string>
     <string name="mode_preview">Vista previa</string>

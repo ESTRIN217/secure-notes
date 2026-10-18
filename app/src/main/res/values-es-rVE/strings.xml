@@ -10,19 +10,19 @@
     <string name="title_lock_settings">Privacidad y seguridad</string>
     <string name="title_cloud_sync">Sincronización en la nube</string>
     <string name="status_encrypted">Cifrado de extremo a extremo (E2EE)</string>
-    <string name="status_empty">No se encontraron notas. ¡Crea tu primera nota segura!</string>
-    <string name="status_empty_favorites">Sin notas favoritas</string>
-    <string name="status_empty_archived">No hay notas archivadas</string>
-    <string name="status_empty_trash">La papelera está vacía</string>
-    <string name="status_empty_trash_subtitle">Las notas eliminadas hace más de 90 días se borrarán permanentemente</string>
+    <string name="status_empty">No hay ni una nota por aquí. ¡Créate tu primera nota segura, chamo!</string>
+    <string name="status_empty_favorites">No tienes notas favoritas todavía</string>
+    <string name="status_empty_archived">No tienes nada archivado por aquí</string>
+    <string name="status_empty_trash">La papelera está limpiecita</string>
+    <string name="status_empty_trash_subtitle">Las notas eliminadas hace más de 90 días se borrarán del mapa</string>
     <string name="label_title">Título</string>
-    <string name="label_enter_password">Ingresa la contraseña maestra</string>
-    <string name="label_setup_password">Crear contraseña maestra</string>
-    <string name="label_set_password_msg">Crea una contraseña maestra para cifrar tus notas localmente. Si la pierdes, no podrás recuperarlas.</string>
-    <string name="label_unlock">Desbloquear aplicación</string>
-    <string name="error_wrong_password">Contraseña incorrecta. ¡Inténtalo de nuevo!</string>
-    <string name="sync_success">Sincronizado con Google Drive</string>
-    <string name="drive_linked">Google Drive conectado</string>
+    <string name="label_enter_password">Mete la clave maestra</string>
+    <string name="label_setup_password">Crear tu clave maestra</string>
+    <string name="label_set_password_msg">Cuadra una clave maestra para cifrar tus notas localmente. Si la pierdes, no podrás recuperarlas por nada del mundo.</string>
+    <string name="label_unlock">Desbloquear la app</string>
+    <string name="error_wrong_password">Esa no es la clave, chamo. ¡Prueba otra vez!</string>
+    <string name="sync_success">¡Al pelo! Sincronizado con Google Drive</string>
+    <string name="drive_linked">¡Fino! Google Drive conectado</string>
     <string name="drive_unlinked">Google Drive desconectado</string>
     <string name="dialog_create_tag">Crear etiqueta personalizada</string>
     <string name="tag_name_hint">Nombre de la etiqueta</string>
@@ -33,7 +33,7 @@
     <string name="menu_delete_selected">Eliminar seleccionadas</string>
     <string name="menu_cancel_selection">Cancelar selección</string>
     <string name="confirm_delete_title">Confirmar eliminación</string>
-    <string name="confirm_delete_msg">¿Estás seguro de que quieres eliminar las notas seleccionadas?</string>
+    <string name="confirm_delete_msg">¿Seguro que quieres mandar a la papelera las notas seleccionadas?</string>
     <string name="menu_toggle_view">Cambiar modo de vista</string>
     <string name="menu_sort_options">Cambiar ordenamiento</string>
     <string name="bottom_sheet_sort_title">Ordenar notas</string>
@@ -42,10 +42,51 @@
     <string name="sort_custom">Orden personalizado</string>
     <string name="action_move_up">Subir</string>
     <string name="action_move_down">Bajar</string>
-    <string name="welcome_note_title">¡Te damos la bienvenida a Secure Notes! 🚀</string>
-    <string name="welcome_note_content">Este es tu espacio seguro para pensamientos, ideas y notas que no puedes permitirte perder.\n\n🔒 **Cifrado real**: cada nota se cifra con **AES-256-GCM** mediante tu contraseña maestra (PBKDF2, 200 000 iteraciones). Sin ella nadie puede leerlas, ni siquiera el desarrollador.\n\n☁️ **Respaldo en Google Drive**: vincula tu cuenta para guardar una copia siempre cifrada de tus notas en tu carpeta privada de Drive.\n\n⚡ **Etiquetas, colores y filtros**: clasifica tus notas como Trabajo, Personal o Privado, márcalas como favoritas o archivadas y ordénalas a tu manera.\n\n¡Disfruta tomando notas!</string>
-    <string name="workout_note_title">Rutina Maestra: Fuerza y Resistencia</string>
-    <string name="workout_note_content">**Objetivo: Hipertrofia, potencia y capacidad cardiovascular.**\n\n**Programación semanal: L, M, J, V**\n\n### Bloque 1: Potencia y Agilidad\n- **Flexiones Rusas**: 3 series de 3 a 5 repeticiones.\n- **Flexiones con aplauso**: 3 series de 4 a 6 repeticiones.\n- **Dominadas**: 3 series de 5 a 6 repeticiones (explosivas).\n- **Flexiones en pica**: 3 series de 5 repeticiones.\n\n### Bloque 2: Resistencia de empuje\n- **Flexiones de arco**: 10 repeticiones (5 por brazo).\n- **Dominadas australianas**: 3 series de 10 a 12 repeticiones.\n- **Flexiones de puños**: 20 repeticiones.\n- **Flexiones normales**: 3 series de 10 repeticiones.\n\n### Bloque 3: Tren inferior\n- **Sentadillas**: 30 repeticiones.\n- **Sentadillas explosivas**: 3 series de 15 repeticiones.\n- **Zancadas búlgaras**: 3 series de 10 repeticiones por pierna.\n- **Zancadas frontales**: 40 repeticiones (20 por pierna).\n\n### Bloque 4: Core y Cardio\n- **Elevaciones de piernas**: 25 repeticiones.\n- **Escaladores**: 100 repeticiones.\n- **Planchas**: 3 series de 1 minuto.\n\n### Bloque 5: Estiramiento\n- **Gato-Camello**: 10 ciclos.\n- **Postura del niño**: 20-30 segundos.\n- **Estiramiento de pectorales en pared**: 20-30 segundos.\n- **Perro mirando hacia abajo**: 20-30 segundos.\n\n¡La constancia es la clave!</string>
+    <string name="welcome_note_title">¡Épale! ¡Te damos la bienvenida a Secure Notes! 🚀</string>
+    <string name="welcome_note_content">Este es tu rincón seguro para tus notas, pensamientos y cosas que no puedes perder por nada del mundo.
+
+🔒 **Cifrado de verdad**: cada nota se cifra con **AES-256-GCM** usando tu clave maestra (PBKDF2, 200 000 iteraciones). Sin ella nadie puede leer un carrizo, ni siquiera el desarrollador.
+
+☁️ **Respaldo en Google Drive**: conecta tu cuenta para guardar una copia siempre cifrada en tu carpeta privada de Drive.
+
+⚡ **Etiquetas, colores y filtros**: clasifica tus notas como Chamba, Personal o Privado, márcalas como favoritas o archivadas y organízalas como mejor te cuadre.
+
+¡Disfruta anotando, chamo!</string>
+    <string name="workout_note_title">Rutina para ponerse papiao: Fuerza y Resistencia</string>
+    <string name="workout_note_content">**Objetivo: Agarrar masa, fuerza y resistencia a millón.**
+
+**Programación semanal: L, M, J, V**
+
+### Bloque 1: Fuerza y Agilidad
+- **Flexiones Rusas**: 3 series de 3 a 5 repeticiones.
+- **Flexiones con aplauso**: 3 series de 4 a 6 repeticiones.
+- **Dominadas**: 3 series de 5 a 6 repeticiones (explosivas).
+- **Flexiones en pica**: 3 series de 5 repeticiones.
+
+### Bloque 2: Resistencia de empuje
+- **Flexiones de arco**: 10 repeticiones (5 por brazo).
+- **Dominadas australianas**: 3 series de 10 a 12 repeticiones.
+- **Flexiones de puños**: 20 repeticiones.
+- **Flexiones normales**: 3 series de 10 repeticiones.
+
+### Bloque 3: Piernas
+- **Sentadillas**: 30 repeticiones.
+- **Sentadillas explosivas**: 3 series de 15 repeticiones.
+- **Zancadas búlgaras**: 3 series de 10 repeticiones por pierna.
+- **Zancadas frontales**: 40 repeticiones (20 por pierna).
+
+### Bloque 4: Abdomen y Cardio
+- **Elevaciones de piernas**: 25 repeticiones.
+- **Escaladores**: 100 repeticiones.
+- **Planchas**: 3 series de 1 minuto.
+
+### Bloque 5: Estiramiento
+- **Gato-Camello**: 10 ciclos.
+- **Postura del niño**: 20-30 segundos.
+- **Estiramiento de pectorales en pared**: 20-30 segundos.
+- **Perro mirando hacia abajo**: 20-30 segundos.
+
+¡La constancia es la clave, no te quedes pegado!</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_archived">Archivados</string>
@@ -54,12 +95,12 @@
     <string name="nav_archived_title">Notas archivadas</string>
     <string name="nav_trash_title">Papelera</string>
     <string name="action_restore">Restaurar</string>
-    <string name="action_delete_perm">Eliminar permanentemente</string>
+    <string name="action_delete_perm">Borrar del mapa</string>
     <string name="action_empty_trash">Vaciar papelera</string>
-    <string name="alert_empty_trash_msg">¿Estás seguro de que quieres eliminar permanentemente todas las notas de la papelera?</string>
-    <string name="toast_moved_trash">Enviado a la papelera</string>
-    <string name="toast_restored">Nota restaurada</string>
-    <string name="toast_deleted_perm">Eliminada permanentemente</string>
+    <string name="alert_empty_trash_msg">¿Seguro que quieres borrar del mapa todas las notas de la papelera? No habrá vuelta atrás, chamo.</string>
+    <string name="toast_moved_trash">Mandada a la papelera</string>
+    <string name="toast_restored">¡Nota rescatada!</string>
+    <string name="toast_deleted_perm">Borrada del mapa</string>
     <string name="menu_batch_pin">Fijar</string>
     <string name="menu_batch_favorite">Favorito</string>
     <string name="menu_batch_archive">Archivar</string>
@@ -72,23 +113,23 @@
     <string name="share_format_html">Documento HTML (.html)</string>
     <string name="share_format_json">Formato JSON (.json)</string>
     <string name="batch_tags_title">Gestionar etiquetas de notas seleccionadas</string>
-    <string name="toast_batch_tags_applied">Etiquetas actualizadas exitosamente</string>
-    <string name="toast_unlocked">Aplicación desbloqueada</string>
-    <string name="toast_password_too_short">¡La contraseña debe tener al menos 4 caracteres!</string>
-    <string name="toast_passwords_do_not_match">¡Las contraseñas no coinciden!</string>
-    <string name="toast_note_saved">Nota guardada exitosamente</string>
-    <string name="toast_setup_password_first">¡Primero establece una contraseña maestra en Configuración!</string>
+    <string name="toast_batch_tags_applied">¡Etiquetas listas y al pelo!</string>
+    <string name="toast_unlocked">¡Listo! App desbloqueada</string>
+    <string name="toast_password_too_short">¡Pilas! La clave debe tener al menos 4 caracteres</string>
+    <string name="toast_passwords_do_not_match">¡Esas claves no cuadran, chamo!</string>
+    <string name="toast_note_saved">¡Nota guardada al pelo!</string>
+    <string name="toast_setup_password_first">¡Primero cuadra una clave maestra en Configuración!</string>
     <string name="dialog_edit_tag">Editar etiqueta</string>
     <string name="dialog_manage_tags">Gestionar etiquetas</string>
-    <string name="toast_tag_updated">Etiqueta actualizada exitosamente</string>
-    <string name="toast_tag_deleted">Etiqueta eliminada exitosamente</string>
+    <string name="toast_tag_updated">¡Listo! Etiqueta actualizada</string>
+    <string name="toast_tag_deleted">Etiqueta eliminada</string>
     <string name="delete_tag_confirm_title">¿Eliminar etiqueta?</string>
-    <string name="delete_tag_confirm_message">¿Estás seguro de que quieres eliminar la etiqueta \"%1$s\"? Esto la quitará de todas las notas.</string>
+    <string name="delete_tag_confirm_message">¿Seguro que quieres eliminar la etiqueta "%1$s"? Se le quitará a todas las notas.</string>
     <string name="label_select_color">Seleccionar color de etiqueta</string>
     <string name="label_search">Buscar…</string>
-    <string name="search_no_results">No se encontraron notas que coincidan con tu búsqueda.</string>
+    <string name="search_no_results">No conseguimos ninguna nota que coincida con tu búsqueda, pana.</string>
     <string name="search_recent">Búsquedas recientes</string>
-    <string name="search_hint">Escribe para comenzar a buscar…</string>
+    <string name="search_hint">Escribe para buscar lo que quieras…</string>
     <string name="label_note_color">Color de fondo de la nota</string>
     <string name="label_color_none">Predeterminado</string>
     <string name="label_color_blue">Azul</string>
@@ -156,15 +197,15 @@
     <string name="url_dialog_copy">Copiar</string>
     <string name="url_dialog_edit">Editar</string>
     <string name="url_dialog_delete">Eliminar</string>
-    <string name="search_results_empty">No se encontraron resultados</string>
+    <string name="search_results_empty">No conseguimos resultados</string>
     <string name="drawing_canvas_title">Dibujo</string>
     <string name="drawing_clear">Limpiar lienzo</string>
     <string name="drawing_save">Guardar dibujo</string>
     <string name="drawing_stroke_width">Grosor de trazo</string>
     <string name="drawing_color_picker">Selector de color</string>
     <string name="drawing_size_label">Tamaño: %d</string>
-    <string name="toast_drawing_empty">El lienzo está vacío o no inicializado</string>
-    <string name="toast_drawing_save_error">Error al guardar el dibujo</string>
+    <string name="toast_drawing_empty">El lienzo todavía está en blanco, chamo</string>
+    <string name="toast_drawing_save_error">Hubo un rollo al guardar el dibujo</string>
     <string name="attachment_drawing">Dibujo adjunto</string>
     <string name="attachment_file">Archivo adjunto</string>
     <string name="attachment_image">Imagen adjunta</string>
@@ -174,27 +215,27 @@
     <string name="heading_2">Encabezado 2</string>
     <string name="heading_3">Encabezado 3</string>
     <string name="text_default">Predeterminado</string>
-    <string name="nothing_to_read">Nada que leer en voz alta</string>
-    <string name="tts_engine_missing">No se encontró el motor de texto a voz. Instala Google Text-to-Speech.</string>
+    <string name="nothing_to_read">No hay nada que leer en voz alta, pana</string>
+    <string name="tts_engine_missing">No conseguimos el motor de voz. Instálate Google Text-to-Speech.</string>
     <string name="voice_note_recorder">Grabadora de nota de voz</string>
-    <string name="tap_to_record">Toca para comenzar a grabar</string>
-    <string name="recording_tap_to_stop">Grabando… Toca para detener</string>
+    <string name="tap_to_record">Toca para arrancar a grabar</string>
+    <string name="recording_tap_to_stop">Grabando… Toca para parar</string>
     <string name="attach_voice">Adjuntar voz</string>
     <string name="select_external_file">Seleccionar archivo externo</string>
     <string name="select_file_desc">Elige documentos, audio u otros archivos para vincular</string>
-    <string name="toast_imported">¡Nota importada!</string>
-    <string name="toast_cannot_open_url">No se puede abrir la URL</string>
-    <string name="toast_file_attached">Archivo adjuntado exitosamente</string>
-    <string name="toast_file_open_error">No se pudo abrir este archivo</string>
-    <string name="toast_file_select_error">Error al seleccionar el archivo</string>
-    <string name="toast_recording_error">Error al iniciar la grabación</string>
-    <string name="toast_audio_play_error">Error al reproducir audio</string>
-    <string name="toast_audio_saved">Audio guardado</string>
+    <string name="toast_imported">¡Fino! Nota importada</string>
+    <string name="toast_cannot_open_url">No se pudo abrir ese enlace</string>
+    <string name="toast_file_attached">¡Archivo adjuntado al pelo!</string>
+    <string name="toast_file_open_error">No se pudo abrir ese archivo, chamo</string>
+    <string name="toast_file_select_error">Hubo un rollo al elegir el archivo</string>
+    <string name="toast_recording_error">Hubo un rollo al iniciar la grabación</string>
+    <string name="toast_audio_play_error">Hubo un rollo al reproducir el audio</string>
+    <string name="toast_audio_saved">¡Audio guardado al pelo!</string>
     <string name="toast_audio_save_error">No se pudo guardar el audio</string>
-    <string name="toast_audio_attached">Audio añadido</string>
-    <string name="toast_audio_preview_error">Error al reproducir vista previa</string>
-    <string name="toast_voice_note_attached">Nota de voz adjuntada</string>
-    <string name="toast_camera_error">Error al iniciar la cámara</string>
+    <string name="toast_audio_attached">¡Audio agregado!</string>
+    <string name="toast_audio_preview_error">Hubo un rollo al reproducir la vista previa</string>
+    <string name="toast_voice_note_attached">¡Nota de voz adjuntada al pelo!</string>
+    <string name="toast_camera_error">Hubo un rollo al abrir la cámara</string>
     <string name="camera_permission_required">Se requiere permiso de cámara para tomar fotos/videos</string>
     <string name="mic_permission_required">Se requiere permiso de micrófono para grabar notas de voz</string>
 
@@ -324,41 +365,41 @@
     <string name="security_active">Seguridad activa</string>
     <string name="setup_credentials">Configurar credenciales</string>
     <string name="remove_protection">Eliminar credenciales de protección</string>
-    <string name="delete_master_password">Eliminar contraseña maestra</string>
+    <string name="delete_master_password">Eliminar clave maestra</string>
     <string name="all_notes">Todo</string>
-    <string name="toast_drive_connected">¡Google Drive conectado!</string>
+    <string name="toast_drive_connected">¡Fino! Google Drive conectado</string>
     <string name="toast_drive_disconnected">Google Drive desconectado.</string>
-    <string name="toast_drive_auth_first">¡Autoriza Google Drive primero!</string>
+    <string name="toast_drive_auth_first">¡Pilas! Conecta Google Drive primero.</string>
     <string name="toast_syncing">Sincronizando con Google Drive…</string>
     <string name="toast_sync_auth_expired">Autenticación expirada. Desconectando Drive.</string>
-    <string name="toast_sync_error">Error de sincronización: %1$s</string>
-    <string name="toast_searching_backup">Buscando archivo de respaldo…</string>
-    <string name="toast_no_backup_found">No se encontró el archivo de respaldo en Google Drive.</string>
-    <string name="toast_backup_download_failed">Error al descargar el respaldo.</string>
-    <string name="toast_decrypt_failed">¡Descifrado fallido! La contraseña maestra no coincide con el respaldo.</string>
-    <string name="toast_restore_success">¡Notas restauradas exitosamente desde la nube!</string>
-    <string name="toast_restore_error">Error al restaurar: %1$s</string>
+    <string name="toast_sync_error">Hubo un rollo al sincronizar: %1$s</string>
+    <string name="toast_searching_backup">Buscando el respaldo…</string>
+    <string name="toast_no_backup_found">No conseguimos ningún respaldo en Google Drive, pana.</string>
+    <string name="toast_backup_download_failed">Hubo un rollo al descargar el respaldo.</string>
+    <string name="toast_decrypt_failed">¡No cuadra! La clave maestra no coincide con el respaldo.</string>
+    <string name="toast_restore_success">¡Listas tus notas! Se restauraron fino desde la nube.</string>
+    <string name="toast_restore_error">Hubo un rollo al restaurar: %1$s</string>
 
-    <string name="cloud_backup_found_title">Copia en la nube encontrada</string>
-    <string name="cloud_backup_found_message">Hemos encontrado una copia de seguridad guardada en tu Google Drive. ¿Quieres restaurarla en este dispositivo?</string>
+    <string name="cloud_backup_found_title">¡Conseguimos una copia en la nube!</string>
+    <string name="cloud_backup_found_message">Conseguimos una copia de seguridad en tu Google Drive. ¿Te la traes para este teléfono?</string>
     <string name="cloud_backup_restore_action">Restaurar</string>
-    <string name="cloud_backup_restore_later">Ahora no</string>
+    <string name="cloud_backup_restore_later">Ahorita no</string>
 
-    <string name="version_conflict_title">Conflicto de versiones de copia</string>
-    <string name="version_conflict_message">Hay dos versiones distintas de tu copia de seguridad.
+    <string name="version_conflict_title">Las copias no coinciden</string>
+    <string name="version_conflict_message">Hay dos versiones distintas de tu respaldo.
 
 Copia en la nube: %1$s
-Copia local: %2$s
+Copia en el cel: %2$s
 Diferencia: %3$s
 
-¿Qué deseas hacer?</string>
-    <string name="version_conflict_download">Descargar de la nube</string>
-    <string name="version_conflict_overwrite">Sobrescribir con la local</string>
+¿Qué te cuadra hacer?</string>
+    <string name="version_conflict_download">Bajar de la nube</string>
+    <string name="version_conflict_overwrite">Quedarme con la del cel</string>
 
-    <string name="password_hint">Contraseña</string>
-    <string name="restore_password_required">Esta copia de seguridad está cifrada. Ingresa la contraseña maestra para restaurar.</string>
-    <string name="restore_password_dialog_title">Contraseña de la copia requerida</string>
-    <string name="restore_password_dialog_message">Ingresa la contraseña maestra que se usó al crear esta copia de seguridad.</string>
+    <string name="password_hint">Clave</string>
+    <string name="restore_password_required">Este respaldo está cifrado. Mete la clave maestra para restaurarlo.</string>
+    <string name="restore_password_dialog_title">Falta la clave del respaldo</string>
+    <string name="restore_password_dialog_message">Mete la clave maestra que usaste cuando creaste este respaldo.</string>
     <string name="restore_password_dialog_confirm">Descifrar y restaurar</string>
     <string name="restore_password_dialog_cancel">Cancelar</string>
     <string name="sync_encrypting">Cifrando datos…</string>
@@ -366,7 +407,7 @@ Diferencia: %3$s
     <string name="sync_uploading">Subiendo a Drive…</string>
     <string name="sync_downloading">Descargando de Drive…</string>
     <string name="sync_restoring">Restaurando notas…</string>
-    <string name="toast_export_error">Error al exportar: %1$s</string>
+    <string name="toast_export_error">Hubo un rollo al exportar: %1$s</string>
     <string name="clear_all">Limpiar todo</string>
     <string name="toggle_navigation_rail">Alternar barra de navegación</string>
     <string name="lock_icon">Icono de candado</string>
@@ -392,10 +433,10 @@ Diferencia: %3$s
     <string name="settings_changelog_desc">Últimas notas de lanzamiento</string>
     <string name="settings_check_update">Buscar actualizaciones</string>
     <string name="settings_about">Acerca de</string>
-    <string name="settings_about_desc">Información de la app y enlaces</string>
+    <string name="settings_about_desc">Detalles de la app y enlaces chéveres</string>
     <string name="settings_privacy_security">Privacidad y seguridad</string>
     <string name="settings_privacy_desc">Protección con clave</string>
-    <string name="confirm_master_password">Confirmar contraseña maestra</string>
+    <string name="confirm_master_password">Confirmar clave maestra</string>
     <string name="backup_restore_title">Copia de seguridad y restauración</string>
     <string name="backup_local_section">Copia local</string>
     <string name="backup_export">Exportar copia</string>
@@ -417,10 +458,10 @@ Diferencia: %3$s
     <string name="update_download_title">Descargar e instalar</string>
     <string name="update_download_install">Descargar e instalar APK</string>
     <string name="update_download_subtitle">Desde las publicaciones de GitHub (%s)</string>
-    <string name="update_downloading">Descargando… toca para cancelar</string>
+    <string name="update_downloading">Descargando… toca si quieres cancelar</string>
     <string name="update_preparing_install">Preparando instalación…</string>
-    <string name="update_download_failed">Error en la descarga</string>
-    <string name="update_check_failed">Error al buscar — toca para reintentar</string>
+    <string name="update_download_failed">Hubo un rollo en la descarga</string>
+    <string name="update_check_failed">Hubo un rollo al buscar — toca para reintentar</string>
     <string name="update_install_permission_title">Permitir instalar aplicaciones de esta fuente</string>
     <string name="update_install_permission_subtitle">Concede el permiso "Instalar apps desconocidas" para actualizar</string>
     <string name="update_channel_name">Actualizaciones de la app</string>
@@ -440,12 +481,12 @@ Diferencia: %3$s
     <string name="about_footer">Hecho con ❤️ en Venezuela</string>
     <string name="changelog_loading">Cargando registro de cambios…</string>
     <string name="changelog_error">Error al cargar el registro de cambios</string>
-    <string name="changelog_empty">No hay registros de cambios disponibles.</string>
-    <string name="toast_export_backup_error">Error al exportar la copia</string>
-    <string name="toast_import_backup_success">¡Copia importada exitosamente!</string>
-    <string name="toast_import_backup_error">Error al importar la copia</string>
+    <string name="changelog_empty">No hay notas de lanzamiento disponibles por ahora.</string>
+    <string name="toast_export_backup_error">Hubo un rollo al exportar la copia</string>
+    <string name="toast_import_backup_success">¡Listo! Copia importada fino.</string>
+    <string name="toast_import_backup_error">Hubo un rollo al importar la copia</string>
     <string name="backup_attachments_warnings">Copia completada con %d advertencias de archivos adjuntos</string>
-    <string name="toast_language_changed">Idioma cambiado</string>
+    <string name="toast_language_changed">Idioma cambiado al pelo</string>
     <string name="cancel">Cancelar</string>
     <string name="cd_secure_notes_logo">Logo de Secure Notes</string>
     <string name="cd_empty_notes_banner">Fondo de notas vacías</string>
@@ -474,7 +515,7 @@ Diferencia: %3$s
     <string name="share_title_pdf">Compartir notas como PDF</string>
     <string name="export_label_tags">Etiquetas: %s</string>
     <string name="label_never">Nunca</string>
-    <string name="tag_default_work">Trabajo</string>
+    <string name="tag_default_work">Chamba</string>
     <string name="tag_default_personal">Personal</string>
     <string name="tag_default_private">Privado</string>
     <string name="title_imported_note">Nota importada</string>
@@ -491,19 +532,19 @@ Diferencia: %3$s
     <string name="backup_size_label">Tamaño: %s</string>
     <string name="backup_e2ee_badge">Cifrado AES-256 E2E</string>
     <string name="backup_e2ee_disabled_badge">No cifrado</string>
-    <string name="toast_encrypt_backup_no_password">No se puede cifrar la copia: contraseña maestra no disponible. Desbloquea la app primero.</string>
+    <string name="toast_encrypt_backup_no_password">No se puede cifrar la copia: falta la clave maestra. Desbloquea la app primero, chamo.</string>
     <string name="password_type_label">Tipo de seguridad</string>
-    <string name="password_type_pin">PIN (solo dígitos)</string>
-    <string name="password_type_password">Contraseña segura</string>
+    <string name="password_type_pin">PIN (solo números)</string>
+    <string name="password_type_password">Clave segura</string>
     <string name="label_setup_pin">Crear PIN</string>
     <string name="security_pin_type">Modo PIN — código numérico simple</string>
-    <string name="security_password_type">Modo contraseña — alfanumérico seguro</string>
+    <string name="security_password_type">Modo clave — alfanumérico seguro</string>
     <string name="password_strength">Fortaleza de la contraseña</string>
-    <string name="password_weak">Débil</string>
-    <string name="password_medium">Media</string>
+    <string name="password_weak">Floja</string>
+    <string name="password_medium">Normalita</string>
     <string name="password_strong">Fuerte</string>
-    <string name="password_very_strong">Muy fuerte</string>
-    <string name="password_suggestion">Consejo: usa mayúsculas, minúsculas, números y símbolos para una contraseña más segura</string>
+    <string name="password_very_strong">Blindada</string>
+    <string name="password_suggestion">Tip: combina mayúsculas, minúsculas, números y símbolos pa\' que quede bien blindada</string>
     <string name="biometric_not_available">La autenticación biométrica no está disponible en este dispositivo</string>
     <string name="biometric_enabled">Desbloqueo biométrico activado</string>
     <string name="biometric_enable_title">Activar desbloqueo biométrico</string>
@@ -519,23 +560,23 @@ Diferencia: %3$s
     <string name="auto_lock_disabled">Desactivado</string>
     <string name="auto_lock_timeout_desc">Bloquear tras %1$d minutos de inactividad</string>
     <string name="auto_lock_off">No</string>
-    <string name="auto_lock_immediately">Inmediatamente</string>
+    <string name="auto_lock_immediately">De una</string>
     <string name="auto_lock_1min">1 minuto</string>
     <string name="auto_lock_5min">5 minutos</string>
     <string name="auto_lock_15min">15 minutos</string>
     <string name="auto_lock_30min">30 minutos</string>
     <string name="btn_enable">Activar</string>
     <string name="btn_change">Cambiar</string>
-    <string name="error_rate_limit">Demasiados intentos. Intenta de nuevo en %1$d segundos</string>
+    <string name="error_rate_limit">¡Pilas! Demasiados intentos. Espera %1$d segundos para volver a probar</string>
     <string name="screenshot_toggle_label">Permitir capturas de pantalla y mostrar en recientes</string>
     <string name="screenshot_toggle_desc">Al desactivar, se bloquean las capturas y la app se oculta del selector de tareas</string>
-    <string name="change_password">Cambiar contraseña maestra</string>
-    <string name="change_password_current">Contraseña actual</string>
-    <string name="change_password_new">Nueva contraseña</string>
-    <string name="change_password_confirm">Confirmar nueva contraseña</string>
-    <string name="change_password_dialog_title">Cambiar contraseña maestra</string>
-    <string name="toast_password_changed">Contraseña maestra cambiada correctamente</string>
-    <string name="toast_wrong_current_password">La contraseña actual es incorrecta</string>
+    <string name="change_password">Cambiar clave maestra</string>
+    <string name="change_password_current">Clave actual</string>
+    <string name="change_password_new">Nueva clave</string>
+    <string name="change_password_confirm">Confirmar nueva clave</string>
+    <string name="change_password_dialog_title">Cambiar clave maestra</string>
+    <string name="toast_password_changed">¡Clave maestra cambiada al pelo!</string>
+    <string name="toast_wrong_current_password">Esa no es tu clave actual, chamo</string>
     <string name="legal_title">Términos y privacidad</string>
     <string name="legal_section_terms">Términos de uso</string>
     <string name="legal_section_terms_content">Secure Notes se proporciona "tal cual" sin garantía de ningún tipo. La autenticación con Google OAuth es gestionada por Google y se rige por sus propios Términos de Servicio. Al usar esta aplicación, aceptas que:\n\n1. Eres el único responsable de la confidencialidad de tu contraseña maestra.\n2. Las notas se almacenan localmente en tu dispositivo.\n3. Las copias de seguridad en la nube son opcionales y se cifran antes de subirse.\n4. El desarrollador no es responsable por ninguna pérdida de datos.\n5. Esta aplicación se proporciona gratuitamente y puede modificarse sin previo aviso.\n6. Cualquier asistencia de IA, en el dispositivo (llama.cpp mediante la librería ARM AI Chat) o local (Ollama), procesa tus mensajes localmente y nunca los transmite a servidores externos.</string>
@@ -582,13 +623,13 @@ Diferencia: %3$s
     <string name="ai_resend">Reenviar</string>
     <string name="ai_stop">Detener</string>
     <string name="ai_suggestion_poem">Escribir un poema</string>
-    <string name="ai_suggestion_ideas">Generar ideas</string>
+    <string name="ai_suggestion_ideas">Tirar ideas chéveres</string>
 
     <!-- T6 (spec 006): etiqueta de la cuarta sugerencia, saludo rotatorio y subtitulos de la hoja de adjuntos -->
-    <string name="ai_suggestion_explain_concept">Explicar un concepto</string>
-    <string name="ai_chat_greeting_1">Listo cuando tú quieras</string>
-    <string name="ai_chat_greeting_2">¿Qué escribimos hoy?</string>
-    <string name="ai_chat_greeting_3">Pongamos algo en papel</string>
+    <string name="ai_suggestion_explain_concept">Explicar un concepto facilito</string>
+    <string name="ai_chat_greeting_1">¡Listo cuando digas, pana!</string>
+    <string name="ai_chat_greeting_2">¿Qué cuadramos hoy, chamo?</string>
+    <string name="ai_chat_greeting_3">Vamos a anotar las ideas, chamo</string>
     <string name="attach_note_subtitle">Elige una nota de tu biblioteca</string>
     <string name="attach_file_subtitle">Elige un archivo de texto, JSON o XML</string>
     <string name="ai_settings_title">Configuración de IA</string>
@@ -598,8 +639,8 @@ Diferencia: %3$s
     <string name="ai_system_prompt_hint">Introduce el prompt del sistema…</string>
     <string name="ai_system_prompt_clear">Limpiar</string>
     <string name="ai_test_connection">Probar conexión</string>
-    <string name="ai_connection_ok">¡Conectado! Modelos: %1$s</string>
-    <string name="ai_connection_fail">Conexión fallida: %1$s</string>
+    <string name="ai_connection_ok">¡Conectado al pelo! Modelos: %1$s</string>
+    <string name="ai_connection_fail">Falló la conexión: %1$s</string>
     <string name="ai_https_self_signed_warning">Usando HTTPS con certificado autofirmado. La app lo aceptará automáticamente.</string>
     <string name="ai_ollama_instructions_title">Cómo configurar Ollama</string>
     <string name="ai_ollama_instructions_step1">1. Instala Ollama en tu computadora: https://ollama.ai</string>
@@ -618,7 +659,7 @@ Diferencia: %3$s
     <string name="storage_clear_cache">Limpiar caché</string>
     <string name="storage_auto_cleanup">Auto-limpieza</string>
     <string name="storage_auto_cleanup_desc">Eliminar archivos huérfanos automáticamente al iniciar</string>
-    <string name="storage_clean_up_now">Limpiar ahora</string>
+    <string name="storage_clean_up_now">Limpiar de una</string>
     <string name="storage_delete_selected">Eliminar %1$d seleccionados</string>
     <string name="storage_select_all">Seleccionar todo</string>
     <string name="storage_deselect_all">Deseleccionar todo</string>
@@ -633,31 +674,31 @@ Diferencia: %3$s
     <string name="storage_exports">Exportaciones</string>
     <string name="storage_temp">Temporales</string>
     <string name="storage_database">Base de datos</string>
-    <string name="storage_orphan_waste">Desperdicio (huérfanos)</string>
+    <string name="storage_orphan_waste">Espacio perdido (huérfanos)</string>
     <string name="ai_chat_ai">IA</string>
-    <string name="ai_chat_hint_fix_grammar">Texto para corregir</string>
-    <string name="ai_chat_hint_followup">Haz una pregunta de seguimiento…</string>
+    <string name="ai_chat_hint_fix_grammar">Pega el texto a acomodar</string>
+    <string name="ai_chat_hint_followup">Pregúntale algo más…</string>
     <string name="ai_chat_hint_generate">Escribe un mensaje…</string>
     <string name="ai_chat_hint_summarize">Resumir la nota</string>
     <string name="ai_chat_prompt_fix_grammar">Corregir gramática y ortografía</string>
     <string name="ai_chat_prompt_summarize">Resumir el siguiente texto</string>
     <string name="ai_chat_title">Chat IA</string>
     <string name="ai_chat_you">Tú</string>
-    <string name="ai_chip_fix_grammar">✅ Corregir</string>
+    <string name="ai_chip_fix_grammar">✅ Acomodar</string>
     <string name="ai_chip_summarize">📝 Resumir</string>
     <string name="ai_context_quick_actions">Acciones rápidas</string>
     <string name="ai_error_connection">Error de conexión</string>
     <string name="ai_error_inplace">Error durante el procesamiento de IA</string>
-    <string name="ai_error_load_model">Error al cargar el modelo</string>
+    <string name="ai_error_load_model">Hubo un rollo al cargar el modelo</string>
     <string name="ai_error_no_session">No hay sesión activa</string>
     <string name="ai_error_unexpected">Error inesperado</string>
     <string name="ai_error_unknown">Error desconocido</string>
     <string name="ai_fix_grammar">Corregir gramática</string>
     <string name="ai_generating">Generando…</string>
-    <string name="ai_generation_failed">Error al generar respuesta</string>
+    <string name="ai_generation_failed">Hubo un rollo al generar la respuesta</string>
     <string name="ai_max_tokens">Máx. tokens</string>
     <string name="ai_max_tokens_desc">Longitud máxima de la respuesta generada</string>
-    <string name="ai_model_not_available">Modelo no disponible. Verifica tu configuración de IA en Configuración.</string>
+    <string name="ai_model_not_available">Modelo no disponible. Revisa tu configuración de IA en Ajustes, chamo.</string>
     <string name="ai_ondevice_architecture">Arquitectura</string>
     <string name="ai_ondevice_class">Clase de dispositivo</string>
     <string name="ai_ondevice_engine_note">Motor: llama.cpp mediante la librería ARM AI Chat</string>
@@ -708,9 +749,9 @@ Diferencia: %3$s
     <string name="ai_user_msg_summarize">Resumir: %1$s</string>
     <string name="attach">Adjuntar</string>
     <string name="chat_delete">Eliminar</string>
-    <string name="chat_delete_confirm">¿Eliminar este chat?</string>
-    <string name="chat_empty_desc">Inicia una conversación con IA</string>
-    <string name="chat_empty_title">Aún no hay chats</string>
+    <string name="chat_delete_confirm">¿Seguro que quieres borrar este chat?</string>
+    <string name="chat_empty_desc">Arranca a hablar con la IA, chamo</string>
+    <string name="chat_empty_title">Aún no hay chats por aquí</string>
     <string name="chat_export">Exportar chat</string>
     <string name="chat_history_title">Historial de chats</string>
     <string name="chat_new">Nuevo chat</string>
@@ -721,13 +762,13 @@ Diferencia: %3$s
     <string name="chat_search_hint">Buscar chats…</string>
     <string name="chat_title_hint">Título del chat</string>
     <string name="chat_unpin">Desfijar</string>
-    <string name="encrypted_note_locked">Bloqueado — desbloquear para adjuntar</string>
+    <string name="encrypted_note_locked">Bloqueado — desbloquea la app para adjuntar</string>
     <string name="fab_audio">Audio</string>
     <string name="fab_drawing">Dibujo</string>
     <string name="fab_image">Imagen</string>
     <string name="fab_text">Texto</string>
     <string name="nav_chats">Chats</string>
-    <string name="no_notes_found">No se encontraron notas</string>
+    <string name="no_notes_found">No conseguimos ninguna nota</string>
     <string name="search_notes">Buscar notas</string>
     <string name="select_note_to_attach">Selecciona una nota para adjuntar</string>
     <string name="toast_auth_error">Error de autenticación</string>
@@ -738,17 +779,17 @@ Diferencia: %3$s
     <!-- v4.0 Gestor de Archivos -->
     <string name="fab_import_file">Importar archivo</string>
     <string name="file_open_dialog_title">Abrir archivo: %1$s</string>
-    <string name="file_open_dialog_text">Este archivo no es un documento de Secure Notes. Ábrelo en el editor de código o importa su contenido como una nueva nota.</string>
+    <string name="file_open_dialog_text">Este archivo no es una nota de Secure Notes. Puedes abrirlo en el editor de código o traértelo como una nueva nota.</string>
     <string name="file_open_dialog_pdf">Este es un archivo PDF. Puedes verlo en el visor de PDF integrado.</string>
     <string name="file_open_import_note">Importar como nueva nota</string>
     <string name="file_open_code_editor">Abrir en Editor de código</string>
     <string name="file_open_view_pdf">Ver PDF</string>
-    <string name="file_open_import_error">No se pudo importar este archivo</string>
+    <string name="file_open_import_error">No se pudo importar este archivo, chamo</string>
     <string name="pdf_viewer_title">Visor de PDF</string>
 
     <!-- v4.0 Modo Flotante -->
     <string name="floating_mode_title">Modo flotante</string>
-    <string name="floating_mode_desc">Acceso rápido a notas en superposición desde cualquier pantalla</string>
+    <string name="floating_mode_desc">Tus notas a la mano flotando sobre cualquier app</string>
     <string name="floating_mode_tile_label">Nota flotante</string>
     <string name="floating_mode_permission_title">Permiso de superposición necesario</string>
     <string name="floating_mode_permission_desc">Para mostrar la burbuja de notas flotante sobre otras aplicaciones, Secure Notes requiere el permiso de "Mostrar sobre otras aplicaciones".</string>
@@ -759,15 +800,15 @@ Diferencia: %3$s
     <string name="floating_mode_quick_note">Nota rápida</string>
     <string name="floating_mode_recent_notes">Notas recientes</string>
     <string name="floating_mode_note_title_hint">Título…</string>
-    <string name="floating_mode_note_content_hint">Escribe una nota rápida…</string>
+    <string name="floating_mode_note_content_hint">Anota cualquier vaina rapidito…</string>
     <string name="floating_mode_save_note">Guardar nota</string>
     <string name="floating_mode_copy_text">Copiar</string>
     <string name="floating_mode_clear">Limpiar</string>
     <string name="floating_mode_open_app">Abrir aplicación</string>
     <string name="floating_mode_minimize">Minimizar</string>
     <string name="floating_mode_close">Cerrar</string>
-    <string name="floating_mode_note_saved">¡Nota guardada con éxito!</string>
-    <string name="floating_mode_started">Burbuja flotante activa</string>
+    <string name="floating_mode_note_saved">¡Nota guardada al pelo!</string>
+    <string name="floating_mode_started">Burbuja activa y lista</string>
     <string name="fab_floating_mode">Burbuja flotante</string>
     <string name="redimensionar">Redimensionar</string>
     <string name="restablecer_tamano">Restablecer tamaño</string>
@@ -878,9 +919,9 @@ Diferencia: %3$s
     <string name="license_mit_estrin">MIT — ESTRIN217</string>
     <string name="more">Más</string>
     <string name="note_placeholder_cannot_decrypt">[No se puede descifrar]</string>
-    <string name="note_placeholder_corrupted">[Dañada / Contraseña incorrecta]</string>
+    <string name="note_placeholder_corrupted">[Dañada / Clave incorrecta]</string>
     <string name="note_placeholder_encrypted">[Cifrada]</string>
-    <string name="note_placeholder_locked">[Desbloquea para leer las notas]</string>
+    <string name="note_placeholder_locked">[Desbloquea la app para leer las notas]</string>
     <string name="note_untitled">Sin título</string>
     <string name="numbered_list">Lista numerada</string>
     <string name="page">Página</string>
@@ -891,7 +932,7 @@ Diferencia: %3$s
     <string name="size_bytes">%1$d B</string>
     <string name="size_kb">%.1f KB</string>
     <string name="size_mb">%.1f MB</string>
-    <string name="storage_freed">Liberado %1$s</string>
+    <string name="storage_freed">¡Listo! Se liberó %1$s</string>
     <string name="storage_item_percentage">%1$s (%2$s)</string>
     <string name="table">Tabla</string>
     <string name="table_header_cell">Encabezado %1$d</string>
@@ -951,11 +992,11 @@ Diferencia: %3$s
     <string name="tabs_close_others">Cerrar otras pestañas</string>
     <string name="tabs_close_all">Cerrar todas las pestañas</string>
     <string name="tabs_new_note">Nueva nota</string>
-    <string name="tabs_draft_dialog_title">Borrador sin guardar</string>
-    <string name="tabs_draft_dialog_message">Esta nota nueva tiene contenido sin guardar. Guárdala antes de salir o se perderá.</string>
+    <string name="tabs_draft_dialog_title">Nota sin guardar</string>
+    <string name="tabs_draft_dialog_message">Esta nota tiene cambios sin guardar. Guárdala antes de salir o vas a perder la información, chamo.</string>
     <string name="tabs_draft_save">Guardar</string>
     <string name="tabs_draft_discard">Descartar</string>
-    <string name="tabs_file_load_error">No se pudo abrir "%1$s"</string>
+    <string name="tabs_file_load_error">No se pudo abrir "%1$s", chamo</string>
     <string name="widget_single_title">Nota segura</string>
     <string name="widget_single_desc">Muestra una sola nota en tu pantalla de inicio</string>
     <string name="widget_list_desc">Muestra notas recientes en tu pantalla de inicio</string>
@@ -970,7 +1011,7 @@ Diferencia: %3$s
     <string name="widget_preview_sample_text2">Leche, huevos, pan y fruta fresca para la semana.</string>
     <string name="widget_config_title">Elige una nota</string>
     <string name="widget_empty_note">Ninguna nota seleccionada</string>
-    <string name="widget_empty_list">Aún no hay notas</string>
+    <string name="widget_empty_list">Aún no hay notas por aquí</string>
     <string name="widget_locked_item">Bloqueado — desbloquea la app para ver</string>
     <string name="ai_ondevice_lazy_note">El modelo se carga la primera vez que usas una función de IA y se libera automáticamente cuando la app pasa a segundo plano.</string>
     <string name="note_created_from">Nota creada desde %1$s</string>
@@ -978,23 +1019,23 @@ Diferencia: %3$s
     <!-- Crash report (spec 020) -->
     <string name="crash_channel_name">Informes de fallos</string>
     <string name="crash_channel_description">Te avisa cuando la app se cierra sola</string>
-    <string name="crash_notification_title">Secure Notes se cerró de forma inesperada</string>
-    <string name="crash_notification_text">Toca para ver el error y mandarlo a GitHub</string>
-    <string name="crash_report_title">Informe de fallo</string>
+    <string name="crash_notification_title">Secure Notes se cerró de repente</string>
+    <string name="crash_notification_text">Toca para ver qué pasó y mandarlo a GitHub</string>
+    <string name="crash_report_title">Reporte de fallo</string>
     <string name="crash_copy">Copiar</string>
     <string name="crash_share">Compartir</string>
-    <string name="crash_send_github">Enviar</string>
-    <string name="crash_discard">Descartar informe</string>
-    <string name="crash_discard_title">¿Descartar el informe?</string>
-    <string name="crash_discard_text">Se borrará y no se te volverá a recordar este fallo.</string>
-    <string name="crash_copied">Informe copiado al portapapeles</string>
+    <string name="crash_send_github">Mandar reporte</string>
+    <string name="crash_discard">Descartar reporte</string>
+    <string name="crash_discard_title">¿Descartar el reporte?</string>
+    <string name="crash_discard_text">Se va a borrar y no te volveremos a avisar de este fallo.</string>
+    <string name="crash_copied">¡Reporte copiado al portapapeles!</string>
     <string name="crash_no_browser">No hay ninguna app para abrir GitHub</string>
-    <string name="crash_empty_title">No hay fallos registrados</string>
-    <string name="crash_empty_text">Nada ha fallado desde la última vez que lo miraste.</string>
+    <string name="crash_empty_title">Cero fallos por aquí</string>
+    <string name="crash_empty_text">Todo anda al pelo, nada ha fallado.</string>
     <string name="crash_send_privacy_warning">El mensaje de la excepción puede contener un fragmento de una de tus notas. Léelo antes de publicarlo.</string>
-    <string name="crash_notice_title">La app se cerró de forma inesperada</string>
-    <string name="crash_notice_text">Hay un informe del último fallo. Puedes copiarlo, compartirlo o mandarlo a GitHub.</string>
-    <string name="crash_notice_view">Ver informe</string>
+    <string name="crash_notice_title">La app se cerró de repente</string>
+    <string name="crash_notice_text">Quedó un reporte de lo que pasó. Puedes copiarlo, compartirlo o mandarlo a GitHub.</string>
+    <string name="crash_notice_view">Ver reporte</string>
     <string name="settings_theme">Tema</string>
     <string name="theme_picker_title">Tema de la aplicación</string>
     <string name="theme_dynamic">Dinámico (Material You)</string>
