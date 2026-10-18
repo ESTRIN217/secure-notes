@@ -4,8 +4,8 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 
 ## Estado actual
 - Specs 016–030 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
-- **v4.0.0 lista para publicar** (2026-10-18): `versionName = "4.0.0"` / `versionCode = 4`; `CHANGELOG.md`
-  cerrado con fecha; README, ARCHITECTURE, GUIDELINES, ROADMAP y AGENTS alineados.
+- **v4.0.0 publicada** (2026-10-18): tag `v4.0.0` + release en GitHub (Latest) con los APK debug y
+  release `arm64-v8a`; `versionName = "4.0.0"` / `versionCode = 4`; `CHANGELOG.md` cerrado con fecha.
 - Spec 028: los ajustes de tema viajan en la copia de seguridad; `BACKUP_SETTINGS` centraliza los valores.
 - Specs 029-030: pruebas dirigidas de HTML/catálogo/PDF en **26/0** (PDF con backend de test; falta validar
   PDF real en dispositivo) y captura de bloqueo desde estado explícito, sin `NotesViewModel`, Room ni Keystore.
@@ -44,5 +44,4 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
   no existe. Comprobarlo con `./gradlew projects`, no con una compilación.
 
 ## Próximos pasos
-- Publicar la release v4.0.0 firmada `arm64-v8a` (tag `v4.0.0` + notas en GitHub Releases).
 - Validar PDF real en dispositivo; verificar spec 020 provocando un fallo real.
