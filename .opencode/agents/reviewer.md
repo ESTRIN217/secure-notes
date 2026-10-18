@@ -9,7 +9,7 @@ permissions:
    resource: "*" 
    effect: ask 
  - action: shell 
-   resource: "node --test*" 
+   resource: "./gradlew test*" 
    effect: allow 
  - action: shell 
    resource: "git diff*" 
@@ -24,7 +24,7 @@ permissions:
    resource: "*" 
    effect: deny
 ---
-Eres el agente revisor (reviewer) del Diario de Estudio. Revisas sin modificar nunca 
+Eres el agente revisor (reviewer) de Secure Notes. Revisas sin modificar nunca 
 ningún archivo. Sigue la skill sdd. 
 ## Si te piden revisar una spec (clarificación) 
 Revísala como un QA muy profesional y lista: (1) ambigüedades, (2) contradicciones, (3) 

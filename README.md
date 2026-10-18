@@ -52,7 +52,8 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 * **Multimedia**: imágenes, vídeo, audio, voz, archivos, dibujos y visor PDF integrado.
 * **Sincronía opcional**: Google Drive (`appDataFolder`, cifrado antes de subir) + exportación TXT/Markdown/PDF/HTML/JSON.
 * **IA local opcional**: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota.
-* **9 locales**, modo claro/oscuro, colores dinámicos, widgets y burbuja flotante.
+* **Diagnóstico honesto**: registro de fallos local, con informe que puedes revisar y enviar a GitHub solo si lo decides.
+* **9 locales**, temas de color (claro/oscuro/dinámico y catálogo propio), widgets y burbuja flotante.
 
 > 📖 Manual del editor (bloques, gestos, sintaxis): [docs/EDITOR.md](docs/EDITOR.md) · Guía de desarrollo del editor: [docs/EDITOR_DEV.md](docs/EDITOR_DEV.md)
 
@@ -76,7 +77,7 @@ flowchart LR
     VM --> AI["AIService<br/>(Ollama / On-Device)"]
 ```
 
-MVVM de un solo módulo (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:editor-de-codigo` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
+MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:editor-de-codigo`, `:markdown`, `:tema` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
 
 ---
 
@@ -116,6 +117,8 @@ secure-notes/
 ├── visor-pdf/           # :visor-pdf — visor PDF (PdfRenderer + androidx.pdf)
 ├── visor-media/         # :visor-media — galería audio/vídeo (Media3 + Coil3)
 ├── editor-de-codigo/    # :editor-de-codigo — editor de código con resaltado
+├── markdown/            # :markdown — motor GFM compartido (chat, legal, preview)
+├── tema/                # :tema — catálogo de temas compartido (paletas y esquemas)
 ├── docs/                # EDITOR, EDITOR_DEV, GUIDELINES, ARCHITECTURE, ROADMAP, adr/
 ├── .github/             # CI + plantillas de issues/PRs
 ├── CHANGELOG.md         # historial por versión (Keep a Changelog)

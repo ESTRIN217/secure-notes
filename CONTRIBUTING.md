@@ -16,7 +16,7 @@ directo tras revisión. Cada PR describe **qué** cambia y **por qué**.
 4. Nueva dependencia runtime → añadirla a `app/src/main/assets/oss-licenses.json`
    **y** a `THIRD-PARTY-NOTICES` (nombre, versión, SPDX, titular, URL, uso).
 5. Cambios en `DataBlock`/markup → mantener `fromLegacyHtml` y las regex legacy.
-6. Cambios KSP/Room/Moshi → `sh gradlew clean --no-configuration-cache`.
+6. Cambios KSP/Room → `sh gradlew clean --no-configuration-cache`.
 7. **Si el código cambia, la doc se actualiza en el mismo PR.**
 
 ## Tests y estilo

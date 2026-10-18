@@ -31,7 +31,7 @@
 
 - **Unit tests**: `app/src/test/java/` — JUnit 4 + Robolectric + Roborazzi.
 - **Screenshot tests** (Roborazzi) output to `app/src/test/screenshots/` and require `@GraphicsMode(GraphicsMode.Mode.NATIVE)` + `@Config(sdk = [36])` (sdk = targetSdk, not compileSdk).
-- Room + Moshi use KSP — annotation processing changes require a clean build.
+- Room uses KSP — annotation processing changes require a clean build.
 - No instrumented tests (`connectedCheck`) usable without a device/emulator.
 - La tarea de pruebas **compila y ejecuta**: `:app:compileDebugUnitTestKotlin --rerun` → `BUILD SUCCESSFUL`
   (la nota que la daba por rota, por `PdfExporterTest` y `WidgetNotesTest`, era falsa: sus llamadas
@@ -42,9 +42,12 @@
   nativo para `linux/aarch64`**. Los **3** restantes son aserciones preexistentes y ajenas:
   `HtmlExportMediaTest.kt:117`, `OnDeviceModelSourceTest.kt:63` y una comparación `huggingface.co` vs
   `https://huggingface.co`. (La cuenta de «40 de plataforma» que había aquí estaba mal: son 38, y con los 3
-  preexistentes son 41. Medido sobre los XML en la spec 028.) Para trabajar, vuelve a las **pruebas puras** (las que no dependen de
-  Robolectric): sí corren aquí. Los dos únicos avisos del compilador en `src/test` son preexistentes y
-  ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22` (`createComposeRule` v1→v2).
+  preexistentes son 41. Medido sobre los XML en la spec 028.) **La suite completa sí está verificada en
+  verde, pero en un host `x86_64`** (codespace): la spec 002 cerró `./gradlew test` con **842 tests, 0 fallos
+  y 0 omitidos**. En `linux/aarch64` (este host) siguen los 38 de plataforma. Para trabajar aquí, vuelve a las
+  **pruebas puras** (las que no dependen de Robolectric): sí corren aquí. Los dos únicos avisos del compilador
+  en `src/test` son preexistentes y ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22`
+  (`createComposeRule` v1→v2).
 - Robolectric 4.17 en **Java 25** necesita que las tareas `Test` reciban
   `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED`; está configurado en `:app`,
   `:editor-de-codigo` y `:visor-pdf`. Sin esto, falla en el arranque del entorno Android antes de entrar al test.
@@ -57,7 +60,7 @@
 
 ## Architecture
 
-Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), Room, `StateFlow`.
+Single-app Android project (`:app` + library modules). MVVM with Jetpack Compose (MD3 Expresive), Room, `StateFlow`.
 
 | Layer | Path | Key files |
 |---|---|---|
@@ -76,6 +79,8 @@ Single-module Android app (`:app`). MVVM with Jetpack Compose (MD3 Expresive), R
 | Library `:visor-pdf` | `com.estrin217.pdfviewer` | `PdfViewerScreen.kt`, `PdfViewerViewModel.kt` |
 | Library `:visor-media` | `com.estrin217.visormedia` | `MediaViewerScreen.kt`, `Media3VideoPlayer.kt` |
 | Library `:tema` | `com.estrin217.tema` | `SyntaxColors.kt` (`SyntaxTheme` + `SyntaxThemes`), `AppTheme.kt` (`AppTheme` + `AppThemes`), `TonalScheme.kt` (generador OKLCH), `Contrast.kt` (WCAG), `LocalAppTheme.kt`. **Cero recursos**: los nombres visibles salen de `:app` con `ui/theme/ThemeLabels.kt` |
+| Library `:markdown` | `com.estrin217.markdown` | `MarkdownEngine.kt`, `MarkdownText.kt` (motor GFM compartido por `:app` y `:editor-de-codigo`), `LinkPolicy.kt`, `ImageSource.kt`, `LocalFileImageLoader.kt`. Existe como módulo porque la dependencia entre los dos va en un solo sentido (specs 017-019) |
+| Rendimiento | `com.example.perf` | `DevicePerformanceProfile.kt` (`LocalPerformanceProfile`), `DisplayRefreshRate.kt` (`requestPeak`/`reapplyPeak`), `FrameMetricsMonitor.kt` (solo DEBUG) |
 
 **Entrypoint**: `com.example.MainActivity` (package `com.example`, applicationId `com.estrin217.securenotes`).
 

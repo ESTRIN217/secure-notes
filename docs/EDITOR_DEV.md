@@ -168,7 +168,7 @@ Checklist de una integración completa:
 
 - **Room**: `.fallbackToDestructiveMigration()` — un cambio de esquema borra datos en silencio.
 - **Configuration cache**: invalidar con `./gradlew clean --no-configuration-cache` si el build actúa raro.
-- **KSP** (Room/Moshi): los cambios de anotaciones requieren build limpio (`kotlin.incremental=false`).
+- **KSP** (Room): los cambios de anotaciones requieren build limpio (`kotlin.incremental=false`).
 - **Tests**: los de Robolectric fallan en entornos sin runtime nativo (`DefaultNativeRuntimeLoader`) — es ambiental, no del código. Los tests de lógica pura (serialización, conversión) corren en JVM sin Robolectric.
 - **Escapar llaves en regex**: el motor ICU de Android crashea con `}` sin escapar (bug visto en `DrawingStrokeCodec`).
 - **Enlaces inline**: para que un enlace sea clickeable en modo edición hace falta `LinkAnnotation.Url` en el `visualTransformation` de `EditableTextBlock`, no solo en solo lectura.

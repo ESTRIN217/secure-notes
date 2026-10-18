@@ -38,8 +38,10 @@ flowchart TB
 ```
 
 Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
-`:visor-media` (audio/vídeo, Media3), `:editor-de-codigo` (editor de código) y `:lib`
-(binding `llama.android`, compilado desde fuente, solo `arm64-v8a`).
+`:visor-media` (audio/vídeo, Media3), `:editor-de-codigo` (editor de código),
+`:markdown` (motor GFM compartido por `:app` y `:editor-de-codigo`), `:tema`
+(catálogo de temas compartido) y `:lib` (binding `llama.android`, compilado
+desde fuente, solo `arm64-v8a`).
 
 ## 2. Flujo de datos
 
@@ -57,7 +59,8 @@ Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
    carpeta `appDataFolder`); `SyncWorker` (WorkManager) ejecuta la sincronía periódica.
    Los respaldos se cifran **antes** de transmitirse.
 5. **IA**: `AiViewModel` delega en `AIService` según backend; `OnDeviceService` envuelve
-   `LlamaCppEngine` (singleton JNI con aislamiento por recarga); el historial vive en Room.
+   `LlamaCppEngine` (singleton JNI con aislamiento por recarga) y el motor se materializa
+   solo a través de `AiModelHost` (`SecureNotesApplication`); el historial vive en Room.
 
 ## 3. Decisiones de estado
 
@@ -83,6 +86,7 @@ Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
 * [ADR-0001](adr/0001-ia-local-sin-nube.md): IA local frente a APIs cloud.
 * [ADR-0002](adr/0002-sin-repository-di-manual.md): sin repository, DI manual.
 * [ADR-0003](adr/0003-licencias-centralizadas.md): licencias centralizadas en JSON.
+* [ADR-0004](adr/0004-limites-de-constitucion.md): límites de constitución — registro del sistema sin contenido.
 
 ## 6. Límites conocidos
 

@@ -3,17 +3,16 @@
 Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas permanentes viven en `AGENTS.md`.
 
 ## Estado actual
-- Specs 016–028 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- Specs 016–030 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- **v4.0.0 lista para publicar** (2026-10-18): `versionName = "4.0.0"` / `versionCode = 4`; `CHANGELOG.md`
+  cerrado con fecha; README, ARCHITECTURE, GUIDELINES, ROADMAP y AGENTS alineados.
 - Spec 028: los ajustes de tema viajan en la copia de seguridad; `BACKUP_SETTINGS` centraliza los valores.
-- Spec 029: las suites dirigidas de HTML, catálogo y PDF pasan **26/0**. La prueba PDF usa un backend de test;
-  queda validar exportación PDF real en dispositivo.
-- Spec 030: `GreetingScreenshotTest` renderiza bloqueo desde estado explícito, sin `NotesViewModel`, Room ni
-  Keystore. `LockScreen(viewModel)` conserva el cableado de producción. Screenshot dirigido y
-  `:app:compileDebugUnitTestKotlin`: **BUILD SUCCESSFUL**. Después, la spec 002 regeneró el golden preexistente
-  `greeting.png`, cuya firma PNG estaba dañada.
+- Specs 029-030: pruebas dirigidas de HTML/catálogo/PDF en **26/0** (PDF con backend de test; falta validar
+  PDF real en dispositivo) y captura de bloqueo desde estado explícito, sin `NotesViewModel`, Room ni Keystore.
 - Spec 002 implementada (2026-10-18): T1-T5 completadas; `./gradlew test` → **BUILD SUCCESSFUL**,
   con 842 tests, 0 fallos y 0 omitidos en `:app`. Goldens de ecuaciones y bloqueo verificados;
-  `roborazzi.test.verify=true`.
+  `roborazzi.test.verify=true`. **Verificado en un host `x86_64` (codespace)**: en `linux/aarch64`
+  (host de desarrollo) siguen los 38 fallos de plataforma de Robolectric.
 - Suite completa dirigida más reciente: `:editor-de-codigo` **149/0**, `:visor-pdf` **4/0**, `:lib` **1/0**.
 - Limpieza de código muerto (2026-10-17): 69 archivos, –3 482 líneas; build debug y compilación de tests
   validados correctamente.
@@ -45,4 +44,5 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
   no existe. Comprobarlo con `./gradlew projects`, no con una compilación.
 
 ## Próximos pasos
+- Publicar la release v4.0.0 firmada `arm64-v8a` (tag `v4.0.0` + notas en GitHub Releases).
 - Validar PDF real en dispositivo; verificar spec 020 provocando un fallo real.

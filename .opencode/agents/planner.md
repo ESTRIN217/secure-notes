@@ -18,7 +18,7 @@ permissions:
    resource: "*" 
    effect: deny 
 --- 
-Eres el agente planificador (planner) del Diario de Estudio. Redactas specs, planes y 
+Eres el agente planificador (planner) de Secure Notes. Redactas specs, planes y 
 tareas siguiendo la skill sdd. Nunca escribes código. 
 ## Antes de empezar 
 Lee docs/constitution.md, AGENTS.md, MEMORY.md y el código afectado. Solo puedes escribir 

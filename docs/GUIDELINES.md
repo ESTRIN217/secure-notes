@@ -7,13 +7,13 @@
 ## 1. Stack tecnológico
 
 * **Lenguaje:** Kotlin 2.4.20.
-* **UI:** Jetpack Compose (BOM 2026.06.01) con Material Design 3 Expressive.
+* **UI:** Jetpack Compose (BOM 2026.09.00) con Material Design 3 Expressive.
 * **Estado:** MVVM + `StateFlow` y `collectAsStateWithLifecycle()`. Sin otras librerías reactivas.
-* **Persistencia:** Room 2.8.4 (única fuente local). KSP para Room y Moshi.
+* **Persistencia:** Room 2.8.4 (única fuente local). KSP solo para Room.
 * **Seguridad:** AES-256-GCM + PBKDF2-HMAC-SHA256 (200 000 iteraciones). Salt e IV
   aleatorios por nota (`SecureRandom`). La contraseña maestra solo vive en memoria
   durante la sesión; los respaldos se cifran en el dispositivo **antes** de subir a Drive.
-* **Red local:** OkHttp 5.4.0 (Ollama / LM Studio), Retrofit 3.0.0 + Moshi 1.15.2 (Drive).
+* **Red:** OkHttp 5.4.0, tanto para Ollama / LM Studio en la LAN como para Google Drive REST v3.
 * **IA local:** llama.cpp nativo (JNI/NDK, solo `arm64-v8a`) vía binding `llama.android`
   (`:lib`, fachada `com.arm.aichat.AiChat`); `OnDeviceService` envuelve `LlamaCppEngine`.
 * **Licencias runtime:** ver `THIRD-PARTY-NOTICES` (raíz) y su fuente de verdad en app,
@@ -53,7 +53,7 @@
 ## 5. KISS (simple antes que inteligente)
 
 * App de un solo módulo (`:app` más módulos propios `:visor-pdf`, `:visor-media`,
-  `:editor-de-codigo` y el binding `:lib`); DI manual, sin framework.
+  `:editor-de-codigo`, `:markdown`, `:tema` y el binding `:lib`); DI manual, sin framework.
 * `StateFlow` + `collectAsStateWithLifecycle()`; Room como única persistencia
   (sin caché separada ni ORM adicional).
 * Navegación con la jerarquía sellada `Screen` + `Navigator` y transiciones
@@ -86,7 +86,7 @@
 * Unitarios + Robolectric + Roborazzi con `./gradlew test`.
 * Robolectric con `@Config(sdk = [36])` (= `targetSdk`, no `compileSdk`).
 * Screenshots Roborazzi con `@GraphicsMode(NATIVE)`; salidas en `app/src/test/screenshots/`.
-* Room + Moshi usan KSP: tras cambiar anotaciones, build limpio
+* Room usa KSP: tras cambiar anotaciones, build limpio
   (`clean --no-configuration-cache`; hay bug conocido de caché).
 * Sin tests instrumentados (`connectedCheck`) sin dispositivo/emulador.
 
@@ -120,4 +120,4 @@
    legacy funcionando.
 4. ¿Strings nuevos? Añadirlos en los 9 locales (`values`, `es-rVE/rES`, `pt-rBR/rPT`,
    `fr`, `it`, `en-rGB`, `b+es+419`).
-5. ¿KSP/Room/Moshi tocados? `clean --no-configuration-cache` + `./gradlew test`.
+5. ¿KSP/Room tocados? `clean --no-configuration-cache` + `./gradlew test`.
