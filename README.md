@@ -9,7 +9,7 @@ Bloc de notas Android con **cifrado real en el dispositivo**, **editor por bloqu
 ![Kotlin](https://img.shields.io/badge/kotlin-2.4.20-7F52FF.svg)
 ![Tests](https://img.shields.io/badge/tests-JUnit4%20%2B%20Robolectric%20%2B%20Roborazzi-green.svg)
 
-<img src="assets/banner.png" width="720" alt="Secure Notes: Bloc de notas para Android con cifrado real"/>
+<img src="public/assets/banner.png" width="720" alt="Secure Notes: Bloc de notas para Android con cifrado real"/>
 
 ## Por qué existe
 
@@ -26,18 +26,18 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 <table align="center">
   <tr>
     <td align="center">
-      <img src="assets/vista-principal.png" width="220" alt="Tu biblioteca de notas"/>
+      <img src="public/assets/vista-principal.png" width="220" alt="Tu biblioteca de notas"/>
     </td>
     <td align="center">
-      <img src="assets/editor.png" width="220" alt="Editor con texto enriquecido"/>
+      <img src="public/assets/editor.png" width="220" alt="Editor con texto enriquecido"/>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="assets/busqueda-y-filtro.png" width="220" alt="Busca y filtra tus notas"/>
+      <img src="public/assets/busqueda-y-filtro.png" width="220" alt="Busca y filtra tus notas"/>
     </td>
     <td align="center">
-      <img src="assets/asistente-ia.png" width="220" alt="Asistente IA sin nube"/>
+      <img src="public/assets/asistente-ia.png" width="220" alt="Asistente IA sin nube"/>
     </td>
   </tr>
 </table>
