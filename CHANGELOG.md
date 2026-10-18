@@ -6,49 +6,111 @@ Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y
 
 ## [4.0.0] — 2026-10-18
 
-### Añadido
-- Autenticación con Google (Credential Manager, `GetSignInWithGoogleOption`) y
-  sincronización real con Google Drive (`appDataFolder`, scope `drive.appdata`,
-  refresh automático de token, progreso por etapas, sync periódica con WorkManager
-  y resolución de conflictos por `lastModified`).
-- Asistente IA: `AIService` con backends Ollama/LM Studio (HTTP) y on-device
-  (llama.cpp vía binding `llama.android`, catálogo GGUF, `ModelDownloader`);
-  acciones Escribir/Resumir/Reescribir/Traducir con vista previa e inserción.
-- Markdown avanzado: tablas, regla horizontal, auto-links, escapado con backslash,
-  blockquotes y listas anidadas; exportadores HTML/Markdown actualizados.
-- Herramientas de código (`CodeEditorActivity`, resaltado, números de línea, SAF).
-- Gestor de archivos: importación (TXT/MD/HTML/JSON/PDF), visor PDF (`:visor-pdf`,
-  motor clásico + `androidx.pdf`), visor multimedia (`:visor-media`, Media3).
-- Pestañas múltiples de notas y multimedia (LRU, máx 10, borrador protegido).
-- Burbuja flotante con nota rápida y permiso `SYSTEM_ALERT_WINDOW`.
-- Registro de fallos local con informe revisable y envío a GitHub solo si lo decides
-  (spec 020).
-- Cinco atajos en la pulsación larga del icono del lanzador (spec 021).
-- Resaltado de código compartido entre el bloque de la nota y el editor de código
-  (spec 022).
-- Reproducción de vídeo web dentro de la app: YouTube, *shorts*, `youtu.be` y
-  archivos de vídeo directos; el resto abre fuera (spec 023).
-- Temas de color para toda la app: catálogo compartido (`:tema`) con claro, oscuro
-  y dinámico, y modo `dynamic` sin paleta propia (spec 025).
-- Selección múltiple coherente en la lista (spec 026).
-- Documentación: README reescrito, `ARCHITECTURE/CONTRIBUTING/SECURITY/ROADMAP`,
-  ADRs, licencias centralizadas (`oss-licenses.json` + `THIRD-PARTY-NOTICES`).
+La versión que convierte a Secure Notes en un bloc de notas completo: editor
+WYSIWYG por bloques, visores y editor de código como módulos propios, IA 100 %
+local, sincronización con Google Drive y temas para toda la app.
 
-### Corregido
-- Una nota nueva ya no se duplica al adjuntar o autoguardar; el editor recuerda el
-  id de su propia escritura y atrás guarda sin preguntar (spec 027).
-- El editor de código persiste las URI compartidas y el administrador de
-  almacenamiento respeta su índice de recientes (spec 024).
-- El tema elegido viaja y se restaura con la copia de seguridad (spec 028).
-- Una pestaña de vídeo web ya no se cierra sola y se rotula por su identificador
-  (spec 023).
+### Añadido
+
+**Editor de notas por bloques (reescrito)**
+- Editor WYSIWYG por bloques estilo Notion: párrafos, H1–H4, listas (viñetas,
+  numerada y de tareas), colapsables, citas, destacados, divisor y enlaces a página.
+- Bloques multimedia reales insertables con el menú `/` o la barra `+`: imagen,
+  vídeo (local o web, con miniatura 16:9), audio, voz, archivo, marcador web
+  (con favicon) y dibujo. Todos se pueden duplicar, mover, convertir y eliminar.
+- Formato enriquecido en línea con barra flotante: negrita, itálica, subrayado,
+  tachado, código, sub/superíndice, color de texto y de fondo, familia y tamaño;
+  `richTextJson` es la fuente de verdad y todo render pasa por `ensureSegments()`.
+- Ecuaciones LaTeX en línea, renderizadas y editables desde el propio bloque.
+- Tablas: encabezado como fila, tiradores de 48 dp, celdas multilínea y anchos
+  adaptativos con scroll horizontal.
+- Markdown GFM en el editor (tablas, regla horizontal, auto-enlaces, escapado con
+  backslash, blockquotes y listas anidadas) con **vista previa nativa, sin WebView**.
+- Menú `/` de comandos, arrastrar y soltar para reordenar, deshacer/rehacer y
+  autoguardado.
+
+**Pestañas y visores**
+- Pestañas múltiples de notas con LRU (máx. 10; el borrador nunca se cierra solo).
+- Pestañas de multimedia, PDF y ficheros de texto dentro de la app, sin cambiar de
+  pantalla; los visores exponen slots para integrarse como pestaña.
+- Visor PDF (`:visor-pdf`, motor clásico + `androidx.pdf`) y visor multimedia
+  (`:visor-media`, Media3/ExoPlayer y Coil3) como módulos propios.
+
+**Editor de código**
+- Módulo `:editor-de-codigo`: resaltado de sintaxis, numeración, ajuste de línea,
+  pestañas estilo VS Code, búsqueda/reemplazo, barra rápida de símbolos y SAF, con
+  Activity propia y también como pestaña del editor de notas.
+
+**IA 100 % local**
+- Asistente opcional, **desactivado por defecto**: Ollama / LM Studio en la LAN y
+  llama.cpp on-device (catálogo GGUF y `ModelDownloader` desde Hugging Face).
+- Chat con streaming, historial persistente y buscable, sesiones vinculadas a notas,
+  adjuntos de notas o ficheros como contexto y acciones (escribir, resumir, reescribir,
+  traducir, corregir) con vista previa e inserción en la nota.
+
+**Captura rápida**
+- Widgets de pantalla de inicio (Glance): nota única con configuración, lista de las
+  últimas 7 y nota rápida.
+- Burbuja flotante de nota rápida sobre otras apps (servicio en primer plano) y
+  mosaico de ajustes rápidos.
+- Cinco atajos en la pulsación larga del icono del lanzador, incluidos "nueva nota",
+  búsqueda y el editor de código.
+- Selección múltiple coherente en la lista (toque, pulsación larga y cierre con atrás).
+
+**Cifrado, copia y datos**
+- Cifrado por nota activo por defecto (AES-256-GCM + PBKDF2-HMAC-SHA256, 200 000
+  iteraciones, salt e IV por nota) con interruptor en el propio editor.
+- Sincronización opcional con Google Drive (`appDataFolder`, scope `drive.appdata`):
+  login con Credential Manager, refresh de token, progreso por etapas, sync periódica
+  con WorkManager y resolución de conflictos por `lastModified`.
+- Copia de seguridad local (SAF) y en la nube que incluye **los ajustes, el tema y los
+  adjuntos** (ZIP), con restauración.
+- Exportación a TXT/Markdown/PDF/HTML/JSON con adjuntos; **PDF con formato enriquecido
+  e imágenes**, **HTML autocontenido** con media web incrustada y **Markdown con
+  carpeta `media/`** en ZIP.
+- Administrador de almacenamiento con detección de huérfanos, protección de adjuntos
+  referenciados y limpieza de caché.
+
+**Diagnóstico, temas y privacidad**
+- Registro de fallos **local** con informe revisable y envío a GitHub solo si lo decides.
+- Temas de color para toda la app (claro, oscuro, dinámico y catálogo propio) en el
+  módulo `:tema`, compartidos por el editor de código y el bloque de nota.
+- Registro del sistema **sin contenido del usuario** (23 sitios) y sin Firebase Analytics.
+- Actualizaciones con verificación **SHA-256**, selección de APK por ABI, caché de 24 h
+  y progreso de descarga.
+
+**Idiomas y documentación**
+- **9 locales**: es-419 (neutro LATAM, base), es-VE, es-ES, pt-BR, pt-PT, fr, it,
+  en-US y en-GB, incluidas las secciones legales.
+- README reescrito con banner y capturas; `ARCHITECTURE`, `GUIDELINES`, `ROADMAP`,
+  contribución y seguridad; ADR-0001 a ADR-0004; licencias centralizadas
+  (`oss-licenses.json` + `THIRD-PARTY-NOTICES`).
 
 ### Cambiado
-- La vista previa del Markdown y el asistente usan un motor GFM propio (`:markdown`)
-  en lugar de una librería de terceros (specs 017-019).
-- Suite de pruebas desbloqueada y verificada en verde (spec 002); pruebas dirigidas
-  de exportación, catálogo y PDF, y captura de bloqueo sin Android Keystore
-  (specs 029, 030).
+- El editor de notas se descompuso en capas (`BlockEditor`, `BlockRow` y un componente
+  por tipo), con más estado en `StateFlow` y funciones puras para las decisiones.
+- El Markdown lo pinta un motor propio (`:markdown`) en **todas** las superficies
+  (chat, texto legal, changelog, actualización y vista previa del editor).
+- El resaltado de código es **uno solo**, compartido entre el bloque de la nota y el
+  editor de código (`:tema`).
+- El motor de IA se materializa de forma perezosa a través de `AiModelHost`; no recarga
+  los pesos al arrancar.
+- La comunicación con la red usa OkHttp para todo (Drive y Ollama/LM Studio).
+
+### Corregido
+- Una **nota nueva ya no se duplica** al adjuntar o autoguardar; el editor recuerda el
+  id de su propia escritura y atrás guarda sin preguntar por lo ya guardado.
+- El editor de código **persiste las URI compartidas** y el administrador de
+  almacenamiento respeta su índice de recientes (no borra lo referenciado).
+- El **tema elegido viaja y se restaura** con la copia de seguridad.
+- Una pestaña de **vídeo web ya no se cierra sola** y se rotula por su identificador.
+- Las copias y exportaciones **preservan la estructura de ficheros** y siempre incluyen
+  los adjuntos.
+
+### Eliminado
+- Firebase Analytics y dependencias declaradas sin uso (Retrofit, Moshi, la librería de
+  Markdown de terceros).
+- Código y recursos muertos: 69 ficheros y unas 3 500 líneas.
 
 ## [3.0.0] — Settings Overhaul
 
