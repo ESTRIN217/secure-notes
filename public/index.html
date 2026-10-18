@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure Notes — Bloc de notas para Android con cifrado real</title>
+<meta name="description" content="Secure Notes: bloc de notas Android con cifrado AES-256 por nota, editor por bloques estilo Notion e IA 100 % local opcional. Tus notas no salen del dispositivo.">
+<meta name="theme-color" content="#0b0d14">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Secure Notes — Bloc de notas para Android con cifrado real">
+<meta property="og:description" content="Cifrado AES-256 por nota, editor por bloques e IA local opcional. Sin nube, sin telemetría.">
+<meta property="og:image" content="assets/banner.png">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar__inner">
+    <a class="brand" href="#inicio">
+      <svg class="brand__mark" viewBox="0 0 48 48" role="img" aria-label="Logotipo de Secure Notes">
+        <rect x="1" y="1" width="46" height="46" rx="12" fill="#1a2033" stroke="#2b3450"/>
+        <rect x="12" y="16" width="24" height="19" rx="4" fill="#EDC22E"/>
+        <path d="M18 16v-3a6 6 0 0 1 12 0v3" fill="none" stroke="#EDC22E" stroke-width="3.4" stroke-linecap="round"/>
+        <circle cx="24" cy="25" r="2.4" fill="#1a2033"/>
+        <path d="M24 26.5v4" stroke="#1a2033" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <span class="brand__name">Secure&nbsp;Notes</span>
+    </a>
+    <nav class="nav" aria-label="Secciones">
+      <a href="#pilares">Propuesta</a>
+      <a href="#capturas">Capturas</a>
+      <a href="#caracteristicas">Características</a>
+      <a href="#privacidad">Privacidad</a>
+      <a class="btn btn--ghost" href="https://github.com/ESTRIN217/secure-notes" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="inicio">
+
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <p class="pill">Android · minSdk 33 · Licencia MIT</p>
+      <h1>Bloc de notas para Android con <em>cifrado real</em></h1>
+      <p class="lede">
+        Cifrado AES-256 <strong>por nota</strong>, editor por bloques estilo Notion e IA local opcional.
+        El cifrado viene activo por defecto y tus prompts jamás tocan la nube.
+      </p>
+      <div class="cta">
+        <a class="btn btn--primary" href="https://github.com/ESTRIN217/secure-notes/releases" target="_blank" rel="noopener noreferrer">Descargar la última versión</a>
+        <a class="btn btn--ghost" href="https://github.com/ESTRIN217/secure-notes" target="_blank" rel="noopener noreferrer">Ver el código</a>
+      </div>
+      <dl class="facts">
+        <div><dt>AES-256-GCM</dt><dd>cifrado por nota</dd></div>
+        <div><dt>PBKDF2</dt><dd>200 000 iteraciones</dd></div>
+        <div><dt>9 idiomas</dt><dd>incluidas las secciones legales</dd></div>
+        <div><dt>0 telemetría</dt><dd>sin analítica en el APK</dd></div>
+      </dl>
+    </div>
+    <div class="wrap hero__shot">
+      <img src="assets/banner.png" width="1920" height="1080" alt="Banner de Secure Notes con la biblioteca de notas y el editor abierto">
+    </div>
+  </section>
+
+  <section class="section" id="pilares">
+    <div class="wrap">
+      <h2>Por qué existe</h2>
+      <p class="section__lede">
+        Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifradas suelen tener editores
+        pobres. Secure Notes une las tres cosas sin concesiones.
+      </p>
+      <div class="cards cards--3">
+        <article class="card">
+          <span class="card__icon" aria-hidden="true">🔒</span>
+          <h3>Privacidad real</h3>
+          <p>
+            AES-256-GCM + PBKDF2 (200 000 iteraciones). Salt e IV aleatorios por nota. Cifrado por nota, activo
+            por defecto y con interruptor en el propio editor. Sin la contraseña maestra es matemáticamente
+            imposible descifrar, ni siquiera para el desarrollador o Google.
+          </p>
+        </article>
+        <article class="card">
+          <span class="card__icon" aria-hidden="true">✍️</span>
+          <h3>Editor a la altura</h3>
+          <p>
+            WYSIWYG por bloques: títulos H1–H4, listas, checklists, tablas, citas, código con resaltado, LaTeX,
+            imágenes, audio, dibujo, pestañas múltiples y menú <code>/</code>.
+          </p>
+        </article>
+        <article class="card">
+          <span class="card__icon" aria-hidden="true">🧠</span>
+          <h3>IA sin nube</h3>
+          <p>
+            Chat opcional (desactivado por defecto): llama.cpp on-device o Ollama/LM Studio en tu LAN.
+            Cero APIs externas, cero entrenamiento con tus datos.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="capturas">
+    <div class="wrap">
+      <h2>Capturas de pantalla</h2>
+      <p class="section__lede">La app real, sin montajes.</p>
+      <div class="shots">
+        <figure class="shot">
+          <img src="assets/vista-principal.png" width="1080" height="1920" loading="lazy" alt="Biblioteca de notas con etiquetas y filtros">
+          <figcaption>Tu biblioteca de notas</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/editor.png" width="1080" height="1920" loading="lazy" alt="Editor por bloques con texto enriquecido">
+          <figcaption>Editor con texto enriquecido</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/busqueda-y-filtro.png" width="1080" height="1920" loading="lazy" alt="Búsqueda en tiempo real y filtros por etiqueta">
+          <figcaption>Busca y filtra tus notas</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/asistente-ia.png" width="1080" height="1920" loading="lazy" alt="Asistente de IA ejecutándose en el dispositivo">
+          <figcaption>Asistente IA sin nube</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="caracteristicas">
+    <div class="wrap">
+      <h2>Características clave</h2>
+      <ul class="features">
+        <li><strong>Cifrado por nota</strong> con contraseña maestra, biometría y pantalla de privacidad dedicada.</li>
+        <li><strong>Editor por bloques</strong> con formato enriquecido en línea, deshacer/rehacer, drag &amp; drop y autoguardado.</li>
+        <li><strong>Organización</strong>: etiquetas, favoritos, archivadas, colores, drag &amp; drop en rejilla y búsqueda en tiempo real (incluye cifradas con sesión abierta).</li>
+        <li><strong>Multimedia</strong>: imágenes, vídeo, audio, voz, archivos, dibujos y visor PDF integrado.</li>
+        <li><strong>Sincronía opcional</strong>: Google Drive (<code>appDataFolder</code>, cifrado antes de subir) + exportación TXT/Markdown/PDF/HTML/JSON.</li>
+        <li><strong>IA local opcional</strong>: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota.</li>
+        <li><strong>Diagnóstico honesto</strong>: registro de fallos local, con informe que puedes revisar y enviar a GitHub solo si lo decides.</li>
+        <li><strong>9 locales</strong>, temas de color (claro/oscuro/dinámico y catálogo propio), widgets y burbuja flotante.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="idiomas">
+    <div class="wrap">
+      <h2>Idiomas soportados</h2>
+      <p class="section__lede">
+        Español (VE), Español (ES), Español (419), Português (BR/PT), Français, Italiano, English (US/GB).
+        Las secciones legales están traducidas en todos los locales.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="privacidad">
+    <div class="wrap">
+      <h2>Términos, privacidad e IA</h2>
+      <p class="section__lede">La fuente de verdad legal vive en la app, en <strong>Ajustes ▸ Legal</strong>, traducida a los 9 locales.</p>
+      <div class="cards cards--2">
+        <article class="card">
+          <h3>Términos</h3>
+          <p>La app se ofrece «tal cual». Tú custodias tu contraseña maestra: si la pierdes, nadie puede recuperar tus notas.</p>
+        </article>
+        <article class="card">
+          <h3>Privacidad</h3>
+          <p>Cifrado y descifrado exclusivamente en tu dispositivo; las copias se cifran antes de subirse.</p>
+        </article>
+        <article class="card">
+          <h3>IA</h3>
+          <p>Opcional, desactivada por defecto, on-device o en tu LAN; jamás nube ni entrenamiento externo.</p>
+        </article>
+        <article class="card">
+          <h3>Google Drive</h3>
+          <p>Opcional, carpeta privada <code>AppData</code>, OAuth 2.0 y revocable en Ajustes.</p>
+        </article>
+      </div>
+      <p class="note">
+        Para reportar vulnerabilidades de forma privada, consulta
+        <a href="https://github.com/ESTRIN217/secure-notes/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">SECURITY.md</a>.
+        Las licencias de terceros están en la app: <strong>Ajustes ▸ Legal ▸ Licencias</strong>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section download">
+    <div class="wrap download__inner">
+      <h2>Empieza a tomar notas que nadie más puede leer</h2>
+      <p class="section__lede">APK firmado para <code>arm64-v8a</code>, publicado en GitHub Releases.</p>
+      <div class="cta">
+        <a class="btn btn--primary" href="https://github.com/ESTRIN217/secure-notes/releases" target="_blank" rel="noopener noreferrer">Descargar la última versión</a>
+        <a class="btn btn--ghost" href="https://github.com/ESTRIN217/secure-notes" target="_blank" rel="noopener noreferrer">Código fuente (MIT)</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <p>Desarrollado con pasión por <strong>ESTRIN217</strong>. Hecho con ❤️ en Venezuela.</p>
+    <nav class="footer__links" aria-label="Enlaces legales y de proyecto">
+      <a href="https://github.com/ESTRIN217/secure-notes/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Licencia MIT</a>
+      <a href="https://github.com/ESTRIN217/secure-notes/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
+      <a href="https://github.com/ESTRIN217/secure-notes/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">Seguridad</a>
+      <a href="https://github.com/ESTRIN217/secure-notes/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribuir</a>
+    </nav>
+    <p class="footer__legal">© 2026 Secure Notes · Esta página es estática: no usa cookies, analítica ni servicios de terceros.</p>
+  </div>
+</footer>
+
+</body>
+</html>

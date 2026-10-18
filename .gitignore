@@ -21,3 +21,6 @@ key.properties
 *.keystore
 workspace.json
 app/google-services.json
+# Firebase Hosting (caché local de despliegue)
+.firebase/
+firebase-debug.log
