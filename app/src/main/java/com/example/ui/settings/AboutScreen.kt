@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -21,18 +22,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.BuildConfig
 import com.example.R
-import androidx.compose.material3.TopAppBar
-import androidx.compose.foundation.isSystemInDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +57,13 @@ fun AboutScreen(
         }
     }
 
+    // Marca llama.cpp: glifo claro sobre temas oscuros, glifo oscuro sobre temas claros.
+    // Se mira el esquema real (no isSystemInDarkTheme) para respetar el modo forzado de la app.
+    val llamaIcon = if (MaterialTheme.colorScheme.background.luminance() <= 0.5f) {
+        R.drawable.llama_cpp_icon_dark
+    } else {
+        R.drawable.llama_cpp_icon_light
+    }
     val openUrl = { url: String ->
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -101,21 +109,19 @@ fun AboutScreen(
                 HeaderCard(
                     image = R.mipmap.ic_launcher,
                     appName = stringResource(R.string.app_name),
-                    platformLabel = platformLabel,
+                    imageContentDescription = stringResource(R.string.app_name),
                     version = version,
+                    platformLabel = platformLabel,
                     archLabel = archLabel
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                // Marca llama.cpp: glifo claro para temas oscuros, glifo oscuro para temas claros
                 HeaderCard(
-                    image = if (isSystemInDarkTheme()) {
-                        "https://raw.githubusercontent.com/ggml-org/llama.brand/master/icon/icon-dark.svg"
-                    } else {
-                        "https://raw.githubusercontent.com/ggml-org/llama.brand/master/icon/icon-light.svg"
-                    },
+                    image = llamaIcon,
                     appName = "Llama.cpp",
-                    platformLabel = platformLabel,
-                    version = "0.4.1",
-                    archLabel = archLabel
+                    imageContentDescription = null,
+                    version = BuildConfig.LLAMA_CPP_VERSION,
+                    onClick = { openUrl("https://github.com/ggml-org/llama.cpp") }
                 )
             }
 
@@ -133,6 +139,7 @@ fun AboutScreen(
             item {
                 SettingsSectionTitle(title = stringResource(R.string.about_developer))
                 DeveloperCard(
+                    onWebsiteClick = { openUrl("https://notes-502213.web.app") },
                     onGithubClick = { openUrl("https://github.com/ESTRIN217") }
                 )
             }
@@ -201,12 +208,23 @@ fun AboutScreen(
 private fun HeaderCard(
     image: Any?,
     appName: String,
-    platformLabel: String,
+    imageContentDescription: String?,
     version: String?,
-    archLabel: String
+    modifier: Modifier = Modifier,
+    platformLabel: String? = null,
+    archLabel: String? = null,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .let {
+                if (onClick != null) {
+                    it.clip(RoundedCornerShape(28.dp)).clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    it
+                }
+            },
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
@@ -220,7 +238,7 @@ private fun HeaderCard(
         ) {
             AsyncImage(
                 model = image,
-                contentDescription = stringResource(R.string.app_name),
+                contentDescription = imageContentDescription,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(18.dp)),
@@ -240,11 +258,15 @@ private fun HeaderCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SettingsBadge(text = platformLabel)
+                    if (platformLabel != null) {
+                        SettingsBadge(text = platformLabel)
+                    }
                     if (version != null) {
                         SettingsBadge(text = stringResource(R.string.update_current_version_label, version))
                     }
-                    SettingsBadge(text = archLabel)
+                    if (archLabel != null) {
+                        SettingsBadge(text = archLabel)
+                    }
                 }
             }
         }
@@ -253,6 +275,7 @@ private fun HeaderCard(
 
 @Composable
 private fun DeveloperCard(
+    onWebsiteClick: () -> Unit,
     onGithubClick: () -> Unit
 ) {
     Card(
@@ -300,12 +323,19 @@ private fun DeveloperCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                SocialButton(
+                    icon = Icons.Default.Language,
+                    label = stringResource(R.string.about_website),
+                    modifier = Modifier.weight(1f),
+                    onClick = onWebsiteClick
+                )
                 SocialButton(
                     icon = Icons.Default.Code,
                     label = stringResource(R.string.about_github),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     onClick = onGithubClick
                 )
             }
@@ -317,8 +347,8 @@ private fun DeveloperCard(
 private fun SocialButton(
     icon: ImageVector,
     label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,

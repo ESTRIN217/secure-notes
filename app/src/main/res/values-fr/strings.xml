@@ -330,6 +330,8 @@ Que souhaitez-vous faire ?</string>
     <string name="about_desc">Votre Crypte Privée Hors-Ligne</string>
     <string name="about_encryption">Protocole de chiffrement E2EE AES-256</string>
     <string name="about_github">Voir sur GitHub</string>
+    <string name="about_website">Visiter le site web</string>
+
     <string name="about_developer">Développeur</string>
     <string name="about_developer_role">Développeur Principal</string>
     <string name="about_useful_links">Liens utiles</string>

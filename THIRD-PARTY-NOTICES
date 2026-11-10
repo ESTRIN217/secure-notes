@@ -54,6 +54,9 @@
 |---|---|---|---|---|---|
 | llama.cpp (nativo, compilado desde fuente por `:lib`) | commit `3dc7285b4` | MIT | The ggml authors (© 2023-2026) | https://github.com/ggml-org/llama.cpp/blob/master/LICENSE | Inferencia GGUF on-device (`arm64-v8a`) |
 | Binding llama.android (`:lib`, fachada `com.arm.aichat.AiChat`) | checkout app-privado | Apache-2.0 | ARM / ggml-org (sample) | https://github.com/ggml-org/llama.cpp/tree/master/examples/llama.android | `OnDeviceService` / `LlamaCppEngine` |
+| Icono llama.cpp (About) | ggml-org/llama.brand | CC-BY-NC-4.0* | The ggml authors | https://github.com/ggml-org/llama.brand/blob/master/LICENSE | Identificar llama.cpp en Acerca de |
+
+\* ggml-org concede permiso explícito de reproducción y redistribución —incluso comercial— para identificar Llama.app / Llama.cpp como parte de software, incluida la adaptación técnica (reescalado, monocromo, conversión de formato). Ver `BRAND-USAGE.md`.
 
 ### Google (licencias propietarias)
 

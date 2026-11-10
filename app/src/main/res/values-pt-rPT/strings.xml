@@ -352,6 +352,8 @@ O que deseja fazer?</string>
     <string name="about_desc">O seu Cofre Privado Offline-First</string>
     <string name="about_encryption">Protocolo de Cifragem E2EE AES-256</string>
     <string name="about_github">Ver no GitHub</string>
+    <string name="about_website">Visitar o site</string>
+
     <string name="about_developer">Desenvolvedor</string>
     <string name="about_developer_role">Desenvolvedor Principal</string>
     <string name="about_useful_links">Links úteis</string>

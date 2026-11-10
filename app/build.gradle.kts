@@ -20,6 +20,19 @@ if (keystorePropertiesFile.exists()) {
 	keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// Versión real de llama.cpp para la pantalla Acerca de (AboutScreen). Fuente de verdad: el
+// CMakeLists.txt del checkout de esta máquina (mismo patrón condicional que settings.gradle.kts).
+// Si no existe (p. ej. CI/GitHub, que no compila :app), vale "local" en lugar de romper la build.
+val llamaCppVersion: String = run {
+  val cmakeFile = file("/root/llama.cpp/CMakeLists.txt")
+  if (!cmakeFile.exists()) return@run "local"
+  val cmake = cmakeFile.readText()
+  fun part(name: String) =
+    Regex("""set\(LLAMA_VERSION_$name\s+(\d+)\)""").find(cmake)?.groupValues?.get(1) ?: "0"
+  val isDev = !Regex("""option\(LLAMA_BUILD_IS_DEV[^)]*\bOFF\b""").containsMatchIn(cmake)
+  "${part("MAJOR")}.${part("MINOR")}.${part("PATCH")}" + if (isDev) "-dev" else ""
+}
+
 android {
   namespace = "com.example"
   buildToolsVersion = "36.1.0"
@@ -31,6 +44,7 @@ android {
     targetSdk = 36
     versionCode = 4
     versionName = "4.0.0"
+    buildConfigField("String", "LLAMA_CPP_VERSION", "\"$llamaCppVersion\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

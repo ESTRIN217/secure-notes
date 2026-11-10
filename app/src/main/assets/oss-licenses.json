@@ -164,6 +164,14 @@
       "use": "OnDeviceService / LlamaCppEngine"
     },
     {
+      "name": "Icono llama.cpp",
+      "version": "ggml-org/llama.brand",
+      "license": "CC-BY-NC-4.0",
+      "copyright": "The ggml authors",
+      "url": "https://github.com/ggml-org/llama.brand/blob/master/LICENSE",
+      "use": "Icono en Acerca de (identificación de llama.cpp; uso en software permitido por BRAND-USAGE.md de llama.brand)"
+    },
+    {
       "name": "Play Services Auth + GoogleId + credentials-play-services-auth",
       "version": "auth 21.6.0, googleid 1.2.0, creds-psa 1.6.0",
       "license": "Propietaria (Android SDK License)",

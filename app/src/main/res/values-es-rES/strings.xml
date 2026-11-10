@@ -328,6 +328,8 @@ Diferencia: %3$s
     <string name="about_desc">Tu bóveda privada con enfoque local prioritario (offline-first)</string>
     <string name="about_encryption">Protocolo de cifrado E2EE AES-256</string>
     <string name="about_github">Ver en GitHub</string>
+    <string name="about_website">Visitar el sitio web</string>
+
     <string name="about_developer">Desarrollador</string>
     <string name="about_developer_role">Desarrollador principal</string>
     <string name="about_useful_links">Enlaces útiles</string>

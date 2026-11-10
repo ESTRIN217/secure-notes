@@ -12,6 +12,15 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
   raíz se borró para que no haya dos copias que se desfasen. Para actualizar el sitio: editar `public/` y desplegar.
 - **v4.0.0 publicada** (2026-10-18): tag `v4.0.0` + release en GitHub (Latest) con los APK debug y
   release `arm64-v8a`; `versionName = "4.0.0"` / `versionCode = 4`; `CHANGELOG.md` cerrado con fecha.
+- Spec 031: **Acerca de (2026-11-10)**: tarjeta de llama.cpp con logo **local**
+  (`res/drawable-nodpi/llama_cpp_icon_dark.png` / `_light.png`, 1200×1200, copiados de
+  `/root/llama-brand/logo/png/icon/` — asset oficial de `ggml-org/llama.brand`, CC-BY-NC-4.0 con
+  permiso explícito de redistribución en software para identificar Llama.cpp; atribución en
+  `THIRD-PARTY-NOTICES` y espejo en `oss-licenses.json`). Glifo según el esquema real
+  (`colorScheme.background.luminance()`), tarjeta clickable → repo `ggml-org/llama.cpp`; la versión ya no es un hardcode: `app/build.gradle.kts` parsea
+  `LLAMA_VERSION_MAJOR/MINOR/PATCH` (+ `LLAMA_BUILD_IS_DEV`) del `CMakeLists.txt` del checkout →
+  `BuildConfig.LLAMA_CPP_VERSION` (hoy `0.9.0-dev`; fallback `"local"` si no hay checkout → CI).
+  El botón web del `DeveloperCard` usa `about_website` (9 locales) y los dos botones `weight(1f)`.
 - Spec 028: los ajustes de tema viajan en la copia de seguridad; `BACKUP_SETTINGS` centraliza los valores.
 - Specs 029-030: pruebas dirigidas de HTML/catálogo/PDF en **26/0** (PDF con backend de test; falta validar
   PDF real en dispositivo) y captura de bloqueo desde estado explícito, sin `NotesViewModel`, Room ni Keystore.

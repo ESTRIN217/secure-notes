@@ -353,6 +353,8 @@ What would you like to do?</string>
     <string name="about_desc">Your Offline-First Private Crypt</string>
     <string name="about_encryption">AES-256 E2EE Encryption Protocol</string>
     <string name="about_github">View on GitHub</string>
+    <string name="about_website">Visit website</string>
+
     <string name="about_developer">Developer</string>
     <string name="about_developer_role">Lead Developer</string>
     <string name="about_useful_links">Useful Links</string>

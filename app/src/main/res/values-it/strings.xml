@@ -331,6 +331,8 @@ Cosa vuoi fare?</string>
     <string name="about_desc">La tua Cripta Privata Offline-First</string>
     <string name="about_encryption">Protocollo di Crittografia E2EE AES-256</string>
     <string name="about_github">Vedi su GitHub</string>
+    <string name="about_website">Visita il sito web</string>
+
     <string name="about_developer">Sviluppatore</string>
     <string name="about_developer_role">Sviluppatore Principale</string>
     <string name="about_useful_links">Link utili</string>
