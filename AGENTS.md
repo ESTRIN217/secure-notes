@@ -36,15 +36,14 @@
 - La tarea de pruebas **compila y ejecuta**: `:app:compileDebugUnitTestKotlin --rerun` → `BUILD SUCCESSFUL`
   (la nota que la daba por rota, por `PdfExporterTest` y `WidgetNotesTest`, era falsa: sus llamadas
   coinciden con las firmas reales). ⚠️ La suite **con entorno de pruebas no se ejecuta en esta plataforma**:
-  `./gradlew test` falla con `842 tests completed, 41 failed` en `:app` (`16 completed, 2 failed` en
-  `:editor-de-codigo`), y **38** de ellos son de plataforma —
+  `./gradlew test` falla en `:app`, y **38** de los fallos son de plataforma —
   `java.lang.AssertionError at DefaultNativeRuntimeLoader.java:212`, porque **Robolectric no tiene runtime
-  nativo para `linux/aarch64`**. Los **3** restantes son aserciones preexistentes y ajenas:
-  `HtmlExportMediaTest.kt:117`, `OnDeviceModelSourceTest.kt:63` y una comparación `huggingface.co` vs
-  `https://huggingface.co`. (La cuenta de «40 de plataforma» que había aquí estaba mal: son 38, y con los 3
-  preexistentes son 41. Medido sobre los XML en la spec 028.) **La suite completa sí está verificada en
-  verde, pero en un host `x86_64`** (codespace): la spec 002 cerró `./gradlew test` con **842 tests, 0 fallos
-  y 0 omitidos**. En `linux/aarch64` (este host) siguen los 38 de plataforma. Para trabajar aquí, vuelve a las
+  nativo para `linux/aarch64`**. Medido en la spec 032: **868 tests, 38 fallos, 0 errores, 0 omitidos** —
+  los 38 son todos de plataforma. Los antiguos «3 preexistentes» (`HtmlExportMediaTest`,
+  `OnDeviceModelSourceTest`, la comparación `huggingface.co`) **ya pasan**. **La suite completa sí está
+  verificada en verde, pero en un host `x86_64`** (codespace): la spec 002 cerró `./gradlew test` con
+  **842 tests, 0 fallos y 0 omitidos**. En `linux/aarch64` (este host) siguen los 38 de plataforma.
+  Para trabajar aquí, vuelve a las
   **pruebas puras** (las que no dependen de Robolectric): sí corren aquí. Los dos únicos avisos del compilador
   en `src/test` son preexistentes y ajenos: `EquationScreenshotTest.kt:22` y `GreetingScreenshotTest.kt:22`
   (`createComposeRule` v1→v2).
@@ -178,6 +177,20 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     **compara** (`isDirectVideoFileUrl`), nunca donde se **enseña** ni al extraer el identificador —
     `extractYouTubeId` **no** puede pasar a minúsculas: el id distingue caja y con él se arma la miniatura
     (`youTubeThumbnail`). `null` para lo local, que conserva la regla de siempre (RF-151).
+- **La nota nueva vacía se descarta** (`ui/DraftEmptiness.kt`, spec 032) — reglas permanentes:
+  - **«Vacía» es una pieza pura y nadie la reescribe.** `content.isNotBlank()` con `"[]"` —la serialización
+    de la lista vacía— daba `true` para una nota nueva sin nada dentro, y por eso atrás insertaba una fila
+    vacía y el guard preguntaba por nada. La regla vive en `isNoteEmpty` (título en blanco + sin adjuntos
+    + sin bloques con contenido: tabla por celdas, dibujo por trazos, `HORIZONTAL_RULE` nunca, bloques con
+    solo formato no, datos rotos pero con migas sí) y la consultan atrás, autoguardado, `ON_STOP` y el guard
+    a través de `hasContentToSave()`.
+  - **Borrar solo al salir, nunca a mitad de sesión.** El autoguardado y `ON_STOP` desisten de persistir la
+    nota vacía; la fila que la sesión creó se borra **definitivo** (`noteDao.deleteNote`) al salir por atrás
+    o con «Descartar», nunca antes (RNF-137, RNF-138). El id lo lleva `DraftWriteGate.createdRowId` (`0` para
+    notas existentes y para escritura en vuelo).
+  - **Lo que no se descarta:** las notas existentes vaciadas (`id > 0`, se persisten como hasta hoy) y las
+    creadas a propósito fuera del borrador —/page, Markdown del editor, lista (imagen/import), «Nuevo
+    dibujo»—. Y las notas históricas vacías en BD se dejan quietas.
 - **La nota nueva (`noteId == 0`)** (`ui/DraftWrite.kt`, spec 027) — reglas permanentes:
   - **`noteId == 0` son dos hechos, no uno**: «no hay nota todavía» y «la nota es esta pero ya tiene fila». Quien
     escriba con `id = noteId` inserta **una nota por cada escritura** — fue el duplicado reportado— y quien deduzca

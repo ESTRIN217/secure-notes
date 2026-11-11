@@ -156,6 +156,32 @@ class DraftWriteTest {
         assertFalse(isDraftUnsaved(noteId = 5, writeState = puerta.state, hasContent = true))
     }
 
+    // ── Spec 032: la fila que esta sesión creó ───────────────────────────────────────────────
+
+    @Test
+    fun `un borrador sin fila no tiene fila de la sesion`() {
+        assertEquals(0, DraftWriteGate(noteId = 0).createdRowId)
+    }
+
+    @Test
+    fun `un borrador en vuelo todavia no tiene fila de la sesion`() {
+        val puerta = DraftWriteGate(noteId = 0)
+        puerta.launch()
+        assertEquals(0, puerta.createdRowId)
+    }
+
+    @Test
+    fun `un borrador escrito devuelve la fila de la sesion`() = runBlocking {
+        val puerta = DraftWriteGate(noteId = 0)
+        puerta.write { 41 }
+        assertEquals(41, puerta.createdRowId)
+    }
+
+    @Test
+    fun `una nota que ya existia no tiene fila de la sesion`() {
+        assertEquals(0, DraftWriteGate(noteId = 5).createdRowId)
+    }
+
     /**
      * RF-182 en el momento en que importa: el aviso se apaga **al lanzar** la escritura, no cuando esta
      * termina. El botón de atrás lee la bandera en la línea siguiente, y un `LaunchedEffect` llega un

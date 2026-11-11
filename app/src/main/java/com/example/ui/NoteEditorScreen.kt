@@ -758,9 +758,15 @@ fun NoteEditorScreen(
     }
 
     // Vive aquí y no más abajo por el motivo del comentario de [contentForSave]: `persistNote` la necesita.
+    // La regla «vacía» vive en la pieza pura (spec 032, RF-210): nada de `content.isNotBlank()`, que con
+    // `"[]"` daba `true` para una nota nueva sin nada dentro.
     val hasContentToSave: () -> Boolean = {
-        title.isNotBlank() || content.isNotBlank() || attachments.isNotEmpty()
+        !isNoteEmpty(title, blocks, attachments)
     }
+
+    // Persistir es otra cosa: una nota **existente** vaciada debe guardarse igualmente (las tachadas del
+    // usuario tienen que llegar a la base de datos, RF-214); un borrador solo persiste con contenido.
+    val canPersistChanges: () -> Boolean = { noteId != 0 || hasContentToSave() }
 
     /** El guardado completo, con el id que le toque. Va **antes** que [persistNote] por lo de arriba. */
     suspend fun guardarConId(destino: Int, content: String): Int = viewModel.saveNoteAndGetId(
@@ -1108,8 +1114,15 @@ fun NoteEditorScreen(
     // que insertaba la nota duplicada (spec 027, RF-184).
     draftGuard?.saveAction = { onSaved -> persistNote(contentForSave(), onSaved) }
 
+    // «Descartar» del diálogo: si la sesión creó la fila y la nota queda vacía, se borra (RF-212).
+    // Hoy es inalcanzable (el diálogo exige `writeState == 0`), pero es la defensa correcta si cambia.
+    draftGuard?.discardAction = {
+        val created = draftWrite.createdRowId
+        if (created > 0 && !hasContentToSave()) viewModel.deleteNoteById(created)
+    }
+
     fun saveCurrentNote() {
-        if (!hasContentToSave()) return
+        if (!canPersistChanges()) return
         persistNote(contentForSave())
     }
 
@@ -1271,18 +1284,22 @@ fun NoteEditorScreen(
         .collectLatest {
             syncActiveBlock()
             // `draftWriteId` y no `noteId`: una nota nueva que ya tiene fila —se le adjuntó algo— se actualiza (RF-185).
-            if ((title.isNotBlank() || content.isNotBlank()) && draftWriteId(noteId, draftWrite.state) != 0) {
+            // `canPersistChanges()`: una nota vacía no se persiste en una fila que el borrador creó esta sesión,
+            // pero una nota existente sí —sus tachadas tienen que llegar a la base de datos (RF-214).
+            if (canPersistChanges() && draftWriteId(noteId, draftWrite.state) != 0) {
                 persistNote(contentForSave())
             }
         }
     }
 
     val handleSaveAndExit = {
-        // La guarda era la de `hasContentToSave` más un flag que nunca se activaba, así que es
-        // exactamente la de `saveCurrentNote` (RF-84).
-        if (hasContentToSave()) {
+        // Una nota existente (o una nueva con contenido) guarda y toastea; un borrador nuevo vacío no guarda,
+        // no muestra toast y borra la fila que la sesión creó (spec 032).
+        if (noteId != 0 || hasContentToSave()) {
             saveCurrentNote()
             Toast.makeText(context, context.getString(R.string.toast_note_saved), Toast.LENGTH_SHORT).show()
+        } else if (draftWrite.createdRowId > 0) {
+            viewModel.deleteNoteById(draftWrite.createdRowId)
         }
         onBack()
     }

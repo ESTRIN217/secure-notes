@@ -780,6 +780,21 @@ class NotesViewModel(
         }
     }
 
+    /**
+     * Borrado definitivo por id (spec 032): lo usa el editor al salir de una nota nueva vacía cuya
+     * fila creó esta sesión. Es definitivo, no papelera —la fila nunca tuvo contenido (RNF-137)—.
+     */
+    fun deleteNoteById(id: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                noteDao.getNoteById(id)?.let { noteDao.deleteNote(it) }
+                refreshHomeWidgets()
+            } catch (e: Exception) {
+                Log.e("NotesViewModel", "deleteNoteById failed", e)
+            }
+        }
+    }
+
     fun toggleFavorite(note: Note) {
         viewModelScope.launch {
             noteDao.updateNote(note.copy(isFavorite = !note.isFavorite, lastModified = System.currentTimeMillis()))

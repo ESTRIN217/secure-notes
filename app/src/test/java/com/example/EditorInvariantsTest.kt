@@ -54,8 +54,13 @@ class EditorInvariantsTest {
          * La spec 027 (la escritura de un borrador) lo baja a **2268**: el «Guardar» del aviso duplicaba la
          * lista de campos del guardado y desaparece al pasar por el camino único, y el comando «/» → página
          * tenía una **tercera** copia de esa misma lista, que además escribía con `id = noteId`.
+         *
+         * La spec 032 («la nota nueva vacía se descarta») lo sube a **2285**: el guardado del aviso gana
+         * el `discardAction` que borra la fila que la sesión creó (RF-212), `hasContentToSave()` delega
+         * en la pieza pura de «vacía» y nace `canPersistChanges()` para separar «hay contenido» de
+         * «merece persistir» (una nota existente vaciada sí se guarda, RF-214).
          */
-        const val MAX_LINEAS = 2268
+        const val MAX_LINEAS = 2285
 
         /** RF-84: lo que nadie lee. Llega a 0 en T3. */
         const val MAX_ESTADO_MUERTO = 0
@@ -411,6 +416,50 @@ class EditorInvariantsTest {
         assertEquals(
             "La pieza solo puede importar `androidx.compose.runtime` y `kotlinx.coroutines`: " +
                 platform.joinToString(),
+            0,
+            platform.size
+        )
+    }
+
+    /**
+     * RF-210: la decisión de «vacía» vive en la pieza pura, no en el composable.
+     *
+     * `content.isNotBlank()` era la decisión, y con `"[]"` —la serialización de la lista vacía— daba
+     * `true` para una nota nueva sin nada dentro. Si el editor vuelve a mirar `content` directamente,
+     * este recorrido se pone rojo.
+     */
+    @Test
+    fun `la decision de vacia vive en la pieza`() {
+        val codigo = sinComentarios(fuente)
+        assertTrue(
+            "hasContentToSave() delega en la pieza pura",
+            codigo.contains("!isNoteEmpty(title, blocks, attachments)")
+        )
+        assertFalse(
+            "El editor vuelve a decidir con `content.isNotBlank()`",
+            codigo.contains("content.isNotBlank()")
+        )
+    }
+
+    /**
+     * RNF-135: la pieza de «vacía» no depende de la plataforma.
+     *
+     * Sin `android`, sin `androidx`, sin Compose: sus pruebas corren sin Robolectric, que no se
+     * ejecuta en esta plataforma. `org.json` sí: es dependencia de test y de la función legacy.
+     */
+    @Test
+    fun `la pieza de vacia no depende de la plataforma`() {
+        val ruta = File("src/main/java/com/example/ui/DraftEmptiness.kt")
+        assertTrue("Falta la pieza de «vacía»", ruta.exists())
+        val fuenteVacia = ruta.readText()
+        val imports = Regex("^import .+$", RegexOption.MULTILINE).findAll(fuenteVacia).map { it.value }.toList()
+        assertTrue(
+            "El recorrido solo ve ${imports.size} imports; el regex se ha roto",
+            imports.isNotEmpty()
+        )
+        val platform = imports.filter { it.startsWith("import android") || it.startsWith("import androidx") }
+        assertEquals(
+            "La pieza no puede importar `android` ni `androidx`: " + platform.joinToString(),
             0,
             platform.size
         )

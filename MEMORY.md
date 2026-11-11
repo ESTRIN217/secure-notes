@@ -4,6 +4,7 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 
 ## Estado actual
 - Specs 016–031 implementadas; spec 027 verificada en dispositivo: las notas nuevas ya no se duplican.
+- **Spec 032 (2026-11-11), cerrada y verificada en dispositivo**: la nota nueva vacía se descarta. `ui/DraftEmptiness.kt` (`isNoteEmpty`) decide «vacía»; una nota existente vaciada sí se guarda (`canPersistChanges`, RF-214); la fila creada en la sesión se borra definitivo al salir (`DraftWriteGate.createdRowId`); /page, Markdown, lista, «Nuevo dibujo» e histórico intactos. `./gradlew test` → **868 tests, 38 fallos (todos de plataforma)**.
 - **Spec 031 (2026-10-18)**: sitio de marca estático en `public/` (HTML/CSS planos, sin JS ni CDN) — esa es la
   raíz de Firebase Hosting, la que crea `firebase init`. `firebase.json` con `cleanUrls` + caché y **sin**
   reescritura SPA (si la hubiera, `404.html` no se serviría nunca). Proyecto: `secure-notes-502213` en

@@ -79,6 +79,16 @@ class DraftWriteGate(private val noteId: Int) {
     }
 
     /**
+     * La fila que **esta sesión** insertó, o `0` si todavía no hay ninguna (spec 032).
+     *
+     * Solo las notas nuevas (`noteId == 0`) pueden tenerla: una nota que ya existía escribe sobre su
+     * id y «esta sesión no creó nada» es lo único cierto sobre ella. Con la escritura en vuelo todavía
+     * no hay fila, así que `0`. Lo consulta quien borra al salir —nunca a mitad de sesión (RNF-138)—.
+     */
+    val createdRowId: Int
+        get() = if (noteId == 0) state.coerceAtLeast(0) else 0
+
+    /**
      * Escribe la nota y devuelve el id del guardado (RF-180, RF-181, RF-184).
      *
      * [save] recibe el id con el que escribir —`0` para insertar— y devuelve el id que resultó de guardarla.
