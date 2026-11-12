@@ -196,6 +196,9 @@ class OllamaService(
                 put("repeat_penalty", request.repetitionPenalty)
                 put("num_predict", request.maxTokens)
             })
+            // `think` es top-level en /api/chat (RF-219): dentro de `options` Ollama lo
+            // ignoraría en silencio. `null` = campo ausente (default del modelo).
+            if (request.think != null) put("think", request.think)
         }
 
         if (request.tools.isNotEmpty()) {

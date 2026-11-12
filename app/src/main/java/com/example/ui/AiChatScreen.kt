@@ -70,6 +70,7 @@ import com.example.ui.chat.WriteTarget
 import com.example.ui.markdown.ChatMarkdownText
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
+import com.example.ui.viewmodel.ConnectionState
 import com.example.ui.viewmodel.ConversationTurn
 import com.example.ui.viewmodel.MessageStatus
 import com.example.util.RichTextParser
@@ -115,6 +116,14 @@ fun AiChatScreen(
     val backend by viewModel.backend.collectAsStateWithLifecycle()
     val modelNameSetting by viewModel.modelName.collectAsStateWithLifecycle()
     val selectedOnDeviceModel by viewModel.selectedOnDeviceModel.collectAsStateWithLifecycle()
+    val maxTokens by viewModel.maxTokens.collectAsStateWithLifecycle()
+    val reasoningEffort by viewModel.reasoningEffort.collectAsStateWithLifecycle()
+    val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
+    val downloadedModelIds by viewModel.downloadedModelIds.collectAsStateWithLifecycle()
+    val favoriteModels by viewModel.favoriteModels.collectAsStateWithLifecycle()
+    val downloadingModelId by viewModel.downloadingModelId.collectAsStateWithLifecycle()
+    val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
+    val onDeviceModelState by viewModel.onDeviceModelState.collectAsStateWithLifecycle()
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
     val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
@@ -178,6 +187,12 @@ fun AiChatScreen(
     val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
     val displayModelName = if (backend == AiBackend.OLLAMA) modelNameSetting
                            else selectedOnDeviceModel?.displayName ?: ""
+    val ollamaModels = remember(connectionState) {
+        (connectionState as? ConnectionState.Connected)?.models ?: emptyList()
+    }
+    val connectionErrorText = (connectionState as? ConnectionState.Failed)?.let {
+        stringResource(R.string.ai_connection_fail, it.error)
+    }
 
     val hasStreamingContent = isProcessing && !streamingText.isNullOrEmpty()
     val isStreamingEmpty = isProcessing && streamingText.isNullOrEmpty()
@@ -375,7 +390,43 @@ fun AiChatScreen(
                     isProcessing = isProcessing,
                     hint = hintFor(conversationHistory.isNotEmpty(), currentAction),
                     onRemoveAttachment = viewModel::removePendingAttachment,
-                    onAttachClick = { showAttachmentSheet = true }
+                    onAttachClick = { showAttachmentSheet = true },
+                    reasoningEffort = reasoningEffort,
+                    onReasoningEffortChange = viewModel::setReasoningEffort,
+                    maxTokensPref = maxTokens,
+                    modelSelector = ModelSelectorState(
+                        backend = backend,
+                        selectedOnDeviceId = selectedOnDeviceModel?.id,
+                        downloadedIds = downloadedModelIds,
+                        catalogModels = MODEL_CATALOG,
+                        modelName = displayModelName,
+                        ollamaModels = ollamaModels,
+                        isTesting = connectionState is ConnectionState.Testing,
+                        connectionError = connectionErrorText,
+                        favorites = favoriteModels,
+                        downloadingModelId = downloadingModelId,
+                        downloadState = downloadState,
+                        onDeviceModelState = onDeviceModelState
+                    ),
+                    onSelectOnDevice = { model ->
+                        viewModel.selectOnDeviceModel(model)
+                        viewModel.setBackend(AiBackend.ON_DEVICE)
+                    },
+                    onSelectOllama = { name ->
+                        if (name.isNotBlank()) {
+                            viewModel.setModelName(name)
+                            viewModel.setBackend(AiBackend.OLLAMA)
+                        }
+                    },
+                    onTestConnection = viewModel::testConnection,
+                    onToggleFavoriteModel = viewModel::toggleFavoriteModel,
+                    onDownloadModel = viewModel::downloadOnDeviceModel,
+                    onLoadModel = { model ->
+                        viewModel.selectOnDeviceModel(model)
+                        viewModel.setBackend(AiBackend.ON_DEVICE)
+                        viewModel.loadSelectedModel()
+                    },
+                    onUnloadModel = viewModel::unloadModel
                 )
             }
         ) { paddingValues ->

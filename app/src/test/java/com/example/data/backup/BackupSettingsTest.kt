@@ -27,7 +27,7 @@ class BackupSettingsTest {
     }
 
     /**
-     * Los catorce valores de una copia bien hecha, con un valor **distinto** en cada clave: si uno se
+     * Los quince valores de una copia bien hecha, con un valor **distinto** en cada clave: si uno se
      * colara en el sitio de otro, el valor distinto lo delata.
      */
     private val valores = mapOf<String, Any>(
@@ -44,7 +44,8 @@ class BackupSettingsTest {
         AppConstants.ENCRYPT_BACKUPS_KEY to true,
         AppConstants.AUTO_BACKUP_ENABLED_KEY to true,
         AppConstants.AUTO_BACKUP_INTERVAL_KEY to "12h",
-        AppConstants.THEME_ID_KEY to "one_dark"
+        AppConstants.THEME_ID_KEY to "one_dark",
+        AppConstants.AI_FAVORITE_MODELS_KEY to "gguf:qwen2.5-0.5b\nollama:qwen3-0.6b"
     )
 
     /**
@@ -75,10 +76,10 @@ class BackupSettingsTest {
      * comprueba probando lo que hace: se comprueba **contándola**. Por eso la cuenta es exacta.
      */
     @Test
-    fun `la lista de ajustes tiene las catorce claves y el tema esta en ella`() {
+    fun `la lista de ajustes tiene las quince claves y el tema esta en ella`() {
         assertEquals(
-            "La lista de la copia debe tener 14 claves: las 13 de siempre y el tema",
-            14,
+            "La lista de la copia debe tener 15 claves: las 14 de siempre y el tema",
+            15,
             BACKUP_SETTINGS.size
         )
         assertTrue(
@@ -88,7 +89,7 @@ class BackupSettingsTest {
     }
 
     /**
-     * Los catorce valores por defecto, uno a uno y con su literal.
+     * Los quince valores por defecto, uno a uno y con su literal.
      *
      * Los tres serializadores leen sus valores por defecto en su propio código, y el plan los mueve a
      * una lista. Esta prueba es lo que impide que ese movimiento **cambie de paso lo que viaja**: si un
@@ -112,7 +113,8 @@ class BackupSettingsTest {
                 AppConstants.ENCRYPT_BACKUPS_KEY to false,
                 AppConstants.AUTO_BACKUP_ENABLED_KEY to false,
                 AppConstants.AUTO_BACKUP_INTERVAL_KEY to "6h",
-                AppConstants.THEME_ID_KEY to AppThemes.dynamic.id
+                AppConstants.THEME_ID_KEY to AppThemes.dynamic.id,
+                AppConstants.AI_FAVORITE_MODELS_KEY to ""
             ),
             DEFAULT_SETTINGS
         )
@@ -121,7 +123,7 @@ class BackupSettingsTest {
     // ── Copiar: qué se lleva la copia ───────────────────────────────────────────────────────
 
     @Test
-    fun `la copia lleva los catorce ajustes con su valor`() {
+    fun `la copia lleva los quince ajustes con su valor`() {
         assertCoincide("la copia", backupSettingsJson(valores), valores)
     }
 
@@ -155,9 +157,9 @@ class BackupSettingsTest {
     // ── Restaurar: qué se aplica de ESTA copia ─────────────────────────────────────────────
 
     @Test
-    fun `se aplican los catorce ajustes y el tema con su valor`() {
+    fun `se aplican los quince ajustes y el tema con su valor`() {
         val ajustes = restorableSettings(backupSettingsJson(valores))
-        assertEquals("Deben volver los catorce ajustes", 14, ajustes.size)
+        assertEquals("Deben volver los quince ajustes", 15, ajustes.size)
         val tema = ajustes.first { it.key == AppConstants.THEME_ID_KEY }
         assertEquals(
             "El tema tiene que volver con su identificador, no con su paleta",
@@ -170,7 +172,7 @@ class BackupSettingsTest {
     @Test
     fun `una copia sin tema aplica el resto y no toca el tema`() {
         val ajustes = restorableSettings(backupSettingsJson(valores - AppConstants.THEME_ID_KEY))
-        assertEquals("Deben volver los trece ajustes de siempre", 13, ajustes.size)
+        assertEquals("Deben volver los catorce ajustes de siempre", 14, ajustes.size)
         assertTrue(
             "El tema no puede tocarse si la copia no lo trae",
             ajustes.none { it.key == AppConstants.THEME_ID_KEY }
@@ -185,7 +187,7 @@ class BackupSettingsTest {
     @Test
     fun `un tema que esta version no tiene no se escribe`() {
         val ajustes = restorableSettings(backupSettingsJson(valores + (AppConstants.THEME_ID_KEY to TEMA_DESCONOCIDO)))
-        assertEquals("Solo se salta el tema: los otros trece se aplican", 13, ajustes.size)
+        assertEquals("Solo se salta el tema: los otros catorce se aplican", 14, ajustes.size)
         assertTrue(
             "Un tema desconocido no puede pisar el que ya hay",
             ajustes.none { it.key == AppConstants.THEME_ID_KEY }
@@ -271,12 +273,12 @@ class BackupSettingsTest {
     }
 
     /**
-     * Con las preferencias vacías salen los catorce defectos y el tema es el **dinámico**, que es lo
-     * que una instalación nueva muestra de fábrica. Se compara contra la lista y no contra catorce
+     * Con las preferencias vacías salen los quince defectos y el tema es el **dinámico**, que es lo
+     * que una instalación nueva muestra de fábrica. Se compara contra la lista y no contra quince
      * `assertEquals` sueltos: si mañana se añade un ajuste a la copia, esta prueba avisa sola.
      */
     @Test
-    fun `sin preferencias guardadas salen los catorce por defecto y el tema dinamico`() {
+    fun `sin preferencias guardadas salen los quince por defecto y el tema dinamico`() {
         assertEquals(DEFAULT_SETTINGS, readBackupSettings(PrefsFalso()))
     }
 
@@ -303,12 +305,12 @@ class BackupSettingsTest {
     }
 
     /**
-     * Los catorce leídos con su **tipo**, no convertidos a texto. Se escribe con los mismos tipos que
+     * Los quince leídos con su **tipo**, no convertidos a texto. Se escribe con los mismos tipos que
      * declara la lista y se lee: si algo se convirtiera al pasar, la comparación fallaría, porque
      * `"true"` no es `true`.
      */
     @Test
-    fun `los catorce se leen con su tipo y no convertidos a texto`() {
+    fun `los quince se leen con su tipo y no convertidos a texto`() {
         val prefs = PrefsFalso()
         prefs.escribeTodo(valores)
         assertEquals(valores, readBackupSettings(prefs))

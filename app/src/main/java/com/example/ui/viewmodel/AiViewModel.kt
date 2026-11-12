@@ -201,6 +201,15 @@ class AiViewModel(
     val repetitionPenalty: StateFlow<Float> = _repetitionPenalty.asStateFlow()
     private val _maxTokens = MutableStateFlow(prefsRepository.getAiMaxTokens())
     val maxTokens: StateFlow<Int> = _maxTokens.asStateFlow()
+    /** Esfuerzo de razonamiento del chat: solo en memoria (RF-221), `DEFAULT` al arrancar el proceso. */
+    private val _reasoningEffort = MutableStateFlow(ReasoningEffort.DEFAULT)
+    val reasoningEffort: StateFlow<ReasoningEffort> = _reasoningEffort.asStateFlow()
+    /** Favoritos del selector de modelo (RF-233): claves `gguf:<id>` / `ollama:<nombre>`, en prefs. */
+    private val _favoriteModels = MutableStateFlow(prefsRepository.getFavoriteModels())
+    val favoriteModels: StateFlow<Set<String>> = _favoriteModels.asStateFlow()
+    /** Id del modelo que se está descargando ahora (RF-232); uno a la vez. */
+    private val _downloadingModelId = MutableStateFlow<String?>(null)
+    val downloadingModelId: StateFlow<String?> = _downloadingModelId.asStateFlow()
 
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
@@ -524,11 +533,44 @@ class AiViewModel(
         prefsRepository.setAiMaxTokens(value)
     }
 
+    /** Fija el esfuerzo de razonamiento del chat (RF-217): solo memoria, aplica a la siguiente petición. */
+    fun setReasoningEffort(effort: ReasoningEffort) {
+        _reasoningEffort.value = effort
+    }
+
     fun selectOnDeviceModel(model: OnDeviceModel) {
+        // Cambiar de modelo on-device exige soltar los pesos actuales: `ensureReady()`
+        // devuelve éxito tal cual si el motor está READY y serviría el modelo anterior
+        // (spec 033, RF-224/RF-226). Se suelta en background; la siguiente petición carga.
+        if (_selectedOnDeviceModel.value?.id != model.id) {
+            aiModelHost.releaseAll("model-changed")
+        }
         _selectedOnDeviceModel.value = model
         val path = modelDownloader.getModelPath(model)
         if (path != null) {
             setOnDeviceModelPath(path)
+        }
+    }
+
+    /** Marca/desmarca un modelo como favorito (RF-233). La clave lleva el origen (`gguf:`/`ollama:`). */
+    fun toggleFavoriteModel(key: String) {
+        val current = _favoriteModels.value
+        val next = if (key in current) current - key else current + key
+        _favoriteModels.value = next
+        prefsRepository.setFavoriteModels(next)
+    }
+
+    /** Descarga un modelo del catálogo sin cambiar el seleccionado (RF-230/RF-232). */
+    fun downloadOnDeviceModel(model: OnDeviceModel) {
+        if (_downloadingModelId.value != null) return
+        viewModelScope.launch {
+            _downloadingModelId.value = model.id
+            try {
+                modelDownloader.download(model)
+                refreshDownloadedModels()
+            } finally {
+                _downloadingModelId.value = null
+            }
         }
     }
 
@@ -768,7 +810,8 @@ class AiViewModel(
             topK = _topK.value,
             topP = _topP.value,
             repetitionPenalty = _repetitionPenalty.value,
-            maxTokens = _maxTokens.value
+            maxTokens = reasoningMaxTokens(_maxTokens.value, _reasoningEffort.value),
+            think = reasoningThink(_reasoningEffort.value)
         )
 
         val currentHistory = _conversationHistory.value[sessionId] ?: emptyList()

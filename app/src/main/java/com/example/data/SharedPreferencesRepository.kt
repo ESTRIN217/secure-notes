@@ -142,4 +142,16 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setAiMaxTokens(value: Int) {
         prefs.edit().putInt(AppConstants.AI_MAX_TOKENS_KEY, value).apply()
     }
+
+    override fun getFavoriteModels(): Set<String> =
+        prefs.getString(AppConstants.AI_FAVORITE_MODELS_KEY, "")
+            ?.split('\n')
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            ?: emptySet()
+
+    override fun setFavoriteModels(ids: Set<String>) {
+        prefs.edit().putString(AppConstants.AI_FAVORITE_MODELS_KEY, ids.joinToString("\n")).apply()
+    }
 }

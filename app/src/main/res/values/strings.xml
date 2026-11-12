@@ -1105,4 +1105,35 @@
     <string name="theme_monokai">Monokai Pro</string>
     <string name="theme_github_light">GitHub Light</string>
     <string name="theme_active_cd">Active</string>
+    <!-- spec 033: esfuerzo de razonamiento y selector de modelo en el chat -->
+    <string name="chat_effort_title">Reasoning effort</string>
+    <string name="chat_effort_default">Default</string>
+    <string name="chat_effort_off">Off</string>
+    <string name="chat_effort_low">Low</string>
+    <string name="chat_effort_medium">Medium</string>
+    <string name="chat_effort_high">High</string>
+    <string name="chat_effort_max">Max</string>
+    <string name="chat_effort_tokens">Max %1$d tokens</string>
+    <string name="chat_effort_unlimited">Unlimited</string>
+    <string name="chat_effort_app_setting">Uses the app setting (max %1$d t)</string>
+    <string name="chat_effort_off_desc">No thinking; app setting cap (max %1$d t)</string>
+    <string name="chat_effort_content_desc">Reasoning effort: %1$s</string>
+    <string name="chat_model_none">No model</string>
+    <string name="chat_model_selector_title">Model</string>
+    <string name="chat_model_on_device">On device</string>
+    <string name="chat_model_ollama">Ollama</string>
+    <string name="chat_model_none_downloaded">No downloaded models</string>
+    <string name="chat_model_test_connection">Test connection</string>
+    <string name="chat_model_testing">Testing…</string>
+    <string name="chat_model_picker_desc">Switch model, current: %1$s</string>
+    <!-- spec 033: búsqueda y acciones por modelo en el selector -->
+    <string name="chat_model_search_hint">Search models…</string>
+    <string name="chat_model_no_results">No results for “%1$s”</string>
+    <string name="chat_model_info_desc">Model information: %1$s</string>
+    <string name="chat_model_favorite_desc">Favorite: %1$s</string>
+    <string name="chat_model_download_desc">Download model: %1$s</string>
+    <string name="chat_model_open_hf">Open in Hugging Face</string>
+    <string name="chat_model_quant_line">Quantization: %1$s</string>
+    <string name="chat_model_load_desc">Load model: %1$s</string>
+    <string name="chat_model_unload_desc">Unload model: %1$s</string>
 </resources>

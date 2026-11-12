@@ -33,4 +33,7 @@ interface PreferencesRepository {
     fun setAiRepetitionPenalty(value: Float)
     fun getAiMaxTokens(): Int
     fun setAiMaxTokens(value: Int)
+    /** Favoritos de modelos en el selector del chat (spec 033): claves `gguf:<id>` / `ollama:<nombre>`. */
+    fun getFavoriteModels(): Set<String>
+    fun setFavoriteModels(ids: Set<String>)
 }

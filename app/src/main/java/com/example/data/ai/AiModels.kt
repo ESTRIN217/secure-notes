@@ -37,7 +37,9 @@ data class AiRequest(
     val topK: Int = 40,
     val topP: Float = 0.9f,
     val repetitionPenalty: Float = 1.1f,
-    val maxTokens: Int = 256
+    val maxTokens: Int = 256,
+    /** `think` top-level de `/api/chat` (RF-219): `null` = campo ausente. Solo lo usa Ollama. */
+    val think: Boolean? = null
 )
 
 data class ToolResult(

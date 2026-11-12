@@ -1069,4 +1069,35 @@ O que deseja fazer?</string>
     <string name="theme_monokai">Monokai Pro</string>
     <string name="theme_github_light">GitHub Light</string>
     <string name="theme_active_cd">Ativo</string>
+    <!-- spec 033: esfuerzo de razonamiento y selector de modelo en el chat -->
+    <string name="chat_effort_title">Esforço de raciocínio</string>
+    <string name="chat_effort_default">Default</string>
+    <string name="chat_effort_off">Off</string>
+    <string name="chat_effort_low">Low</string>
+    <string name="chat_effort_medium">Medium</string>
+    <string name="chat_effort_high">High</string>
+    <string name="chat_effort_max">Max</string>
+    <string name="chat_effort_tokens">Máx. %1$d tokens</string>
+    <string name="chat_effort_unlimited">Ilimitado</string>
+    <string name="chat_effort_app_setting">Usa o ajuste do app (máx. %1$d t)</string>
+    <string name="chat_effort_off_desc">Sem raciocínio; limite do ajuste (máx. %1$d t)</string>
+    <string name="chat_effort_content_desc">Nível de raciocínio: %1$s</string>
+    <string name="chat_model_none">Sem modelo</string>
+    <string name="chat_model_selector_title">Modelo</string>
+    <string name="chat_model_on_device">No dispositivo</string>
+    <string name="chat_model_ollama">Ollama</string>
+    <string name="chat_model_none_downloaded">Nenhum modelo baixado</string>
+    <string name="chat_model_test_connection">Testar conexão</string>
+    <string name="chat_model_testing">Testando…</string>
+    <string name="chat_model_picker_desc">Trocar modelo, atual: %1$s</string>
+    <!-- spec 033: búsqueda y acciones por modelo en el selector -->
+    <string name="chat_model_search_hint">Buscar modelos…</string>
+    <string name="chat_model_no_results">Sem resultados para «%1$s»</string>
+    <string name="chat_model_info_desc">Informações do modelo: %1$s</string>
+    <string name="chat_model_favorite_desc">Favorito: %1$s</string>
+    <string name="chat_model_download_desc">Baixar modelo: %1$s</string>
+    <string name="chat_model_open_hf">Abrir no Hugging Face</string>
+    <string name="chat_model_quant_line">Quantização: %1$s</string>
+    <string name="chat_model_load_desc">Carregar modelo: %1$s</string>
+    <string name="chat_model_unload_desc">Descarregar modelo: %1$s</string>
 </resources>

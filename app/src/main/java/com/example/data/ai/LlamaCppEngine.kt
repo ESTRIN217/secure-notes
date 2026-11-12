@@ -68,7 +68,10 @@ class LlamaCppEngine(
         try {
             val (system, user) = resolvePrompts(request)
             ensureReady(system)
-            val response = engine.sendUserPrompt(user, request.maxTokens)
+            // `-1` (ilimitado de Ollama) no cabe en el int32 de stop_generation_position:
+            // se aplica el tope grande documentado (spec 033, RNF-143).
+            val predict = request.maxTokens.takeIf { it > 0 } ?: 1_000_000
+            val response = engine.sendUserPrompt(user, predict)
                 .toList()
                 .joinToString("")
             Result.success(response)
@@ -81,7 +84,8 @@ class LlamaCppEngine(
     override suspend fun executeStreaming(request: AiRequest): Flow<String> {
         val (system, user) = resolvePrompts(request)
         ensureReady(system)
-        return engine.sendUserPrompt(user, request.maxTokens)
+        val predict = request.maxTokens.takeIf { it > 0 } ?: 1_000_000
+        return engine.sendUserPrompt(user, predict)
     }
 
     private fun resolvePrompts(request: AiRequest): Pair<String, String> {
