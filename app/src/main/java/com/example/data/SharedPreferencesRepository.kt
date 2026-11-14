@@ -154,4 +154,16 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setFavoriteModels(ids: Set<String>) {
         prefs.edit().putString(AppConstants.AI_FAVORITE_MODELS_KEY, ids.joinToString("\n")).apply()
     }
+
+    override fun getHiddenModels(): Set<String> =
+        prefs.getString(AppConstants.AI_HIDDEN_MODELS_KEY, "")
+            ?.split('\n')
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            ?: emptySet()
+
+    override fun setHiddenModels(ids: Set<String>) {
+        prefs.edit().putString(AppConstants.AI_HIDDEN_MODELS_KEY, ids.joinToString("\n")).apply()
+    }
 }

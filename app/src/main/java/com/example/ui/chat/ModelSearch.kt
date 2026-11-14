@@ -39,3 +39,10 @@ fun <T> favoritesFirst(items: List<T>, isFavorite: (T) -> Boolean): List<T> {
     if (favorites.isEmpty()) return items
     return favorites + items.filterNot(isFavorite)
 }
+
+/**
+ * Formatea un tamaño de contexto como en referencia: `8,192 tokens` (EE. UU.), `8.192 tokens` (es),
+ * `8 192 tokens` (fr). Puro; recibe el [java.util.Locale] (RF-241).
+ */
+fun formatTokens(n: Long, locale: java.util.Locale): String =
+    java.text.NumberFormat.getIntegerInstance(locale).format(n) + " tokens"

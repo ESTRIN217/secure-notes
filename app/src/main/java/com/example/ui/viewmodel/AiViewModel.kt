@@ -95,7 +95,7 @@ data class ConversationTurn(
 sealed class ConnectionState {
     data object Unknown : ConnectionState()
     data object Testing : ConnectionState()
-    data class Connected(val models: List<String>) : ConnectionState()
+    data class Connected(val models: List<String>, val contextLengths: Map<String, Long> = emptyMap()) : ConnectionState()
     data class Failed(val error: String) : ConnectionState()
 }
 
@@ -207,6 +207,9 @@ class AiViewModel(
     /** Favoritos del selector de modelo (RF-233): claves `gguf:<id>` / `ollama:<nombre>`, en prefs. */
     private val _favoriteModels = MutableStateFlow(prefsRepository.getFavoriteModels())
     val favoriteModels: StateFlow<Set<String>> = _favoriteModels.asStateFlow()
+    /** Modelos ocultos (RF-244): fuera de los selectores del chat; claves `gguf:<id>` / `ollama:<nombre>`. */
+    private val _hiddenModels = MutableStateFlow(prefsRepository.getHiddenModels())
+    val hiddenModels: StateFlow<Set<String>> = _hiddenModels.asStateFlow()
     /** Id del modelo que se está descargando ahora (RF-232); uno a la vez. */
     private val _downloadingModelId = MutableStateFlow<String?>(null)
     val downloadingModelId: StateFlow<String?> = _downloadingModelId.asStateFlow()
@@ -560,6 +563,26 @@ class AiViewModel(
         prefsRepository.setFavoriteModels(next)
     }
 
+    /** Oculta/desoculta un modelo (RF-244): fuera de la tabla/hoja/buscador hasta que se desoculte. */
+    fun toggleHiddenModel(key: String) {
+        val current = _hiddenModels.value
+        val next = if (key in current) current - key else current + key
+        _hiddenModels.value = next
+        prefsRepository.setHiddenModels(next)
+    }
+
+    /** Borra un `.gguf` descargado desde el panel (RF-243): si es el activo, suelta los pesos primero. */
+    fun deleteOnDeviceModel(model: OnDeviceModel) {
+        if (_selectedOnDeviceModel.value?.id == model.id) {
+            holdsModelRef = false
+            aiModelHost.releaseAll("model-deleted")
+            _selectedOnDeviceModel.value = null
+            prefsRepository.setAiOnDeviceModelPath("")
+        }
+        modelDownloader.deleteModel(model)
+        refreshDownloadedModels()
+    }
+
     /** Descarga un modelo del catálogo sin cambiar el seleccionado (RF-230/RF-232). */
     fun downloadOnDeviceModel(model: OnDeviceModel) {
         if (_downloadingModelId.value != null) return
@@ -630,7 +653,7 @@ class AiViewModel(
         viewModelScope.launch {
             val result = ollamaService.testConnection()
             _connectionState.value = result.fold(
-                onSuccess = { models -> ConnectionState.Connected(models) },
+                onSuccess = { info -> ConnectionState.Connected(info.models, info.contextLengths) },
                 onFailure = { error -> ConnectionState.Failed(error.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_unknown)) }
             )
         }

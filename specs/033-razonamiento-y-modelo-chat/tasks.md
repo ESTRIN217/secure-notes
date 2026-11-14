@@ -104,3 +104,34 @@ Tareas opcionales futuras (fuera de esta spec): `xhigh` model-defined, effort en
   - `ModelSelectorState` gana `onDeviceModelState`; filas on-device: `Download` si falta el `.gguf`, `PlayArrow` si está y no está cargado (select + backend on-device + `loadSelectedModel()`), `Stop` si está cargado y es el activo (`unloadModel()` sin confirmar), spinner mientras `LOADING`.
   - Eliminados `DeleteModelDialog` y las claves `chat_model_delete_*` de los 9 locales; añadidas `chat_model_load_desc` y `chat_model_unload_desc`; el diálogo de info y los favoritos intactos; borrar el `.gguf` solo en Ajustes → IA. `deleteOnDeviceModel` retirado (código muerto); el `@Preview` del usuario adaptado al nuevo API.
   - Hecho cuando: `:app:compileDebugKotlin` verde, `./gradlew test` → **890 tests, 38 fallos (plataforma), 0 omitidos** (sin regresión), `assembleDebug` OK.
+
+## Ampliación 2026-11-14 — Panel de gestión de modelos (tablet/PC)
+
+- [x] **T21. Backup con ocultos.** RF-244
+  - `AI_HIDDEN_MODELS_KEY` en `Constants.kt`; `BACKUP_SETTINGS`/`DEFAULT_SETTINGS` +1 (TEXT, `""`) → **dieciséis**; `BackupSettingsTest` ajustado (16 claves).
+  - Hecho cuando: `BackupSettingsTest` verde.
+
+- [x] **T22. Preferencias de ocultos.** RF-244
+  - `getHiddenModels()`/`setHiddenModels(Set<String>)` (CSV `\n`) en `PreferencesRepository` + `SharedPreferencesRepository`.
+  - Hecho cuando: `:app:compileDebugKotlin` verde.
+
+- [x] **T23. `/api/show` con contexto.** RF-241
+  - `OllamaService.testConnection` extendida: tras `/api/tags`, llamada a `/api/show` por modelo con `withTimeoutOrNull(5s)`; se lee `*.context_length`; un fallo no derriba el test. Nuevo `OllamaConnectionInfo(models, contextLengths)`; `ConnectionState.Connected` lleva `contextLengths`.
+  - Hecho cuando: `:app:compileDebugKotlin` verde.
+
+- [x] **T24. `AiViewModel`: ocultos y borrado parametrico.** RF-243, RF-244
+  - `hiddenModels` (StateFlow, desde pref), `toggleHiddenModel(key)`; `deleteOnDeviceModel(model)` re-añadida (release pre-borrado si es el activo).
+  - Hecho cuando: `:app:compileDebugKotlin` verde.
+
+- [x] **T25. `ModelManagerPanel.kt`.** RF-238…RF-246
+  - Overlay hermano del Scaffold en assistant ≥600 dp (BackHandler, ✕); cabecera «Models» + subtítulo EN con traducción ×9; buscador; dos secciones plegadas (Local models N / Ollama N, contadores); tabla columnas (model/context/actions); filas: corazoncito si favorita, nombre negrita + chips quant/size MB; Context `8.192 tokens` (locale) / Ollama `context_length` de `/api/show` / «—»; Status power (Download→⏻/Download, encendido si READY+activo, LOADING=spinner, tap toggle load/unload); Actions `⋮` con Add/Remove favorites (heart), Delete from disk (rojo, con confirmación), Hide model; chip «Show hidden models (N)» desoculta; corazón/card en Ollama = mismo favorito.
+
+- [x] **T26. Wire-up.** RF-238, RF-242, RF-243
+  - `FloatingChatInputField`: ≥600 dp abre el panel; el menú `ModelSelectorMenu` eliminado (RF-235 superada).
+  - `AiChatScreen`: recolecta `hiddenModels` y `contextLengths`; monta `ModelManagerPanel` como hermano a continuación del Scaffold (se pinta por encima); callbacks de delete/unload espejan las del sheet.
+  - `ModelSelectorSheet`: filtro de ocultos en ambos `remember`; estrellas → corazones (#E91E63).
+
+- [x] **T27. Verificación.**
+  - `./gradlew test` → **890 tests, 38 fallos (plataforma), 0 omitidos** (= baseline; modelos/nueva lógica pura pasa, incluida backup=16).
+  - `:app:compileDebugKotlin` y `assembleDebug` → **BUILD SUCCESSFUL**. 19 claves nuevas × 9 locales.
+  - Pendiente: verificación visual en tablet/PC contra las capturas de Ollama Models (header, chip al final, iconos).

@@ -58,7 +58,8 @@ import kotlinx.coroutines.delay
  * El botón de **esfuerzo de razonamiento** (spec 033, RF-215…RF-217) monta aquí su hoja/menú —estado
  * transitorio de vista, como el pulso del botón de enviar— mientras el valor lo posee `AiChatScreen`
  * y llega por [reasoningEffort] (RF-33). El botón de **modelo** (RF-222) monta aquí el selector
- * ([ModelSelectorState] por parámetros, sin VM): la geometría de `DropdownMenu` exige que la hoja/el
+ * ([ModelSelectorState] por parámetros, sin VM). El botón de modelo en <600 dp abre la hoja dentro;
+ * en ≥600 dp lanza [onModelPanelOpen] y el panel vive en [AiChatScreen].
  * menú vivan junto al botón.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +85,7 @@ fun FloatingChatInputField(
     onDownloadModel: (OnDeviceModel) -> Unit,
     onLoadModel: (OnDeviceModel) -> Unit,
     onUnloadModel: () -> Unit,
+    onModelPanelOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -91,7 +93,6 @@ fun FloatingChatInputField(
     var showEffortSheet by remember { mutableStateOf(false) }
     var showEffortMenu by remember { mutableStateOf(false) }
     var showModelSheet by remember { mutableStateOf(false) }
-    var showModelMenu by remember { mutableStateOf(false) }
 
     HorizontalFloatingToolbar(
         expanded = true,
@@ -139,26 +140,10 @@ fun FloatingChatInputField(
                     onSelect = onReasoningEffortChange
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                // El menú/hoja anclado vive aquí dentro (igual que el esfuerzo): la geometría
-                // de `DropdownMenu` lo exige, y el campo sigue sin VM ni StateFlow.
-                Box {
-                    ModelPickerButton(
-                        modelName = modelSelector.modelName,
-                        onClick = { if (isLargeScreen) showModelMenu = !showModelMenu else showModelSheet = true }
-                    )
-                    ModelSelectorMenu(
-                        expanded = showModelMenu,
-                        onDismissRequest = { showModelMenu = false },
-                        state = modelSelector,
-                        onSelectOnDevice = onSelectOnDevice,
-                        onSelectOllama = onSelectOllama,
-                        onTestConnection = onTestConnection,
-                        onToggleFavorite = onToggleFavoriteModel,
-                        onDownloadModel = onDownloadModel,
-                        onLoadModel = onLoadModel,
-                        onUnloadModel = onUnloadModel
-                    )
-                }
+                ModelPickerButton(
+                    modelName = modelSelector.modelName,
+                    onClick = { if (isLargeScreen) onModelPanelOpen() else showModelSheet = true }
+                )
                 SendOrStopButton(
                     enabled = canSend || isProcessing,
                     isProcessing = isProcessing,
@@ -529,7 +514,8 @@ fun FloatingChatInputFieldPreview() {
             onToggleFavoriteModel = {},
             onDownloadModel = {},
             onLoadModel = {},
-            onUnloadModel = {}
+            onUnloadModel = {},
+            onModelPanelOpen = {}
         )
     }
 }

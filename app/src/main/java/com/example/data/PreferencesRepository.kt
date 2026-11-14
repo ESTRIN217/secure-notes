@@ -36,4 +36,7 @@ interface PreferencesRepository {
     /** Favoritos de modelos en el selector del chat (spec 033): claves `gguf:<id>` / `ollama:<nombre>`. */
     fun getFavoriteModels(): Set<String>
     fun setFavoriteModels(ids: Set<String>)
+    /** Modelos ocultos en el panel de gestión del chat (spec 033): claves `gguf:<id>` / `ollama:<nombre>`. */
+    fun getHiddenModels(): Set<String>
+    fun setHiddenModels(ids: Set<String>)
 }

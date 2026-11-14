@@ -17,8 +17,8 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -67,12 +67,16 @@ data class ModelSelectorState(
     /** Estado de la descarga activa (progreso); [DownloadState.Idle] si no hay. */
     val downloadState: DownloadState = DownloadState.Idle,
     /** Estado del motor on-device (RF-231): `READY` compromete el ciclo de vida del modelo activo. */
-    val onDeviceModelState: ModelState = ModelState.NOT_LOADED
+    val onDeviceModelState: ModelState = ModelState.NOT_LOADED,
+    /** Claves de modelos ocultos (RF-244): se quitan de catálogo, hoja y buscador. */
+    val hiddenModels: Set<String> = emptySet(),
+    /** `context_length` por modelo de Ollama desde `/api/show` (RAM/proceso; puede estar vacía). */
+    val contextLengths: Map<String, Long> = emptyMap()
 )
 
 /**
  * Selector de modelo del chat (spec 033, RF-222…RF-237). Se monta dentro del campo, junto al botón:
- * [ModelSelectorSheet] en <600 dp y [ModelSelectorMenu] en ≥600 dp; comparten filas y estado.
+ * [ModelSelectorSheet] en <600 dp; el panel completo (≥600 dp) vive en `ModelManagerPanel.kt`.
  *
  * No llama a la red por sí mismo: «Probar conexión» lo hace vía [onTestConnection]; descargar o
  * eliminar usa las acciones del ViewModel; la búsqueda y el orden son puros (`ui/chat/ModelSearch.kt`).
@@ -92,11 +96,15 @@ fun ModelSelectorSheet(
 ) {
     var infoModel by remember { mutableStateOf<OnDeviceModel?>(null) }
     var query by remember { mutableStateOf("") }
-    val filteredCatalog = remember(state.catalogModels, query, state.favorites) {
-        favoritesFirst(filterOnDeviceModels(state.catalogModels, query)) { favoriteOnDeviceKey(it.id) in state.favorites }
+    val filteredCatalog = remember(state.catalogModels, query, state.favorites, state.hiddenModels) {
+        favoritesFirst(
+            filterOnDeviceModels(state.catalogModels, query).filterNot { favoriteOnDeviceKey(it.id) in state.hiddenModels }
+        ) { favoriteOnDeviceKey(it.id) in state.favorites }
     }
-    val filteredOllama = remember(state.ollamaModels, query, state.favorites) {
-        favoritesFirst(filterOllamaModels(state.ollamaModels, query)) { favoriteOllamaKey(it) in state.favorites }
+    val filteredOllama = remember(state.ollamaModels, query, state.favorites, state.hiddenModels) {
+        favoritesFirst(
+            filterOllamaModels(state.ollamaModels, query).filterNot { favoriteOllamaKey(it) in state.hiddenModels }
+        ) { favoriteOllamaKey(it) in state.favorites }
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -187,196 +195,6 @@ fun ModelSelectorSheet(
     infoModel?.let { ModelInfoDialog(model = it, onDismiss = { infoModel = null }) }
 }
 
-/** Variante menú anclado (≥600 dp): mismos contenidos, compacto y con targets de 32 dp. */
-@Composable
-fun ModelSelectorMenu(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    state: ModelSelectorState,
-    onSelectOnDevice: (OnDeviceModel) -> Unit,
-    onSelectOllama: (String) -> Unit,
-    onTestConnection: () -> Unit,
-    onToggleFavorite: (String) -> Unit,
-    onDownloadModel: (OnDeviceModel) -> Unit,
-    onLoadModel: (OnDeviceModel) -> Unit,
-    onUnloadModel: () -> Unit
-) {
-    var infoModel by remember { mutableStateOf<OnDeviceModel?>(null) }
-    var query by remember { mutableStateOf("") }
-    val filteredCatalog = remember(state.catalogModels, query, state.favorites) {
-        favoritesFirst(filterOnDeviceModels(state.catalogModels, query)) { favoriteOnDeviceKey(it.id) in state.favorites }
-    }
-    val filteredOllama = remember(state.ollamaModels, query, state.favorites) {
-        favoritesFirst(filterOllamaModels(state.ollamaModels, query)) { favoriteOllamaKey(it) in state.favorites }
-    }
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
-        SearchField(query = query, onQueryChange = { query = it }, compact = true)
-        MenuHeader(stringResource(R.string.chat_model_on_device))
-        if (filteredCatalog.isEmpty()) {
-            DropdownMenuItem(text = { Text(stringResource(R.string.chat_model_none_downloaded)) }, enabled = false, onClick = {})
-        } else {
-            filteredCatalog.forEach { model ->
-                val downloaded = model.id in state.downloadedIds
-                ModelMenuRow(
-                    model = model,
-                    selected = state.backend == AiBackend.ON_DEVICE && state.selectedOnDeviceId == model.id,
-                    downloaded = downloaded,
-                    favorite = favoriteOnDeviceKey(model.id) in state.favorites,
-                    isDownloadingThis = state.downloadingModelId == model.id,
-                    isAnyDownloadActive = state.downloadingModelId != null,
-                    engineState = state.onDeviceModelState,
-                    downloadState = state.downloadState,
-                    onRowClick = {
-                        if (downloaded) {
-                            onDismissRequest()
-                            onSelectOnDevice(model)
-                        } else {
-                            onDownloadModel(model)
-                        }
-                    },
-                    onToggleFavorite = { onToggleFavorite(favoriteOnDeviceKey(model.id)) },
-                    onShowInfo = { infoModel = model },
-                    onLifecycle = {
-                        if (downloaded) {
-                            if (state.onDeviceModelState == ModelState.READY && state.selectedOnDeviceId == model.id) {
-                                onUnloadModel()
-                            } else {
-                                onLoadModel(model)
-                            }
-                        } else {
-                            onDownloadModel(model)
-                        }
-                    }
-                )
-            }
-        }
-        MenuHeader(stringResource(R.string.chat_model_ollama))
-        if (state.ollamaModels.isEmpty()) {
-            val configured = state.modelName.ifBlank { stringResource(R.string.chat_model_none) }
-            val configuredFav = favoriteOllamaKey(state.modelName) in state.favorites
-            OllamaMenuRow(
-                name = configured,
-                selected = state.backend == AiBackend.OLLAMA,
-                favorite = configuredFav,
-                onRowClick = { onDismissRequest(); onSelectOllama(state.modelName) },
-                onToggleFavorite = { onToggleFavorite(favoriteOllamaKey(state.modelName)) }
-            )
-            if (state.isTesting) {
-                DropdownMenuItem(text = { Text(stringResource(R.string.chat_model_testing)) }, enabled = false, onClick = {})
-            } else {
-                DropdownMenuItem(text = { Text(stringResource(R.string.chat_model_test_connection)) }, onClick = onTestConnection)
-            }
-            state.connectionError?.let { error ->
-                DropdownMenuItem(text = { Text(error, maxLines = 2, overflow = TextOverflow.Ellipsis) }, enabled = false, onClick = {})
-            }
-        } else {
-            filteredOllama.forEach { name ->
-                val selected = state.backend == AiBackend.OLLAMA && state.modelName == name
-                OllamaMenuRow(
-                    name = name,
-                    selected = selected,
-                    favorite = favoriteOllamaKey(name) in state.favorites,
-                    onRowClick = { onDismissRequest(); onSelectOllama(name) },
-                    onToggleFavorite = { onToggleFavorite(favoriteOllamaKey(name)) }
-                )
-            }
-        }
-    }
-
-    infoModel?.let { ModelInfoDialog(model = it, onDismiss = { infoModel = null }) }
-}
-
-@Composable
-private fun SearchField(query: String, onQueryChange: (String) -> Unit, compact: Boolean = false) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        placeholder = { Text(stringResource(R.string.chat_model_search_hint)) },
-        modifier = (if (compact) Modifier.width(268.dp) else Modifier.fillMaxWidth())
-            .padding(horizontal = if (compact) 16.dp else 4.dp, vertical = 4.dp)
-    )
-}
-
-@Composable
-private fun OnDeviceRow(
-    model: OnDeviceModel,
-    selected: Boolean,
-    downloaded: Boolean,
-    favorite: Boolean,
-    isDownloadingThis: Boolean,
-    isAnyDownloadActive: Boolean,
-    downloadState: DownloadState,
-    engineState: ModelState,
-    iconSize: androidx.compose.ui.unit.Dp,
-    onRowClick: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onShowInfo: () -> Unit,
-    onLifecycle: () -> Unit
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
-        RadioButton(selected = selected, onClick = onRowClick)
-        ModelText(model = model, onClick = onRowClick, modifier = Modifier.weight(1f))
-        FavoriteButton(favorite = favorite, modelName = model.displayName, size = iconSize, onToggle = onToggleFavorite)
-        IconButton(onClick = onShowInfo, modifier = Modifier.size(iconSize)) {
-            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.chat_model_info_desc, model.displayName), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        LifecycleButton(
-            downloaded = downloaded,
-            isSelected = selected,
-            engineState = engineState,
-            isDownloadingThis = isDownloadingThis,
-            isAnyDownloadActive = isAnyDownloadActive,
-            downloadState = downloadState,
-            modelName = model.displayName,
-            size = iconSize,
-            onClick = onLifecycle
-        )
-    }
-}
-
-/** Variante compacta anclada al menú: same shape as [OnDeviceRow] sin la radio (check en el texto). */
-@Composable
-private fun ModelMenuRow(
-    model: OnDeviceModel,
-    selected: Boolean,
-    downloaded: Boolean,
-    favorite: Boolean,
-    isDownloadingThis: Boolean,
-    isAnyDownloadActive: Boolean,
-    engineState: ModelState,
-    downloadState: DownloadState,
-    onRowClick: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    onShowInfo: () -> Unit,
-    onLifecycle: () -> Unit
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
-        if (selected) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 6.dp).size(16.dp))
-        } else {
-            Spacer(modifier = Modifier.width(22.dp))
-        }
-        ModelText(model = model, onClick = onRowClick, modifier = Modifier.weight(1f))
-        FavoriteButton(favorite = favorite, modelName = model.displayName, size = 32.dp, onToggle = onToggleFavorite)
-        IconButton(onClick = onShowInfo, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.chat_model_info_desc, model.displayName), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-        }
-        LifecycleButton(
-            downloaded = downloaded,
-            isSelected = selected,
-            engineState = engineState,
-            isDownloadingThis = isDownloadingThis,
-            isAnyDownloadActive = isAnyDownloadActive,
-            downloadState = downloadState,
-            modelName = model.displayName,
-            size = 32.dp,
-            onClick = onLifecycle
-        )
-    }
-}
-
 @Composable
 private fun ModelText(model: OnDeviceModel, onClick: () -> Unit, modifier: Modifier) {
     val ram = stringResource(R.string.ai_model_min_ram, model.fileSizeMb, model.minRamMb)
@@ -391,9 +209,9 @@ private fun ModelText(model: OnDeviceModel, onClick: () -> Unit, modifier: Modif
 private fun FavoriteButton(favorite: Boolean, modelName: String, size: androidx.compose.ui.unit.Dp, onToggle: () -> Unit) {
     IconButton(onClick = onToggle, modifier = Modifier.size(size)) {
         Icon(
-            imageVector = if (favorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+            imageVector = if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
             contentDescription = stringResource(R.string.chat_model_favorite_desc, modelName),
-            tint = if (favorite) androidx.compose.ui.graphics.Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = if (favorite) androidx.compose.ui.graphics.Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -477,25 +295,6 @@ private fun OllamaRow(
 }
 
 @Composable
-private fun OllamaMenuRow(
-    name: String,
-    selected: Boolean,
-    favorite: Boolean,
-    onRowClick: () -> Unit,
-    onToggleFavorite: () -> Unit
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
-        if (selected) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 6.dp).size(16.dp))
-        } else {
-            Spacer(modifier = Modifier.width(22.dp))
-        }
-        Text(text = name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).clickable(onClick = onRowClick))
-        FavoriteButton(favorite = favorite, modelName = name, size = 32.dp, onToggle = onToggleFavorite)
-    }
-}
-
-@Composable
 private fun ModelInfoDialog(model: OnDeviceModel, onDismiss: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     AlertDialog(
@@ -549,9 +348,57 @@ private fun SectionHeader(text: String) =
     Text(text = text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
 
 @Composable
-private fun MenuHeader(text: String) =
-    Text(text = text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-
-@Composable
 private fun EmptyNote(text: String) =
     Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp))
+
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        leadingIcon = { Icon(androidx.compose.material.icons.Icons.Default.Search, contentDescription = null) },
+        placeholder = { Text(stringResource(R.string.chat_model_search_hint)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun OnDeviceRow(
+    model: OnDeviceModel,
+    selected: Boolean,
+    downloaded: Boolean,
+    favorite: Boolean,
+    isDownloadingThis: Boolean,
+    isAnyDownloadActive: Boolean,
+    downloadState: DownloadState,
+    engineState: ModelState,
+    iconSize: androidx.compose.ui.unit.Dp,
+    onRowClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onShowInfo: () -> Unit,
+    onLifecycle: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+        RadioButton(selected = selected, onClick = onRowClick)
+        ModelText(model = model, onClick = onRowClick, modifier = Modifier.weight(1f))
+        FavoriteButton(favorite = favorite, modelName = model.displayName, size = iconSize, onToggle = onToggleFavorite)
+        IconButton(onClick = onShowInfo, modifier = Modifier.size(iconSize)) {
+            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.chat_model_info_desc, model.displayName), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        LifecycleButton(
+            downloaded = downloaded,
+            isSelected = selected,
+            engineState = engineState,
+            isDownloadingThis = isDownloadingThis,
+            isAnyDownloadActive = isAnyDownloadActive,
+            downloadState = downloadState,
+            modelName = model.displayName,
+            size = iconSize,
+            onClick = onLifecycle
+        )
+    }
+}

@@ -1136,4 +1136,24 @@
     <string name="chat_model_quant_line">Quantization: %1$s</string>
     <string name="chat_model_load_desc">Load model: %1$s</string>
     <string name="chat_model_unload_desc">Unload model: %1$s</string>
+    <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
+    <string name="models_panel_title">Models</string>
+    <string name="models_panel_subtitle">Load, configure and remove the models this server can run.</string>
+    <string name="models_col_model">Model</string>
+    <string name="models_col_context">Context</string>
+    <string name="models_col_status">Status</string>
+    <string name="models_col_actions">Actions</string>
+    <string name="models_local_models">Local models %1$d</string>
+    <string name="models_loaded">Loaded</string>
+    <string name="models_not_loaded">Not loaded</string>
+    <string name="models_add_favorite">Add to favorites</string>
+    <string name="models_remove_favorite">Remove from favorites</string>
+    <string name="models_delete_disk">Delete from disk</string>
+    <string name="models_delete_title">Delete this model?</string>
+    <string name="models_delete_body">The file will be deleted from your device. You can download it again whenever you want.</string>
+    <string name="models_hide_model">Hide model</string>
+    <string name="models_show_model">Show model</string>
+    <string name="models_show_hidden">Show hidden models (%1$d)</string>
+    <string name="models_show_all">Show all models</string>
+    <string name="models_loading">Loading…</string>
 </resources>

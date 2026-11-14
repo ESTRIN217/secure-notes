@@ -69,6 +69,7 @@ object AppConstants {
     const val AI_REPETITION_PENALTY_KEY = "ai_repetition_penalty"
     const val AI_MAX_TOKENS_KEY = "ai_max_tokens"
     const val AI_FAVORITE_MODELS_KEY = "ai_favorite_models"
+    const val AI_HIDDEN_MODELS_KEY = "ai_hidden_models"
 
     const val TRASH_RETENTION_DAYS = 90L
     const val AUTO_CLEANUP_ENABLED_KEY = "auto_cleanup_enabled"

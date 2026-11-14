@@ -70,7 +70,8 @@ val BACKUP_SETTINGS: Map<String, SettingType> = mapOf(
     AppConstants.AUTO_BACKUP_ENABLED_KEY to SettingType.FLAG,
     AppConstants.AUTO_BACKUP_INTERVAL_KEY to SettingType.TEXT,
     AppConstants.THEME_ID_KEY to SettingType.TEXT,
-    AppConstants.AI_FAVORITE_MODELS_KEY to SettingType.TEXT
+    AppConstants.AI_FAVORITE_MODELS_KEY to SettingType.TEXT,
+    AppConstants.AI_HIDDEN_MODELS_KEY to SettingType.TEXT
 )
 
 /**
@@ -78,7 +79,7 @@ val BACKUP_SETTINGS: Map<String, SettingType> = mapOf(
  * que crean la copia.
  *
  * Vive en una lista y no dentro de las lecturas de preferencias por un motivo comprobable: aquí una
- * prueba puede comparar los quince con su literal y fijar que el refactor no cambió **de paso** lo que
+ * prueba puede comparar los dieciséis con su literal y fijar que el refactor no cambió **de paso** lo que
  * viaja. Si un defecto pasara de `"SYSTEM"` a `""`, la copia dejaría de llevar el modo «sistema» sin que
  * nadie lo hubiera tocado, y ninguna prueba de las que leen preferencias lo notaría.
  *
@@ -100,7 +101,8 @@ val DEFAULT_SETTINGS: Map<String, Any> = mapOf(
     AppConstants.AUTO_BACKUP_ENABLED_KEY to false,
     AppConstants.AUTO_BACKUP_INTERVAL_KEY to "6h",
     AppConstants.THEME_ID_KEY to AppThemes.dynamic.id,
-    AppConstants.AI_FAVORITE_MODELS_KEY to ""
+    AppConstants.AI_FAVORITE_MODELS_KEY to "",
+    AppConstants.AI_HIDDEN_MODELS_KEY to ""
 )
 
 /**
@@ -156,7 +158,7 @@ private fun existeElTema(id: String): Boolean = AppThemes.all.any { it.id == id 
 // equivocado aquí no lo vería ninguna prueba de arriba, porque arriba el valor ya llega tipado.
 
 /**
- * Los quince ajustes de [BACKUP_SETTINGS] leídos de las preferencias (RF-187).
+ * Los dieciséis ajustes de [BACKUP_SETTINGS] leídos de las preferencias (RF-187).
  *
  * El tema se **resuelve** en vez de copiarse en crudo: quien nunca abrió el selector tiene el
  * interruptor antiguo apagado y ningún `theme_id` guardado, y su copia tiene que decir `default`, que es

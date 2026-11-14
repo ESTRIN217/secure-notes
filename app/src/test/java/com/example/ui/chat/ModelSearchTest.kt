@@ -94,4 +94,13 @@ class ModelSearchTest {
         val items = listOf("a", "b", "c")
         assertEquals(items, favoritesFirst(items) { false })
     }
+
+    // ── formatTokens ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `formato en espanol usa punto y en ingles usa coma`() {
+        assertEquals("8.192 tokens", formatTokens(8192, java.util.Locale("es")))
+        assertEquals("8,192 tokens", formatTokens(8192, java.util.Locale.US))
+        assertEquals("1 tokens", formatTokens(1, java.util.Locale.US))
+    }
 }

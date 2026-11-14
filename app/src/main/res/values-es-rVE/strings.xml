@@ -1078,4 +1078,24 @@ Diferencia: %3$s
     <string name="chat_model_quant_line">Quantización: %1$s</string>
     <string name="chat_model_load_desc">Cargar modelo: %1$s</string>
     <string name="chat_model_unload_desc">Descargar modelo: %1$s</string>
+    <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
+    <string name="models_panel_title">Modelos</string>
+    <string name="models_panel_subtitle">Carga, configura y elimina los modelos que puedes ejecutar.</string>
+    <string name="models_col_model">Modelo</string>
+    <string name="models_col_context">Contexto</string>
+    <string name="models_col_status">Estado</string>
+    <string name="models_col_actions">Acciones</string>
+    <string name="models_local_models">Modelos locales %1$d</string>
+    <string name="models_loaded">Cargado</string>
+    <string name="models_not_loaded">No cargado</string>
+    <string name="models_add_favorite">Añadir a favoritos</string>
+    <string name="models_remove_favorite">Quitar de favoritos</string>
+    <string name="models_delete_disk">Eliminar del disco</string>
+    <string name="models_delete_title">¿Eliminar este modelo?</string>
+    <string name="models_delete_body">El archivo se borra del dispositivo. Podrás descargarlo de nuevo cuando quieras.</string>
+    <string name="models_hide_model">Ocultar modelo</string>
+    <string name="models_show_model">Mostrar modelo</string>
+    <string name="models_show_hidden">Mostrar modelos ocultos (%1$d)</string>
+    <string name="models_show_all">Mostrar todos los modelos</string>
+    <string name="models_loading">Cargando…</string>
 </resources>

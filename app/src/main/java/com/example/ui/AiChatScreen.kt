@@ -106,6 +106,7 @@ fun AiChatScreen(
     var showNotePicker by remember { mutableStateOf(false) }
     var notePickerSearchQuery by remember { mutableStateOf("") }
     var showAttachmentSheet by remember { mutableStateOf(false) }
+    var showModelPanel by remember { mutableStateOf(false) }
 
     val pendingAttachments by viewModel.pendingAttachments.collectAsStateWithLifecycle()
 
@@ -124,6 +125,10 @@ fun AiChatScreen(
     val downloadingModelId by viewModel.downloadingModelId.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val onDeviceModelState by viewModel.onDeviceModelState.collectAsStateWithLifecycle()
+    val hiddenModels by viewModel.hiddenModels.collectAsStateWithLifecycle()
+    val contextLengths = remember(connectionState) {
+        (connectionState as? ConnectionState.Connected)?.contextLengths ?: emptyMap()
+    }
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
     val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
@@ -406,7 +411,9 @@ fun AiChatScreen(
                         favorites = favoriteModels,
                         downloadingModelId = downloadingModelId,
                         downloadState = downloadState,
-                        onDeviceModelState = onDeviceModelState
+                        onDeviceModelState = onDeviceModelState,
+                        hiddenModels = hiddenModels,
+                        contextLengths = contextLengths
                     ),
                     onSelectOnDevice = { model ->
                         viewModel.selectOnDeviceModel(model)
@@ -426,7 +433,8 @@ fun AiChatScreen(
                         viewModel.setBackend(AiBackend.ON_DEVICE)
                         viewModel.loadSelectedModel()
                     },
-                    onUnloadModel = viewModel::unloadModel
+                    onUnloadModel = viewModel::unloadModel,
+                    onModelPanelOpen = { showModelPanel = true }
                 )
             }
         ) { paddingValues ->
@@ -626,6 +634,51 @@ fun AiChatScreen(
                 filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
             },
             onDismiss = { showAttachmentSheet = false }
+        )
+    }
+
+    // Panel de gestión de modelos a pantalla completa (spec 033, RF-238…RF-247): hermano de
+    // Scaffold, animado después — se pinta por encima; el atrás también lo cierra (RF-238).
+    if (showModelPanel) {
+        ModelManagerPanel(
+            state = ModelSelectorState(
+                backend = backend,
+                selectedOnDeviceId = selectedOnDeviceModel?.id,
+                downloadedIds = downloadedModelIds,
+                catalogModels = MODEL_CATALOG,
+                modelName = displayModelName,
+                ollamaModels = ollamaModels,
+                isTesting = connectionState is ConnectionState.Testing,
+                connectionError = connectionErrorText,
+                favorites = favoriteModels,
+                downloadingModelId = downloadingModelId,
+                downloadState = downloadState,
+                onDeviceModelState = onDeviceModelState,
+                hiddenModels = hiddenModels,
+                contextLengths = contextLengths
+            ),
+            onClose = { showModelPanel = false },
+            onSelectOnDevice = { model ->
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+            },
+            onSelectOllama = { name ->
+                if (name.isNotBlank()) {
+                    viewModel.setModelName(name)
+                    viewModel.setBackend(AiBackend.OLLAMA)
+                }
+                showModelPanel = false
+            },
+            onDownloadModel = viewModel::downloadOnDeviceModel,
+            onLoadModel = { model ->
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                viewModel.loadSelectedModel()
+            },
+            onUnloadModel = viewModel::unloadModel,
+            onDeleteModel = viewModel::deleteOnDeviceModel,
+            onToggleFavorite = viewModel::toggleFavoriteModel,
+            onToggleHidden = viewModel::toggleHiddenModel
         )
     }
 }

@@ -1037,4 +1037,24 @@ Que souhaitez-vous faire ?</string>
     <string name="chat_model_quant_line">Quantification : %1$s</string>
     <string name="chat_model_load_desc">Charger le modèle : %1$s</string>
     <string name="chat_model_unload_desc">Décharger le modèle : %1$s</string>
+    <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
+    <string name="models_panel_title">Modèles</string>
+    <string name="models_panel_subtitle">Chargez, configurez et supprimez les modèles que ce serveur peut exécuter.</string>
+    <string name="models_col_model">Modèle</string>
+    <string name="models_col_context">Contexte</string>
+    <string name="models_col_status">Statut</string>
+    <string name="models_col_actions">Actions</string>
+    <string name="models_local_models">Modèles locaux %1$d</string>
+    <string name="models_loaded">Chargé</string>
+    <string name="models_not_loaded">Non chargé</string>
+    <string name="models_add_favorite">Ajouter aux favoris</string>
+    <string name="models_remove_favorite">Retirer des favoris</string>
+    <string name="models_delete_disk">Supprimer du disque</string>
+    <string name="models_delete_title">Supprimer ce modèle ?</string>
+    <string name="models_delete_body">Le fichier sera supprimé de votre appareil. Vous pourrez le re-télécharger quand vous voulez.</string>
+    <string name="models_hide_model">Masquer le modèle</string>
+    <string name="models_show_model">Afficher le modèle</string>
+    <string name="models_show_hidden">Afficher les modèles masqués (%1$d)</string>
+    <string name="models_show_all">Afficher tous les modèles</string>
+    <string name="models_loading">Chargement…</string>
 </resources>

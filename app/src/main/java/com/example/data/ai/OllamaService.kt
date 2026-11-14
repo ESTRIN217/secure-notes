@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -43,7 +44,7 @@ class OllamaService(
         modelName = model
     }
 
-    suspend fun testConnection(): Result<List<String>> = withContext(Dispatchers.IO) {
+    suspend fun testConnection(): Result<OllamaConnectionInfo> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
                 .url("$endpointUrl/api/tags")
@@ -64,12 +65,33 @@ class OllamaService(
                 val m = models.optJSONObject(i)
                 m?.let { modelNames.add(it.optString("name", "unknown")) }
             }
-            Result.success(modelNames)
+            // El context_length de cada modelo se lee de /api/show; un fallo en uno no tumba el test.
+            val contextLengths = modelNames.mapNotNull { name ->
+                withTimeoutOrNull(5_000) { fetchContextLength(name) }?.let { name to it }
+            }.toMap()
+            Result.success(OllamaConnectionInfo(modelNames, contextLengths))
         } catch (e: SSLHandshakeException) {
             Result.failure(SSLHandshakeException(context.getString(R.string.ai_err_ollama_ssl)))
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    /** Lee `context_length` del modelo vía `/api/show` (spec 033): `null` si la respuesta no lo trae. */
+    private suspend fun fetchContextLength(name: String): Long? {
+        val body = JSONObject().put("model", name)
+        val request = Request.Builder()
+            .url("$endpointUrl/api/show")
+            .post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) return null
+        val root = JSONObject(response.body.string())
+        val modelInfo = root.optJSONObject("model_info") ?: return null
+        val arclen = modelInfo.keys().asSequence().mapNotNull { key ->
+            if (key.endsWith(".context_length")) modelInfo.optLong(key, -1).takeIf { it > 0 } else null
+        }.firstOrNull()
+        return arclen
     }
 
     override suspend fun execute(request: AiRequest): Result<String> = withContext(Dispatchers.IO) {
@@ -250,3 +272,10 @@ class OllamaService(
         private const val TAG = "OllamaService"
     }
 }
+
+/** Resultado de [OllamaService.testConnection]: modelos y, si `/api/show` lo revela, su contexto. */
+data class OllamaConnectionInfo(
+    val models: List<String>,
+    /** `context_length` por modelo (solo el que el servidor reporta; los demás ausentes). */
+    val contextLengths: Map<String, Long> = emptyMap()
+)
