@@ -135,3 +135,14 @@ Tareas opcionales futuras (fuera de esta spec): `xhigh` model-defined, effort en
   - `./gradlew test` → **890 tests, 38 fallos (plataforma), 0 omitidos** (= baseline; modelos/nueva lógica pura pasa, incluida backup=16).
   - `:app:compileDebugKotlin` y `assembleDebug` → **BUILD SUCCESSFUL**. 19 claves nuevas × 9 locales.
   - Pendiente: verificación visual en tablet/PC contra las capturas de Ollama Models (header, chip al final, iconos).
+
+## Corrección 2026-11-15 — Context = context length del modelo
+
+- [x] **T28. `context_length` real por modelo.** RF-241, RNF-146/147
+  - `data/ai/ModelContextCache.kt` (puro): `parseContextLengths`/`serializeContextLengths` para una **caché interna** en prefs (`AI_MODEL_CONTEXT_LENGTHS_KEY`, **fuera** de la copia); cada `.gguf` se parsea **una vez** vía `GgufMetadataReader.readStructuredMetadata` y se cachea; se poda al borrar el modelo y al cambiar el catálogo.
+  - `PreferencesRepository`/`SharedPreferencesRepository`: `getModelContextLengths()`/`setModelContextLengths()`.
+  - `AiViewModel`: `onDeviceContextLengths: StateFlow<Map<String,Long>>`; `syncOnDeviceContextLengths()` invocada en `refreshDownloadedModels()`; borrado (`deleteOnDeviceModel`) quita la entrada y persiste.
+  - Panel tablet/PC muestra `context_length` real del archivo (`gguf:<id>`); Ollama igual (`/api/show`, `ollama:<nombre>`); si falta dato, «—». Claves unificadas con favoritos.
+  - `ModelContextCacheTest` (5 tests puros) en verde; sin regresión (**896 tests, 38 fallos plataforma, 0 omitidos**); `assembleDebug` OK.
+  - Historial `spec.md`: RF-241 reescrita.
+  - **Verificación en dispositivo pendiente** del panel completo (tamaños/jerarquía).

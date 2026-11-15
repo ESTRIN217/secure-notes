@@ -70,6 +70,8 @@ object AppConstants {
     const val AI_MAX_TOKENS_KEY = "ai_max_tokens"
     const val AI_FAVORITE_MODELS_KEY = "ai_favorite_models"
     const val AI_HIDDEN_MODELS_KEY = "ai_hidden_models"
+    /** Caché interna de `context_length` por modelo on-device (spec 033): derivada de los GGUF, no viaja en la copia. */
+    const val AI_MODEL_CONTEXT_LENGTHS_KEY = "ai_model_context_lengths"
 
     const val TRASH_RETENTION_DAYS = 90L
     const val AUTO_CLEANUP_ENABLED_KEY = "auto_cleanup_enabled"

@@ -121,7 +121,7 @@ fun ModelManagerPanel(
     val hiddenOllama = remember(state.ollamaModels, state.hiddenModels, query) {
         filterOllamaModels(state.ollamaModels, query).filter { favoriteOllamaKey(it) in state.hiddenModels }
     }
-    val contextForOllama = remember(state.contextLengths, state.ollamaModels) { state.contextLengths }
+    val contextLengths = state.contextLengths
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -153,7 +153,7 @@ fun ModelManagerPanel(
                                 LocalModelRow(
                                     model = model,
                                     state = state,
-                                    contextLabel = formatTokens(8192, formatLocale),
+                                    contextLabel = contextLengths[favoriteOnDeviceKey(model.id)]?.let { formatTokens(it, formatLocale) } ?: "—",
                                     onRowClick = {
                                         if (model.id in state.downloadedIds) {
                                             onSelectOnDevice(model)
@@ -173,7 +173,7 @@ fun ModelManagerPanel(
                                 LocalModelRow(
                                     model = model,
                                     state = state,
-                                    contextLabel = formatTokens(8192, formatLocale),
+                                    contextLabel = contextLengths[favoriteOnDeviceKey(model.id)]?.let { formatTokens(it, formatLocale) } ?: "—",
                                     isHiddenView = true,
                                     onRowClick = {},
                                     onStatusAction = {},
@@ -192,7 +192,7 @@ fun ModelManagerPanel(
                     )
                     if (!collapsed.contains("ollama")) {
                         items(visibleOllama, key = { it }) { name ->
-                            val context = contextForOllama[name]?.let { formatTokens(it, formatLocale) } ?: "—"
+                            val context = contextLengths[favoriteOllamaKey(name)]?.let { formatTokens(it, formatLocale) } ?: "—"
                             OllamaModelRow(
                                 name = name,
                                 state = state,
@@ -206,7 +206,7 @@ fun ModelManagerPanel(
                             )
                         }
                         items(hiddenOllama, key = { "hidden_$it" }) { name ->
-                            val context = contextForOllama[name]?.let { formatTokens(it, formatLocale) } ?: "—"
+                            val context = contextLengths[favoriteOllamaKey(name)]?.let { formatTokens(it, formatLocale) } ?: "—"
                             OllamaModelRow(
                                 name = name,
                                 state = state,

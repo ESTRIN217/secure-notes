@@ -30,6 +30,8 @@ import kotlinx.coroutines.withContext
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import com.arm.aichat.gguf.GgufMetadataReader
+import java.io.FileInputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -210,6 +212,9 @@ class AiViewModel(
     /** Modelos ocultos (RF-244): fuera de los selectores del chat; claves `gguf:<id>` / `ollama:<nombre>`. */
     private val _hiddenModels = MutableStateFlow(prefsRepository.getHiddenModels())
     val hiddenModels: StateFlow<Set<String>> = _hiddenModels.asStateFlow()
+    /** Caché de `context_length` por modelo on-device derivada del propio archivo GGUF (spec 033, RF-241). */
+    private val _onDeviceContextLengths = MutableStateFlow(prefsRepository.getModelContextLengths())
+    val onDeviceContextLengths: StateFlow<Map<String, Long>> = _onDeviceContextLengths.asStateFlow()
     /** Id del modelo que se está descargando ahora (RF-232); uno a la vez. */
     private val _downloadingModelId = MutableStateFlow<String?>(null)
     val downloadingModelId: StateFlow<String?> = _downloadingModelId.asStateFlow()
@@ -316,12 +321,44 @@ class AiViewModel(
     }
 
     /** Re-lee qué modelos están en disco, siempre fuera del hilo principal. */
+    /**
+     * Sincroniza la caché de `context_length` con los archivos descargados: quita los que ya no están,
+     * parsea los que faltan y persiste. Cada `.gguf` se lee una única vez mientras exista en disco (RF-241).
+     */
+    private suspend fun syncOnDeviceContextLengths(ids: Set<String>) {
+        val cached = _onDeviceContextLengths.value
+        val pruned = cached.keys.intersect(ids)
+        val base = if (pruned.size == cached.size) cached else cached.filterKeys { it in pruned }
+        val missing = ids - base.keys
+        if (missing.isEmpty()) {
+            if (base !== cached) _onDeviceContextLengths.value = base
+            return
+        }
+        val loaded = withContext(Dispatchers.IO) {
+            val reader = GgufMetadataReader.create()
+            missing.mapNotNull { id ->
+                val model = MODEL_CATALOG.firstOrNull { it.id == id } ?: return@mapNotNull null
+                val path = modelDownloader.getModelPath(model) ?: return@mapNotNull null
+                val context = runCatching {
+                    FileInputStream(java.io.File(path)).use { stream ->
+                        reader.readStructuredMetadata(stream).dimensions?.contextLength
+                    }
+                }.getOrNull()
+                if (context != null) id to context.toLong() else null
+            }.toMap()
+        }
+        val updated = (base + loaded).filterKeys { it in ids }
+        _onDeviceContextLengths.value = updated
+        prefsRepository.setModelContextLengths(updated)
+    }
+
     fun refreshDownloadedModels() {
         viewModelScope.launch {
             val ids = withContext(Dispatchers.IO) {
                 MODEL_CATALOG.filter { modelDownloader.isDownloaded(it) }.map { it.id }.toSet()
             }
             _downloadedModelIds.value = ids
+            syncOnDeviceContextLengths(ids)
         }
     }
 
@@ -581,6 +618,12 @@ class AiViewModel(
         }
         modelDownloader.deleteModel(model)
         refreshDownloadedModels()
+        val contextCache = _onDeviceContextLengths.value
+        if (model.id in contextCache) {
+            val updated = contextCache - model.id
+            _onDeviceContextLengths.value = updated
+            prefsRepository.setModelContextLengths(updated)
+        }
     }
 
     /** Descarga un modelo del catálogo sin cambiar el seleccionado (RF-230/RF-232). */

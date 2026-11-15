@@ -126,8 +126,10 @@ fun AiChatScreen(
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val onDeviceModelState by viewModel.onDeviceModelState.collectAsStateWithLifecycle()
     val hiddenModels by viewModel.hiddenModels.collectAsStateWithLifecycle()
-    val contextLengths = remember(connectionState) {
-        (connectionState as? ConnectionState.Connected)?.contextLengths ?: emptyMap()
+    val onDeviceContextLengths by viewModel.onDeviceContextLengths.collectAsStateWithLifecycle()
+    val contextLengths = remember(connectionState, onDeviceContextLengths) {
+        val ollama: Map<String, Long> = (connectionState as? ConnectionState.Connected)?.contextLengths?.mapKeys { "ollama:${it.key}" } ?: emptyMap()
+        onDeviceContextLengths.mapKeys { "gguf:${it.key}" } + ollama
     }
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()

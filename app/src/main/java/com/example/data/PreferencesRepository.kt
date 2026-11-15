@@ -39,4 +39,7 @@ interface PreferencesRepository {
     /** Modelos ocultos en el panel de gestión del chat (spec 033): claves `gguf:<id>` / `ollama:<nombre>`. */
     fun getHiddenModels(): Set<String>
     fun setHiddenModels(ids: Set<String>)
+    /** Caché de `context_length` por modelo on-device derivada de GGUF (spec 033, RF-241). */
+    fun getModelContextLengths(): Map<String, Long>
+    fun setModelContextLengths(map: Map<String, Long>)
 }

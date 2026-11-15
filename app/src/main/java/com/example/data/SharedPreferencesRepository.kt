@@ -166,4 +166,11 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
     override fun setHiddenModels(ids: Set<String>) {
         prefs.edit().putString(AppConstants.AI_HIDDEN_MODELS_KEY, ids.joinToString("\n")).apply()
     }
+
+    override fun getModelContextLengths(): Map<String, Long> =
+        com.example.data.ai.parseContextLengths(prefs.getString(AppConstants.AI_MODEL_CONTEXT_LENGTHS_KEY, "") ?: "")
+
+    override fun setModelContextLengths(map: Map<String, Long>) {
+        prefs.edit().putString(AppConstants.AI_MODEL_CONTEXT_LENGTHS_KEY, com.example.data.ai.serializeContextLengths(map)).apply()
+    }
 }
