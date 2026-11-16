@@ -11,17 +11,9 @@
 - Secrets Gradle Plugin configured to read `.env` (fallback `.env.example`), but **no secret is currently consumed** — `GEMINI_API_KEY` is a leftover; AI runs via Ollama or on-device llama.cpp, no API key.
 - Release signing: copy `key.properties.template` → `key.properties`. Debug builds also sign with release config.
 - `app/google-services.json` required for Firebase (Google services plugin).
-- **Native AI (llama.cpp)**: uses the official Android binding from llama.cpp's `examples/llama.android/lib`
-  (`com.arm.aichat.AiChat` facade), consumed as Gradle module `:lib`. `settings.gradle.kts` points at
-  `/root/llama.cpp/examples/llama.android/lib` and **conditionally** does `include(":lib")` only if that
-  directory exists (`if (llamaLibDir.exists())`) — if the checkout is missing the module is silently dropped.
-  `app/build.gradle.kts` mirrors that with `if (findProject(":lib") != null)` around
-  `implementation(project(":lib"))`; **sin ese guard la configuración de `:app` falla** en cualquier máquina
-  sin el checkout («Project with path ':lib' could not be found»). Pero `:app` **no** compila sin `:lib`,
-  porque `LlamaCppEngine` importa `com.arm.aichat`; por eso CI solo ejecuta los tests de los módulos
-  librería (`:visor-pdf`, `:visor-media`, `:editor-de-codigo`) y nunca compila `:app`.
-  Native code is compiled from source by `:lib`'s CMake during
-  Gradle sync — no `CMakeLists.txt` or prebuilt `.so` in this repo. Build only supports `arm64-v8a`.
+- **Native AI (llama.cpp)**: uses a **vendored copy** of llama.cpp's official Android binding at the repo root (`lib/`, `com.arm.aichat.AiChat` facade), as Gradle module `:lib`. The copy **is** the source of truth and always present in `settings.gradle.kts` — the conditional `include` and `findProject(":lib")` guards are gone for good (`app/build.gradle.kts` has a plain `implementation(project(":lib"))`).
+  The llama.cpp **engine** (the huge source tree the binding compiles with `add_subdirectory`) is **not** in the repo: `lib/src/main/cpp/CMakeLists.txt` points at the absolute host path `/root/llama.cpp` — the host this project is built on. On any other machine, the native build fails by design. CI still does not compile `:app` for the same reason (library-module tests only).
+  Native code compiles from source via `:lib`'s CMake during Gradle sync (no prebuilt `.so` in the repo). Build only supports `arm64-v8a`.
 
 ## Tests
 
@@ -143,7 +135,7 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
     `unload()`/`cleanUp()` is the only safe teardown.
   - Context size (8192) and sampling temp (0.3) are hardcoded upstream; sampling params in `AiRequest` are ignored.
   - **`LLAMA_CPP_CONTEXT_TOKENS = 8192`** (`ui/chat/ContextUsage.kt`) is the denominator of the chat context ring and detail card (specs 034/037, RF-253) and must stay hardcoded: reading `context_length` from the GGUF would lie about what the engine actually allocates (models advertise more). The GGUF `context_length` is still what the models panel shows (spec 033, RF-241) — different thing. If the upstream binding changes the context size, update the constant and spec 034/037; never derive it at runtime.
-  - **El binding local tiene modificaciones propias (spec 039)** en `/root/llama.cpp`: globals (`last_prompt_tokens`, `last_prompt_eval_us`, `generation_start_us`, `last_generation_us`, `generated_token_count`, `last_metrics_csv`), `finalize_metrics()` (CSV `"promptTokens,promptEvalNs,generatedTokens,generationNs"`, µs×1000), reset en `reset_short_term_states()`, `finalize_metrics()` llamada en STOP y EOG, y tres exports: `nativeNkvPosition`/`nativeLastRequestMetrics`/`nativeClearRequestMetrics` (Java side, `InferenceEngineImpl`). `unload()` ahora anula `g_context`/`g_model`; `load()` los fija. **Cualquier resync o reset del checkout local borra el patch y las builds roten** — es mejor tratar `/root/llama.cpp` como código propio (hacer `git -C /root/llama.cpp diff` y conservarlo fuera de secure-notes si se quiere backup; hoy el cambio vive solo en ese checkout).
+  - **El binding vendorizado en `lib/` lleva el patch de spec 039** — globals `last_prompt_tokens`, `last_prompt_eval_us`, `generation_start_us`, `last_generation_us`, `generated_token_count`, `last_metrics_csv`; `finalize_metrics()` (CSV `"promptTokens,promptEvalNs,generatedTokens,generationNs"`, µs×1000); reset en `reset_short_term_states()`; llamada en STOP y EOG; tres exports en `ai_chat.cpp` + `InferenceEngineImpl`: `nativeNkvPosition`, `nativeLastRequestMetrics`, `nativeClearRequestMetrics` (nkvPosition, lastRequestMetrics, clearRequestMetrics en la interfaz Kotlin). `unload()` anula `g_context`/`g_model`. **`lib/` es la fuente de verdad**: los cambios del binding se hacen en ese árbol; `/root/llama.cpp` es solo el **motor** que parte la build del binding (`add_subdirectory(/root/llama.cpp build-llama)`), externo al repo a propósito. El stop position de línea 447 no aplica a las nuevas llamadas a `finalize_metrics()` (no dependen de él).
   - Known limitation (documented-only): `maxTokens` can overshoot by up to ~user-prompt-length tokens —
     stop position double-counts user tokens (`ai_chat.cpp:447`).
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.

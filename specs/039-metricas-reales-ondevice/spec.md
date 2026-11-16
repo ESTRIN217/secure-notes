@@ -47,7 +47,7 @@ motor en ambos backends, igual que en la referencia de llama.cpp.
 
 ## Requisitos funcionales
 
-- **RF-277**: EL SISTEMA añade al binding nativo (`/root/llama.cpp/examples/llama.android/lib`)
+- **RF-277**: EL SISTEMA añade al binding nativo (vendorizado en `lib/`)
   los exports `nkvPosition()` (Int; `-1` si no hay modelo cargado), `lastRequestMetrics()`
   (String CSV; `""` si no hay métricas finalizadas) y `clearRequestMetrics()`, con reset por
   petición en `reset_short_term_states()`. La finalización escribe CSV en las dos salidas

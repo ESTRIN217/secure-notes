@@ -21,7 +21,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 // Versión real de llama.cpp para la pantalla Acerca de (AboutScreen). Fuente de verdad: el
-// CMakeLists.txt del checkout de esta máquina (mismo patrón condicional que settings.gradle.kts).
+// CMakeLists.txt del motor, que sigue externo en el checkout `/root/llama.cpp` (solo este host).
 // Si no existe (p. ej. CI/GitHub, que no compila :app), vale "local" en lugar de romper la build.
 val llamaCppVersion: String = run {
   val cmakeFile = file("/root/llama.cpp/CMakeLists.txt")
@@ -114,14 +114,11 @@ secrets {
   defaultPropertiesFileName = ".env.example"
 }
 
-// `:lib` (binding nativo de llama.cpp) solo está en el grafo si el checkout existe: `settings.gradle.kts`
-// lo incluye condicionalmente. Referenciarlo siempre rompe la configuración del proyecto en cualquier
-// máquina sin el checkout (CI incluida) con «Project with path ':lib' could not be found».
-val hasLlamaLib = findProject(":lib") != null
-
+// `:lib` (binding nativo de llama.cpp) está vendorizado en el repo. `settings.gradle.kts` lo
+// incluye siempre; no hay guardas de «checkout externo».
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  if (hasLlamaLib) implementation(project(":lib"))
+  implementation(project(":lib"))
   implementation(project(":visor-pdf"))
   // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
   // dirección: `:app` -> `:editor-de-codigo` -> `:tema`.

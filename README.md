@@ -89,7 +89,7 @@ MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:
 | Gradle / AGP / Kotlin | 9.7.1 / 9.4.1 / 2.4.20 |
 | Android SDK | `compileSdk 37`, `targetSdk 36`, `minSdk 33` |
 | NDK / CMake (solo IA on-device) | 30.0.14904198 / la que resuelva el SDK |
-| llama.cpp checkout | el directorio que indica `settings.gradle.kts` (`/root/llama.cpp/examples/llama.android/lib`); si no existe, el módulo `:lib` se omite en silencio y el build sigue sin IA nativa |
+| llama.cpp | motor nativo externo en `/root/llama.cpp` (solo este host); binding vendorizado en `lib/` (spec 039); si falta el motor, el build nativo falla a propósito (CI no compila `:app`) |
 | Firma | `key.properties` (copia desde `key.properties.template`) |
 | Google (solo sync/Drive) | `app/google-services.json` |
 

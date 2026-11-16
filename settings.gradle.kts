@@ -37,8 +37,8 @@ include(":markdown")
 // un catálogo queviviera en `ui/theme/` de `:app` dejaría al editor sin él.
 include(":tema")
 
-val llamaLibDir = file("/root/llama.cpp/examples/llama.android/lib")
-if (llamaLibDir.exists()) {
-    include(":lib")
-    project(":lib").projectDir = llamaLibDir
-}
+// El binding de llama.cpp del chat on-device, vendorizado en el repo con las modificaciones
+// de spec 039 (contadores de métricas y nkvPosition) — see lib/. El **motor** (los fuentes de
+// llama.cpp que el binding compila con add_subdirectory) sigue externo en `/root/llama.cpp`;
+// ver `lib/src/main/cpp/CMakeLists.txt` y AGENTS.md para el porqué.
+include(":lib")
