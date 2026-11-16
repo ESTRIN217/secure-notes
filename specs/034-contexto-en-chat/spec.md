@@ -52,10 +52,14 @@ local (on-device) u Ollama.
 - **RF-250**: SI el backend es Ollama y la respuesta acaba en trozo `done` con
   `prompt_eval_count` y `eval_count`, ENTONCES EL SISTEMA toma el uso de contexto
   como `prompt_eval_count + eval_count` y lo marca como exacto.
-- **RF-251**: SI no hay exacto disponible (backend on-device, o aún no ha terminado
-  ninguna respuesta), ENTONCES EL SISTEMA estima el uso del contexto completo —prompt
-  de sistema, memorias inyectadas e histórico de la conversación— con un factor
-  aproximado de 4 caracteres por token, y lo marca como estimado.
+- **RF-251** *(enmendado — spec 039, RF-277/RF-280 supersede este uso de estimación)*:
+  SI no hay exacto disponible (backend on-device, o aún no ha terminado
+  una respuesta), ENTONCES EL SISTEMA **no pinta** datos de sustitución falsos;
+  nada se retiene inventado.
+  ~~EL SISTEMA estima el uso del contexto completo —prompt de sistema, memorias inyectadas
+  e histórico de la conversación— con un factor aproximado de 4 caracteres por token, y lo
+  marca como estimado.~~ Hoy (spec 039) en on-device el numerador sale del contador nativo
+  `current_position` del motor.
 - **RF-252**: MIENTRAS se genera una respuesta, EL SISTEMA mantiene el indicador en la
   fracción previa al envío; el valor se actualiza al terminar la respuesta.
 - **RF-253**: EL SISTEMA usa como ventana de contexto: backend on-device → 8192 tokens
@@ -119,3 +123,5 @@ muestra en ambos backends con su umbral de aviso; el `contentDescription` resuel
 
 Ninguna: numerador híbrido (exacto Ollama / chars÷4), denominador 8192 on-device +
 `context_length` de `/api/show`, anillo solo con aviso al 85 %, y sin persistir.
+## Historial de cambios
+- 2026-11-16 — RF-251 enmendado (spec 039): on-device usa ahora el contador nativo real ('current_position') del motor; sin estimación.

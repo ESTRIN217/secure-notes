@@ -49,10 +49,11 @@ cuánto tardó, a qué velocidad) sin salir a ajustes o logs.
   de la respuesta (los mismos que usa el anillo de contexto, spec 034), calcula
   `tok/s = count / (duration_ns / 1e9)` con un decimal, y formatea la duración con el formato
   existente (`seconds`). SI falta algún contador, la parte que falta no se muestra.
-- **RF-262**: CUANDO el backend es on-device, EL SISTEMA estima con ~4 caracteres por token los
-  tokens del texto de cada burbuja (usuario: su mensaje + adjuntos no expandidos; asistente: la
-  respuesta), usa `processingTimeMs` como duración y deriva tok/s; las cifras se marcan con el
-  prefijo «~» para distinguirlas de una medida real.
+- **RF-262** *(enmendado — spec 039, RF-278/RF-280 supersede este uso de estimación)*:
+  CUANDO el backend es on-device, EL SISTEMA toma las métricas del motor nativo (spec 039):
+  turno de usuario → tokens procesados del prompt y duración del prefill; turno de asistente →
+  tokens generados y duración de generación. Exactas; sin prefijos «~», sin estimación.
+  ~~EL SISTEMA estima con ~4 caracteres por token.~~
 - **RF-263**: EL SISTEMA persiste por turno las cuatro métricas en la tabla `conversations`
   (columnas anulables `promptEvalCount`, `promptEvalDurationMs`, `evalCount`, `evalDurationMs`)
   mediante una migración aditiva (`ALTER TABLE ADD COLUMN`), conservando el histórico existente
@@ -105,6 +106,7 @@ cambio: los mensajes viejos siguen ahí y los nuevos llevan métricas en ambas b
 verificación de split prompt/generación en backend Ollama; `MEMORY.md` actualizado.
 
 ## Historial de cambios
+- 2026-11-16 — RF-262 enmendado (spec 039): on-device reporta métricas del motor (prompt tokens, prefill, eval, generación) exactas; sin «~».
 
 - 2026-11-15 — Creación a partir de la referencia de llama.cpp Android (hoja de métricas bajo
   burbuja de usuario/asistente) y de los placeholders fijos introducidos en la burbuja durante

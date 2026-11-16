@@ -110,14 +110,9 @@ fun FloatingChatInputField(
         if (contextDetail == null) showContextDetail = false
     }
 
-    // contentDescription del anillo: el anillo es ahora un botón (spec 037).
+    // contentDescription del anillo (spec 034/039): siempre exacto — RF-280.
     val contextDetailDesc = contextDetail?.let { detail ->
-        val percent = formatPercentUsed(contextUsageFraction(detail.usedTokens, detail.windowTokens))
-        if (detail.exact) {
-            stringResource(R.string.chat_context_desc, percent)
-        } else {
-            stringResource(R.string.chat_context_desc_estimate, percent)
-        }
+        stringResource(R.string.chat_context_desc, formatPercentUsed(contextUsageFraction(detail.usedTokens, detail.windowTokens)))
     }
 
     HorizontalFloatingToolbar(

@@ -58,9 +58,10 @@ ni herramientas externas.
 - **RF-269**: EL SISTEMA muestra además `KV cache total` = `usedTokens` del detalle, y `Avg speed`
   = `Σ eval_count / Σ eval_duration` (tok/s, un decimal); la fila se omite si ningún turno del
   asistente aporta duración/conteo.
-- **RF-270**: CUANDO el detalle es estimado (backend on-device), EL SISTEMA prefija con «~» los
-  números visibles como métricas de tokens y velocidad — la ventana y la fracción del cache se
-  pintan igual que en el anillo.
+- **RF-270** *(enmendado — spec 039, RF-280 supersede)*:
+  CUANDO el detalle es exacto (en ambos backends, por medición real), EL SISTEMA pinta
+  las cifras sin ningún marcador. Sin prefijos «~» quedan.
+  ~~EL SISTEMA prefija con «~» los números visibles como métricas de tokens y velocidad.~~
 - **RF-271**: La tarjeta se abre como hoja inferior en ancho compacto (<600 dp) y como menú
   anclado junto al indicador en ancho amplio (≥600 dp), siguiendo los patrones ya usados en el
   campo (botón de esfuerzo); toque fuera o atrás la cierra.
@@ -112,5 +113,6 @@ de ventana (Ollama sin `/api/show`): sin anillo ni tarjeta; verificación en dis
 `MEMORY.md` actualizado.
 
 ## Historial de cambios
+- 2026-11-16 — RF-270 enmendado (spec 039): sin marcadores «~»; cifras exactas en ambos backends.
 
 - 2026-11-15 — Creación a partir del diseño adjunto (OutlinedCard con detalle de contexto).

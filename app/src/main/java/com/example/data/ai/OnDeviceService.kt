@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 
 enum class ModelState {
@@ -27,6 +29,12 @@ interface InferenceEngine : AIService {
     fun unload()
     val isLoaded: Boolean
     val loadedInfo: LoadedModelInfo?
+    /** Spec 039: tokens en el KV cache en este instante (`-1` sin modelo cargado o sin datos). */
+    fun nkvPosition(): Int
+    /** Spec 039: métricas CSV de la última petición completada (`""` si no hay). */
+    fun lastRequestMetrics(): String
+    /** Spec 039: limpia las métricas antes de cada petición (evita herencia por cancelación). */
+    fun clearRequestMetrics()
 }
 
 class OnDeviceService(
@@ -36,6 +44,13 @@ class OnDeviceService(
 
     private val _modelState = MutableStateFlow(ModelState.NOT_LOADED)
     val modelState: StateFlow<ModelState> = _modelState.asStateFlow()
+
+    /** Spec 039: métricas exactas de la última respuesta completada (null si se canceló o aún no hay dato). */
+    private val _lastContextUsage = MutableStateFlow<OllamaContextUsage?>(null)
+    val lastContextUsage: StateFlow<OllamaContextUsage?> = _lastContextUsage.asStateFlow()
+
+    /** Spec 039: tokens residentes en el KV cache del modelo (`null` si no hay modelo cargado). */
+    fun currentNkvSize(): Int? = engine.nkvPosition().takeIf { it >= 0 }
 
     private val _loadedModelInfo = MutableStateFlow<LoadedModelInfo?>(null)
     val loadedModelInfo: StateFlow<LoadedModelInfo?> = _loadedModelInfo.asStateFlow()
@@ -111,7 +126,7 @@ class OnDeviceService(
         }
         fullMessages.addAll(request.messages)
         fullMessages.add(ChatMessage("user", userPrompt))
-        return engine.executeStreaming(AiRequest(
+        val predictFlow = engine.executeStreaming(AiRequest(
             action = request.action,
             prompt = userPrompt,
             selectedText = request.selectedText,
@@ -125,6 +140,12 @@ class OnDeviceService(
             repetitionPenalty = request.repetitionPenalty,
             maxTokens = request.maxTokens
         ))
+        return kotlinx.coroutines.flow.flow {
+            _lastContextUsage.value = null
+            predictFlow.collect { emit(it) }
+            // Se completa solo si la respuesta llega a su fin; con cancelación, se queda en null.
+            _lastContextUsage.value = parseOllamaEngineCSV(engine.lastRequestMetrics())
+        }.flowOn(Dispatchers.IO)
     }
 
     companion object {

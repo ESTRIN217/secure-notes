@@ -31,6 +31,12 @@ interface ChatSessionDao {
     @Query("UPDATE chat_sessions SET updatedAt = :timestamp, messageCount = :count WHERE id = :id")
     suspend fun updateMetadata(id: Int, timestamp: Long, count: Int)
 
+    @Query("""
+        SELECT id FROM chat_sessions
+        WHERE messageCount = 0 AND createdAt >= :since
+    """)
+    suspend fun emptySessionIdsSince(since: Long): List<Int>
+
     @Query("DELETE FROM conversations WHERE sessionId = :sessionId")
     suspend fun deleteConversations(sessionId: Int)
 

@@ -63,6 +63,7 @@ import com.example.ui.chat.canSend
 import com.example.ui.chat.effectiveText
 import com.example.ui.chat.greetingIndexFor
 import com.example.ui.chat.hintFor
+import com.example.ui.chat.shouldDiscardChatSession
 import com.example.ui.chat.shouldShowModelLoadingIndicator
 import com.example.ui.chat.shouldShowUnavailableError
 import com.example.ui.chat.requestFor
@@ -100,8 +101,6 @@ fun AiChatScreen(
     onBack: () -> Unit,
     onInsert: ((String) -> Unit)?
 ) {
-    BackHandler(onBack = onBack)
-
     var currentAction by remember { mutableStateOf(AiAction.GENERATE) }
     var inputText by remember { mutableStateOf("") }
     var targetLanguage by remember { mutableStateOf("en") }
@@ -198,6 +197,21 @@ fun AiChatScreen(
     }
 
     val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
+
+    // Spec 038 (RF-273/RF-275): salir de una sesión sin turnos ni draft ni adjuntos la borra
+    // (silenciosamente, cascada incluida). Con draft pendiente o con turnos se conserva.
+    BackHandler(enabled = !drawerState.isOpen) {
+        val draft = effectiveText(inputText, editingMessage)
+        val discard = shouldDiscardChatSession(
+            turnsCount = conversationHistory.size,
+            hasDraftOrAttachments = draft.isNotBlank() || pendingAttachments.isNotEmpty()
+        )
+        if (discard && effectiveSessionId > 0) {
+            chatHistoryViewModel.deleteSession(effectiveSessionId)
+        }
+        onBack()
+    }
+
     // Spec 037: detalle derivado del anillo — acumulados del turno (spec 036) + ocupación (spec 034).
     val conversationTokenMetrics = remember(conversationHistory) {
         conversationHistory.map { turn ->
@@ -511,8 +525,7 @@ fun AiChatScreen(
                                 selectedText = selectedText,
                                 fullContent = fullContent,
                                 effectiveSessionId = effectiveSessionId,
-                                viewModel = viewModel,
-                                isOnDevice = backend == AiBackend.ON_DEVICE
+                                viewModel = viewModel
                             )
                         }
                     }
@@ -718,9 +731,7 @@ fun MessageBubble(
     onRetry: () -> Unit,
     onEdit: (String) -> Unit,
     onPinToMemory: (String) -> Unit,
-    modelName: String,
-    /** Spec 036: on-device → métricas estimadas y marcadas con «~» (RF-262). */
-    isOnDevice: Boolean = false
+    modelName: String
 ) {
     val isUser = turn.role == "user"
     val isError = turn.status == MessageStatus.ERROR
@@ -897,11 +908,7 @@ fun MessageBubble(
                         if (metricTokens != null) {
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isOnDevice) {
-                                    stringResource(R.string.chat_msg_tokens_approx, metricTokens)
-                                } else {
-                                    stringResource(R.string.chat_msg_tokens, metricTokens)
-                                },
+                                text = stringResource(R.string.chat_msg_tokens, metricTokens),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.5f)
                             )
@@ -917,11 +924,7 @@ fun MessageBubble(
                             tokensPerSecond(metricTokens, metricMs * 1_000_000L)?.let { tps ->
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isOnDevice) {
-                                        stringResource(R.string.chat_msg_tok_per_s_approx, String.format(Locale.getDefault(), "%.1f", tps))
-                                    } else {
-                                        stringResource(R.string.chat_msg_tok_per_s, String.format(Locale.getDefault(), "%.1f", tps))
-                                    },
+                                    text = stringResource(R.string.chat_msg_tok_per_s, String.format(Locale.getDefault(), "%.1f", tps)),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = textColor.copy(alpha = 0.5f)
                                 )
@@ -1230,9 +1233,7 @@ fun ChatMessageList(
     selectedText: String,
     fullContent: String,
     effectiveSessionId: Int,
-    viewModel: AiViewModel,
-    /** Spec 036 (RF-262): marca «~» en las métricas de on-device. */
-    isOnDevice: Boolean = false
+    viewModel: AiViewModel
 ) {
     // El motor de GFM se construye **una vez para toda la lista** y se reparte con un `CompositionLocal`
     // (spec 017, RF-98). Va aquí y no dentro de cada burbuja a propósito: la lista descarta lo que sale de
@@ -1282,8 +1283,7 @@ fun ChatMessageList(
                     },
                     onEdit = onEdit,
                     onPinToMemory = { content -> viewModel.savePinnedMemory(effectiveSessionId, content) },
-                    modelName = turn.modelName ?: displayModelName,
-                    isOnDevice = isOnDevice
+                    modelName = turn.modelName ?: displayModelName
                 )
             }
         }

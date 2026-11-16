@@ -44,13 +44,9 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
     val fraction = contextUsageFraction(detail.usedTokens, detail.windowTokens)
     val pct = formatPercentUsed(fraction)
     val remaining = (detail.windowTokens - detail.usedTokens).coerceAtLeast(0)
-    val approx = if (detail.exact) "" else "~"
     val avgSpeed = detail.avgTokensPerSecond?.let { tps ->
-        val formatted = String.format(Locale.US, "%.1f", tps)
-        if (detail.exact) {
+        String.format(Locale.US, "%.1f", tps).let { formatted ->
             stringResource(R.string.chat_msg_tok_per_s, formatted)
-        } else {
-            "~" + stringResource(R.string.chat_msg_tok_per_s, formatted)
         }
     }
 
@@ -73,14 +69,14 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             DetailHeader(title = stringResource(R.string.chat_context_details_title),
-                         subtitle = stringResource(R.string.chat_context_of, approx + formatTokensCompact(detail.usedTokens), formatTokensCompact(detail.windowTokens)))
+                         subtitle = stringResource(R.string.chat_context_of, formatTokensCompact(detail.usedTokens), formatTokensCompact(detail.windowTokens)))
             LinearWavyProgressIndicator(
                 progress = { fraction },
                 modifier = Modifier.fillMaxWidth().height(24.dp),
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text(text = stringResource(R.string.chat_context_pct_used, approx + pct),
+                Text(text = stringResource(R.string.chat_context_pct_used, pct),
                      style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.chat_context_remaining, formatTokensCompact(remaining)),
@@ -93,14 +89,14 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
             Text(text = stringResource(R.string.chat_context_across_all_turns),
                  style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-            DetailRow(stringResource(R.string.chat_context_prompt_evaluated), TokAmount(approx, detail.totalPromptTokens))
-            DetailRow(stringResource(R.string.chat_context_tokens_generated), TokAmount(approx, detail.totalGeneratedTokens))
+            DetailRow(stringResource(R.string.chat_context_prompt_evaluated), TokAmount(detail.totalPromptTokens))
+            DetailRow(stringResource(R.string.chat_context_tokens_generated), TokAmount(detail.totalGeneratedTokens))
             Text(text = stringResource(R.string.chat_context_this_turn_kv),
                  style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-            DetailRow(stringResource(R.string.chat_context_prompt), TokAmount(approx, detail.turnPromptTokens ?: 0))
-            DetailRow(stringResource(R.string.chat_context_generated), TokAmount(approx, detail.turnGeneratedTokens ?: 0))
-            DetailRow(stringResource(R.string.chat_context_kv_total), TokAmount(approx, detail.usedTokens))
+            DetailRow(stringResource(R.string.chat_context_prompt), TokAmount(detail.turnPromptTokens ?: 0))
+            DetailRow(stringResource(R.string.chat_context_generated), TokAmount(detail.turnGeneratedTokens ?: 0))
+            DetailRow(stringResource(R.string.chat_context_kv_total), TokAmount(detail.usedTokens))
             if (avgSpeed != null) {
                 HorizontalDivider()
                 DetailRow(stringResource(R.string.chat_context_avg_speed), avgSpeed)
@@ -119,8 +115,8 @@ private fun DetailHeader(title: String, subtitle: String) {
 }
 
 @Composable
-private fun TokAmount(approx: String, value: Int): String =
-    stringResource(R.string.chat_context_tok, approx + value)
+private fun TokAmount(value: Int): String =
+    stringResource(R.string.chat_context_tok, value)
 
 @Composable
 private fun DetailRow(label: String, value: String) {

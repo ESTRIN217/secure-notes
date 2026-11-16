@@ -34,7 +34,6 @@ import org.json.JSONObject
 import com.arm.aichat.gguf.GgufMetadataReader
 import com.example.ui.chat.LLAMA_CPP_CONTEXT_TOKENS
 import com.example.ui.chat.buildContextUsage
-import com.example.ui.chat.estimateTokens
 import com.example.ui.chat.ContextUsage
 import java.io.FileInputStream
 import java.io.IOException
@@ -293,6 +292,9 @@ class AiViewModel(
     /** Ocupación del contexto de la conversación actual (spec 034, RF-248); `null` si no se conoce la ventana (RF-253). */
     private val _contextUsage = MutableStateFlow<ContextUsage?>(null)
     val contextUsage: StateFlow<ContextUsage?> = _contextUsage.asStateFlow()
+
+    /** Spec 039: último conteo exacto por sesión (en memoria; viabiliza el anillo al reabrir la sesión). */
+    private val lastExactContextUsageBySession = mutableMapOf<Int, OllamaContextUsage>()
 
     private val _sessionTitle = MutableStateFlow(application.getString(R.string.chat_new_session))
     val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
@@ -883,8 +885,8 @@ class AiViewModel(
     }
 
     /**
-     * Recalcula [contextUsage] (spec 034). `justServed` solo es `true` al completar una respuesta:
-     * el exacto de Ollama (`prompt_eval_count + eval_count`) no se reutiliza entre sesiones (RF-256).
+     * Recalcula [contextUsage] (spec 039). On-device usa el nkv real del motor en cada refresh;
+     * Ollama reutiliza la última medición exacta de esta sesión si la hay (RF-256) o queda oculto.
      * Se recalcula solo en estos puntos discretos, nunca por token ni por frame (RNF-152).
      */
     private fun refreshContextUsage(justServed: Boolean) {
@@ -892,13 +894,20 @@ class AiViewModel(
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val window = contextWindowTokens()
-                val exact = if (justServed && _backend.value == AiBackend.OLLAMA) {
-                    ollamaService.lastContextUsage.value?.sum
+                val backend = _backend.value
+                val used = if (backend == AiBackend.ON_DEVICE) {
+                    (aiModelHost.serviceOrNull() as? OnDeviceService)?.currentNkvSize()
+                } else if (justServed) {
+                    ollamaService.lastContextUsage.value
+                        ?.also { lastExactContextUsageBySession[sessionId] = it }?.sum
                 } else {
-                    null
+                    lastExactContextUsageBySession[sessionId]?.sum
                 }
-                val used = exact ?: estimateTokens(contextEstimateText(sessionId))
-                _contextUsage.value = buildContextUsage(usedTokens = used, windowTokens = window, exact = exact != null)
+                if (used == null) {
+                    _contextUsage.value = null
+                    return@withContext
+                }
+                _contextUsage.value = buildContextUsage(usedTokens = used, windowTokens = window, exact = true)
             }
         }
     }
@@ -908,21 +917,6 @@ class AiViewModel(
         AiBackend.ON_DEVICE -> LLAMA_CPP_CONTEXT_TOKENS
         AiBackend.OLLAMA -> (_connectionState.value as? ConnectionState.Connected)
             ?.contextLengths?.get(_modelName.value)?.toInt()?.takeIf { it > 0 }
-    }
-
-    /** Texto que llena el KV cache: prompt de sistema + memorias + histórico (con adjuntos incluidos, RF-251). */
-    private suspend fun contextEstimateText(sessionId: Int): String {
-        val system = _systemPrompt.value.ifBlank {
-            AiPromptBuilder.resolveSystemPromptResource(getApplication(), AiAction.GENERATE, "")
-        }
-        val memories = memoryManager?.let { mm ->
-            runCatching { mm.getRelevantMemories(sessionId) }.getOrNull()?.joinToString("\n")
-        } ?: ""
-        val turns = _conversationHistory.value[sessionId].orEmpty()
-        val history = turns.joinToString("\n") { turn ->
-            turn.content + turn.files.joinToString("") { it.content }
-        }
-        return listOf(system, memories, history).filter { it.isNotBlank() }.joinToString("\n")
     }
 
     fun execute(request: AiRequest, sessionId: Int = 0) {
@@ -1101,17 +1095,16 @@ class AiViewModel(
                 val elapsed = System.currentTimeMillis() - startTime
                 _processingTimeMs.value = elapsed
 
-                // Spec 036 (RF-261/262/264): métricas del turno — Ollama toma las del trozo `done`
-                // (spec 034); on-device estima chars÷4. El exacto prevalece sobre la estimación.
+                // Spec 039 (RF-278): métricas del turno — exactos del trozo `done` (Ollama) o del
+                // CSV del motor (on-device). Nada estimado: si falta el dato, falta.
                 val onDevice = _backend.value == AiBackend.ON_DEVICE
-                val exactUsage = if (onDevice) null else ollamaService.lastContextUsage.value
-                val evalMs = exactUsage?.evalDurationNs?.div(1_000_000L) ?: elapsed
-                val promptMs = exactUsage?.promptEvalDurationNs?.div(1_000_000L) ?: elapsed
-                val userText = listOf(userMessage, pendingFiles.joinToString("\n") { it.content })
-                    .filter { it.isNotBlank() }.joinToString("\n")
-                val userTokens = exactUsage?.promptTokens ?: estimateTokens(userText)
-                val asstTokens = exactUsage?.evalTokens ?: estimateTokens(finalResult)
-                val asstMs = if (exactUsage?.evalDurationNs != null) evalMs else elapsed
+                val onDeviceService = (aiModelHost.serviceOrNull() as? OnDeviceService)
+                val exactUsage = if (onDevice) onDeviceService?.lastContextUsage?.value
+                    else ollamaService.lastContextUsage.value
+                val userTokens = exactUsage?.promptTokens
+                val promptMs = exactUsage?.promptEvalDurationNs?.div(1_000_000L)
+                val asstTokens = exactUsage?.evalTokens
+                val asstMs = exactUsage?.evalDurationNs?.div(1_000_000L) ?: elapsed
 
                 _resultText.value = finalResult
 
@@ -1139,7 +1132,10 @@ class AiViewModel(
                         // El insert del turno de usuario ya terminó (el deferred lo lleva); solo
                         // queda escribir sus métricas de prompt en la fila conocida por rowId.
                         val userTurnId = userTurnDeferred.await()
-                        conversationDao.updatePromptMetrics(userTurnId, userTokens, promptMs)
+                        // Solo persistimos con métricas completas; si falta alguna, el turno queda sin dato.
+                        if (userTokens != null && promptMs != null) {
+                            conversationDao.updatePromptMetrics(userTurnId, userTokens, promptMs)
+                        }
                         conversationDao.insert(
                             ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = finalResult, processingTimeMs = asstMs, modelName = currentModelName(), evalCount = asstTokens, evalDurationMs = asstMs)
                         )

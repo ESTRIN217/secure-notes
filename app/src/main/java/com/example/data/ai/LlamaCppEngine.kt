@@ -32,6 +32,15 @@ class LlamaCppEngine(
     override val loadedInfo: LoadedModelInfo?
         get() = _loadedInfo
 
+    /** Spec 039: tokens residentes en el KV cache; `-1` si el modelo no está cargado. */
+    override fun nkvPosition(): Int = if (_loadedInfo == null) -1 else engine.nkvPosition()
+
+    /** Spec 039: CSV `"promptTokens,promptEvalNs,generatedTokens,generationNs"` de la última petición. */
+    override fun lastRequestMetrics(): String = if (_loadedInfo == null) "" else engine.lastRequestMetrics()
+
+    /** Spec 039: limpia el CSV antes de cada petición (una cancelación nunca heredaría métricas). */
+    override fun clearRequestMetrics() = engine.clearRequestMetrics()
+
     override suspend fun load(filePath: String, model: OnDeviceModel): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
@@ -68,6 +77,7 @@ class LlamaCppEngine(
         try {
             val (system, user) = resolvePrompts(request)
             ensureReady(system)
+            engine.clearRequestMetrics()
             // `-1` (ilimitado de Ollama) no cabe en el int32 de stop_generation_position:
             // se aplica el tope grande documentado (spec 033, RNF-143).
             val predict = request.maxTokens.takeIf { it > 0 } ?: 1_000_000
@@ -84,6 +94,7 @@ class LlamaCppEngine(
     override suspend fun executeStreaming(request: AiRequest): Flow<String> {
         val (system, user) = resolvePrompts(request)
         ensureReady(system)
+        engine.clearRequestMetrics()
         val predict = request.maxTokens.takeIf { it > 0 } ?: 1_000_000
         return engine.sendUserPrompt(user, predict)
     }

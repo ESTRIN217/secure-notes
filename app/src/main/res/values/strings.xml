@@ -1055,11 +1055,8 @@
     <string name="chat_context_avg_speed">Avg speed</string>
     <string name="chat_context_tok">%1$s tok</string>
     <string name="chat_msg_tokens">%1$d tokens</string>
-    <string name="chat_msg_tokens_approx">~%1$d tokens</string>
     <string name="chat_msg_tok_per_s">%1$s tok/s</string>
-    <string name="chat_msg_tok_per_s_approx">~%1$s tok/s</string>
     <string name="chat_context_desc">Chat context used: %1$d%%</string>
-    <string name="chat_context_desc_estimate">Chat context used (approximate): %1$d%%</string>
     <string name="chat_msg_model"> · %1$s</string>
 
     <!-- Color picker HSV labels -->

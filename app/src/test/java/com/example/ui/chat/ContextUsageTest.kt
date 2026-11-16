@@ -13,27 +13,6 @@ import org.junit.Test
 class ContextUsageTest {
 
     @Test
-    fun estimateTokens_empty_isZero() {
-        assertEquals(0, estimateTokens(""))
-        assertEquals(0, estimateTokens("   \n  "))
-    }
-
-    @Test
-    fun estimateTokens_usesFourCharsPerTokenWithCeiling() {
-        assertEquals(1, estimateTokens("abcd"))
-        assertEquals(2, estimateTokens("abcde"))
-        assertEquals(300, estimateTokens("x".repeat(1200)))
-        assertEquals(1, estimateTokens("a"))
-    }
-
-    @Test
-    fun estimateTokens_longText_isDeterministic() {
-        val text = "Secure Notes ".repeat(5000)
-        assertEquals(estimateTokens(text), estimateTokens(text))
-        assertEquals((text.length + 3) / 4, estimateTokens(text))
-    }
-
-    @Test
     fun contextUsageFraction_emptyConversation_isZero() {
         assertEquals(0f, contextUsageFraction(0, LLAMA_CPP_CONTEXT_TOKENS), 0.0001f)
     }

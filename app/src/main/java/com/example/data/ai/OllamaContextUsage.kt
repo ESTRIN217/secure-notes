@@ -19,6 +19,30 @@ data class OllamaContextUsage(
     val sum: Int get() = promptTokens + evalTokens
 }
 
+/**
+ * Spec 039 (RF-277): parser del CSV del binding nativo `"promptTokens,promptEvalNs,generatedTokens,generationNs"`.
+ *
+ * Las cuatro componentes son obligatorias; los conteos y las duraciones no pueden ser negativas.
+ * Las duraciones sí pueden ser 0 (prefill instantáneo). `null` si la cadena se rompe.
+ */
+fun parseOllamaEngineCSV(csv: String): OllamaContextUsage? = try {
+    if (csv.isBlank()) return null
+    val parts = csv.split(',')
+    if (parts.size != 4) return null
+    val prompt = parts[0].trim().toIntOrNull()?.takeIf { it >= 0 } ?: return null
+    val promptNs = parts[1].trim().toLongOrNull()?.takeIf { it >= 0 } ?: return null
+    val eval = parts[2].trim().toIntOrNull()?.takeIf { it >= 0 } ?: return null
+    val evalNs = parts[3].trim().toLongOrNull()?.takeIf { it >= 0 } ?: return null
+    OllamaContextUsage(
+        promptTokens = prompt,
+        evalTokens = eval,
+        promptEvalDurationNs = promptNs,
+        evalDurationNs = evalNs
+    )
+} catch (_: Exception) {
+    null
+}
+
 /** `null` si la línea no es un trozo `done: true` con ambos contadores (p. ej. trozos de contenido o JSON mal formado). */
 fun parseOllamaContextUsage(doneLineJson: String): OllamaContextUsage? = try {
     if (doneLineJson.isBlank()) return null

@@ -1023,11 +1023,8 @@ O que deseja fazer?</string>
     <string name="chat_context_avg_speed">Velocidade média</string>
     <string name="chat_context_tok">%1$s tok</string>
     <string name="chat_msg_tokens">%1$d tokens</string>
-    <string name="chat_msg_tokens_approx">~%1$d tokens</string>
     <string name="chat_msg_tok_per_s">%1$s tok/s</string>
-    <string name="chat_msg_tok_per_s_approx">~%1$s tok/s</string>
     <string name="chat_context_desc">Contexto do chat usado: %1$d%%</string>
-    <string name="chat_context_desc_estimate">Contexto do chat usado (aproximado): %1$d%%</string>
     <string name="chat_msg_model"> · %1$s</string>
     <string name="hsv_h">H</string>
     <string name="hsv_s">S</string>

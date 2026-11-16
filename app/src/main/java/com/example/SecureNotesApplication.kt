@@ -30,6 +30,9 @@ class SecureNotesApplication : Application(), SingletonImageLoader.Factory {
 
     private val startedActivities = AtomicInteger(0)
 
+    /** Epoch ms de arranque del proceso: ancla para «creada en este proceso» (spec 038, RF-274/RF-276). */
+    val processStartedAt: Long = System.currentTimeMillis()
+
     val performanceProfile: DevicePerformanceProfile by lazy { DevicePerformanceProfile.detect(this) }
 
     val aiModelHost: AiModelHost by lazy { AiModelHost(this) }

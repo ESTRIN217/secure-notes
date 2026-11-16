@@ -199,6 +199,21 @@ class MainActivity : FragmentActivity() {
         frameMetricsMonitor?.stop()
         frameMetricsMonitor = null
         intentRelay = null
+        // Spec 038 (RF-274/RF-276): al destruir la app (no al rotar) se purga lo creado en este
+        // proceso que no llegó a tener un turno. La composición ya murió: sin el guard de draft;
+        // borra solo sesiones vacías, con el borrado en cascada del borrador manual.
+        if (!isChangingConfigurations) {
+            kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                kotlinx.coroutines.withTimeoutOrNull(500) {
+                    val db = com.example.data.local.NoteDatabase.getDatabase(this@MainActivity)
+                    val ids = db.chatSessionDao.emptySessionIdsSince(app.processStartedAt)
+                    for (id in ids) {
+                        db.chatSessionDao.deleteConversations(id)
+                        db.chatSessionDao.deleteSession(id)
+                    }
+                }
+            }
+        }
     }
 
     override fun attachBaseContext(newBase: Context) {
