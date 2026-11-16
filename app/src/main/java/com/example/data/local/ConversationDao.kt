@@ -13,8 +13,8 @@ interface ConversationDao {
     @Insert
     suspend fun insert(conversation: ConversationEntity): Long
 
-    /** Spec 036 (RF-264): rellena las métricas del prompt en el turno de usuario ya insertado. */
-    @Query("UPDATE conversations SET promptEvalCount = :promptCount, promptEvalDurationMs = :promptMs WHERE id = :turnId")
+    /** Spec 036 (RF-264): rellena las métricas del prompt en el turno de usuario ya insertado (y la duración para restore). */
+    @Query("UPDATE conversations SET promptEvalCount = :promptCount, promptEvalDurationMs = :promptMs, processingTimeMs = :promptMs WHERE id = :turnId")
     suspend fun updatePromptMetrics(turnId: Long, promptCount: Int, promptMs: Long)
 
     @Query("DELETE FROM conversations WHERE sessionId = :sessionId")

@@ -79,3 +79,7 @@ fun tokensPerSecond(count: Int, durationNs: Long): Float?
 ## Cobertura de RFs
 
 RF-260 (burbuja) · RF-261 (parser + servicio) · RF-262 (estimación) · RF-263 (migración + entidad + restore) · RF-264 (update en dos fases) · RNF-155 (ALTER aditivo) · RNF-156 (tests) · RNF-157 (strings 9 locales) · RNF-158 (sin deps/nativo) · RNF-159 (fila con truncado)
+
+## Historial de correcciones
+
+- 2026-11-16 — `updatePromptMetrics` ahora escribe también `processingTimeMs = :promptMs` en el turno de usuario (antes solo `promptEvalCount`/`promptEvalDurationMs`; `processingTimeMs` quedaba `NULL` y la burbuja del usuario perdía `formattedDuration` al restaurar la sesión). Sin cambio de esquema; filas antiguas conservan `NULL` (sin duración recuperable).
