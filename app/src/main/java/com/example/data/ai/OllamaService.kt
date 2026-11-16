@@ -6,6 +6,9 @@ import com.example.R
 import com.example.util.OpaqueTrace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -38,6 +41,10 @@ class OllamaService(
     override val isAvailable: Boolean = true
 
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+
+    /** Ocupación exacta del contexto de la última respuesta (spec 034, RF-250); `null` si no hay dato. */
+    private val _lastContextUsage = MutableStateFlow<OllamaContextUsage?>(null)
+    val lastContextUsage: StateFlow<OllamaContextUsage?> = _lastContextUsage.asStateFlow()
 
     fun updateConfig(url: String, model: String) {
         endpointUrl = url.trimEnd('/')
@@ -95,6 +102,7 @@ class OllamaService(
     }
 
     override suspend fun execute(request: AiRequest): Result<String> = withContext(Dispatchers.IO) {
+        _lastContextUsage.value = null
         try {
             val httpRequest = buildChatRequest(request, stream = false)
             val response = client.newCall(httpRequest).execute()
@@ -116,6 +124,7 @@ class OllamaService(
             }
 
             val jsonResponse = JSONObject(responseBody)
+            _lastContextUsage.value = parseOllamaContextUsage(responseBody)
             val message = jsonResponse.optJSONObject("message")
             val text = message?.optString("content", "") ?: ""
             val toolCalls = parseToolCalls(message)
@@ -155,6 +164,7 @@ class OllamaService(
     }
 
     override suspend fun executeStreaming(request: AiRequest): Flow<String> = flow {
+        _lastContextUsage.value = null
         val httpRequest = buildChatRequest(request, stream = true)
         val response = client.newCall(httpRequest).execute()
 
@@ -178,7 +188,10 @@ class OllamaService(
                 if (token.isNotEmpty()) {
                     emit(token)
                 }
-                if (json.optBoolean("done", false)) break
+                if (json.optBoolean("done", false)) {
+                    _lastContextUsage.value = parseOllamaContextUsage(line)
+                    break
+                }
             }
         } finally {
             response.close()

@@ -3,6 +3,8 @@ package com.example.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,6 +30,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,8 +43,13 @@ import com.example.data.ai.MODEL_CATALOG
 import com.example.data.ai.OnDeviceModel
 import com.example.data.ai.ReasoningEffort
 import com.example.ui.chat.ATTACHMENT_CHIP
+import com.example.ui.chat.ContextDetail
+import com.example.ui.chat.ContextDetailCard
 import com.example.ui.chat.ChatHint
 import com.example.ui.chat.chipKey
+import com.example.ui.chat.contextUsageFraction
+import com.example.ui.chat.formatPercentUsed
+import com.example.ui.chat.isContextNearLimit
 import com.example.ui.chat.isLargeScreenWidth
 import kotlinx.coroutines.delay
 
@@ -86,6 +94,8 @@ fun FloatingChatInputField(
     onLoadModel: (OnDeviceModel) -> Unit,
     onUnloadModel: () -> Unit,
     onModelPanelOpen: () -> Unit,
+    /** Detalle de ocupación del contexto (spec 037); `null` = ventana desconocida y el anillo no se pinta. */
+    contextDetail: ContextDetail? = null,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -93,6 +103,22 @@ fun FloatingChatInputField(
     var showEffortSheet by remember { mutableStateOf(false) }
     var showEffortMenu by remember { mutableStateOf(false) }
     var showModelSheet by remember { mutableStateOf(false) }
+    var showContextDetail by remember { mutableStateOf(false) }
+
+    // Si la ventana deja de ser conocida (Ollama sin /api/show), cerramos la tarjeta (RF-265).
+    LaunchedEffect(contextDetail) {
+        if (contextDetail == null) showContextDetail = false
+    }
+
+    // contentDescription del anillo: el anillo es ahora un botón (spec 037).
+    val contextDetailDesc = contextDetail?.let { detail ->
+        val percent = formatPercentUsed(contextUsageFraction(detail.usedTokens, detail.windowTokens))
+        if (detail.exact) {
+            stringResource(R.string.chat_context_desc, percent)
+        } else {
+            stringResource(R.string.chat_context_desc_estimate, percent)
+        }
+    }
 
     HorizontalFloatingToolbar(
         expanded = true,
@@ -116,6 +142,7 @@ fun FloatingChatInputField(
                 modifier = Modifier.fillMaxWidth()
             )
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Botón de adjuntar (+) a la izquierda.
@@ -129,6 +156,32 @@ fun FloatingChatInputField(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
+                }
+                contextDetail?.let { detail ->
+                    // Spec 037 (RF-265, RF-271): el anillo es un botón. <600 dp abre hoja; ≥600 dp, menú anclado.
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .clickable(role = Role.Button) { showContextDetail = !showContextDetail }
+                            .semantics {
+                                contentDescription = contextDetailDesc.orEmpty()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ContextUsageIndicator(detail)
+                        if (isLargeScreen) {
+                            DropdownMenu(
+                                expanded = showContextDetail,
+                                onDismissRequest = { showContextDetail = false },
+                                containerColor = Color.Transparent,
+                                shadowElevation = 0.dp,
+                                shape = RoundedCornerShape(28.dp)
+                            ) {
+                                ContextDetailCard(detail)
+                            }
+                        }
+                    }
                 }
                 ReasoningEffortButton(
                     effort = reasoningEffort,
@@ -144,6 +197,7 @@ fun FloatingChatInputField(
                     modelName = modelSelector.modelName,
                     onClick = { if (isLargeScreen) onModelPanelOpen() else showModelSheet = true }
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 SendOrStopButton(
                     enabled = canSend || isProcessing,
                     isProcessing = isProcessing,
@@ -161,6 +215,26 @@ fun FloatingChatInputField(
             onDismiss = { showEffortSheet = false }
         )
     }
+    // Spec 037 (RF-271): compacto → hoja con la misma tarjeta.
+    if (!isLargeScreen && showContextDetail && contextDetail != null) {
+        val detailSheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+        )
+        ModalBottomSheet(
+            onDismissRequest = { showContextDetail = false },
+            sheetState = detailSheetState,
+            containerColor = Color.Transparent,
+            dragHandle = null
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                ContextDetailCard(contextDetail)
+            }
+        }
+    }
     if (showModelSheet) {
         ModelSelectorSheet(
             state = modelSelector,
@@ -174,6 +248,27 @@ fun FloatingChatInputField(
             onDismiss = { showModelSheet = false }
         )
     }
+}
+
+/**
+ * Anillo de ocupación del contexto (spec 034, RF-248…RF-255): determinado, sin texto visible en la
+ * interfaz; el color pasa a `error` a partir del 85 % (RF-254). El `contentDescription` vive ahora
+ * en el `Box` clicable que lo envuelve (spec 037, RF-265).
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ContextUsageIndicator(detail: ContextDetail) {
+    val fraction = contextUsageFraction(detail.usedTokens, detail.windowTokens)
+    val tint = if (isContextNearLimit(fraction)) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    CircularWavyProgressIndicator(
+        progress = { fraction },
+        color = tint,
+        modifier = Modifier.size(20.dp)
+    )
 }
 
 /**
@@ -368,15 +463,6 @@ private fun SendOrStopButton(
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    // El rebote es estado de la vista, no de la pantalla: baja a 0.9f al pulsar y vuelve a 1f.
-    var pulse by remember { mutableStateOf(1f) }
-    val scale by animateFloatAsState(targetValue = pulse, label = "sendPulse")
-    LaunchedEffect(pulse) {
-        if (pulse < 1f) {
-            delay(100)
-            pulse = 1f
-        }
-    }
     val containerColor by animateColorAsState(
         targetValue = when {
             isProcessing -> MaterialTheme.colorScheme.errorContainer
@@ -399,14 +485,11 @@ private fun SendOrStopButton(
         onClick = {
             // La vibración es la del **envío**; detener no vibra, que es lo que hacía el campo anterior.
             if (!isProcessing) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            pulse = 0.9f
             onClick()
         },
         enabled = enabled,
         modifier = Modifier
-            .size(30.dp)
-            // El fondo va después de la capa, así que el rebote escala el círculo entero.
-            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .size(32.dp)
             .background(color = containerColor, shape = CircleShape)
     ) {
         Icon(
@@ -515,7 +598,17 @@ fun FloatingChatInputFieldPreview() {
             onDownloadModel = {},
             onLoadModel = {},
             onUnloadModel = {},
-            onModelPanelOpen = {}
+            onModelPanelOpen = {},
+            contextDetail = ContextDetail(
+                usedTokens = 42,
+                windowTokens = 2048,
+                exact = true,
+                totalPromptTokens = 30,
+                totalGeneratedTokens = 12,
+                avgTokensPerSecond = 4.3f,
+                turnPromptTokens = 30,
+                turnGeneratedTokens = 12
+            )
         )
     }
 }

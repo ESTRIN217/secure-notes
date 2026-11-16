@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +32,10 @@ import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import com.arm.aichat.gguf.GgufMetadataReader
+import com.example.ui.chat.LLAMA_CPP_CONTEXT_TOKENS
+import com.example.ui.chat.buildContextUsage
+import com.example.ui.chat.estimateTokens
+import com.example.ui.chat.ContextUsage
 import java.io.FileInputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -54,7 +59,11 @@ data class ConversationTurn(
     val timestamp: Long = System.currentTimeMillis(),
     val errorMessage: String? = null,
     val id: Long = idCounter++,
-    val files: List<FileAttachment> = emptyList()
+    val files: List<FileAttachment> = emptyList(),
+    val promptEvalCount: Int? = null,
+    val promptEvalDurationMs: Long? = null,
+    val evalCount: Int? = null,
+    val evalDurationMs: Long? = null
 ) {
     // Antes cada mensaje pintaba su hora con un `SimpleDateFormat` NUEVO por fila y por
     // recomposición (y `"%.1fs".format()` allocaba un Formatter). Ahora hay cache por hilo.
@@ -280,6 +289,10 @@ class AiViewModel(
 
     private val _currentSessionId = MutableStateFlow(0)
     val currentSessionId: StateFlow<Int> = _currentSessionId.asStateFlow()
+
+    /** Ocupación del contexto de la conversación actual (spec 034, RF-248); `null` si no se conoce la ventana (RF-253). */
+    private val _contextUsage = MutableStateFlow<ContextUsage?>(null)
+    val contextUsage: StateFlow<ContextUsage?> = _contextUsage.asStateFlow()
 
     private val _sessionTitle = MutableStateFlow(application.getString(R.string.chat_new_session))
     val sessionTitle: StateFlow<String> = _sessionTitle.asStateFlow()
@@ -523,6 +536,7 @@ class AiViewModel(
     fun setBackend(backend: AiBackend) {
         _backend.value = backend
         prefsRepository.setAiBackend(if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama")
+        refreshContextUsage(justServed = false)
     }
 
     fun setEndpointUrl(url: String) {
@@ -530,12 +544,14 @@ class AiViewModel(
         prefsRepository.setAiEndpointUrl(url)
         ollamaService.updateConfig(url, _modelName.value)
         _connectionState.value = ConnectionState.Unknown
+        refreshContextUsage(justServed = false)
     }
 
     fun setModelName(model: String) {
         _modelName.value = model
         prefsRepository.setAiModelName(model)
         ollamaService.updateConfig(_endpointUrl.value, model)
+        refreshContextUsage(justServed = false)
     }
 
     fun setOnDeviceModelPath(path: String) {
@@ -590,6 +606,7 @@ class AiViewModel(
         if (path != null) {
             setOnDeviceModelPath(path)
         }
+        refreshContextUsage(justServed = false)
     }
 
     /** Marca/desmarca un modelo como favorito (RF-233). La clave lleva el origen (`gguf:`/`ollama:`). */
@@ -699,6 +716,8 @@ class AiViewModel(
                 onSuccess = { info -> ConnectionState.Connected(info.models, info.contextLengths) },
                 onFailure = { error -> ConnectionState.Failed(error.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_unknown)) }
             )
+            // El denominador de Ollama puede resolverse aquí (RF-253): se recalcula el anillo.
+            refreshContextUsage(justServed = false)
         }
     }
 
@@ -731,6 +750,8 @@ class AiViewModel(
                     }
                 }
                 }
+                // El backend/modelo guardados en la sesión pueden cambiar el denominador (RF-253).
+                refreshContextUsage(justServed = false)
             }
         }
     }
@@ -769,6 +790,7 @@ class AiViewModel(
             _currentSessionId.value = id
             _currentNoteId.value = noteId
             _sessionTitle.value = title
+            refreshContextUsage(justServed = false)
         }
     }
 
@@ -831,7 +853,11 @@ class AiViewModel(
     }
 
     fun loadConversation(sessionId: Int) {
-        if (_conversationHistory.value.containsKey(sessionId)) return
+        if (_conversationHistory.value.containsKey(sessionId)) {
+            // Sesión ya restaurada: RF-256 — el exacto no se reutiliza, se recalcula como estimado.
+            refreshContextUsage(justServed = false)
+            return
+        }
         viewModelScope.launch {
             val turns = withContext(Dispatchers.IO) {
                 conversationDao.getConversations(sessionId)
@@ -843,12 +869,60 @@ class AiViewModel(
                             entity.role, entity.content, entity.processingTimeMs,
                             modelName = entity.modelName, timestamp = entity.timestamp,
                             id = entity.id.toLong(),
-                            files = ConversationTurn.jsonToFiles(entity.attachmentsJson)
+                            files = ConversationTurn.jsonToFiles(entity.attachmentsJson),
+                            promptEvalCount = entity.promptEvalCount,
+                            promptEvalDurationMs = entity.promptEvalDurationMs,
+                            evalCount = entity.evalCount,
+                            evalDurationMs = entity.evalDurationMs
                         )
                     })
                 }
             }
+            refreshContextUsage(justServed = false)
         }
+    }
+
+    /**
+     * Recalcula [contextUsage] (spec 034). `justServed` solo es `true` al completar una respuesta:
+     * el exacto de Ollama (`prompt_eval_count + eval_count`) no se reutiliza entre sesiones (RF-256).
+     * Se recalcula solo en estos puntos discretos, nunca por token ni por frame (RNF-152).
+     */
+    private fun refreshContextUsage(justServed: Boolean) {
+        val sessionId = _currentSessionId.value
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val window = contextWindowTokens()
+                val exact = if (justServed && _backend.value == AiBackend.OLLAMA) {
+                    ollamaService.lastContextUsage.value?.sum
+                } else {
+                    null
+                }
+                val used = exact ?: estimateTokens(contextEstimateText(sessionId))
+                _contextUsage.value = buildContextUsage(usedTokens = used, windowTokens = window, exact = exact != null)
+            }
+        }
+    }
+
+    /** Ventana de contexto del modelo activo: on-device → 8192 (fijo upstream); Ollama → `context_length` cacheado (RF-253). */
+    private fun contextWindowTokens(): Int? = when (_backend.value) {
+        AiBackend.ON_DEVICE -> LLAMA_CPP_CONTEXT_TOKENS
+        AiBackend.OLLAMA -> (_connectionState.value as? ConnectionState.Connected)
+            ?.contextLengths?.get(_modelName.value)?.toInt()?.takeIf { it > 0 }
+    }
+
+    /** Texto que llena el KV cache: prompt de sistema + memorias + histórico (con adjuntos incluidos, RF-251). */
+    private suspend fun contextEstimateText(sessionId: Int): String {
+        val system = _systemPrompt.value.ifBlank {
+            AiPromptBuilder.resolveSystemPromptResource(getApplication(), AiAction.GENERATE, "")
+        }
+        val memories = memoryManager?.let { mm ->
+            runCatching { mm.getRelevantMemories(sessionId) }.getOrNull()?.joinToString("\n")
+        } ?: ""
+        val turns = _conversationHistory.value[sessionId].orEmpty()
+        val history = turns.joinToString("\n") { turn ->
+            turn.content + turn.files.joinToString("") { it.content }
+        }
+        return listOf(system, memories, history).filter { it.isNotBlank() }.joinToString("\n")
     }
 
     fun execute(request: AiRequest, sessionId: Int = 0) {
@@ -927,6 +1001,16 @@ class AiViewModel(
         val isFirstMessage = currentHistory.isEmpty()
         val isNewSession = _conversationHistory.value[sessionId] == null
 
+        // Spec 036 (RF-264): el rowId del turno de usuario se necesita al completar para escribir
+        // sus métricas de prompt; por eso la inserción va en un async awaiteable, no en un launch suelto.
+        val userTurnDeferred = viewModelScope.async {
+            withContext(Dispatchers.IO) {
+                conversationDao.insert(
+                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage, modelName = currentModelName(), attachmentsJson = filesJson.ifBlank { null })
+                )
+            }
+        }
+
         _conversationHistory.update { current ->
             val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
                 add(ConversationTurn("user", userMessage, status = MessageStatus.SENT, modelName = currentModelName(), files = pendingFiles))
@@ -937,11 +1021,8 @@ class AiViewModel(
         _pendingAttachments.value = emptyList()
 
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                conversationDao.insert(
-                    ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "user", content = userMessage, modelName = currentModelName(), attachmentsJson = filesJson.ifBlank { null })
-                )
-            }
+            // El título y el contador esperan al insert diferido (spec 034 T5, RF-264).
+            userTurnDeferred.await()
             if (isFirstMessage || isNewSession) {
                 val title = userMessage.trim().split(Regex("\\s+")).take(2).joinToString(" ").ifBlank {
                     pendingFiles.firstOrNull()?.name?.take(30) ?: getApplication<Application>().getString(
@@ -1019,18 +1100,48 @@ class AiViewModel(
 
                 val elapsed = System.currentTimeMillis() - startTime
                 _processingTimeMs.value = elapsed
+
+                // Spec 036 (RF-261/262/264): métricas del turno — Ollama toma las del trozo `done`
+                // (spec 034); on-device estima chars÷4. El exacto prevalece sobre la estimación.
+                val onDevice = _backend.value == AiBackend.ON_DEVICE
+                val exactUsage = if (onDevice) null else ollamaService.lastContextUsage.value
+                val evalMs = exactUsage?.evalDurationNs?.div(1_000_000L) ?: elapsed
+                val promptMs = exactUsage?.promptEvalDurationNs?.div(1_000_000L) ?: elapsed
+                val userText = listOf(userMessage, pendingFiles.joinToString("\n") { it.content })
+                    .filter { it.isNotBlank() }.joinToString("\n")
+                val userTokens = exactUsage?.promptTokens ?: estimateTokens(userText)
+                val asstTokens = exactUsage?.evalTokens ?: estimateTokens(finalResult)
+                val asstMs = if (exactUsage?.evalDurationNs != null) evalMs else elapsed
+
                 _resultText.value = finalResult
 
                 _conversationHistory.update { current ->
                     val updated = (current[sessionId]?.toMutableList() ?: mutableListOf()).apply {
-                        add(ConversationTurn("assistant", finalResult, elapsed, modelName = currentModelName(), status = MessageStatus.COMPLETED))
+                        // El turno de usuario lleva las métricas del prompt y su propia duración (RF-260).
+                        val userIdx = indexOfLast { it.role == "user" }
+                        if (userIdx >= 0) {
+                            set(userIdx, get(userIdx).copy(
+                                promptEvalCount = userTokens,
+                                promptEvalDurationMs = promptMs,
+                                processingTimeMs = promptMs
+                            ))
+                        }
+                        add(ConversationTurn(
+                            "assistant", finalResult, asstMs, modelName = currentModelName(),
+                            status = MessageStatus.COMPLETED,
+                            evalCount = asstTokens, evalDurationMs = asstMs
+                        ))
                     }
                     current + (sessionId to updated)
                 }
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
+                        // El insert del turno de usuario ya terminó (el deferred lo lleva); solo
+                        // queda escribir sus métricas de prompt en la fila conocida por rowId.
+                        val userTurnId = userTurnDeferred.await()
+                        conversationDao.updatePromptMetrics(userTurnId, userTokens, promptMs)
                         conversationDao.insert(
-                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = finalResult, processingTimeMs = elapsed, modelName = currentModelName())
+                            ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = finalResult, processingTimeMs = asstMs, modelName = currentModelName(), evalCount = asstTokens, evalDurationMs = asstMs)
                         )
                         val count = conversationDao.countBySessionId(sessionId)
                         chatSessionDao.updateMetadata(sessionId, System.currentTimeMillis(), count)
@@ -1060,6 +1171,8 @@ class AiViewModel(
                 }
                 _streamingText.value = null
                 _isProcessing.value = false
+                // El exacto acaba de escribirlo el servicio antes de que el colector volviera (spec 034, RF-250/252).
+                refreshContextUsage(justServed = true)
             } catch (e: IOException) {
                 addErrorTurn(sessionId, e.message ?: getApplication<android.app.Application>().getString(com.example.R.string.ai_error_connection))
             } catch (e: Throwable) {

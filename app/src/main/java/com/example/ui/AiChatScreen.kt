@@ -57,14 +57,19 @@ import com.example.data.ai.*
 import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
 import com.example.ui.chat.adoptPendingEditing
+import com.example.ui.chat.buildContextDetail
+import com.example.ui.chat.TurnMetrics
 import com.example.ui.chat.canSend
 import com.example.ui.chat.effectiveText
 import com.example.ui.chat.greetingIndexFor
 import com.example.ui.chat.hintFor
+import com.example.ui.chat.shouldShowModelLoadingIndicator
+import com.example.ui.chat.shouldShowUnavailableError
 import com.example.ui.chat.requestFor
 import com.example.ui.chat.shouldClearInput
 import com.example.ui.chat.shouldSend
 import com.example.ui.chat.visibleSuggestions
+import com.example.ui.chat.tokensPerSecond
 import com.example.ui.chat.writeTarget
 import com.example.ui.chat.WriteTarget
 import com.example.ui.markdown.ChatMarkdownText
@@ -127,6 +132,7 @@ fun AiChatScreen(
     val onDeviceModelState by viewModel.onDeviceModelState.collectAsStateWithLifecycle()
     val hiddenModels by viewModel.hiddenModels.collectAsStateWithLifecycle()
     val onDeviceContextLengths by viewModel.onDeviceContextLengths.collectAsStateWithLifecycle()
+    val contextUsage by viewModel.contextUsage.collectAsStateWithLifecycle()
     val contextLengths = remember(connectionState, onDeviceContextLengths) {
         val ollama: Map<String, Long> = (connectionState as? ConnectionState.Connected)?.contextLengths?.mapKeys { "ollama:${it.key}" } ?: emptyMap()
         onDeviceContextLengths.mapKeys { "gguf:${it.key}" } + ollama
@@ -192,6 +198,19 @@ fun AiChatScreen(
     }
 
     val conversationHistory = allHistory[effectiveSessionId] ?: emptyList()
+    // Spec 037: detalle derivado del anillo — acumulados del turno (spec 036) + ocupación (spec 034).
+    val conversationTokenMetrics = remember(conversationHistory) {
+        conversationHistory.map { turn ->
+            TurnMetrics(
+                promptTokens = turn.promptEvalCount,
+                generatedTokens = turn.evalCount,
+                evalDurationMs = turn.evalDurationMs
+            )
+        }
+    }
+    val contextDetail = remember(contextUsage, conversationTokenMetrics) {
+        buildContextDetail(contextUsage, conversationTokenMetrics)
+    }
     val displayModelName = if (backend == AiBackend.OLLAMA) modelNameSetting
                            else selectedOnDeviceModel?.displayName ?: ""
     val ollamaModels = remember(connectionState) {
@@ -286,17 +305,7 @@ fun AiChatScreen(
               .navigationBarsPadding(),
             topBar = {
                 TopAppBar(
-                    title = {
-                        Column {
-                            if (displayModelName.isNotBlank()) {
-                                Text(
-                                    text = displayModelName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
+                    title = {},
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.chat_history_title))
@@ -436,7 +445,8 @@ fun AiChatScreen(
                         viewModel.loadSelectedModel()
                     },
                     onUnloadModel = viewModel::unloadModel,
-                    onModelPanelOpen = { showModelPanel = true }
+                    onModelPanelOpen = { showModelPanel = true },
+                    contextDetail = contextDetail
                 )
             }
         ) { paddingValues ->
@@ -446,6 +456,10 @@ fun AiChatScreen(
                     .padding(paddingValues)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
+                  // Spec 035 (RF-258): carga del motor on-device visible, indeterminada; nada en Ollama.
+                  if (shouldShowModelLoadingIndicator(backend, onDeviceModelState)) {
+                      LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                  }
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         if (conversationHistory.isEmpty() && !isStreamingEmpty && !hasStreamingContent) {
                             // Día local: días desde época en la zona horaria del dispositivo. Se calcula
@@ -497,13 +511,19 @@ fun AiChatScreen(
                                 selectedText = selectedText,
                                 fullContent = fullContent,
                                 effectiveSessionId = effectiveSessionId,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                isOnDevice = backend == AiBackend.ON_DEVICE
                             )
                         }
                     }
                 }
 
-                val showError = !viewModel.isAvailable() && conversationHistory.isEmpty()
+                // Spec 035 (RF-259): durante LOADING no se pinta el banner; vuelve a NOT_LOADED/ERROR.
+                val showError = shouldShowUnavailableError(
+                    modelLoading = shouldShowModelLoadingIndicator(backend, onDeviceModelState),
+                    available = viewModel.isAvailable(),
+                    historyEmpty = conversationHistory.isEmpty()
+                )
                 if (showError) {
                     Surface(
                         modifier = Modifier
@@ -698,7 +718,9 @@ fun MessageBubble(
     onRetry: () -> Unit,
     onEdit: (String) -> Unit,
     onPinToMemory: (String) -> Unit,
-    modelName: String
+    modelName: String,
+    /** Spec 036: on-device → métricas estimadas y marcadas con «~» (RF-262). */
+    isOnDevice: Boolean = false
 ) {
     val isUser = turn.role == "user"
     val isError = turn.status == MessageStatus.ERROR
@@ -750,7 +772,7 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.width(4.dp))
             }
             Text(
-                text = if (isUser) stringResource(R.string.ai_chat_you) else stringResource(R.string.ai_chat_ai),
+                text = if (isUser) stringResource(R.string.ai_chat_you) else "",
                 style = MaterialTheme.typography.labelSmall,
                 color = labelColor
             )
@@ -868,12 +890,42 @@ fun MessageBubble(
                             style = MaterialTheme.typography.labelSmall,
                             color = textColor.copy(alpha = 0.5f)
                         )
+                        // Spec 036 (RF-260…RF-262): métricas reales del turno. El usuario lleva la
+                        // métrica del prompt y el asistente la de generación; en on-device van con «~».
+                        val metricTokens = if (isUser) turn.promptEvalCount else turn.evalCount
+                        val metricMs = if (isUser) turn.promptEvalDurationMs else turn.evalDurationMs
+                        if (metricTokens != null) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isOnDevice) {
+                                    stringResource(R.string.chat_msg_tokens_approx, metricTokens)
+                                } else {
+                                    stringResource(R.string.chat_msg_tokens, metricTokens)
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textColor.copy(alpha = 0.5f)
+                            )
+                        }
                         turn.formattedDuration?.let { dur ->
                             Text(
                                 text = stringResource(R.string.chat_msg_duration, dur),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.5f)
                             )
+                        }
+                        if (metricTokens != null && metricMs != null && metricMs > 0L) {
+                            tokensPerSecond(metricTokens, metricMs * 1_000_000L)?.let { tps ->
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isOnDevice) {
+                                        stringResource(R.string.chat_msg_tok_per_s_approx, String.format(Locale.getDefault(), "%.1f", tps))
+                                    } else {
+                                        stringResource(R.string.chat_msg_tok_per_s, String.format(Locale.getDefault(), "%.1f", tps))
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = textColor.copy(alpha = 0.5f)
+                                )
+                            }
                         }
                         if (!isUser && modelName.isNotBlank()) {
                             Text(
@@ -975,18 +1027,6 @@ fun MessageBubble(
                         }) {
             Icon(
                 Icons.Default.ContentPaste,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        }
-        if (turn.content.isNotBlank()) {
-        IconButton(onClick = {
-                            onPinToMemory(turn.content)
-                            showMenu = false
-                        }) {
-            Icon(
-                Icons.Default.Psychology,
                 contentDescription = null,
                 modifier = Modifier.size(12.dp)
             )
@@ -1190,7 +1230,9 @@ fun ChatMessageList(
     selectedText: String,
     fullContent: String,
     effectiveSessionId: Int,
-    viewModel: AiViewModel
+    viewModel: AiViewModel,
+    /** Spec 036 (RF-262): marca «~» en las métricas de on-device. */
+    isOnDevice: Boolean = false
 ) {
     // El motor de GFM se construye **una vez para toda la lista** y se reparte con un `CompositionLocal`
     // (spec 017, RF-98). Va aquí y no dentro de cada burbuja a propósito: la lista descarta lo que sale de
@@ -1240,7 +1282,8 @@ fun ChatMessageList(
                     },
                     onEdit = onEdit,
                     onPinToMemory = { content -> viewModel.savePinnedMemory(effectiveSessionId, content) },
-                    modelName = turn.modelName ?: displayModelName
+                    modelName = turn.modelName ?: displayModelName,
+                    isOnDevice = isOnDevice
                 )
             }
         }

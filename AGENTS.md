@@ -142,6 +142,7 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
   - **Never call `destroy()`** — its companion caches the singleton, so destroying poisons it for the rest of the process.
     `unload()`/`cleanUp()` is the only safe teardown.
   - Context size (8192) and sampling temp (0.3) are hardcoded upstream; sampling params in `AiRequest` are ignored.
+  - **`LLAMA_CPP_CONTEXT_TOKENS = 8192`** (`ui/chat/ContextUsage.kt`) is the denominator of the chat context ring and detail card (specs 034/037, RF-253) and must stay hardcoded: reading `context_length` from the GGUF would lie about what the engine actually allocates (models advertise more). The GGUF `context_length` is still what the models panel shows (spec 033, RF-241) — different thing. If the upstream binding changes the context size, update the constant and spec 034/037; never derive it at runtime.
   - Known limitation (documented-only): `maxTokens` can overshoot by up to ~user-prompt-length tokens —
     stop position double-counts user tokens (`ai_chat.cpp:447`).
 - **Secrets**: Secrets plugin reads `.env` (gitignored) with fallback to `.env.example`.
