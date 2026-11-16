@@ -49,6 +49,7 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
   checkout: `BUILD SUCCESSFUL`.
 
 ## Decisiones que conviene recordar
+- **2026-11-16**: El motor de llama.cpp **nunca se vendoriza en el repo** (decisión firme del usuario). Solo el binding Android (`lib/`, spec 039) vive en el repo; el árbol de fuentes del motor sigue externo en `/root/llama.cpp` y la build nativa fuera de ese host falla a propósito. Nada de submódulos, copias totales o parciales ni «solo lo necesario».
 - Las reglas permanentes sobre nota nueva, tema, `AiModelHost`, `CodeEditor`, markdown, almacenamiento,
   rendimiento y seguridad viven en `AGENTS.md`; no duplicarlas aquí.
 - Antes de purgar `libs.versions.toml`, revisar el módulo externo `:lib`

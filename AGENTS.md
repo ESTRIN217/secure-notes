@@ -14,6 +14,7 @@
 - **Native AI (llama.cpp)**: uses a **vendored copy** of llama.cpp's official Android binding at the repo root (`lib/`, `com.arm.aichat.AiChat` facade), as Gradle module `:lib`. The copy **is** the source of truth and always present in `settings.gradle.kts` — the conditional `include` and `findProject(":lib")` guards are gone for good (`app/build.gradle.kts` has a plain `implementation(project(":lib"))`).
   The llama.cpp **engine** (the huge source tree the binding compiles with `add_subdirectory`) is **not** in the repo: `lib/src/main/cpp/CMakeLists.txt` points at the absolute host path `/root/llama.cpp` — the host this project is built on. On any other machine, the native build fails by design. CI still does not compile `:app` for the same reason (library-module tests only).
   Native code compiles from source via `:lib`'s CMake during Gradle sync (no prebuilt `.so` in the repo). Build only supports `arm64-v8a`.
+  - **El motor siempre queda fuera del repo; nunca se hace self-contained** (decisión firme del usuario, 2026-11-16). Ni como submódulo, ni copiado total o parcial, ni referenciado con ruta relativa, ni «solo lo necesario»: el binding Android (`lib/`) es lo único que se vendoriza. La build nativa fallando fuera del host del autor es el comportamiento correcto, no un defecto a corregir. No propongas meter el motor en el repo.
 
 ## Tests
 
