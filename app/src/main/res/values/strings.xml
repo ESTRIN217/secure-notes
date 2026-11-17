@@ -1149,9 +1149,7 @@
     <string name="chat_model_info_desc">Model information: %1$s</string>
     <string name="chat_model_favorite_desc">Favorite: %1$s</string>
     <string name="chat_model_download_desc">Download model: %1$s</string>
-    <string name="chat_model_open_hf">Open in Hugging Face</string>
-    <string name="chat_model_quant_line">Quantization: %1$s</string>
-    <string name="chat_model_load_desc">Load model: %1$s</string>
+            <string name="chat_model_load_desc">Load model: %1$s</string>
     <string name="chat_model_unload_desc">Unload model: %1$s</string>
     <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
     <string name="models_panel_title">Models</string>
@@ -1173,4 +1171,11 @@
     <string name="models_show_hidden">Show hidden models (%1$d)</string>
     <string name="models_show_all">Show all models</string>
     <string name="models_loading">Loading…</string>
+    <string name="chat_model_info_context_size">Context Size</string>
+    <string name="chat_model_info_parameters">Parameters</string>
+    <string name="chat_model_info_quantization">Quantization</string>
+    <string name="chat_model_info_chat_template">Chat Template</string>
+    <string name="chat_model_info_template_unavailable">Not available</string>
+    <string name="chat_model_info_copy_desc">Copy model info</string>
+    <string name="ai_ondevice_delete_failed">The model file could not be deleted</string>
 </resources>

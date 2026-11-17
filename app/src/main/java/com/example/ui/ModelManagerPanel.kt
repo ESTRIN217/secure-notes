@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
@@ -95,6 +96,7 @@ fun ModelManagerPanel(
     onDeleteModel: (OnDeviceModel) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onToggleHidden: (String) -> Unit,
+    onShowInfo: (OnDeviceModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     BackHandler { onClose() }
@@ -165,7 +167,8 @@ fun ModelManagerPanel(
                                     onStatusAction = statusAction(model, state, onDownloadModel, onLoadModel, onUnloadModel),
                                     onToggleFavorite = { onToggleFavorite(favoriteOnDeviceKey(model.id)) },
                                     onToggleHidden = { onToggleHidden(favoriteOnDeviceKey(model.id)) },
-                                    onDelete = { deleteTarget = model }
+                                    onDelete = { deleteTarget = model },
+                                    onShowInfo = { onShowInfo(model) }
                                 )
                             }
                         } else {
@@ -179,7 +182,8 @@ fun ModelManagerPanel(
                                     onStatusAction = {},
                                     onToggleFavorite = { onToggleFavorite(favoriteOnDeviceKey(model.id)) },
                                     onToggleHidden = { onToggleHidden(favoriteOnDeviceKey(model.id)) },
-                                    onDelete = {}
+                                    onDelete = {},
+                                    onShowInfo = {}
                                 )
                             }
                         }
@@ -295,7 +299,7 @@ private fun TableHeaderRow() {
         Text(stringResource(R.string.models_col_model), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
         Text(stringResource(R.string.models_col_context), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(92.dp))
         Text(stringResource(R.string.models_col_status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
-        Text(stringResource(R.string.models_col_actions), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(56.dp))
+        Text(stringResource(R.string.models_col_actions), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(96.dp))
     }
 }
 
@@ -357,7 +361,8 @@ private fun LocalModelRow(
     onStatusAction: () -> Unit,
     onToggleFavorite: () -> Unit,
     onToggleHidden: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onShowInfo: () -> Unit
 ) {
     val downloaded = model.id in state.downloadedIds
     val isSelected = state.backend == AiBackend.ON_DEVICE && state.selectedOnDeviceId == model.id
@@ -394,15 +399,27 @@ private fun LocalModelRow(
             }
         }
         if (isHiddenView) {
-            Spacer(modifier = Modifier.width(56.dp))
+            Spacer(modifier = Modifier.width(96.dp))
         } else {
-            RowActionsMenu(
-                model = model,
-                favorite = favorite,
-                onToggleFavorite = onToggleFavorite,
-                onToggleHidden = onToggleHidden,
-                onDelete = onDelete
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.width(96.dp)
+            ) {
+                IconButton(onClick = onShowInfo, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = stringResource(R.string.chat_model_info_desc, model.displayName),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                RowActionsMenu(
+                    model = model,
+                    favorite = favorite,
+                    onToggleFavorite = onToggleFavorite,
+                    onToggleHidden = onToggleHidden,
+                    onDelete = onDelete
+                )
+            }
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

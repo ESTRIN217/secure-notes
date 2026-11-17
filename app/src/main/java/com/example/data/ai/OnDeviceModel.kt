@@ -3,6 +3,8 @@ package com.example.data.ai
 data class OnDeviceModel(
     val id: String,
     val displayName: String,
+    /** Etiqueta nominal publicada por el autor (p. ej. «1.5B»); obligatoria, no se deriva (spec 040 RF-288). */
+    val paramsLabel: String,
     val minRamMb: Long,
     val recommendedRamMb: Long,
     val fileSizeMb: Int,
@@ -39,6 +41,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "smollm2-360m",
         displayName = "SmolLM2 360M",
+        paramsLabel = "360M",
         minRamMb = 512,
         recommendedRamMb = 1024,
         fileSizeMb = 258,
@@ -48,6 +51,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "qwen2.5-0.5b",
         displayName = "Qwen 2.5 0.5B",
+        paramsLabel = "0.5B",
         minRamMb = 768,
         recommendedRamMb = 1536,
         fileSizeMb = 469,
@@ -57,6 +61,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "qwen3-0.6b",
         displayName = "Qwen3 0.6B",
+        paramsLabel = "0.6B",
         minRamMb = 768,
         recommendedRamMb = 1536,
         fileSizeMb = 492,
@@ -67,6 +72,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "gemma3-1b",
         displayName = "Gemma 3 1B",
+        paramsLabel = "1B",
         minRamMb = 1024,
         recommendedRamMb = 2048,
         fileSizeMb = 769,
@@ -76,6 +82,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "llama3.2-1b",
         displayName = "Llama 3.2 1B",
+        paramsLabel = "1B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
         fileSizeMb = 770,
@@ -85,6 +92,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "smollm2-1.7b",
         displayName = "SmolLM2 1.7B",
+        paramsLabel = "1.7B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
         fileSizeMb = 1007,
@@ -95,6 +103,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "qwen2.5-1.5b",
         displayName = "Qwen 2.5 1.5B",
+        paramsLabel = "1.5B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
         fileSizeMb = 1040,
@@ -104,6 +113,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "deepseek-r1-distill-qwen-1.5b",
         displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
+        paramsLabel = "1.5B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
         fileSizeMb = 1040,
@@ -113,6 +123,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "qwen3-1.7b",
         displayName = "Qwen3 1.7B",
+        paramsLabel = "1.7B",
         minRamMb = 1536,
         recommendedRamMb = 3072,
         fileSizeMb = 1280,
@@ -123,6 +134,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "gemma3-2b",
         displayName = "Gemma 3 2B",
+        paramsLabel = "2B",
         minRamMb = 2048,
         recommendedRamMb = 4096,
         fileSizeMb = 1500,
@@ -132,6 +144,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "gemma4-e2b",
         displayName = "Gemma 4 E2B",
+        paramsLabel = "E2B",
         minRamMb = 2048,
         recommendedRamMb = 4096,
         fileSizeMb = 1600,
@@ -141,6 +154,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "gemma2-2b",
         displayName = "Gemma 2 2B",
+        paramsLabel = "2B",
         minRamMb = 2560,
         recommendedRamMb = 4096,
         fileSizeMb = 1630,
@@ -152,6 +166,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "llama3.2-3b",
         displayName = "Llama 3.2 3B",
+        paramsLabel = "3B",
         minRamMb = 3072,
         recommendedRamMb = 6144,
         fileSizeMb = 1926,
@@ -162,6 +177,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "phi3-mini",
         displayName = "Phi-3 Mini",
+        paramsLabel = "3.8B",
         minRamMb = 2048,
         recommendedRamMb = 4096,
         fileSizeMb = 2283,
@@ -171,6 +187,7 @@ val MODEL_CATALOG = listOf(
     OnDeviceModel(
         id = "phi3.5-mini",
         displayName = "Phi-3.5 Mini",
+        paramsLabel = "3.8B",
         minRamMb = 2560,
         recommendedRamMb = 4096,
         fileSizeMb = 2283,

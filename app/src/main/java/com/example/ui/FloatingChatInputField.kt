@@ -94,6 +94,10 @@ fun FloatingChatInputField(
     onLoadModel: (OnDeviceModel) -> Unit,
     onUnloadModel: () -> Unit,
     onModelPanelOpen: () -> Unit,
+    /** Abre la vista de detalles de un modelo on-device (spec 040, RF-281). */
+    onShowModelInfo: (OnDeviceModel) -> Unit,
+    /** Contador que la pantalla incrementa para cerrar la hoja de selección («Nueva conversación», RF-285). */
+    modelSheetDismissTick: Int = 0,
     /** Detalle de ocupación del contexto (spec 037); `null` = ventana desconocida y el anillo no se pinta. */
     contextDetail: ContextDetail? = null,
     modifier: Modifier = Modifier
@@ -108,6 +112,11 @@ fun FloatingChatInputField(
     // Si la ventana deja de ser conocida (Ollama sin /api/show), cerramos la tarjeta (RF-265).
     LaunchedEffect(contextDetail) {
         if (contextDetail == null) showContextDetail = false
+    }
+
+    // Spec 040 (RF-285): la pantalla pide cerrar la hoja de selección al crear una conversación nueva.
+    LaunchedEffect(modelSheetDismissTick) {
+        if (modelSheetDismissTick > 0) showModelSheet = false
     }
 
     // contentDescription del anillo (spec 034/039): siempre exacto — RF-280.
@@ -240,6 +249,7 @@ fun FloatingChatInputField(
             onDownloadModel = onDownloadModel,
             onLoadModel = onLoadModel,
             onUnloadModel = onUnloadModel,
+            onShowInfo = onShowModelInfo,
             onDismiss = { showModelSheet = false }
         )
     }
@@ -594,6 +604,7 @@ fun FloatingChatInputFieldPreview() {
             onLoadModel = {},
             onUnloadModel = {},
             onModelPanelOpen = {},
+            onShowModelInfo = {},
             contextDetail = ContextDetail(
                 usedTokens = 42,
                 windowTokens = 2048,

@@ -1113,9 +1113,7 @@ O que deseja fazer?</string>
     <string name="chat_model_info_desc">Informações do modelo: %1$s</string>
     <string name="chat_model_favorite_desc">Favorito: %1$s</string>
     <string name="chat_model_download_desc">Baixar modelo: %1$s</string>
-    <string name="chat_model_open_hf">Abrir no Hugging Face</string>
-    <string name="chat_model_quant_line">Quantização: %1$s</string>
-    <string name="chat_model_load_desc">Carregar modelo: %1$s</string>
+            <string name="chat_model_load_desc">Carregar modelo: %1$s</string>
     <string name="chat_model_unload_desc">Descarregar modelo: %1$s</string>
     <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
     <string name="models_panel_title">Modelos</string>
@@ -1137,4 +1135,11 @@ O que deseja fazer?</string>
     <string name="models_show_hidden">Mostrar modelos ocultados (%1$d)</string>
     <string name="models_show_all">Mostrar todos os modelos</string>
     <string name="models_loading">A carregar…</string>
+    <string name="chat_model_info_context_size">Tamanho do contexto</string>
+    <string name="chat_model_info_parameters">Parâmetros</string>
+    <string name="chat_model_info_quantization">Quantização</string>
+    <string name="chat_model_info_chat_template">Template de chat</string>
+    <string name="chat_model_info_template_unavailable">Não disponível</string>
+    <string name="chat_model_info_copy_desc">Copiar informações do modelo</string>
+    <string name="ai_ondevice_delete_failed">Não foi possível apagar o arquivo do modelo</string>
 </resources>

@@ -11,6 +11,7 @@ class OnDeviceModelSourceTest {
     private fun model(name: String) = OnDeviceModel(
         id = "test",
         displayName = "Test",
+        paramsLabel = "1B",
         minRamMb = 512,
         recommendedRamMb = 1024,
         fileSizeMb = 100,

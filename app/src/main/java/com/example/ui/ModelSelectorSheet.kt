@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -92,9 +91,9 @@ fun ModelSelectorSheet(
     onDownloadModel: (OnDeviceModel) -> Unit,
     onLoadModel: (OnDeviceModel) -> Unit,
     onUnloadModel: () -> Unit,
+    onShowInfo: (OnDeviceModel) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var infoModel by remember { mutableStateOf<OnDeviceModel?>(null) }
     var query by remember { mutableStateOf("") }
     val filteredCatalog = remember(state.catalogModels, query, state.favorites, state.hiddenModels) {
         favoritesFirst(
@@ -143,7 +142,7 @@ fun ModelSelectorSheet(
                             }
                         },
                         onToggleFavorite = { onToggleFavorite(favoriteOnDeviceKey(model.id)) },
-                        onShowInfo = { infoModel = model },
+                        onShowInfo = { onShowInfo(model) },
                         onLifecycle = {
                             if (downloaded) {
                                 if (state.onDeviceModelState == ModelState.READY && state.selectedOnDeviceId == model.id) {
@@ -192,7 +191,7 @@ fun ModelSelectorSheet(
         }
     }
 
-    infoModel?.let { ModelInfoDialog(model = it, onDismiss = { infoModel = null }) }
+    // El ⓘ de las filas on-device sube por `onShowInfo` (spec 040, RF-281); el diálogo anterior se eliminó.
 }
 
 @Composable
@@ -292,31 +291,6 @@ private fun OllamaRow(
         }
         FavoriteButton(favorite = favorite, modelName = name, size = iconSize, onToggle = onToggleFavorite)
     }
-}
-
-@Composable
-private fun ModelInfoDialog(model: OnDeviceModel, onDismiss: () -> Unit) {
-    val uriHandler = LocalUriHandler.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(model.displayName) },
-        text = {
-            Column {
-                if (model.quantLabel.isNotBlank()) {
-                    Text(stringResource(R.string.chat_model_quant_line, model.quantLabel), style = MaterialTheme.typography.bodyMedium)
-                }
-                Text(stringResource(R.string.ai_model_min_ram, model.fileSizeMb, model.minRamMb), style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.heightIn(min = 8.dp))
-                Text(model.sourceLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
-        },
-        dismissButton = {
-            TextButton(onClick = { uriHandler.openUri(model.sourcePageUrl) }) { Text(stringResource(R.string.chat_model_open_hf)) }
-        }
-    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

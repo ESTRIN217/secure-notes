@@ -268,6 +268,9 @@ class AiViewModel(
 
     /** IDs de los modelos presentes en disco. Evita leer el sistema de archivos en la composición. */
     private val _downloadedModelIds = MutableStateFlow<Set<String>>(emptySet())
+
+    /** Spec 040 (RF-290, RNF-178): caché en memoria del chat template por `model.id`; una lectura como mucho por modelo y proceso. */
+    private val chatTemplateCache = mutableMapOf<String, String>()
     val downloadedModelIds: StateFlow<Set<String>> = _downloadedModelIds.asStateFlow()
 
     val deviceInfo: DeviceInfo = DeviceInfo.detect(getApplication())
@@ -375,6 +378,31 @@ class AiViewModel(
             _downloadedModelIds.value = ids
             syncOnDeviceContextLengths(ids)
         }
+    }
+
+    /**
+     * Lee `tokenizer.chat_template` del GGUF (solo metadatos; nunca carga pesos), fuera del hilo
+     * principal. Cacheado en memoria por `model.id`. `null` si el archivo no existe, la lectura
+     * falla o el template está vacío (spec 040, RF-290).
+     */
+    suspend fun readChatTemplate(model: OnDeviceModel): String? {
+        chatTemplateCache[model.id]?.let { return it }
+        val path = withContext(Dispatchers.IO) { modelDownloader.getModelPath(model) } ?: return null
+        val template = withContext(Dispatchers.IO) {
+            runCatching {
+                FileInputStream(java.io.File(path)).use { stream ->
+                    GgufMetadataReader.create(
+                        skipKeys = setOf(
+                            "tokenizer.ggml.scores",
+                            "tokenizer.ggml.tokens",
+                            "tokenizer.ggml.token_type"
+                        )
+                    ).readStructuredMetadata(stream).tokenizer?.chatTemplate
+                }
+            }.getOrNull()
+        }?.takeIf { it.isNotBlank() }
+        if (template != null) chatTemplateCache[model.id] = template
+        return template
     }
 
     /**
@@ -627,15 +655,16 @@ class AiViewModel(
         prefsRepository.setHiddenModels(next)
     }
 
-    /** Borra un `.gguf` descargado desde el panel (RF-243): si es el activo, suelta los pesos primero. */
-    fun deleteOnDeviceModel(model: OnDeviceModel) {
+    /** Borra un `.gguf` descargado desde el panel (RF-243): si es el activo, suelta los pesos primero. `true` si el archivo ya no existe (spec 040, RF-291). */
+    fun deleteOnDeviceModel(model: OnDeviceModel): Boolean {
         if (_selectedOnDeviceModel.value?.id == model.id) {
             holdsModelRef = false
             aiModelHost.releaseAll("model-deleted")
             _selectedOnDeviceModel.value = null
             prefsRepository.setAiOnDeviceModelPath("")
         }
-        modelDownloader.deleteModel(model)
+        val deleted = modelDownloader.deleteModel(model)
+        chatTemplateCache.remove(model.id)
         refreshDownloadedModels()
         val contextCache = _onDeviceContextLengths.value
         if (model.id in contextCache) {
@@ -643,6 +672,10 @@ class AiViewModel(
             _onDeviceContextLengths.value = updated
             prefsRepository.setModelContextLengths(updated)
         }
+        if (!deleted) {
+            _errorMessage.value = getApplication<Application>().getString(com.example.R.string.ai_ondevice_delete_failed)
+        }
+        return deleted
     }
 
     /** Descarga un modelo del catálogo sin cambiar el seleccionado (RF-230/RF-232). */
@@ -680,6 +713,7 @@ class AiViewModel(
         aiModelHost.releaseAll("model-deleted")
         modelDownloader.deleteModel(model)
         modelDownloader.resetState()
+        chatTemplateCache.remove(model.id)
         refreshDownloadedModels()
     }
 

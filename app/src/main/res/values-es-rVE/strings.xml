@@ -1091,9 +1091,7 @@ Diferencia: %3$s
     <string name="chat_model_info_desc">Información del modelo: %1$s</string>
     <string name="chat_model_favorite_desc">Favorito: %1$s</string>
     <string name="chat_model_download_desc">Descargar modelo: %1$s</string>
-    <string name="chat_model_open_hf">Abrir en Hugging Face</string>
-    <string name="chat_model_quant_line">Quantización: %1$s</string>
-    <string name="chat_model_load_desc">Cargar modelo: %1$s</string>
+            <string name="chat_model_load_desc">Cargar modelo: %1$s</string>
     <string name="chat_model_unload_desc">Descargar modelo: %1$s</string>
     <!-- spec 033: panel de gestión de modelos (tablet/PC) -->
     <string name="models_panel_title">Modelos</string>
@@ -1115,4 +1113,11 @@ Diferencia: %3$s
     <string name="models_show_hidden">Mostrar modelos ocultos (%1$d)</string>
     <string name="models_show_all">Mostrar todos los modelos</string>
     <string name="models_loading">Cargando…</string>
+    <string name="chat_model_info_context_size">Tamaño de contexto</string>
+    <string name="chat_model_info_parameters">Parámetros</string>
+    <string name="chat_model_info_quantization">Cuantización</string>
+    <string name="chat_model_info_chat_template">Plantilla de chat</string>
+    <string name="chat_model_info_template_unavailable">No disponible</string>
+    <string name="chat_model_info_copy_desc">Copiar información del modelo</string>
+    <string name="ai_ondevice_delete_failed">No se pudo borrar el archivo del modelo</string>
 </resources>

@@ -40,6 +40,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -58,6 +59,7 @@ import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
 import com.example.ui.chat.adoptPendingEditing
 import com.example.ui.chat.buildContextDetail
+import com.example.ui.chat.isLargeScreenWidth
 import com.example.ui.chat.TurnMetrics
 import com.example.ui.chat.canSend
 import com.example.ui.chat.effectiveText
@@ -111,6 +113,9 @@ fun AiChatScreen(
     var notePickerSearchQuery by remember { mutableStateOf("") }
     var showAttachmentSheet by remember { mutableStateOf(false) }
     var showModelPanel by remember { mutableStateOf(false) }
+    // Spec 040: datos de la vista de detalles de un modelo on-device (hermano de los overlays).
+    var infoModel by remember { mutableStateOf<OnDeviceModel?>(null) }
+    var modelSheetDismissTick by remember { mutableIntStateOf(0) }
 
     val pendingAttachments by viewModel.pendingAttachments.collectAsStateWithLifecycle()
 
@@ -142,6 +147,8 @@ fun AiChatScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
+    val configuration = LocalConfiguration.current
+    val isLargeScreen = remember(configuration.screenWidthDp) { isLargeScreenWidth(configuration.screenWidthDp) }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val sessions by chatHistoryViewModel.sessions.collectAsStateWithLifecycle()
@@ -315,11 +322,12 @@ fun AiChatScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
               modifier = Modifier
-                .statusBarsPadding()
-              .navigationBarsPadding(),
+              .fillMaxSize(),
+              contentWindowInsets = WindowInsets(0,0,0,0),
             topBar = {
                 TopAppBar(
                     title = {},
+                    modifier = Modifier.statusBarsPadding(),
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.chat_history_title))
@@ -353,15 +361,16 @@ fun AiChatScreen(
                 )
             },
             bottomBar = {
+              val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
                 // El campo solo pinta y lanza eventos (RF-33): el texto que muestra y el estado al
                 // que escribe los decide L6, y si se puede enviar y el texto de ayuda, L4.
                 FloatingChatInputField(
                     // El inset vive UNA vez, en el bottomBar: `ime` gana con el teclado abierto,
                     // `navigationBars` con el teclado cerrado. El `Box` de contenido ya no repite
                     // el `imePadding()`, que además duplicaba el `innerPadding` del Scaffold.
-                    modifier = Modifier.windowInsetsPadding(
-                        WindowInsets.ime.union(WindowInsets.navigationBars)
-                    ),
+                    modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(bottomInsets),
                     attachments = pendingAttachments,
                     text = effectiveText(inputText, editingMessage),
                     onTextChange = { newText ->
@@ -460,14 +469,17 @@ fun AiChatScreen(
                     },
                     onUnloadModel = viewModel::unloadModel,
                     onModelPanelOpen = { showModelPanel = true },
+                    onShowModelInfo = { infoModel = it },
+                    modelSheetDismissTick = modelSheetDismissTick,
                     contextDetail = contextDetail
                 )
             }
-        ) { paddingValues ->
+        ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                   // Spec 035 (RF-258): carga del motor on-device visible, indeterminada; nada en Ollama.
@@ -713,7 +725,44 @@ fun AiChatScreen(
             onUnloadModel = viewModel::unloadModel,
             onDeleteModel = viewModel::deleteOnDeviceModel,
             onToggleFavorite = viewModel::toggleFavoriteModel,
-            onToggleHidden = viewModel::toggleHiddenModel
+            onToggleHidden = viewModel::toggleHiddenModel,
+            onShowInfo = { infoModel = it }
+        )
+    }
+
+    // Spec 040 (RF-281…RF-292): vista de detalles del modelo on-device. Hermana de los overlays
+    // (se pinta por encima); su atrás cierra solo el info (RF-282).
+    infoModel?.let { model ->
+        ModelInfoPanel(
+            state = ModelInfoState(
+                model = model,
+                isDownloaded = model.id in downloadedModelIds,
+                isSelected = backend == AiBackend.ON_DEVICE && selectedOnDeviceModel?.id == model.id,
+                engineState = onDeviceModelState,
+                isDownloadingThis = downloadingModelId == model.id,
+                isAnyDownloadActive = downloadingModelId != null,
+                downloadProgress = (downloadState as? DownloadState.Downloading)?.progress,
+                contextLength = contextLengths["gguf:${model.id}"]
+            ),
+            isLargeScreen = isLargeScreen,
+            onDismiss = { infoModel = null },
+            onLoad = {
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                viewModel.loadSelectedModel()
+            },
+            onUnload = viewModel::unloadModel,
+            onDownload = { viewModel.downloadOnDeviceModel(model) },
+            onNewChat = {
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                chatHistoryViewModel.createSession(backend = AiBackend.ON_DEVICE, modelName = model.displayName)
+                showModelPanel = false
+                modelSheetDismissTick += 1
+                infoModel = null
+            },
+            onDelete = { viewModel.deleteOnDeviceModel(model) },
+            loadChatTemplate = { m -> viewModel.readChatTemplate(m) }
         )
     }
 }

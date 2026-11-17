@@ -152,9 +152,10 @@ class ModelDownloader(private val context: Context) {
         _state.value = DownloadState.Idle
     }
 
-    fun deleteModel(model: OnDeviceModel) {
-        File(modelsDir, model.ggufFileName).delete()
+    fun deleteModel(model: OnDeviceModel): Boolean {
+        val deleted = File(modelsDir, model.ggufFileName).let { !it.exists() || it.delete() }
         _state.value = DownloadState.Idle
+        return deleted
     }
 
     fun resetState() {
