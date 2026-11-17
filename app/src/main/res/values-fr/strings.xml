@@ -954,6 +954,8 @@ Que souhaitez-vous faire ?</string>
     <string name="chat_context_prompt_evaluated">Jetons de prompt évalués</string>
     <string name="chat_context_tokens_generated">Jetons générés</string>
     <string name="chat_context_this_turn_kv">CE TOUR • KV CACHE</string>
+    <string name="chat_context_reused_kv">%1$d réutilisés du KV cache</string>
+    <string name="chat_context_fresh_cached">%1$d frais + %2$d en cache</string>
     <string name="chat_context_prompt">Prompt</string>
     <string name="chat_context_generated">Généré</string>
     <string name="chat_context_kv_total">Total du KV cache</string>

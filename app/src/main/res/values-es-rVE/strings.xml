@@ -883,6 +883,8 @@ Diferencia: %3$s
     <string name="chat_context_prompt_evaluated">Tokens de prompt evaluados</string>
     <string name="chat_context_tokens_generated">Tokens generados</string>
     <string name="chat_context_this_turn_kv">ESTE TURNO • KV CACHE</string>
+    <string name="chat_context_reused_kv">%1$d reutilizados del KV cache</string>
+    <string name="chat_context_fresh_cached">%1$d fresh + %2$d en caché</string>
     <string name="chat_context_prompt">Prompt</string>
     <string name="chat_context_generated">Generado</string>
     <string name="chat_context_kv_total">Total del KV cache</string>

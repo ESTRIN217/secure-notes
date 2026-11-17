@@ -310,6 +310,8 @@ static llama_pos stop_generation_position;
 static std::string cached_token_chars;
 static std::ostringstream assistant_ss;
 static int last_prompt_tokens = 0;
+// Spec 041: posición de entrada en la KV-cache al comenzar el turno de usuario (DU-2). -1 = sin modelo/contexto o tras reset.
+static int last_prompt_entry_position = -1;
 static int64_t last_prompt_eval_us = 0;
 static int64_t generation_start_us = 0;
 static int64_t last_generation_us = 0;
@@ -322,6 +324,7 @@ static void reset_short_term_states() {
     assistant_ss.str("");
     // Spec 039: the metrics CSV of a previous request must never leak into the next one.
     last_prompt_tokens = 0;
+    last_prompt_entry_position = -1;
     last_prompt_eval_us = 0;
     generation_start_us = 0;
     last_generation_us = 0;
@@ -435,6 +438,8 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
     const int64_t prompt_start_us = ggml_time_us();
     // Reset short-term states
     reset_short_term_states();
+    // Spec 041: snapshot de la posición de entrada en la KV-cache ANTES de decodificar el turno (tras el reset, que la fija a -1).
+    last_prompt_entry_position = (g_context == nullptr) ? -1 : (int) current_position;
 
     // Obtain and tokenize user prompt
     const auto *const user_prompt = env->GetStringUTFChars(juser_prompt, nullptr);
@@ -613,6 +618,13 @@ extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_nativeLastRequestMetrics(JNIEnv *env, jobject /*unused*/) {
     return env->NewStringUTF(last_metrics_csv.c_str());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_nativeLastPromptEntryPosition(JNIEnv * /*env*/, jobject /*unused*/) {
+    if (g_model == nullptr || g_context == nullptr) return -1;
+    return (jint) last_prompt_entry_position;
 }
 
 extern "C"

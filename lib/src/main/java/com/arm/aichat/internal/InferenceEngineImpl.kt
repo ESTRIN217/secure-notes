@@ -118,6 +118,9 @@ internal class InferenceEngineImpl private constructor(
     @FastNative
     private external fun nativeClearRequestMetrics()
 
+    @FastNative
+    private external fun nativeLastPromptEntryPosition(): Int
+
     private val _state =
         MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
     override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
@@ -301,6 +304,11 @@ internal class InferenceEngineImpl private constructor(
      * Spec 039: borra el CSV de métricas antes de cada petición, evitando herencia por cancelación.
      */
     override fun clearRequestMetrics() = nativeClearRequestMetrics()
+
+    /**
+     * Spec 041: posición de entrada en la KV-cache al comenzar el último turno de usuario (`-1` sin modelo cargado o sin posición).
+     */
+    override fun lastPromptEntryPosition(): Int = nativeLastPromptEntryPosition()
 
     override fun cleanUp() {
         _cancelGeneration = true

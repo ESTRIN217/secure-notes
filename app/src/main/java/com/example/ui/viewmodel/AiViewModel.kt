@@ -62,7 +62,9 @@ data class ConversationTurn(
     val promptEvalCount: Int? = null,
     val promptEvalDurationMs: Long? = null,
     val evalCount: Int? = null,
-    val evalDurationMs: Long? = null
+    val evalDurationMs: Long? = null,
+    /** Spec 041: tokens residentes en la KV-cache al entrar el turno; null = sin dato. */
+    val promptCachedTokens: Int? = null
 ) {
     // Antes cada mensaje pintaba su hora con un `SimpleDateFormat` NUEVO por fila y por
     // recomposición (y `"%.1fs".format()` allocaba un Formatter). Ahora hay cache por hilo.
@@ -909,7 +911,8 @@ class AiViewModel(
                             promptEvalCount = entity.promptEvalCount,
                             promptEvalDurationMs = entity.promptEvalDurationMs,
                             evalCount = entity.evalCount,
-                            evalDurationMs = entity.evalDurationMs
+                            evalDurationMs = entity.evalDurationMs,
+                            promptCachedTokens = entity.promptCachedTokens
                         )
                     })
                 }
@@ -1135,10 +1138,15 @@ class AiViewModel(
                 val onDeviceService = (aiModelHost.serviceOrNull() as? OnDeviceService)
                 val exactUsage = if (onDevice) onDeviceService?.lastContextUsage?.value
                     else ollamaService.lastContextUsage.value
+                // Spec 041: entrada en la KV-cache al abrir el turno; Ollama no la produce (null).
+                val cachedTokens = if (onDevice) onDeviceService?.currentPromptEntryPosition() else null
                 val userTokens = exactUsage?.promptTokens
                 val promptMs = exactUsage?.promptEvalDurationNs?.div(1_000_000L)
                 val asstTokens = exactUsage?.evalTokens
                 val asstMs = exactUsage?.evalDurationNs?.div(1_000_000L) ?: elapsed
+                // Spec 041 (RF-296): la copia en memoria usa el MISMO dato que se persiste —
+                // sin métricas completas, el turno no ve cached ni en vivo ni en BD (cancelación/error).
+                val persistedCachedTokens = if (userTokens != null && promptMs != null) cachedTokens else null
 
                 _resultText.value = finalResult
 
@@ -1150,7 +1158,8 @@ class AiViewModel(
                             set(userIdx, get(userIdx).copy(
                                 promptEvalCount = userTokens,
                                 promptEvalDurationMs = promptMs,
-                                processingTimeMs = promptMs
+                                processingTimeMs = promptMs,
+                                promptCachedTokens = persistedCachedTokens
                             ))
                         }
                         add(ConversationTurn(
@@ -1168,7 +1177,7 @@ class AiViewModel(
                         val userTurnId = userTurnDeferred.await()
                         // Solo persistimos con métricas completas; si falta alguna, el turno queda sin dato.
                         if (userTokens != null && promptMs != null) {
-                            conversationDao.updatePromptMetrics(userTurnId, userTokens, promptMs)
+                            conversationDao.updatePromptCachedMetrics(userTurnId, userTokens, promptMs, persistedCachedTokens)
                         }
                         conversationDao.insert(
                             ConversationEntity(sessionId = sessionId, noteId = _currentNoteId.value, role = "assistant", content = finalResult, processingTimeMs = asstMs, modelName = currentModelName(), evalCount = asstTokens, evalDurationMs = asstMs)

@@ -53,8 +53,10 @@ ni herramientas externas.
   divisor y la sección **Token usage details**.
 - **RF-267**: La sección «ACROSS ALL TURNS» muestra la suma acumulada del histórico de la
   conversación: tokens evaluados (suma de `promptEvalCount`) y tokens generados (suma de `evalCount`).
+  〈enmendado — spec 041: sub-línea «%1$d reused from KV cache» condicional bajo «tokens evaluados» (solo si hay Σ cached)〉
 - **RF-268**: La sección «THIS TURN • KV CACHE» muestra, del último par completo, `Prompt` = tokens
   del turno de usuario y `Generated` = tokens del turno de asistente.
+  〈enmendado — spec 041: `Prompt` además valor cached+fresh cuando el turno trae ambos; sub-línea «%1$d fresh + %2$d cached»〉
 - **RF-269**: EL SISTEMA muestra además `KV cache total` = `usedTokens` del detalle, y `Avg speed`
   = `Σ eval_count / Σ eval_duration` (tok/s, un decimal); la fila se omite si ningún turno del
   asistente aporta duración/conteo.
@@ -113,6 +115,7 @@ de ventana (Ollama sin `/api/show`): sin anillo ni tarjeta; verificación en dis
 `MEMORY.md` actualizado.
 
 ## Historial de cambios
+- 2026-11-17 — RF-267/RF-268 enmendados por spec 041 (sub-línea «reused from KV cache» condicional; RF-268 además valor cached+fresh). Ver specs/041-detalle-kv-cache/
 - 2026-11-16 — RF-270 enmendado (spec 039): sin marcadores «~»; cifras exactas en ambos backends.
 
 - 2026-11-15 — Creación a partir del diseño adjunto (OutlinedCard con detalle de contexto).

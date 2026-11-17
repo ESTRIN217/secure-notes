@@ -104,4 +104,111 @@ class ContextDetailTest {
         assertEquals(8, detail.turnGeneratedTokens)
         assertEquals(13.0f / 3.0f, detail.avgTokensPerSecond!!, 0.05f)
     }
+
+    // Spec 041 (RF-296): caché de prefijo en los acumulados.
+
+    @Test
+    fun accumulateTurnTokens_allCachedNull_yieldsNullTotal() {
+        val totals = accumulateTurnTokens(listOf(
+            TurnMetrics(promptTokens = 7, generatedTokens = null, evalDurationMs = null, cachedTokens = null),
+            TurnMetrics(promptTokens = null, generatedTokens = 4, evalDurationMs = 1000L, cachedTokens = null)
+        ))
+        assertNull(totals.cachedTokens)
+    }
+
+    @Test
+    fun accumulateTurnTokens_emptyList_yieldsNullCached() {
+        assertNull(accumulateTurnTokens(emptyList()).cachedTokens)
+    }
+
+    @Test
+    fun accumulateTurnTokens_sumsOnlyTurnsWithData() {
+        val totals = accumulateTurnTokens(listOf(
+            TurnMetrics(promptTokens = 1, generatedTokens = null, evalDurationMs = null, cachedTokens = 10),
+            TurnMetrics(promptTokens = null, generatedTokens = 4, evalDurationMs = 1000L, cachedTokens = null),
+            TurnMetrics(promptTokens = 2, generatedTokens = null, evalDurationMs = null, cachedTokens = 3)
+        ))
+        assertEquals(13, totals.cachedTokens)
+    }
+
+    @Test
+    fun buildContextDetail_propagatesCachedFields() {
+        // Coherencia 29+1+10=40 como dato de prueba (spec 041).
+        val turns = listOf(
+            TurnMetrics(promptTokens = 1, generatedTokens = null, evalDurationMs = null, cachedTokens = 29),  // usuario
+            TurnMetrics(promptTokens = null, generatedTokens = 10, evalDurationMs = null, cachedTokens = null) // asistente
+        )
+        val detail = buildContextDetail(ContextUsage(40, 8192, exact = true), turns)!!
+        assertEquals(29, detail.turnCachedTokens)
+        assertEquals(29, detail.totalCachedTokens)
+        assertEquals(30, detail.turnPromptRowTokens)
+        assertEquals(1, detail.turnPromptTokens)
+        assertEquals(1, detail.totalPromptTokens)
+        assertEquals(1, detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_turnPromptRow_sumsFreshAndCached() {
+        val detail = buildContextDetail(ContextUsage(100, 8192, exact = true), listOf(
+            TurnMetrics(promptTokens = 5, generatedTokens = null, evalDurationMs = null, cachedTokens = 25)
+        ))!!
+        assertEquals(30, detail.turnPromptRowTokens)
+        assertEquals(5, detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_turnPromptRow_freshOnlyWhenCachedMissing() {
+        val detail = buildContextDetail(ContextUsage(100, 8192, exact = true), listOf(
+            TurnMetrics(promptTokens = 5, generatedTokens = null, evalDurationMs = null, cachedTokens = null)
+        ))!!
+        assertEquals(5, detail.turnPromptRowTokens)
+        assertNull(detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_turnCached_takesLastWithData() {
+        val turns = listOf(
+            TurnMetrics(promptTokens = 1, generatedTokens = null, evalDurationMs = null, cachedTokens = 29),
+            TurnMetrics(promptTokens = null, generatedTokens = null, evalDurationMs = null, cachedTokens = null) // error posterior
+        )
+        val detail = buildContextDetail(ContextUsage(40, 8192, exact = true), turns)!!
+        assertEquals(29, detail.turnCachedTokens)
+        assertEquals(1, detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_emptyConversation_yieldsNullCached() {
+        val detail = buildContextDetail(ContextUsage(0, 8192, exact = true), emptyList())!!
+        assertNull(detail.totalCachedTokens)
+        assertNull(detail.turnCachedTokens)
+        assertNull(detail.turnPromptRowTokens)
+        assertNull(detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_mixedBackends_pairNotMixed() {
+        // Último turno con métricas sin cached (Ollama tras on-device) → fila solo fresh, sin sub-línea de turno (RF-298).
+        val turns = listOf(
+            TurnMetrics(promptTokens = 1, generatedTokens = 10, evalDurationMs = null, cachedTokens = 29),  // on-device
+            TurnMetrics(promptTokens = 50, generatedTokens = 10, evalDurationMs = null, cachedTokens = null) // Ollama
+        )
+        val detail = buildContextDetail(ContextUsage(40, 8192, exact = true), turns)!!
+        assertEquals(50, detail.turnPromptTokens)
+        assertEquals(50, detail.turnPromptRowTokens)
+        assertNull(detail.turnCachedTokens)
+        assertNull(detail.turnPairFreshTokens)
+    }
+
+    @Test
+    fun buildContextDetail_backToOnDevice_pairCompleteAgain() {
+        // Ollama antes, on-device después → el par vuelve a ser el turno on-device.
+        val turns = listOf(
+            TurnMetrics(promptTokens = 50, generatedTokens = 10, evalDurationMs = null, cachedTokens = null), // Ollama
+            TurnMetrics(promptTokens = 1, generatedTokens = null, evalDurationMs = null, cachedTokens = 29)    // on-device
+        )
+        val detail = buildContextDetail(ContextUsage(40, 8192, exact = true), turns)!!
+        assertEquals(30, detail.turnPromptRowTokens)
+        assertEquals(29, detail.turnCachedTokens)
+        assertEquals(1, detail.turnPairFreshTokens)
+    }
 }

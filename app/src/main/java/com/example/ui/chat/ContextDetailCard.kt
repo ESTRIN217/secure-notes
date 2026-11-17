@@ -34,9 +34,9 @@ import java.util.Locale
  * Tarjeta de detalle de la ocupación del contexto (spec 037, RF-266…RF-270). **Solo pinta** y recibe
  * todo derivado: no decide estado (lo decide el campo al tocar el anillo) ni lee el ViewModel.
  *
- * Diseño: `OutlinedCard` 200×190 dp, esquinas 28, borde `outlineVariant` (mock del usuario): contenido
+ * Diseño: `OutlinedCard` 200×245 dp, esquinas 28, borde `outlineVariant` (mock del usuario): contenido
  * con scroll interno para no exigir más altura, y métricas marcadas con «~» cuando el detalle no es
- * exacto (RF-270).
+ * exacto (RF-270). Spec 041: sub-líneas de caché condicionales («reused from KV cache», «fresh + cached»).
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -59,12 +59,12 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
             width = 1.5.dp,
             color = MaterialTheme.colorScheme.outlineVariant
         ),
-        modifier = modifier.size(width = 200.dp, height = 190.dp)
+        modifier = modifier.size(width = 200.dp, height = 245.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .padding(horizontal = 10.dp, vertical = 10.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
@@ -72,7 +72,7 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
                          subtitle = stringResource(R.string.chat_context_of, formatTokensCompact(detail.usedTokens), formatTokensCompact(detail.windowTokens)))
             LinearWavyProgressIndicator(
                 progress = { fraction },
-                modifier = Modifier.fillMaxWidth().height(24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
             )
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -90,12 +90,23 @@ fun ContextDetailCard(detail: ContextDetail, modifier: Modifier = Modifier) {
                  style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
             DetailRow(stringResource(R.string.chat_context_prompt_evaluated), TokAmount(detail.totalPromptTokens))
+            if (detail.totalCachedTokens != null) {
+                Text(text = stringResource(R.string.chat_context_reused_kv, detail.totalCachedTokens),
+                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            }
             DetailRow(stringResource(R.string.chat_context_tokens_generated), TokAmount(detail.totalGeneratedTokens))
             Text(text = stringResource(R.string.chat_context_this_turn_kv),
                  style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-            DetailRow(stringResource(R.string.chat_context_prompt), TokAmount(detail.turnPromptTokens ?: 0))
+            DetailRow(stringResource(R.string.chat_context_prompt), TokAmount(detail.turnPromptRowTokens ?: detail.turnPromptTokens ?: 0))
+            if (detail.turnPairFreshTokens != null && detail.turnCachedTokens != null) {
+                Text(text = stringResource(R.string.chat_context_fresh_cached, detail.turnPairFreshTokens, detail.turnCachedTokens),
+                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            }
             DetailRow(stringResource(R.string.chat_context_generated), TokAmount(detail.turnGeneratedTokens ?: 0))
+            HorizontalDivider()
             DetailRow(stringResource(R.string.chat_context_kv_total), TokAmount(detail.usedTokens))
             if (avgSpeed != null) {
                 HorizontalDivider()

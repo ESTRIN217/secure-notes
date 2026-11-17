@@ -1047,6 +1047,8 @@ What would you like to do?</string>
     <string name="chat_context_prompt_evaluated">Prompt tokens evaluated</string>
     <string name="chat_context_tokens_generated">Tokens generated</string>
     <string name="chat_context_this_turn_kv">THIS TURN • KV CACHE</string>
+    <string name="chat_context_reused_kv">%1$d reused from KV cache</string>
+    <string name="chat_context_fresh_cached">%1$d fresh + %2$d cached</string>
     <string name="chat_context_prompt">Prompt</string>
     <string name="chat_context_generated">Generated</string>
     <string name="chat_context_kv_total">KV cache total</string>

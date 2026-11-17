@@ -612,8 +612,12 @@ fun FloatingChatInputFieldPreview() {
                 totalPromptTokens = 30,
                 totalGeneratedTokens = 12,
                 avgTokensPerSecond = 4.3f,
-                turnPromptTokens = 30,
-                turnGeneratedTokens = 12
+                turnPromptTokens = 1,
+                turnGeneratedTokens = 12,
+                turnCachedTokens = 29,
+                totalCachedTokens = 29,
+                turnPromptRowTokens = 30,
+                turnPairFreshTokens = 1
             )
         )
     }

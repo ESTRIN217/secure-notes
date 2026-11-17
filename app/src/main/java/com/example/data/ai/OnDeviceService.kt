@@ -35,6 +35,8 @@ interface InferenceEngine : AIService {
     fun lastRequestMetrics(): String
     /** Spec 039: limpia las métricas antes de cada petición (evita herencia por cancelación). */
     fun clearRequestMetrics()
+    /** Spec 041: posición de entrada en la KV-cache al comenzar el último turno de usuario; `-1` sin modelo cargado o sin posición. */
+    fun lastPromptEntryPosition(): Int
 }
 
 class OnDeviceService(
@@ -51,6 +53,9 @@ class OnDeviceService(
 
     /** Spec 039: tokens residentes en el KV cache del modelo (`null` si no hay modelo cargado). */
     fun currentNkvSize(): Int? = engine.nkvPosition().takeIf { it >= 0 }
+
+    /** Spec 041: posición de entrada en la KV-cache al comenzar el último turno de usuario (`null` si no hay modelo cargado o sin posición). */
+    fun currentPromptEntryPosition(): Int? = engine.lastPromptEntryPosition().takeIf { it >= 0 }
 
     private val _loadedModelInfo = MutableStateFlow<LoadedModelInfo?>(null)
     val loadedModelInfo: StateFlow<LoadedModelInfo?> = _loadedModelInfo.asStateFlow()

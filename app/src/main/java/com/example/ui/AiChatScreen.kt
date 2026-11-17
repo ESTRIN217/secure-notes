@@ -225,7 +225,8 @@ fun AiChatScreen(
             TurnMetrics(
                 promptTokens = turn.promptEvalCount,
                 generatedTokens = turn.evalCount,
-                evalDurationMs = turn.evalDurationMs
+                evalDurationMs = turn.evalDurationMs,
+                cachedTokens = turn.promptCachedTokens
             )
         }
     }

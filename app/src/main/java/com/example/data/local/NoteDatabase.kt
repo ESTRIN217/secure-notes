@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.Note
 import com.example.data.model.Tag
 
-@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class, MemoryEntity::class], version = 10, exportSchema = false)
+@Database(entities = [Note::class, Tag::class, ConversationEntity::class, ChatSessionEntity::class, MemoryEntity::class], version = 11, exportSchema = false)
 abstract class NoteDatabase : RoomDatabase() {
     abstract val noteDao: NoteDao
     abstract val tagDao: TagDao
@@ -111,6 +111,13 @@ abstract class NoteDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Spec 041: tokens residentes en la KV-cache al entrar el turno. ALTER aditivo — el histórico no se toca.
+                db.execSQL("ALTER TABLE conversations ADD COLUMN promptCachedTokens INTEGER")
+            }
+        }
+
         fun getDatabase(context: Context): NoteDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -118,7 +125,7 @@ abstract class NoteDatabase : RoomDatabase() {
                     NoteDatabase::class.java,
                     "secure_notes_database"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

@@ -47,6 +47,11 @@ interface InferenceEngine {
     fun clearRequestMetrics()
 
     /**
+     * Spec 041: posición de entrada en la KV-cache al comenzar el último turno de usuario, o `-1` sin modelo cargado o sin posición.
+     */
+    fun lastPromptEntryPosition(): Int
+
+    /**
      * Runs a benchmark with the specified parameters.
      */
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String

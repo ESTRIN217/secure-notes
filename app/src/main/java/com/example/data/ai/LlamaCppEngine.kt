@@ -35,6 +35,9 @@ class LlamaCppEngine(
     /** Spec 039: tokens residentes en el KV cache; `-1` si el modelo no está cargado. */
     override fun nkvPosition(): Int = if (_loadedInfo == null) -1 else engine.nkvPosition()
 
+    /** Spec 041: posición de entrada en la KV-cache al comenzar el último turno de usuario; `-1` sin modelo cargado o sin posición. */
+    override fun lastPromptEntryPosition(): Int = if (_loadedInfo == null) -1 else engine.lastPromptEntryPosition()
+
     /** Spec 039: CSV `"promptTokens,promptEvalNs,generatedTokens,generationNs"` de la última petición. */
     override fun lastRequestMetrics(): String = if (_loadedInfo == null) "" else engine.lastRequestMetrics()
 

@@ -108,5 +108,6 @@ del binding anotada; las dos últimas micro-expectativas del usuario quedan cump
 
 ## Historial de cambios
 
+- 2026-11-17 — Convive con spec 041 (cached/fresh por turno); sin cambios en sus RFs.
 - 2026-11-16 — Creación a petición del usuario: «Datos reales en el motor, nada estimado;
   si hay que tocar la lib, se toca».
