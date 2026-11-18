@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.R
@@ -38,6 +39,8 @@ import com.example.ui.chat.ContextUsage
 import java.io.FileInputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 
@@ -174,6 +177,22 @@ class AiViewModel(
                     }
                 }
                 "Note '$title' created successfully."
+            }
+        )
+        // Spec 043 (RF-310/RF-311, RF-312): dos herramientas nuevas, manejadores delgados que solo
+        // recogen reloj/zona/Build/string y delegan en los formateadores puros de DateTimeToolFormat.
+        register(
+            com.example.data.ai.tools.GetDatetimeTool.spec,
+            { getDatetimeResult(Instant.now(), ZoneId.systemDefault()) }
+        )
+        register(
+            com.example.data.ai.tools.GetInfoTool.spec,
+            {
+                getInfoResult(
+                    Build.VERSION.RELEASE,
+                    Build.VERSION.SDK_INT,
+                    application.getString(R.string.get_info_note)
+                )
             }
         )
     }
@@ -610,6 +629,16 @@ class AiViewModel(
     fun toggleTool(name: String) {
         val quedaraHabilitada = name !in _disabledTools.value
         val nuevo = toggledDisabledTools(_disabledTools.value, name, enabled = quedaraHabilitada)
+        _disabledTools.value = nuevo
+        prefsRepository.setDisabledTools(nuevo)
+    }
+
+    /**
+     * Checkbox maestro global (spec 043, RF-309): la decisión vive en [allToolsToggle], aquí solo se
+     * consulta, se publica y se persiste en el acto. La petición en vuelo no se toca.
+     */
+    fun setAllTools(enabled: Boolean) {
+        val nuevo = allToolsToggle(_disabledTools.value, toolRegistry.names(), enabled)
         _disabledTools.value = nuevo
         prefsRepository.setDisabledTools(nuevo)
     }

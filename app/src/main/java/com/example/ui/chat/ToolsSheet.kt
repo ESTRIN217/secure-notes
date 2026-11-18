@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.data.ai.allToolsEnabled
+import com.example.data.ai.enabledToolCount
 import androidx.compose.material3.*
 
 /**
@@ -23,13 +25,14 @@ import androidx.compose.material3.*
  * lista **todas** las herramientas registradas, cada una con su estado y un `Checkbox` para
  * cambiarlo.
  *
- * Es tonta (RNF-193): entran los datos y sale el toggle; ninguna escritura de preferencias ni lógica
- * de envío aquí — quien marca persiste **en el acto** vía `onToggle` (RF-305), sin paso de guardado.
- * El cambio rige a partir de la siguiente petición: la en vuelo no se toca (RF-306).
+ * Es tonta (RNF-193/RNF-200): entran los datos y salen `onToggle` (individual) y `onSetAll` (maestro);
+ * ninguna escritura de preferencias ni lógica de envío aquí — quien marca persiste **en el acto**, sin
+ * paso de guardado. El cambio rige a partir de la siguiente petición: la en vuelo no se toca (RF-306).
+ * La cabecera global y el contador `n/m` son de la spec 043 (RF-308, RF-309).
  *
  * Los nombres se enseñan **como dato** (D6), igual que los nombres de modelo (spec 033): son el
  * identificador de la API y decir exactamente qué se deshabilita es el punto del submenú. Solo el
- * chrome — título, mensaje de lista vacía — sale de recursos.
+ * chrome — título, etiqueta y contador del maestro, mensaje de lista vacía — sale de recursos.
  *
  * Sin herramientas registradas, muestra `tools_empty` en vez de una hoja en blanco (RF-304).
  */
@@ -39,6 +42,7 @@ fun ToolsSheet(
     toolNames: List<String>,
     disabledTools: Set<String>,
     onToggle: (String) -> Unit,
+    onSetAll: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -52,6 +56,7 @@ fun ToolsSheet(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
             )
+            ToolsMasterRow(toolNames, disabledTools, onSetAll)
             if (toolNames.isEmpty()) {
                 ToolsEmptyMessage()
             } else {
@@ -64,6 +69,36 @@ fun ToolsSheet(
                 }
             }
         }
+    }
+}
+
+/**
+ * Cabecera con el checkbox maestro global y el contador `n/m` (spec 043, RF-308, RF-309, RNF-200):
+ * pinta lo que deciden las piezas puras y lanza `onSetAll`; no persiste ni envía nada aquí. Sin
+ * registro el checkbox queda deshabilitado y el contador lee `0/0`.
+ */
+@Composable
+private fun ToolsMasterRow(
+    toolNames: List<String>,
+    disabledTools: Set<String>,
+    onSetAll: (Boolean) -> Unit
+) {
+    val total = toolNames.size
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = allToolsEnabled(toolNames, disabledTools),
+            enabled = total > 0,
+            onCheckedChange = onSetAll
+        )
+        Text(stringResource(R.string.tools_all), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(
+            stringResource(R.string.tools_enabled_count, enabledToolCount(toolNames, disabledTools), total),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

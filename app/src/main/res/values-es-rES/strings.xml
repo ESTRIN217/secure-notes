@@ -830,6 +830,10 @@ Diferencia: %3$s
     <string name="system_message_save">Guardar</string>
     <string name="tools_title">Herramientas</string>
     <string name="tools_empty">No hay herramientas registradas</string>
+    <!-- Spec 043 (RF-308, RF-311, RNF-199): maestro global y nota fija de get_info -->
+    <string name="tools_all">Todas las herramientas</string>
+    <string name="tools_enabled_count">%1$d/%2$d</string>
+    <string name="get_info_note">Esta app solo ofrece herramientas de notas. No hay acceso a una shell ni al sistema de archivos local.</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Error en la conexión SSL. En servidores locales utiliza \'http://\' en vez de \'https://\', o instala un certificado válido.</string>
     <string name="ai_err_ollama_empty">Respuesta vacía enviada por el modelo</string>

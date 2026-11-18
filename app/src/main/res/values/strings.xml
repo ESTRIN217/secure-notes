@@ -727,6 +727,10 @@
     <string name="system_message_save">Save</string>
     <string name="tools_title">Tools</string>
     <string name="tools_empty">No tools registered</string>
+    <!-- Spec 043 (RF-308, RF-311, RNF-199): maestro global y nota fija de get_info -->
+    <string name="tools_all">All tools</string>
+    <string name="tools_enabled_count">%1$d/%2$d</string>
+    <string name="get_info_note">This app only exposes note tools. There is no shell or local file system access.</string>
 
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>

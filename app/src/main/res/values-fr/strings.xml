@@ -832,6 +832,10 @@ Que souhaitez-vous faire ?</string>
     <string name="system_message_save">Enregistrer</string>
     <string name="tools_title">Outils</string>
     <string name="tools_empty">Aucun outil enregistré</string>
+    <!-- Spec 043 (RF-308, RF-311, RNF-199): maestro global y nota fija de get_info -->
+    <string name="tools_all">Tous les outils</string>
+    <string name="tools_enabled_count">%1$d/%2$d</string>
+    <string name="get_info_note">Cette application ne propose que des outils de notes. Aucun accès à un interpréteur de commandes ni au système de fichiers local.</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Erreur de connexion SSL. Pour les serveurs locaux, utilisez \'http://\' au lieu de \'https://\', ou installez un certificat valide.</string>
     <string name="ai_err_ollama_empty">Réponse vide du modèle</string>

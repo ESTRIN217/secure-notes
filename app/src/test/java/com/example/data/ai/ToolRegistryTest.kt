@@ -3,6 +3,7 @@ package com.example.data.ai
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * La decisión del anuncio de herramientas (spec 042, RF-306, RF-307): [ToolRegistry.getSpecsForApi]
@@ -76,5 +77,38 @@ class ToolRegistryTest {
             listOf("search_notes", "get_note"),
             registro("search_notes", "get_note").names()
         )
+    }
+
+    private val cinco = listOf(
+        "search_notes", "get_note", "create_note", "get_datetime", "get_info"
+    )
+
+    private fun registroCinco(): ToolRegistry = registro(*cinco.toTypedArray())
+
+    @Test
+    fun `con cinco registradas names devuelve las cinco en orden`() {
+        assertEquals(cinco, registroCinco().names())
+    }
+
+    @Test
+    fun `con cinco registradas sin conjunto se mandan cinco specs`() {
+        val specs = registroCinco().getSpecsForApi()
+        assertEquals(5, specs.size)
+        assertEquals(cinco, specs.map { (it["function"] as Map<*, *>)["name"] })
+    }
+
+    @Test
+    fun `todas deshabilitadas dan vacio y un nombre muerto no filtra de mas`() {
+        val registry = registroCinco()
+        assertTrue(registry.getSpecsForApi(cinco.toSet()).isEmpty())
+        assertEquals(4, registry.getSpecsForApi(setOf("get_datetime", "tool_borrada")).size)
+    }
+
+    @Test
+    fun `el ViewModel registra cinco herramientas y no tres`() {
+        val fuente = File("src/main/java/com/example/ui/viewmodel/AiViewModel.kt").readText()
+        assertEquals(5, fuente.lineSequence().count { it.trimStart().startsWith("register(") })
+        assertTrue(fuente.contains("GetDatetimeTool.spec"))
+        assertTrue(fuente.contains("GetInfoTool.spec"))
     }
 }

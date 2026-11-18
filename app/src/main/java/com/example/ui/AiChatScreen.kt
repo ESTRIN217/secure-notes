@@ -710,12 +710,14 @@ fun AiChatScreen(
         )
     }
 
-    // Submenú de herramientas (spec 042, RF-304, RF-305): marcar o desmarcar persiste en el acto.
+    // Submenú de herramientas (spec 042 RF-304/RF-305; 043 RF-308/RF-309): marcar, desmarcar o
+    // accionar el maestro persiste en el acto; la pantalla solo pasa datos y callbacks.
     if (showToolsSheet) {
         ToolsSheet(
             toolNames = toolNames,
             disabledTools = disabledTools,
             onToggle = viewModel::toggleTool,
+            onSetAll = viewModel::setAllTools,
             onDismiss = { showToolsSheet = false }
         )
     }

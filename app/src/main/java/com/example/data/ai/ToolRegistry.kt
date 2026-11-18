@@ -12,6 +12,29 @@ package com.example.data.ai
 fun toggledDisabledTools(current: Set<String>, name: String, enabled: Boolean): Set<String> =
     if (enabled) current - name else current + name
 
+/**
+ * Conjunto de deshabilitadas tras el checkbox maestro (spec 043, RF-309): «activar todas» vacía el
+ * conjunto — así un nombre muerto de una copia antigua desaparece sin efecto (RF-307) — y
+ * «desactivar todas» suma las registradas a lo que ya había. Decisión pura: el ViewModel solo la
+ * consulta y persiste el resultado.
+ */
+fun allToolsToggle(
+    current: Set<String>,
+    registered: List<String>,
+    enableAll: Boolean
+): Set<String> = if (enableAll) emptySet() else current + registered
+
+/** Numerador del contador `n/m` (spec 043, RF-308): registradas que no están deshabilitadas. */
+fun enabledToolCount(registered: List<String>, disabled: Set<String>): Int =
+    registered.count { it !in disabled }
+
+/**
+ * Estado del checkbox maestro (spec 043, RF-308): marcado solo si todas las registradas están
+ * activas. Con lista vacía devuelve cierto, pero la UI deja el control deshabilitado (RF-309).
+ */
+fun allToolsEnabled(registered: List<String>, disabled: Set<String>): Boolean =
+    registered.all { it !in disabled }
+
 class ToolRegistry(
     private val tools: MutableList<ToolWithHandler> = mutableListOf()
 ) {

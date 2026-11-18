@@ -831,6 +831,10 @@ Cosa vuoi fare?</string>
     <string name="system_message_save">Salva</string>
     <string name="tools_title">Strumenti</string>
     <string name="tools_empty">Nessuno strumento registrato</string>
+    <!-- Spec 043 (RF-308, RF-311, RNF-199): maestro global y nota fija de get_info -->
+    <string name="tools_all">Tutti gli strumenti</string>
+    <string name="tools_enabled_count">%1$d/%2$d</string>
+    <string name="get_info_note">Questa app espone solo strumenti per le note. Nessun accesso a una shell o al filesystem locale.</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Errore di connessione SSL. Per i server locali usa \'http://\' invece di \'https://\', o installa un certificato valido.</string>
     <string name="ai_err_ollama_empty">Risposta vuota dal modello</string>
