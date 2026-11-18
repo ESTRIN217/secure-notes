@@ -884,6 +884,17 @@ O que deseja fazer?</string>
     <string name="backup_err_encryption">Falha na criptografia</string>
     <string name="attach_note">Anexar nota</string>
     <string name="attach_file">Anexar arquivo</string>
+
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304): Mensagem do sistema e ferramentas na folha de anexos -->
+    <string name="attach_system_message">Mensagem do Sistema</string>
+    <string name="attach_system_message_subtitle">Edite as instruções do assistente</string>
+    <string name="attach_tools">Ferramentas</string>
+    <string name="attach_tools_subtitle">Escolha as ferramentas que o assistente pode usar</string>
+    <string name="system_message_title">Mensagem do Sistema</string>
+    <string name="system_message_hint">Aplica-se à próxima mensagem. Com o motor no dispositivo, alterá-la pode recarregar o modelo ao enviar.</string>
+    <string name="system_message_save">Salvar</string>
+    <string name="tools_title">Ferramentas</string>
+    <string name="tools_empty">Nenhuma ferramenta registrada</string>
     <string name="storage_audio">Áudio</string>
     <string name="ai_err_ollama_ssl">Erro de conexão SSL. Para servidores locais use \'http://\' em vez de \'https://\', ou instale um certificado válido.</string>
     <string name="ai_err_ollama_empty">Resposta vazia do modelo</string>

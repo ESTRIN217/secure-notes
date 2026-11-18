@@ -71,7 +71,8 @@ val BACKUP_SETTINGS: Map<String, SettingType> = mapOf(
     AppConstants.AUTO_BACKUP_INTERVAL_KEY to SettingType.TEXT,
     AppConstants.THEME_ID_KEY to SettingType.TEXT,
     AppConstants.AI_FAVORITE_MODELS_KEY to SettingType.TEXT,
-    AppConstants.AI_HIDDEN_MODELS_KEY to SettingType.TEXT
+    AppConstants.AI_HIDDEN_MODELS_KEY to SettingType.TEXT,
+    AppConstants.AI_DISABLED_TOOLS_KEY to SettingType.TEXT
 )
 
 /**
@@ -102,7 +103,8 @@ val DEFAULT_SETTINGS: Map<String, Any> = mapOf(
     AppConstants.AUTO_BACKUP_INTERVAL_KEY to "6h",
     AppConstants.THEME_ID_KEY to AppThemes.dynamic.id,
     AppConstants.AI_FAVORITE_MODELS_KEY to "",
-    AppConstants.AI_HIDDEN_MODELS_KEY to ""
+    AppConstants.AI_HIDDEN_MODELS_KEY to "",
+    AppConstants.AI_DISABLED_TOOLS_KEY to ""
 )
 
 /**

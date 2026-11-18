@@ -167,6 +167,19 @@ class SharedPreferencesRepository(context: Context) : PreferencesRepository {
         prefs.edit().putString(AppConstants.AI_HIDDEN_MODELS_KEY, ids.joinToString("\n")).apply()
     }
 
+    // Patrón literal de favoritos/ocultos (spec 033): `\n`-join, split-trim-filter bajo la clave nueva (D3).
+    override fun getDisabledTools(): Set<String> =
+        prefs.getString(AppConstants.AI_DISABLED_TOOLS_KEY, "")
+            ?.split('\n')
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            ?: emptySet()
+
+    override fun setDisabledTools(names: Set<String>) {
+        prefs.edit().putString(AppConstants.AI_DISABLED_TOOLS_KEY, names.joinToString("\n")).apply()
+    }
+
     override fun getModelContextLengths(): Map<String, Long> =
         com.example.data.ai.parseContextLengths(prefs.getString(AppConstants.AI_MODEL_CONTEXT_LENGTHS_KEY, "") ?: "")
 

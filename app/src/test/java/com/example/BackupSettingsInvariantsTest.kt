@@ -1,5 +1,8 @@
 package com.example
 
+import com.example.data.backup.BACKUP_SETTINGS
+import com.example.data.backup.DEFAULT_SETTINGS
+import com.example.data.backup.SettingType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -182,6 +185,32 @@ class BackupSettingsInvariantsTest {
         assertTrue(
             "Las dos funciones puras tienen que estar en la pieza y solo hay $puras",
             puras >= MIN_FUNCIONES_PURAS
+        )
+    }
+
+    // ── RNF-194 (spec 042): el conjunto de herramientas deshabilitadas viaja en la copia ───
+
+    /**
+     * La clave nueva está en las dos listas de la pieza: viaja como TEXT (el conjunto va `\n`-joined,
+     * decisión D3) y su defecto es `""` (conjunto vacío = todas habilitadas; una copia antigua que no
+     * lo trae restaura exactamente eso).
+     */
+    @Test
+    fun `el conjunto de herramientas deshabilitadas viaja en la copia con su defecto vacio`() {
+        val codigo = codigo(PIEZA)
+        assertTrue(
+            "AI_DISABLED_TOOLS_KEY tiene que viajar en BACKUP_SETTINGS como una línea TEXT",
+            codigo.contains("AppConstants.AI_DISABLED_TOOLS_KEY to SettingType.TEXT")
+        )
+        assertEquals(
+            "La línea nueva no puede saltarse el tipo de la lista",
+            SettingType.TEXT,
+            BACKUP_SETTINGS[AppConstants.AI_DISABLED_TOOLS_KEY]
+        )
+        assertEquals(
+            "El defecto del ajuste no cambia de paso",
+            "",
+            DEFAULT_SETTINGS[AppConstants.AI_DISABLED_TOOLS_KEY]
         )
     }
 

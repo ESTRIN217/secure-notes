@@ -821,6 +821,17 @@ Que souhaitez-vous faire ?</string>
     <string name="backup_err_encryption">Échec du chiffrement</string>
     <string name="attach_note">Joindre une note</string>
     <string name="attach_file">Joindre un fichier</string>
+
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304) : message système et outils dans le volet des pièces jointes -->
+    <string name="attach_system_message">Message Système</string>
+    <string name="attach_system_message_subtitle">Modifiez les instructions de l\'assistant</string>
+    <string name="attach_tools">Outils</string>
+    <string name="attach_tools_subtitle">Choisissez les outils que l\'assistant peut utiliser</string>
+    <string name="system_message_title">Message Système</string>
+    <string name="system_message_hint">S\'applique au prochain message. Avec le moteur sur l\'appareil, le modifier peut recharger le modèle à l\'envoi.</string>
+    <string name="system_message_save">Enregistrer</string>
+    <string name="tools_title">Outils</string>
+    <string name="tools_empty">Aucun outil enregistré</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Erreur de connexion SSL. Pour les serveurs locaux, utilisez \'http://\' au lieu de \'https://\', ou installez un certificat valide.</string>
     <string name="ai_err_ollama_empty">Réponse vide du modèle</string>

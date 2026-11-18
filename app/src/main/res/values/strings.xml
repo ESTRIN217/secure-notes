@@ -717,6 +717,17 @@
     <string name="attach_note">Attach Note</string>
     <string name="attach_file">Attach File</string>
 
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304): System Message y Tools en la hoja de adjuntos -->
+    <string name="attach_system_message">System Message</string>
+    <string name="attach_system_message_subtitle">Edit the assistant\'s custom instructions</string>
+    <string name="attach_tools">Tools</string>
+    <string name="attach_tools_subtitle">Choose the tools the assistant can use</string>
+    <string name="system_message_title">System Message</string>
+    <string name="system_message_hint">Applies to the next message. With the on-device engine, changing it can reload the model when you send.</string>
+    <string name="system_message_save">Save</string>
+    <string name="tools_title">Tools</string>
+    <string name="tools_empty">No tools registered</string>
+
     <!-- AI Settings Screen -->
     <string name="ai_settings_title">AI Settings</string>
     <string name="ai_settings_desc">Configure backend, connection, and system prompt</string>

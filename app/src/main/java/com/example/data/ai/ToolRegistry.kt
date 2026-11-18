@@ -1,5 +1,17 @@
 package com.example.data.ai
 
+/**
+ * Conjunto de herramientas deshabilitadas tras (des)activar `name` (spec 042, RF-305).
+ *
+ * Es la **decisión** del toggle y vive aquí, junto al registro, para ser pura y testeable sin
+ * Robolectric (RNF-191): `enabled` significa «hoy queda activa», así que activar **quita** del
+ * conjunto y desactivar **añade**. El ViewModel no reescribe la regla, la consulta.
+ *
+ * Top-level y sin `android`: quien llama le pasa el conjunto actual tal cual.
+ */
+fun toggledDisabledTools(current: Set<String>, name: String, enabled: Boolean): Set<String> =
+    if (enabled) current - name else current + name
+
 class ToolRegistry(
     private val tools: MutableList<ToolWithHandler> = mutableListOf()
 ) {
@@ -13,7 +25,15 @@ class ToolRegistry(
         tools.add(ToolWithHandler(spec, handler))
     }
 
-    fun getSpecsForApi(): List<Map<String, Any>> = tools.map { tool ->
+    /**
+     * Especificaciones que se anuncian al modelo (spec 042, RF-306): las registradas menos las
+     * deshabilitadas, en orden de registro. Un nombre del conjunto que ya no corresponde a ninguna
+     * herramienta es inofensivo (RF-307): filtrar por nombre no puede fallar por lo que no existe.
+     * Sin conjunto, el comportamiento de hoy queda intacto.
+     */
+    fun getSpecsForApi(
+        disabledNames: Set<String> = emptySet()
+    ): List<Map<String, Any>> = tools.filter { it.spec.name !in disabledNames }.map { tool ->
         mapOf(
             "type" to "function",
             "function" to mapOf(
@@ -44,4 +64,7 @@ class ToolRegistry(
     }
 
     fun isNotEmpty(): Boolean = tools.isNotEmpty()
+
+    /** Nombres registrados, en orden de registro: lo que la UI lista (D6: dato, no recurso). */
+    fun names(): List<String> = tools.map { it.spec.name }
 }

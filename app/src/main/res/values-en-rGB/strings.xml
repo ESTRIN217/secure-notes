@@ -676,6 +676,17 @@ What would you like to do?</string>
     <!-- T6 (spec 006): relleno del ingles britanico, hoy ausente en este archivo -->
     <string name="attach_note">Attach note</string>
     <string name="attach_file">Attach file</string>
+
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304): System Message y Tools en la hoja de adjuntos -->
+    <string name="attach_system_message">System Message</string>
+    <string name="attach_system_message_subtitle">Edit the assistant\'s custom instructions</string>
+    <string name="attach_tools">Tools</string>
+    <string name="attach_tools_subtitle">Choose which tools the assistant can use</string>
+    <string name="system_message_title">System Message</string>
+    <string name="system_message_hint">Applies to the next message. With the on-device engine, changing it can reload the model when you send.</string>
+    <string name="system_message_save">Save</string>
+    <string name="tools_title">Tools</string>
+    <string name="tools_empty">No tools registered</string>
     <string name="remove">Remove</string>
 
     <string name="chat_delete">Delete</string>

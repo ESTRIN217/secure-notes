@@ -59,6 +59,8 @@ import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
 import com.example.ui.chat.adoptPendingEditing
 import com.example.ui.chat.buildContextDetail
+import com.example.ui.chat.SystemMessageDialog
+import com.example.ui.chat.ToolsSheet
 import com.example.ui.chat.isLargeScreenWidth
 import com.example.ui.chat.TurnMetrics
 import com.example.ui.chat.canSend
@@ -113,6 +115,9 @@ fun AiChatScreen(
     var notePickerSearchQuery by remember { mutableStateOf("") }
     var showAttachmentSheet by remember { mutableStateOf(false) }
     var showModelPanel by remember { mutableStateOf(false) }
+    // Spec 042 (RF-301, RF-304): las dos superficies nuevas que la hoja de adjuntos abre tras cerrarse.
+    var showSystemMessageDialog by remember { mutableStateOf(false) }
+    var showToolsSheet by remember { mutableStateOf(false) }
     // Spec 040: datos de la vista de detalles de un modelo on-device (hermano de los overlays).
     var infoModel by remember { mutableStateOf<OnDeviceModel?>(null) }
     var modelSheetDismissTick by remember { mutableIntStateOf(0) }
@@ -144,6 +149,11 @@ fun AiChatScreen(
     val allHistory by viewModel.conversationHistory.collectAsStateWithLifecycle()
     val sessionTitle by viewModel.sessionTitle.collectAsStateWithLifecycle()
     val activeMemories by viewModel.activeMemories.collectAsStateWithLifecycle()
+    // Spec 042: prompt actual, registro de herramientas y conjunto deshabilitado para las dos
+    // superficies nuevas de la hoja de adjuntos (RF-301, RF-304).
+    val systemPrompt by viewModel.systemPrompt.collectAsStateWithLifecycle()
+    val toolNames by viewModel.toolNames.collectAsStateWithLifecycle()
+    val disabledTools by viewModel.disabledTools.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val haptic = LocalHapticFeedback.current
@@ -670,7 +680,7 @@ fun AiChatScreen(
     }
 
     // La hoja de adjuntos es dueña de su `ModalBottomSheet` (decisión D-6): aquí solo se le pasan
-    // los tres callbacks. El cierre antes de abrir cada selector ya lo hace ella (RF-35).
+    // los callbacks. El cierre antes de abrir cada superficie ya lo hace ella (RF-35 extendido).
     if (showAttachmentSheet) {
         AttachmentAiSheet(
             onPickNote = {
@@ -681,7 +691,32 @@ fun AiChatScreen(
             onPickFile = {
                 filePickerLauncher.launch(arrayOf("text/*", "application/json", "application/xml"))
             },
+            onOpenSystemMessage = { showSystemMessageDialog = true },
+            onOpenTools = { showToolsSheet = true },
             onDismiss = { showAttachmentSheet = false }
+        )
+    }
+
+    // Editor del prompt personalizado (spec 042, RF-301…RF-303): guardar no envía ninguna petición;
+    // el cambio se aplica a la siguiente por el camino de resolución de siempre.
+    if (showSystemMessageDialog) {
+        SystemMessageDialog(
+            currentPrompt = systemPrompt,
+            onSave = { texto ->
+                viewModel.setSystemPrompt(texto)
+                showSystemMessageDialog = false
+            },
+            onDismiss = { showSystemMessageDialog = false }
+        )
+    }
+
+    // Submenú de herramientas (spec 042, RF-304, RF-305): marcar o desmarcar persiste en el acto.
+    if (showToolsSheet) {
+        ToolsSheet(
+            toolNames = toolNames,
+            disabledTools = disabledTools,
+            onToggle = viewModel::toggleTool,
+            onDismiss = { showToolsSheet = false }
         )
     }
 
@@ -1161,13 +1196,11 @@ fun StreamingBubble(text: String, modelName: String) {
                     Text(stringResource(R.string.ai), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(stringResource(R.string.ai_chat_ai), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
         }
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp),
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier.widthIn(max = 480.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
@@ -1228,12 +1261,6 @@ fun TypingIndicator() {
                         Text(stringResource(R.string.ai), style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                 }
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = stringResource(R.string.ai_chat_ai),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
             }
             Surface(
                 color = MaterialTheme.colorScheme.surfaceVariant,

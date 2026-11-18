@@ -819,6 +819,17 @@ Diferencia: %3$s
     <string name="backup_err_encryption">Error en el proceso de cifrado</string>
     <string name="attach_note">Adjuntar nota</string>
     <string name="attach_file">Adjuntar archivo</string>
+
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304): Mensaje del sistema y Herramientas en la hoja de adjuntos -->
+    <string name="attach_system_message">Mensaje del sistema</string>
+    <string name="attach_system_message_subtitle">Edita las instrucciones del asistente</string>
+    <string name="attach_tools">Herramientas</string>
+    <string name="attach_tools_subtitle">Elige qué herramientas puede usar el asistente</string>
+    <string name="system_message_title">Mensaje del sistema</string>
+    <string name="system_message_hint">Se aplica al siguiente mensaje. Con el motor en el dispositivo, cambiarlo puede recargar el modelo al enviar.</string>
+    <string name="system_message_save">Guardar</string>
+    <string name="tools_title">Herramientas</string>
+    <string name="tools_empty">No hay herramientas registradas</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Error en la conexión SSL. En servidores locales utiliza \'http://\' en vez de \'https://\', o instala un certificado válido.</string>
     <string name="ai_err_ollama_empty">Respuesta vacía enviada por el modelo</string>

@@ -203,6 +203,12 @@ class AiViewModel(
     private val _systemPrompt = MutableStateFlow(prefsRepository.getAiSystemPrompt())
     val systemPrompt: StateFlow<String> = _systemPrompt.asStateFlow()
 
+    // Herramientas del chat (spec 042, RF-305/RF-306): el conjunto deshabilitado se siembra de
+    // preferencias y `toolNames` es una foto del registro, que no cambia en caliente.
+    private val _disabledTools = MutableStateFlow(prefsRepository.getDisabledTools())
+    val disabledTools: StateFlow<Set<String>> = _disabledTools.asStateFlow()
+    val toolNames: StateFlow<List<String>> = MutableStateFlow(toolRegistry.names())
+
     private val _temperature = MutableStateFlow(prefsRepository.getAiTemperature())
     val temperature: StateFlow<Float> = _temperature.asStateFlow()
     private val _topK = MutableStateFlow(prefsRepository.getAiTopK())
@@ -594,6 +600,18 @@ class AiViewModel(
     fun setSystemPrompt(prompt: String) {
         _systemPrompt.value = prompt
         prefsRepository.setAiSystemPrompt(prompt)
+    }
+
+    /**
+     * Cambia el estado de una herramienta (spec 042, RF-305): persiste en el acto, sin paso de
+     * guardado. La regla vive en [toggledDisabledTools]; aquí solo se consulta y se persiste.
+     * La petición en vuelo no se toca: el cambio rige a partir de la siguiente.
+     */
+    fun toggleTool(name: String) {
+        val quedaraHabilitada = name !in _disabledTools.value
+        val nuevo = toggledDisabledTools(_disabledTools.value, name, enabled = quedaraHabilitada)
+        _disabledTools.value = nuevo
+        prefsRepository.setDisabledTools(nuevo)
     }
 
     fun setTemperature(value: Float) {
@@ -1018,7 +1036,7 @@ class AiViewModel(
             if (memTexts.isEmpty()) "" else "Relevant memories from previous conversations:\n" + memTexts.joinToString("\n") + "\n\n"
         } else ""
         val toolSpecs = if (toolRegistry.isNotEmpty() && _backend.value == AiBackend.OLLAMA) {
-            toolRegistry.getSpecsForApi()
+            toolRegistry.getSpecsForApi(_disabledTools.value)
         } else emptyList<Map<String, Any>>()
 
         enrichedRequest = enrichedRequest.copy(

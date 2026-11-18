@@ -820,6 +820,17 @@ Cosa vuoi fare?</string>
     <string name="backup_err_encryption">Crittografia non riuscita</string>
     <string name="attach_note">Allega nota</string>
     <string name="attach_file">Allega file</string>
+
+    <!-- Spec 042 (RF-300, RF-301, RF-303, RF-304): messaggio di sistema e strumenti nel pannello degli allegati -->
+    <string name="attach_system_message">Messaggio di Sistema</string>
+    <string name="attach_system_message_subtitle">Modifica le istruzioni dell\'assistente</string>
+    <string name="attach_tools">Strumenti</string>
+    <string name="attach_tools_subtitle">Scegli gli strumenti che l\'assistente può usare</string>
+    <string name="system_message_title">Messaggio di Sistema</string>
+    <string name="system_message_hint">Si applica al messaggio successivo. Con il motore sul dispositivo, modificarlo può ricaricare il modello all\'invio.</string>
+    <string name="system_message_save">Salva</string>
+    <string name="tools_title">Strumenti</string>
+    <string name="tools_empty">Nessuno strumento registrato</string>
     <string name="storage_audio">Audio</string>
     <string name="ai_err_ollama_ssl">Errore di connessione SSL. Per i server locali usa \'http://\' invece di \'https://\', o installa un certificato valido.</string>
     <string name="ai_err_ollama_empty">Risposta vuota dal modello</string>
