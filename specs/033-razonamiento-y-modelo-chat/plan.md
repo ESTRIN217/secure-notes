@@ -125,3 +125,21 @@ Decisiones: búsqueda client-side sin red (sobre `MODEL_CATALOG` y la caché de 
 ## Corrección 2026-11-12 — upload/download = cargar/descargar en memoria (como Ajustes)
 
 RF-231/RF-232/RF-236/RF-237 reescritos (ver spec «Cambio 2026-11-11» y «Historial»). Cambios de implementación: `ModelSelectorState.onDeviceModelState` (del host), filas con **control de ciclo de vida** (`Download` → `Download`; `NOT_LOADED`/`ERROR` → `PlayArrow`; `READY`+seleccionado → `Stop`; `LOADING` → spinner deshabilitado); el icono `Delete` y su diálogo (`DeleteModelDialog`) eliminados por completo; claves `chat_model_delete_*` retiradas de los 9 locales; nuevas `chat_model_load_desc`/`chat_model_unload_desc`; `deleteOnDeviceModel` retirado. `./gradlew test` → 890/38 (plataforma) sin regresión; `assembleDebug` OK.
+
+## Ampliación 2026-11-19 — Context del modelo cargado (RF-314/RF-315, RNF-205)
+
+| Archivo | Responsabilidad | RF |
+|---|---|---|
+| `ui/chat/ContextDetail.kt` | `data class LoadedContextLabel(val engine: String, val own: String)` + `fun loadedContextLabel(engineWindowTokens: Int, ownContextTokens: Long?): LoadedContextLabel`. **Puro**: reutiliza `formatTokensCompact`, `—` si el dato propio falta/no es positivo, `Long` acotado antes de convertir a `Int`. | RF-314, RF-315, RNF-205 |
+| `ui/ModelManagerPanel.kt` | En las filas locales visibles, `isEngineActive = backend == ON_DEVICE && selectedOnDeviceId == model.id && onDeviceModelState == READY`; si activo, `stringResource(models_context_split, partes.engine, partes.own)`; si no, el `formatTokens(…)` de RF-241. Ocultos/Ollama intactos. | RF-314, RF-315 |
+| `res/values*/strings.xml` ×9 | Clave nueva `models_context_split = "%1$s / %2$s"` (sin viñeta; formato compacto inyectado). | RNF-205, constitución #6 |
+
+**Decisión**: el valor del motor es siempre `LLAMA_CPP_CONTEXT_TOKENS` (8192, hardcoded upstream),
+nunca el `context_length` del GGUF; el orden es motor / modelo. Alternativa descartada: sumar ambos
+números — no describe ninguna ventana real y rompe la correspondencia con el anillo del chat.
+`LOADING` no activa el rótulo doble (coherente con `StatusControl`).
+
+**Tests**: `LoadedContextLabelTest` (JVM puro, añadido a `ContextDetailTest.kt`): `8192→"8.19k"`,
+`32000→"32k"`, `32768→"32.77k"`, `null/0→"—"`, `Long` grande acotado. Verificación:
+`:app:compileDebugUnitTestKotlin --rerun`, tests puros en verde, `assembleDebug` (AAPT2/9 locales).
+La suite completa en `linux/aarch64` mantiene los 38 fallos de plataforma conocidos.

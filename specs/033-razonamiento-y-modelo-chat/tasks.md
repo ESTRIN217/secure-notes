@@ -146,3 +146,23 @@ Tareas opcionales futuras (fuera de esta spec): `xhigh` model-defined, effort en
   - `ModelContextCacheTest` (5 tests puros) en verde; sin regresión (**896 tests, 38 fallos plataforma, 0 omitidos**); `assembleDebug` OK.
   - Historial `spec.md`: RF-241 reescrita.
   - **Verificación en dispositivo pendiente** del panel completo (tamaños/jerarquía).
+
+## Ampliación 2026-11-19 — Context del modelo cargado
+
+- [x] **T29. Test del rótulo doble (rojo).** RF-314, RF-315, RNF-205
+  - Añadir tests a `app/src/test/java/com/example/ui/chat/ContextDetailTest.kt` para `loadedContextLabel`: `8192→"8.19k"`, `32000→"32k"`, `32768→"32.77k"`, `null/0→"—"`, `Long` grande acotado, constante del motor intacta.
+  - Hecho cuando: `./gradlew :app:testDebugUnitTest --tests "com.example.ui.chat.ContextDetailTest"` falla por `loadedContextLabel` no existir (rojo esperado).
+
+- [x] **T30. `LoadedContextLabel` puro.** RF-314, RF-315, RNF-205
+  - `ui/chat/ContextDetail.kt`: `data class LoadedContextLabel(engine, own)` + `loadedContextLabel(engineWindowTokens: Int, ownContextTokens: Long?)`, reutilizando `formatTokensCompact`; `—` si dato ausente/≤0; `Long` acotado a `Int.MAX_VALUE`.
+  - Hecho cuando: `ContextDetailTest` verde (sin Robolectric).
+
+- [x] **T31. Panel: celda del modelo activo.** RF-314, RF-315
+  - `ModelManagerPanel.kt`: `isEngineActive` en filas locales visibles (ON_DEVICE + seleccionado + `READY`); `stringResource(models_context_split, …)` con las dos piezas; el resto de filas y Ollama con `formatTokens` actual.
+  - Hecho cuando: `:app:compileDebugKotlin` verde.
+
+- [x] **T32. Texto en 9 locales y verificación.** RNF-205
+  - `models_context_split = "%1$s / %2$s"` en `values/`, `values-es-rVE/`, `values-pt-rBR/`, `values-fr/`, `values-it/`, `values-en-rGB/`, `values-es-rES/`, `values-pt-rPT/`, `values-b+es+419/`.
+  - Hecho cuando: `assembleDebug` OK (AAPT2); `:app:compileDebugUnitTestKotlin --rerun` y tests puros verdes; `MEMORY.md`/`AGENTS.md` actualizados; verificación en dispositivo pendiente.
+
+**Resultado (2026-11-19)**: T29 rojo (`Unresolved reference 'loadedContextLabel'`) → T30 verde; `:app:assembleDebug` y `:app:testDebugUnitTest --tests "com.example.ui.chat.ContextDetailTest"` **BUILD SUCCESSFUL**; cierre con `:app:compileDebugUnitTestKotlin --rerun` + `--tests "com.example.ui.chat.*"` **BUILD SUCCESSFUL**. Únicos warnings, preexistentes y ajenos (CrashIssueUrl/EditorLogic, los dos `createComposeRule` de screenshot y `Locale` en `ModelSearchTest`). Pendiente: verificación en dispositivo del panel ≥600 dp con modelo cargado/sin cargar/Ollama.

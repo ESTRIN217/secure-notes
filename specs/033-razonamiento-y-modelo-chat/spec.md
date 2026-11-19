@@ -149,6 +149,27 @@ Cambio de requisitos solicitado por el usuario con dos capturas de la app oficia
 
 **RNF-147**: El filtrado/orden usa las piezas puras existentes (`filterOnDeviceModels`, `filterOllamaModels`, `favoritesFirst`, `filterByQuery` tipo) y se ejecuta bajo `remember` con la consulta como clave; ningún composable decide de datos por su cuenta.
 
+## Cambio 2026-11-19 — Context del modelo cargado: motor / modelo
+
+Ampliación de RF-241 para el panel de gestión (≥600 dp). El usuario pidió que, para el modelo
+**cargado**, la celda Context enseñe también la ventana real que reserva el motor, porque hasta ahora
+el panel mostraba el `context_length` del GGUF mientras el anillo del chat (specs 034/037) usa 8192
+fijos: dos números distintos sin explicación a la vista.
+
+- **RF-314**: CUANDO una fila on-device del panel es la **activa** (backend on-device, modelo
+  seleccionado y motor en `READY`), EL SISTEMA muestra en la celda Context **los dos valores**
+  separados por `/`: primero la ventana del motor (8192 tokens, constante `LLAMA_CPP_CONTEXT_TOKENS`,
+  hardcoded upstream) y después el `context_length` propio del modelo de RF-241. Formato compacto
+  `8.19k / 32.77k`, reutilizando `formatTokensCompact` de la spec 037 (dos decimales recortados),
+  separador `/` sin viñeta, ambos en la misma celda de 92 dp. El orden es motor / modelo. El resto de
+  filas (no activas, ocultas y Ollama) conservan RF-241 sin cambios; `LOADING` no cuenta como cargado.
+- **RF-315**: SI el modelo activo no tiene `context_length` conocido, ENTONCES EL SISTEMA muestra
+  `8.19k / —` (la ventana del motor sigue siendo un dato conocido; el guion conserva la convención
+  de RF-241 para el dato ausente).
+- **RNF-205**: La decisión del rótulo vive en una función pura sin `android`, con tests JVM; el
+  separador se resuelve desde `strings.xml` en los 9 locales. La constante del motor no se lee del
+  GGUF ni se deriva en tiempo de ejecución (regla de AGENTS.md, specs 034/037).
+
 ## Historial de cambios
 
 - 2026-11-11 — Clarificación QA: estado corregido, HU renumerados por spec, «Por sesión»→global al proceso, `think` fijado top-level, subtítulo «Default» con valor actual, caso límite 8 reescrito con el comportamiento real de `getModelPath()`, ON_DEVICE→ON_DEVICE con release vía `AiModelHost`, RF-228 declarando `loadSession`, RF-222 caso «Sin modelo», RF-223 estados de error/carga de «Probar conexión», RNF-145 accesibilidad, criterio 2 con baseline, eliminada referencia colgante a «Dudas abiertas» (sección renombrada a Decisiones cerradas).
@@ -158,3 +179,4 @@ Cambio de requisitos solicitado por el usuario con dos capturas de la app oficia
 - 2026-11-12 — Corrección (usuario): el botón «upload/download» es **cargar/descargar el modelo en memoria**, como «Cargar modelo»/«Descargar modelo» de Ajustes → IA; si el `.gguf` no está en disco, descarga. Verificado el malentendido (se había interpretado como descarga/borrado de archivo). El control de ciclo de vida tiene 4 estados (RF-231); el botón de borrar el archivo **ya no existe** en el selector (borrar vive solo en Ajustes → IA); sin confirmación al descargar (unload). RF-231/RF-232/RF-236/RF-237 reescritos en la misma sección.
 - 2026-11-14 — Panel tablet/PC (usuario, con dos capturas de la app oficial de Ollama como referencia): a pantalla completa dentro del assistant (≥600 dp), cabecera «Models» + subtítulo, buscador, tabla Model/Context/Status/Actions (power icon toggle en status; on-device: Download/⏻/LoadingIndicator, Ollama: «—»), Actions = ⋮ con Add to favorites/Delete from disk/Hide model (corazón en Ollama); ocultar persistido (`ai_hidden_models`) y restaurable en el mismo panel; viaja en la copia (**16** ajustes). RF-238…RF-247, RNF-147; ver «Cambio 2026-11-14».
 - 2026-11-15 — Corrección del usuario: Context no es el límite del chat (8192 fijo) sino **el `context_length` del modelo**: on-device desde metadatos GGUF (`dimensions.context_length` vía `GgufMetadataReader`), cacheado **una vez por archivo** en prefs (`ai_model_context_lengths`, fuera de la copia, se poda al borrar el modelo); Ollama sin cambios (`/api/show` en memoria). RF-241 reescrito.
+- 2026-11-19 — El modelo **cargado** muestra en Context la ventana del motor **y** la suya (`8.19k / 32.77k`); el resto de filas siguen con RF-241. RF-314/RF-315, RNF-205; ver «Cambio 2026-11-19».

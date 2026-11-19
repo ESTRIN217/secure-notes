@@ -1073,6 +1073,7 @@ Cosa vuoi fare?</string>
     <string name="models_panel_subtitle">Carica, configura e rimuovi i modelli che questo computer può eseguire.</string>
     <string name="models_col_model">Modello</string>
     <string name="models_col_context">Contesto</string>
+    <string name="models_context_split">%1$s / %2$s</string>
     <string name="models_col_status">Stato</string>
     <string name="models_col_actions">Azioni</string>
     <string name="models_local_models">Modelli locali %1$d</string>

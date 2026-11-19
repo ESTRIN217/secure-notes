@@ -1074,6 +1074,7 @@ Que souhaitez-vous faire ?</string>
     <string name="models_panel_subtitle">Chargez, configurez et supprimez les modèles que ce serveur peut exécuter.</string>
     <string name="models_col_model">Modèle</string>
     <string name="models_col_context">Contexte</string>
+    <string name="models_context_split">%1$s / %2$s</string>
     <string name="models_col_status">Statut</string>
     <string name="models_col_actions">Actions</string>
     <string name="models_local_models">Modèles locaux %1$d</string>

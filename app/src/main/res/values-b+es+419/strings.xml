@@ -1073,6 +1073,7 @@ Diferencia: %3$s
     <string name="models_panel_subtitle">Carga, configura y elimina los modelos que puedes ejecutar.</string>
     <string name="models_col_model">Modelo</string>
     <string name="models_col_context">Contexto</string>
+    <string name="models_context_split">%1$s / %2$s</string>
     <string name="models_col_status">Estado</string>
     <string name="models_col_actions">Acciones</string>
     <string name="models_local_models">Modelos locales %1$d</string>

@@ -211,4 +211,32 @@ class ContextDetailTest {
         assertEquals(29, detail.turnCachedTokens)
         assertEquals(1, detail.turnPairFreshTokens)
     }
+
+    // Spec 033 (RF-314/RF-315): celda Context del modelo cargado = motor / modelo.
+
+    @Test
+    fun loadedContextLabel_engineFirstOwnSecond() {
+        val label = loadedContextLabel(LLAMA_CPP_CONTEXT_TOKENS, 32_000L)
+        assertEquals("8.19k", label.engine)
+        assertEquals("32k", label.own)
+    }
+
+    @Test
+    fun loadedContextLabel_keepsTwoDecimalsWhenOwnNeedsThem() {
+        assertEquals("32.77k", loadedContextLabel(8192, 32_768L).own)
+    }
+
+    @Test
+    fun loadedContextLabel_missingOwnContextKeepsEngineAndShowsDash() {
+        val label = loadedContextLabel(8192, null)
+        assertEquals("8.19k", label.engine)
+        assertEquals("—", label.own)
+        assertEquals("—", loadedContextLabel(8192, 0L).own)
+        assertEquals("—", loadedContextLabel(8192, -5L).own)
+    }
+
+    @Test
+    fun loadedContextLabel_overflowingOwnContextIsClamped() {
+        assertEquals("2147.48m", loadedContextLabel(8192, Long.MAX_VALUE).own)
+    }
 }

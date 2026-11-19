@@ -19,6 +19,22 @@ fun formatTokensCompact(n: Int): String {
     return trimZeros(String.format(Locale.US, "%.2f", n / 1_000_000.0)) + "m"
 }
 
+/** Piezas de la celda Context del modelo cargado (spec 033, RF-314/RF-315): motor / modelo. */
+data class LoadedContextLabel(val engine: String, val own: String)
+
+/**
+ * Compón las dos piezas compactas; `—` si el modelo no tiene `context_length` conocido.
+ * El valor del motor llega como parámetro: es la constante hardcoded de la spec 034, no un dato del GGUF.
+ */
+fun loadedContextLabel(engineWindowTokens: Int, ownContextTokens: Long?): LoadedContextLabel =
+    LoadedContextLabel(
+        engine = formatTokensCompact(engineWindowTokens),
+        own = ownContextTokens
+            ?.takeIf { it > 0 }
+            ?.let { formatTokensCompact(it.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()) }
+            ?: "—"
+    )
+
 /** Métricas por turno tal como las guarda spec 036 (+ caché de spec 041); `null` = el turno no trae la métrica. */
 data class TurnMetrics(
     val promptTokens: Int?,

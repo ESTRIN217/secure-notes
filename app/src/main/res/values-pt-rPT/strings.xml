@@ -1137,6 +1137,7 @@ O que deseja fazer?</string>
     <string name="models_panel_subtitle">Carrega, configura e remove os modelos que este servidor pode executar.</string>
     <string name="models_col_model">Modelo</string>
     <string name="models_col_context">Contexto</string>
+    <string name="models_context_split">%1$s / %2$s</string>
     <string name="models_col_status">Estado</string>
     <string name="models_col_actions">Ações</string>
     <string name="models_local_models">Modelos locais %1$d</string>

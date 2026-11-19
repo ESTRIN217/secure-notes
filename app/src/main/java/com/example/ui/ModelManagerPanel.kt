@@ -69,12 +69,15 @@ import com.example.data.ai.AiBackend
 import com.example.data.ai.DownloadState
 import com.example.data.ai.ModelState
 import com.example.data.ai.OnDeviceModel
+import com.example.ui.chat.LLAMA_CPP_CONTEXT_TOKENS
 import com.example.ui.chat.favoriteOllamaKey
 import com.example.ui.chat.favoriteOnDeviceKey
 import com.example.ui.chat.favoritesFirst
 import com.example.ui.chat.filterOllamaModels
 import com.example.ui.chat.filterOnDeviceModels
 import com.example.ui.chat.formatTokens
+import com.example.ui.chat.loadedContextLabel
+import java.util.Locale
 
 /**
  * Panel de gestión de modelos (spec 033, RF-238…RF-247): se monta dentro del assistant en
@@ -156,7 +159,7 @@ fun ModelManagerPanel(
                                 LocalModelRow(
                                     model = model,
                                     state = state,
-                                    contextLabel = contextLengths[favoriteOnDeviceKey(model.id)]?.let { formatTokens(it, formatLocale) } ?: "—",
+                                    contextLabel = localContextLabel(model, state, contextLengths, formatLocale),
                                     onRowClick = {
                                         if (model.id in state.downloadedIds) {
                                             onSelectOnDevice(model)
@@ -317,6 +320,23 @@ private fun statusAction(
         state.onDeviceModelState == ModelState.READY && state.selectedOnDeviceId == model.id -> onUnload()
         else -> onLoad(model)
     }
+}
+
+/** Celda Context: la del modelo, o «motor / modelo» cuando es el activo y está cargado (RF-314/RF-315). */
+@Composable
+private fun localContextLabel(
+    model: OnDeviceModel,
+    state: ModelSelectorState,
+    contextLengths: Map<String, Long>,
+    locale: Locale
+): String {
+    val own = contextLengths[favoriteOnDeviceKey(model.id)]
+    val isEngineActive = state.backend == AiBackend.ON_DEVICE &&
+        state.selectedOnDeviceId == model.id &&
+        state.onDeviceModelState == ModelState.READY
+    if (!isEngineActive) return own?.let { formatTokens(it, locale) } ?: "—"
+    val parts = loadedContextLabel(LLAMA_CPP_CONTEXT_TOKENS, own)
+    return stringResource(R.string.models_context_split, parts.engine, parts.own)
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.sectionItem(
