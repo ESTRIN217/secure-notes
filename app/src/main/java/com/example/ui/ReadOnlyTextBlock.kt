@@ -37,7 +37,9 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.estrin217.tema.AppThemes
 import com.estrin217.tema.LocalAppTheme
 import com.example.data.model.BlockType
@@ -97,7 +99,7 @@ fun ReadOnlyTextBlock(
         ""
     } else {
         when (blockType) {
-            BlockType.BULLET_LIST -> "• "
+            BlockType.BULLET_LIST -> "•"
             BlockType.NUMBERED_LIST -> "${numberIndex ?: 1}. "
             BlockType.CODE_BLOCK -> "  "
             else -> ""
@@ -123,6 +125,13 @@ fun ReadOnlyTextBlock(
         )
         else -> MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     }
+
+    // Misma viñeta que en el editor: negrita, +2 sp y centrada en la línea.
+    val bulletStyle = textStyle.copy(
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center
+    )
 
     val equationLatexList = remember(displayAnnotated) {
         displayAnnotated.getStringAnnotations(RichTextConverter.EQ_ANNOTATION, 0, displayAnnotated.length)
@@ -172,7 +181,7 @@ fun ReadOnlyTextBlock(
         if (prefix.isNotEmpty()) {
             Text(
                 text = prefix,
-                style = textStyle,
+                style = if (blockType == BlockType.BULLET_LIST) bulletStyle else textStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.width(4.dp))

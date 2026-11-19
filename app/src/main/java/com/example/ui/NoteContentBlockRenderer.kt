@@ -69,7 +69,7 @@ fun NoteContentBlock.RenderContent(
         is NoteContentBlock.FileBlock -> renderFileBlock(context, modifier)
         is NoteContentBlock.BookmarkBlock -> renderBookmarkBlock(context, modifier)
         is NoteContentBlock.TableBlock -> renderTableBlock(context, modifier)
-        is NoteContentBlock.HorizontalRuleBlock -> renderHorizontalRuleBlock(modifier)
+        is NoteContentBlock.HorizontalRuleBlock -> renderHorizontalRuleBlock(context, modifier)
         is NoteContentBlock.CollapsibleBlock -> renderCollapsibleBlock(context, modifier)
     }
 }
@@ -667,14 +667,37 @@ private fun NoteContentBlock.TableBlock.renderTableBlock(
 }
 
 @Composable
-private fun renderHorizontalRuleBlock(modifier: Modifier) {
-    HorizontalDivider(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant
-    )
+private fun NoteContentBlock.HorizontalRuleBlock.renderHorizontalRuleBlock(
+    context: BlockRenderContext,
+    modifier: Modifier
+) {
+    val block = this
+    Box(modifier = modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+        // Igual que las tarjetas de media: la X solo aparece cuando el bloque está
+        // seleccionado, para que una línea decorativa no esté estorbando siempre.
+        if (context.isActive) {
+            IconButton(
+                onClick = { context.onDeleteBlock(block) },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.cd_remove),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -882,7 +882,16 @@ private fun BlockRow(
                     onDeleteBlock = { onDelete() },
                     onUrlClicked = onUrlClicked,
                     onOpenBlockMore = { showBlockOptions = true },
-                    modifier = Modifier.weight(1f)
+                    isActive = index == activeBlockIndex,
+                    modifier = Modifier
+                        .weight(1f)
+                        // El divider no tiene campo que enfocar: un toque lo selecciona
+                        // y entonces aparece la X para borrarlo.
+                        .then(
+                            if (block.type == BlockType.HORIZONTAL_RULE) {
+                                Modifier.clickable { onActivate() }
+                            } else Modifier
+                        )
                 )
                 if (showBlockOptions) {
                     BlockOptionsSheet(

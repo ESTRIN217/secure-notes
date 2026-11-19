@@ -40,10 +40,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -125,13 +122,19 @@ private val TableRowActiveAlpha = 0.06f
  * Alto del margen que aloja la barra. Es constante: la tabla debe estar en el mismo
  * sitio tenga la barra o no la tenga, que es lo que impide que salte al enfocarla.
  *
- * Mide más que el mínimo de 56 dp de la barra expresiva más el hueco: por eso no son los
- * 44 dp que se habían estimado, porque la barra de Material 3 expresivo no baja de ese alto.
+ * La barra es propia y compacta ([CompactToolbarHeight]), no la `HorizontalFloatingToolbar`
+ * expresiva (que no baja de 56 dp), así que el margen puede ser también más pequeño.
  */
-private val TableToolbarMargin = 60.dp
+private val TableToolbarMargin = 44.dp
 
 /** Separación entre el borde inferior de la barra y el borde superior de la tabla. */
-private val TableToolbarGap = 4.dp
+private val TableToolbarGap = 2.dp
+
+/** Alto de la barra compacta de la tabla, en lugar de los 56 dp mínimos de Material expresivo. */
+private val CompactToolbarHeight = 40.dp
+
+/** Tamaño de cada control dentro de la barra compacta. */
+private val CompactToolbarControlSize = 40.dp
 
 /** Respiro bajo la tabla, para que no quede pegada al bloque de abajo. */
 private val TableBottomMargin = 12.dp
@@ -1195,9 +1198,9 @@ fun NotionSelectionHandle(
     }
 }
 
-// MD3 Expressive. Se ubica en una franja propia sobre el Card (ver
-// EditableTableBlock), nunca superpuesta a una celda.
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+// Barra propia y compacta. Se ubica en una franja propia sobre el Card (ver
+// EditableTableBlock), nunca superpuesta a una celda. La HorizontalFloatingToolbar
+// expresiva imponía 56 dp de alto; aquí tanto el alto como el margen se ajustan al contenido.
 @Composable
 private fun FloatingToolbar(
     modifier: Modifier = Modifier,
@@ -1207,42 +1210,54 @@ private fun FloatingToolbar(
     onDragTableEnd: () -> Unit,
     onDragTableCancel: () -> Unit
 ) {
-    // Sin `shape` explícito: `FloatingToolbarDefaults.containerShape` es internal
-    // en material3 1.5.0-alpha28 y el propio composable ya aplica la forma
-    // expresiva por defecto.
-    HorizontalFloatingToolbar(
-        expanded = true,
-        modifier = modifier,
-        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
-        scrollBehavior = null
+    val onSurface = MaterialTheme.colorScheme.onSecondaryContainer
+    Surface(
+        modifier = modifier
+            .height(CompactToolbarHeight)
+            .shadow(4.dp, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer
     ) {
-        Box(
-            modifier = Modifier.pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { onDragTableStart() },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDragTableBy(dragAmount.y)
-                    },
-                    onDragEnd = { onDragTableEnd() },
-                    onDragCancel = { onDragTableCancel() }
-                )
-            },
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            NotionSelectionHandle(
-                isVertical = true,
-                primary = MaterialTheme.colorScheme.primary,
-                contentDescription = stringResource(R.string.table_move_handle),
-                onClick = {}
-            )
-        }
-        IconButton(onClick = onOpenMoreMenu) {
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = stringResource(R.string.more),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            Box(
+                modifier = Modifier
+                    .size(CompactToolbarControlSize)
+                    .pointerInput(Unit) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { onDragTableStart() },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                onDragTableBy(dragAmount.y)
+                            },
+                            onDragEnd = { onDragTableEnd() },
+                            onDragCancel = { onDragTableCancel() }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.DragHandle,
+                    contentDescription = stringResource(R.string.table_move_handle),
+                    modifier = Modifier
+                        .rotate(90f)
+                        .size(18.dp),
+                    tint = onSurface
+                )
+            }
+            IconButton(
+                onClick = onOpenMoreMenu,
+                modifier = Modifier.size(CompactToolbarControlSize)
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.more),
+                    tint = onSurface,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
