@@ -125,7 +125,7 @@ Legacy flat-content notes are migrated to blocks via `DataBlock.migrateLegacyCon
 
 - **Room**: `.fallbackToDestructiveMigration()` — schema changes destroy data silently.
 - **Configuration cache**: `org.gradle.configuration-cache=true` in `gradle.properties`. Invalidate with `--no-configuration-cache` if build acts stale.
-- **Kotlin**: `kotlin.incremental=false` in `gradle.properties`. Clean builds may be required after KSP changes.
+- **Kotlin**: `kotlin.incremental=true` (y `ksp.incremental=true`) en `gradle.properties` desde 2026-11-18: recompila solo lo cambiado, no los 342 ficheros de `:app` (2m39s por edición con incremental apagado). Si KSP/Room deja código generado obsoleto tras cambiar el esquema, haz `clean` puntual; **no** vuelvas a desactivar el incremental. `systemProp.TMPDIR` apunta a `/tmp/opencode` (el valor antiguo, `com.nullij.androidcodestudio`, no existe en este dispositivo).
 - **Robolectric**: Unit tests use `@Config(sdk = [36])` (targetSdk). Screenshot tests require `@GraphicsMode(GraphicsMode.Mode.NATIVE)`.
 - **llama.android binding semantics** (`com.arm.aichat.internal.InferenceEngineImpl`):
   - Singleton JNI engine. `setSystemPrompt()` is allowed **once per model load** and clears KV cache + chat history.
