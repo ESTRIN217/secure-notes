@@ -52,3 +52,13 @@
     flujo); `./gradlew test` solo con los 38 fallos de plataforma conocidos en `linux/aarch64`; y
     `MEMORY.md` actualizado con estado, decisiones D8–D11 y pendiente de verificación en dispositivo
     (toggle maestro y contador, fecha/hora en zona real, `get_info` sin cwd, persistencia y copia).
+- [x] **T10 (enmienda). Un toque, un toggle: quitar el doble handler de `ToolsRow`, test en rojo primero.** RF-313, RNF-204
+  - Hecho cuando: `ToolsSheetInvariantsTest` existe en `app/src/test/java/com/example/ui/chat/` y falla
+    en ROJO con el `Row.clickable` actual (2 `onToggle(name)`, 1 `.clickable` en el cuerpo de
+    `ToolsRow`); tras quitar el `.clickable` del `Row` y dejar `Checkbox.onCheckedChange` como único
+    handler, la dirigida queda en VERDE con exactamente 1 `onToggle(name)` y 0 `.clickable`;
+    `ToolsMasterRow`, `ToolRegistry`, `AiViewModel`, prefs y el flujo de envío sin tocar, con el maestro
+    y el contador igual; `./gradlew :app:compileDebugUnitTestKotlin` OK y los tests dirigidos de la 043
+    (`MasterToggleTest`, `ToolFormatTest`, `ToolRegistryTest`, `DisabledToolsTest`) y de la copia
+    (`BackupSettingsTest`, `BackupSettingsInvariantsTest`) en verde; queda pendiente la comprobación en
+    dispositivo del toque individual.

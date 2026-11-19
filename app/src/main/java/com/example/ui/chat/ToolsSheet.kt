@@ -1,6 +1,5 @@
 package com.example.ui.chat
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -118,13 +117,16 @@ private fun ToolsEmptyMessage() {
     }
 }
 
-/** Una fila por herramienta: nombre como dato a la izquierda y `Checkbox` con su estado a la derecha. */
+/**
+ * Una fila por herramienta: nombre como dato a la izquierda y `Checkbox` con su estado a la derecha.
+ * El `Checkbox` es el único punto de interacción (RF-313/RNF-204): el `Row` no lleva manejador de
+ * pulsación, así que un toque produce exactamente un toggle. Lo vigila `ToolsSheetInvariantsTest`.
+ */
 @Composable
 private fun ToolsRow(name: String, disabled: Boolean, onToggle: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle(name) }
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

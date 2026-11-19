@@ -77,6 +77,21 @@ Los RF-300…RF-307 y RNF-190…RNF-196 de la 042 siguen vigentes. En particular
 (RF-306), la tolerancia a nombres muertos (RF-307), el viaje del conjunto en la copia (RNF-194) y el
 hecho de que las herramientas solo se anuncien con Ollama no se tocan.
 
+## Enmienda (RF-313 / RNF-204) — toque individual
+
+La spec 043 ya estaba implementada cuando se detectó un defecto en la fila de cada herramienta:
+`ToolsRow` tenía **dos** manejadores de pulsación sobre la misma fila —un `.clickable` en el `Row` y el
+`onCheckedChange` del `Checkbox`—, de modo que un solo toque podía producir **dos toggles** y devolver
+la herramienta al estado en que ya estaba. La enmienda elimina el `.clickable` y deja el `Checkbox`
+como único punto de interacción (decisión D12 del plan), y añade un invariante de fuentes que impide
+reintroducir el doble handler.
+
+Por qué no cambia RF-308…RF-312: el checkbox maestro, el contador, las dos herramientas nuevas, su
+wire format y el registro de cinco quedan exactamente igual. El defecto está en el cableado de la fila
+individual, no en ninguna de las decisiones ya tomadas; el toggle individual de la 042 (RF-305) sigue
+siendo «desactivar añade / activar quita», solo que ahora se dispara una vez por toque. El estado de la
+spec sigue siendo `implementada`.
+
 ## Requisitos funcionales
 
 - **RF-308**: CUANDO se abre el submenú de herramientas con al menos una registrada, EL SISTEMA
@@ -103,6 +118,11 @@ hecho de que las herramientas solo se anuncien con Ollama no se tocan.
   `get_datetime` y `get_info` — y todas ellas quedan sujetas al mismo conjunto global de
   deshabilitadas y a la misma regla de anuncio que las de la spec 042. El maestro y el contador las
   cubren a las cinco; el backend al que se anuncian no cambia.
+- **RF-313**: CUANDO se pulsa la casilla de una herramienta, EL SISTEMA alterna el estado de **esa sola**
+  herramienta y produce exactamente **un** toggle por toque; la fila no tiene ningún otro manejador de
+  pulsación que pueda producir un segundo toggle. Verificable: el cuerpo de `ToolsRow` contiene
+  exactamente una llamada a `onToggle(name)` y ningún `.clickable`, comprobado por
+  `ToolsSheetInvariantsTest` (RNF-204).
 
 ## Requisitos no funcionales
 
@@ -134,6 +154,11 @@ hecho de que las herramientas solo se anuncien con Ollama no se tocan.
   dirigidos nuevos en verde; los invariantes de recuento (cinco registros, 9/9 claves de recursos)
   pasan y ningún literal aparece dentro de `Text(`. `./gradlew test` mantiene aquí los 38 fallos de
   plataforma conocidos de `linux/aarch64`; la suite completa se verifica en verde en host `x86_64`.
+- **RNF-204**: Invariante de fuentes: `ToolsRow` en `ToolsSheet.kt` tiene **exactamente un**
+  `onToggle(name)` y **ningún** `.clickable`, de modo que un toque no pueda disparar dos toggles. Lo
+  vigila `ToolsSheetInvariantsTest`, JUnit4 puro sin Robolectric, que lee la fuente Kotlin igual que
+  `BackupSettingsInvariantsTest` y `EditorInvariantsTest`; el recorrido quita primero comentarios y
+  textos para que un KDoc que nombra `.clickable` no lo haga pasar por código.
 
 ## Casos límite
 
@@ -183,6 +208,8 @@ hecho de que las herramientas solo se anuncien con Ollama no se tocan.
   de la 042.
 - Recursos en los 9 locales; tests JVM dirigidos en verde; invariantes de recuento y greps pasan;
   `MEMORY.md` actualizado.
+- Un toque en la casilla de una herramienta produce exactamente un toggle (RF-313) y el invariante de
+  fuentes `ToolsSheetInvariantsTest` lo vigila (RNF-204); el maestro y el contador siguen igual.
 
 ## Dudas abiertas
 

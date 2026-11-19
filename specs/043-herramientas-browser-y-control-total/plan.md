@@ -211,6 +211,19 @@ fun ToolsSheet(
   `kotlinx.serialization` solo para dos objetos — nueva dependencia sin motivo (RNF-197), resuelta
   con el helper `jsonString`.
 
+- **D12 (enmienda RF-313/RNF-204) — Un solo manejador en la fila: se quita el `.clickable` del `Row` y
+  se deja `Checkbox.onCheckedChange` como único punto de interacción**. El doble handler
+  (`Row.clickable` + `Checkbox.onCheckedChange`) hacía que un toque en la casilla pudiera producir dos
+  toggles: el evento llegaba al `Checkbox` y se propagaba al `Row`, y el segundo toggle devolvía la
+  herramienta a su estado inicial. Quitar el `.clickable` hace que tocar la fila fuera de la casilla ya
+  no haga nada —aceptable, porque el control visible y accesible es la casilla— y que un toque en ella
+  produzca exactamente un toggle. *Descartada:* fila `toggleable(checked, onCheckedChange)` con la
+  casilla pasiva: requiere `Modifier.toggleable` y su `InteractionSource`, añade estado de interacción
+  que hoy no se usa, sigue dejando dos manejadores distintos que pueden solaparse y aparta a la casilla
+  de su papel de objetivo accesible natural. *Descartada también:* dejar el `.clickable` y quitar el
+  `onCheckedChange` de la casilla — una casilla sin handler deja de ser interactuable y rompe la
+  semántica de `Checkbox`. El maestro (`ToolsMasterRow`) y el contador no se tocan.
+
 ## Estrategia de tests (constitución p. 4: rojo → verde)
 
 JUnit4 **puro, sin Robolectric** (precedentes: `DisabledToolsTest`, `ToolRegistryTest` de la 042,
@@ -222,11 +235,13 @@ las dirigidas de esta spec se ejecutan y quedan verdes aquí.
 | `MasterToggleTest` (nuevo, `app/src/test/java/com/example/data/ai/`) | 1 | `allToolsToggle`: desactivar todas añade las registradas al conjunto; activar todas lo vacía y elimina nombres muertos; idempotente. `enabledToolCount`: 5/5, 4/5, 0/5 y 0/0 con registro vacío. `allToolsEnabled`: solo cierto si todas activas; con lista vacía devuelve cierto (la UI deshabilita el control) | RF-308, RF-309 |
 | `ToolFormatTest` (nuevo, mismo paquete) | 1 | `getDatetimeResult` con `Instant` fijo y `ZoneId` de offset positivo (`+02:00`), negativo (`-04:00`), UTC (`+00:00`, sin `Z`), media noche/cambio de año y horario de verano; `timezone` es el id IANA inyectado. `getInfoResult` con `os`/`api`/`note` fijos: forma `Android X (API N)`, sin `cwd` ni identificadores, con escape de comillas en la nota | RF-310, RF-311 |
 | `ToolRegistryTest` (ampliar, mismo paquete) | 1 | Con cinco herramientas registradas, `names()` devuelve las cinco en orden y `getSpecsForApi()` sin conjunto manda cinco (invariante «3 → 5») | RF-312 |
+| `ToolsSheetInvariantsTest` (nuevo, `app/src/test/java/com/example/ui/chat/`) | 1 | Lee `ToolsSheet.kt`, extrae el cuerpo de `ToolsRow` y fija **exactamente un** `onToggle(name)` y **cero** `.clickable`, quitando antes comentarios y textos para que un KDoc no falsee el recuento | RF-313, RNF-204 |
 
  Ejecución: escribir cada test en rojo → implementar → `./gradlew :app:compileDebugUnitTestKotlin` y
  `./gradlew :app:testDebugUnitTest --tests "com.example.data.ai.MasterToggleTest"
  --tests "com.example.data.ai.ToolFormatTest" --tests "com.example.data.ai.ToolRegistryTest"
- --tests "com.example.data.ai.DisabledToolsTest"` en verde. Al cierre, `./gradlew test` (los 38 de
+ --tests "com.example.data.ai.DisabledToolsTest"
+ --tests "com.example.ui.chat.ToolsSheetInvariantsTest"` en verde. Al cierre, `./gradlew test` (los 38 de
  plataforma, ajenos); la verificación en verde completa queda para host `x86_64`, como en 002/032/042.
 
 ## Verificación de invariantes (cierre, T9)
@@ -243,6 +258,7 @@ for k in tools_all tools_enabled_count get_info_note; do
 done
 grep -n "'\|'" app/src/main/res/values*/strings.xml | grep -v "\\\\'"   # sin apóstrofes crudos nuevos
 grep -rn 'Text("\|Text(text = "' app/src/main/java/com/example/ui/chat/ToolsSheet.kt            # 0 literales
+grep -n '\.clickable\|onToggle(name)' app/src/main/java/com/example/ui/chat/ToolsSheet.kt       # 0 .clickable, 1 onToggle(name) en ToolsRow (RF-313)
 grep -n 'getSpecsForApi(_disabledTools.value)' \
      app/src/main/java/com/example/ui/viewmodel/AiViewModel.kt                                  # 1 (flujo intacto)
 ```
