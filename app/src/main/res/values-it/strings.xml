@@ -1096,4 +1096,9 @@ Cosa vuoi fare?</string>
     <string name="chat_model_info_template_unavailable">Non disponibile</string>
     <string name="chat_model_info_copy_desc">Copia informazioni del modello</string>
     <string name="ai_ondevice_delete_failed">Impossibile eliminare il file del modello</string>
+    <string name="settings_search_placeholder">Cerca nelle impostazioni</string>
+    <string name="settings_search_empty">Nessuna impostazione trovata</string>
+    <string name="settings_group_general">Generale</string>
+    <string name="settings_appearance_desc">Tema, modalità scura e aspetto</string>
+    <string name="settings_language_desc">Lingua dell\'interfaccia</string>
 </resources>

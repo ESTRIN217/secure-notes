@@ -1097,4 +1097,9 @@ Que souhaitez-vous faire ?</string>
     <string name="chat_model_info_template_unavailable">Non disponible</string>
     <string name="chat_model_info_copy_desc">Copier les informations du modèle</string>
     <string name="ai_ondevice_delete_failed">Le fichier du modèle n’a pas pu être supprimé</string>
+    <string name="settings_search_placeholder">Rechercher dans les paramètres</string>
+    <string name="settings_search_empty">Aucun paramètre trouvé</string>
+    <string name="settings_group_general">Général</string>
+    <string name="settings_appearance_desc">Thème, mode sombre et apparence</string>
+    <string name="settings_language_desc">Langue de l\'interface</string>
 </resources>

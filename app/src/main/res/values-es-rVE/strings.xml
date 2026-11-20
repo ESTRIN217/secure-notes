@@ -1138,4 +1138,9 @@ Diferencia: %3$s
     <string name="chat_model_info_template_unavailable">No disponible</string>
     <string name="chat_model_info_copy_desc">Copiar información del modelo</string>
     <string name="ai_ondevice_delete_failed">No se pudo borrar el archivo del modelo</string>
+    <string name="settings_search_placeholder">Buscar ajustes</string>
+    <string name="settings_search_empty">No se encontraron ajustes</string>
+    <string name="settings_group_general">General</string>
+    <string name="settings_appearance_desc">Tema, modo oscuro y apariencia</string>
+    <string name="settings_language_desc">Idioma de la interfaz</string>
 </resources>

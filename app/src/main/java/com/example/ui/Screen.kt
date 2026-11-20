@@ -13,6 +13,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.ui.viewmodel.StorageViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
+import com.example.ui.settings.SettingsDestination
+import com.example.ui.settings.launchSettings
 import kotlinx.coroutines.launch
 
 data class ScreenContext(
@@ -44,8 +46,8 @@ sealed class Screen {
                 viewModel = context.viewModel,
                 aiViewModel = context.aiViewModel,
                 onNavigateToEditor = { noteId -> context.navigator.onNavigateTo(Screen.NoteEditor(noteId)) },
-                onNavigateToCloud = { context.navigator.onNavigateTo(Screen.BackupRestore) },
-                onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
+                onNavigateToCloud = { launchSettings(androidAppContext, SettingsDestination.BACKUP) },
+                onNavigateToPrivacy = { launchSettings(androidAppContext, SettingsDestination.PRIVACY_SETTINGS) },
                 onNavigateToSearch = { context.navigator.onNavigateTo(Screen.Search) },
                 onNavigateToDrawing = { id, path -> context.navigator.onNavigateTo(Screen.DrawingCanvas(id, path)) },
                 onNavigateToMediaViewer = { type, src -> context.navigator.onNavigateTo(Screen.MediaViewer(type, src, context.currentScreen)) },
@@ -53,10 +55,10 @@ sealed class Screen {
                     context.navigator.onNavigateTo(Screen.NoteEditor(noteId))
                     context.tabsManager.openMedia(type, src, noteId)
                 },
-                onNavigateToSettingsHub = { context.navigator.onNavigateTo(Screen.SettingsHub) },
-                onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
-                onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
-                onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
+                onNavigateToSettingsHub = { launchSettings(androidAppContext) },
+                onNavigateToBackupRestore = { launchSettings(androidAppContext, SettingsDestination.BACKUP) },
+                onNavigateToUpdateInfo = { launchSettings(androidAppContext, SettingsDestination.UPDATE) },
+                onNavigateToAbout = { launchSettings(androidAppContext, SettingsDestination.ABOUT) },
                 onNavigateToChatHistory = { context.navigator.onNavigateTo(Screen.ChatHistory) },
                 onLaunchNewAiChat = {
                   context.chatHistoryViewModel.createSession(backend = context.aiViewModel.backend.value)
@@ -105,16 +107,6 @@ sealed class Screen {
         }
     }
 
-    object PrivacySettings : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.PrivacySettingsScreen(
-                viewModel = context.viewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
     object Search : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
@@ -139,86 +131,6 @@ sealed class Screen {
                 type = type,
                 src = src,
                 onBack = { context.navigator.onNavigateBack(previousScreen) },
-            )
-        }
-    }
-
-    object SettingsHub : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            val androidAppContext = LocalContext.current
-            com.example.ui.settings.SettingsScreen(
-                themeViewModel = context.themeViewModel,
-                aiViewModel = context.aiViewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.MainList) },
-                onNavigateToBackupRestore = { context.navigator.onNavigateTo(Screen.BackupRestore) },
-                onNavigateToStorageManager = { context.navigator.onNavigateTo(Screen.StorageManager) },
-                onNavigateToUpdateInfo = { context.navigator.onNavigateTo(Screen.UpdateInfo) },
-                onNavigateToAbout = { context.navigator.onNavigateTo(Screen.About) },
-                onNavigateToPrivacy = { context.navigator.onNavigateTo(Screen.PrivacySettings) },
-                onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
-                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) },
-                onNavigateToAiSettings = { context.navigator.onNavigateTo(Screen.AiSettings) },
-                onNavigateToCodeEditor = { launchCodeEditor(androidAppContext) }
-            )
-        }
-    }
-
-    object BackupRestore : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.BackupRestoreScreen(
-                viewModel = context.backupViewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
-    object UpdateInfo : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.UpdateInfoScreen(
-                viewModel = context.updaterViewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
-    object LegalInfo : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.LegalInfoScreen(
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
-    object Licenses : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.LicensesScreen(
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
-    object AiSettings : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.AiSettingsScreen(
-                aiViewModel = context.aiViewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
-    object About : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.AboutScreen(
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) },
-                onNavigateToLegalInfo = { context.navigator.onNavigateTo(Screen.LegalInfo) },
-                onNavigateToLicenses = { context.navigator.onNavigateTo(Screen.Licenses) }
             )
         }
     }
@@ -278,16 +190,6 @@ sealed class Screen {
         }
     }
 
-    object StorageManager : Screen() {
-        @Composable
-        override fun render(context: ScreenContext) {
-            com.example.ui.settings.StorageManagerScreen(
-                viewModel = context.storageViewModel,
-                onBack = { context.navigator.onNavigateBack(Screen.SettingsHub) }
-            )
-        }
-    }
-
     object ChatHistory : Screen() {
         @Composable
         override fun render(context: ScreenContext) {
@@ -331,19 +233,10 @@ val ScreenSaver = mapSaver(
             is Screen.MainList -> mapOf("route" to "main_list")
             is Screen.NoteEditor -> mapOf("route" to "note_editor", "noteId" to screen.noteId)
             is Screen.DrawingCanvas -> mapOf("route" to "drawing_canvas", "noteId" to screen.noteId, "jsonPath" to (screen.jsonPath ?: ""))
-            is Screen.PrivacySettings -> mapOf("route" to "privacy_settings")
             is Screen.Search -> mapOf("route" to "search")
             is Screen.MediaViewer -> mapOf("route" to "media_viewer", "type" to screen.type, "src" to screen.src)
-            is Screen.SettingsHub -> mapOf("route" to "settings_hub")
-            is Screen.BackupRestore -> mapOf("route" to "backup_restore")
-            is Screen.UpdateInfo -> mapOf("route" to "update_info")
-            is Screen.LegalInfo -> mapOf("route" to "legal_info")
-            is Screen.Licenses -> mapOf("route" to "licenses")
-            is Screen.AiSettings -> mapOf("route" to "ai_settings")
             is Screen.AiChat -> mapOf("route" to "ai_chat", "noteId" to screen.noteId)
             is Screen.AiChatSession -> mapOf("route" to "ai_chat_session", "sessionId" to screen.sessionId)
-            is Screen.About -> mapOf("route" to "about")
-            is Screen.StorageManager -> mapOf("route" to "storage_manager")
             is Screen.ChatHistory -> mapOf("route" to "chat_history")
             is Screen.ChatSearch -> mapOf("route" to "chat_search")
             is Screen.AiChatStandalone -> mapOf("route" to "ai_chat_standalone")
@@ -354,19 +247,10 @@ val ScreenSaver = mapSaver(
             "main_list" -> Screen.MainList
             "note_editor" -> Screen.NoteEditor((map["noteId"] as? Int) ?: 0)
             "drawing_canvas" -> Screen.DrawingCanvas((map["noteId"] as? Int) ?: 0, (map["jsonPath"] as? String)?.ifEmpty { null })
-            "privacy_settings" -> Screen.PrivacySettings
             "search" -> Screen.Search
             "media_viewer" -> Screen.MediaViewer((map["type"] as? String) ?: "", (map["src"] as? String) ?: "", Screen.MainList)
-            "settings_hub" -> Screen.SettingsHub
-            "backup_restore" -> Screen.BackupRestore
-            "update_info" -> Screen.UpdateInfo
-            "legal_info" -> Screen.LegalInfo
-            "licenses" -> Screen.Licenses
-            "ai_settings" -> Screen.AiSettings
             "ai_chat" -> Screen.AiChat((map["noteId"] as? Int) ?: 0)
             "ai_chat_session" -> Screen.AiChatSession((map["sessionId"] as? Int) ?: 0)
-            "about" -> Screen.About
-            "storage_manager" -> Screen.StorageManager
             "chat_history" -> Screen.ChatHistory
             "chat_search" -> Screen.ChatSearch
             "ai_chat_standalone" -> Screen.AiChatStandalone

@@ -3,6 +3,8 @@ package com.example.ui
 import android.content.Context
 import com.example.data.ai.AiBackend
 import com.example.shortcut.ShortcutDestination
+import com.example.ui.settings.SettingsDestination
+import com.example.ui.settings.launchSettings
 import com.example.ui.viewmodel.ChatHistoryViewModel
 
 /**
@@ -25,7 +27,7 @@ fun ejecutarDestino(
     when (destino) {
         ShortcutDestination.NEW_NOTE -> navigator.onNavigateTo(Screen.NoteEditor(0))
         ShortcutDestination.SEARCH -> navigator.onNavigateTo(Screen.Search)
-        ShortcutDestination.SETTINGS -> navigator.onNavigateTo(Screen.SettingsHub)
+        ShortcutDestination.SETTINGS -> launchSettings(context)
         ShortcutDestination.CODE_EDITOR -> launchCodeEditor(context)
         ShortcutDestination.AI_CHAT -> abrirChatNuevo(chatHistoryViewModel, backend, navigator)
     }

@@ -20,7 +20,7 @@
       "use": "UI declarativa y navegacion"
     },
     {
-      "name": "Material 3 + Material Icons + window-size-class",
+      "name": "Material 3 + Material Icons + window-size-class + adaptive + adaptive-navigation",
       "version": "1.5.0-alpha28",
       "license": "Apache-2.0",
       "copyright": "Google",

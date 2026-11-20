@@ -1196,4 +1196,9 @@
     <string name="chat_model_info_template_unavailable">Not available</string>
     <string name="chat_model_info_copy_desc">Copy model info</string>
     <string name="ai_ondevice_delete_failed">The model file could not be deleted</string>
+    <string name="settings_search_placeholder">Search settings</string>
+    <string name="settings_search_empty">No settings found</string>
+    <string name="settings_group_general">General</string>
+    <string name="settings_appearance_desc">Theme, dark mode and look</string>
+    <string name="settings_language_desc">Interface language</string>
 </resources>

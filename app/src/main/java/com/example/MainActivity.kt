@@ -89,7 +89,6 @@ import com.example.ui.DrawingCanvasScreen
 import com.example.ui.settings.AboutScreen
 import com.example.ui.settings.BackupRestoreScreen
 import com.example.ui.settings.PrivacySettingsScreen
-import com.example.ui.settings.SettingsScreen
 import com.example.ui.settings.UpdateInfoScreen
 import com.example.data.model.DecryptedNote
 import com.example.ui.viewmodel.NotesViewModel
@@ -99,6 +98,12 @@ import com.example.ui.viewmodel.UpdaterViewModel
 import com.example.ui.viewmodel.AiViewModel
 import com.example.ui.viewmodel.StorageViewModel
 import com.example.ui.viewmodel.ChatHistoryViewModel
+import com.example.ui.viewmodel.aiViewModelFactory
+import com.example.ui.viewmodel.backupViewModelFactory
+import com.example.ui.viewmodel.chatHistoryViewModelFactory
+import com.example.ui.viewmodel.notesViewModelFactory
+import com.example.ui.viewmodel.storageViewModelFactory
+import com.example.ui.viewmodel.themeViewModelFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.data.ai.OllamaService
@@ -140,6 +145,8 @@ import com.example.util.reorderNote
 import com.example.util.swapNotes
 import com.example.ui.LockScreen
 import com.example.ui.SearchScreen
+import com.example.ui.settings.SettingsDestination
+import com.example.ui.settings.launchSettings
 import com.example.ui.CreateTagDialog
 import com.example.ui.EditTagDialog
 import com.example.ui.ManageTagsDialog
@@ -243,58 +250,17 @@ class MainActivity : FragmentActivity() {
             window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
         }
         setContent {
+            val appContext = this@MainActivity.applicationContext as android.app.Application
             val cipherService = com.example.data.security.EncryptionServiceImpl()
-            val syncService = com.example.data.sync.GoogleDriveSyncService()
             val viewModel: NotesViewModel = viewModel(
-                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
-                        return NotesViewModel(
-                            this@MainActivity.applicationContext as android.app.Application,
-                            NoteDatabase.getDatabase(this@MainActivity.applicationContext),
-                            cipherService,
-                            syncService
-                        ) as T
-                    }
-                }
+                factory = notesViewModelFactory(appContext)
             )
             notesViewModel = viewModel
             val themeViewModel: ThemeViewModel = viewModel(
-                factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                        @Suppress("UNCHECKED_CAST")
-                        return ThemeViewModel(SharedPreferencesRepository(this@MainActivity.applicationContext)) as T
-                    }
-                }
+                factory = themeViewModelFactory(appContext)
             )
-            val appContext = this@MainActivity.applicationContext
             val aiViewModel: AiViewModel = viewModel(
-                factory = object : ViewModelProvider.Factory {
-                    @Suppress("UNCHECKED_CAST")
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        // Todo el grafo de IA se construye dentro del factory: se ejecuta UNA vez
-                        // por ViewModel y no en cada recomposición del contenido de setContent.
-                        val db = NoteDatabase.getDatabase(this@MainActivity.applicationContext)
-                        val prefsRepo = SharedPreferencesRepository(appContext)
-                        val ollamaService = OllamaService(
-                            context = appContext,
-                            endpointUrl = prefsRepo.getAiEndpointUrl(),
-                            modelName = prefsRepo.getAiModelName()
-                        )
-                        return AiViewModel(
-                            appContext as android.app.Application,
-                            prefsRepo,
-                            ollamaService,
-                            app.aiModelHost,
-                            ModelDownloader(appContext),
-                            db.conversationDao,
-                            db.chatSessionDao,
-                            db.noteDao,
-                            cipherService,
-                            memoryDao = db.memoryDao
-                        ) as T
-                    }
-                }
+                factory = aiViewModelFactory(appContext, cipherService)
             )
             val darkModeOption by themeViewModel.darkModeOption.collectAsStateWithLifecycle()
             val appTheme by themeViewModel.appTheme.collectAsStateWithLifecycle()
@@ -357,12 +323,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     }
     val backupViewModel: BackupViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return BackupViewModel(context.applicationContext as android.app.Application, viewModel as com.example.data.sync.CloudSyncManager) as T
-            }
-        }
+        factory = backupViewModelFactory(context.applicationContext as android.app.Application, viewModel)
     )
     val updaterViewModel: UpdaterViewModel = viewModel()
     LaunchedEffect(isUnlocked) {
@@ -387,15 +348,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         }
     }
     val storageViewModel: StorageViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return StorageViewModel(
-                    context.applicationContext as android.app.Application,
-                    com.example.data.local.NoteDatabase.getDatabase(context.applicationContext)
-                ) as T
-            }
-        }
+        factory = storageViewModelFactory(context.applicationContext as android.app.Application)
     )
 
     val navigator = remember(tabsManager) {
@@ -413,17 +366,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
     }
 
     val chatHistoryViewModel: ChatHistoryViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val db = com.example.data.local.NoteDatabase.getDatabase(context.applicationContext)
-                return ChatHistoryViewModel(
-                    context.applicationContext as Application,
-                    db.chatSessionDao,
-                    db.conversationDao
-                ) as T
-            }
-        }
+        factory = chatHistoryViewModelFactory(context.applicationContext as Application)
     )
 
     var atajoCumplido by rememberSaveable { mutableStateOf<String?>(null) }
@@ -470,7 +413,9 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
 
     LaunchedEffect(Unit) {
         if (activity?.intent?.getBooleanExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE, false) == true) {
-            currentScreen = Screen.UpdateInfo
+            // Spec 044, RF-324: la pantalla de actualización vive ahora en la Activity de ajustes.
+            launchSettings(context, SettingsDestination.UPDATE)
+            activity?.intent?.removeExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE)
         }
         val noteId = activity?.intent?.getIntExtra("open_note_id", -1) ?: -1
         if (noteId > 0) {

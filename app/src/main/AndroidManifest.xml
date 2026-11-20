@@ -203,6 +203,13 @@
             android:label="@string/crash_report_title"
             android:theme="@style/Theme.MyApplication" />
 
+        <!-- Spec 044: ajustes como Activity propia, sin exportar y sin filtros de intents (RNF-206). -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/nav_settings"
+            android:theme="@style/Theme.MyApplication" />
+
         <activity
             android:name=".widget.SingleNoteConfigActivity"
             android:exported="false"

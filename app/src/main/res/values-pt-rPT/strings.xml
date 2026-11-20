@@ -1160,4 +1160,9 @@ O que deseja fazer?</string>
     <string name="chat_model_info_template_unavailable">Não disponível</string>
     <string name="chat_model_info_copy_desc">Copiar informação do modelo</string>
     <string name="ai_ondevice_delete_failed">Não foi possível apagar o ficheiro do modelo</string>
+    <string name="settings_search_placeholder">Pesquisar definições</string>
+    <string name="settings_search_empty">Nenhuma definição encontrada</string>
+    <string name="settings_group_general">Geral</string>
+    <string name="settings_appearance_desc">Tema, modo escuro e aspeto</string>
+    <string name="settings_language_desc">Idioma da interface</string>
 </resources>
