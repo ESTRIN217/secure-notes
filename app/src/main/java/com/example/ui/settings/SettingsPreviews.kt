@@ -1,12 +1,13 @@
 package com.example.ui.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.estrin217.tema.AppThemes
 import com.example.DarkModeOption
 import com.example.ui.theme.MyApplicationTheme
@@ -96,6 +97,36 @@ private fun PreviewDetailPane(
                     onDarkModeSelected = {},
                     onOpenOverlaySettings = {}
                 )
+            }
+        }
+    }
+}
+
+@Preview(name = "Ajustes Two-Pane Tablet/PC", showBackground = true, widthDp = 1024, heightDp = 768)
+@Composable
+fun SettingsTwoPanePreview() {
+    MyApplicationTheme(darkTheme = true) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Row(Modifier.fillMaxSize()) {
+                Surface(
+                    Modifier
+                        .width(320.dp)
+                        .fillMaxHeight()
+                ) {
+                    SettingsCategoryList(selected = SettingsDestination.APPEARANCE, onSelect = {})
+                }
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(16.dp)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        SettingsDetailHeader(title = categoryLabel(SettingsDestination.APPEARANCE), onClose = {})
+                    }
+                }
             }
         }
     }
