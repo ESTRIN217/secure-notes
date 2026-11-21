@@ -1,12 +1,12 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -45,10 +45,8 @@ import com.example.ui.viewmodel.UpdateDownloadState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateInfoScreen(
-    viewModel: UpdaterViewModel,
-    onBack: () -> Unit
+    viewModel: UpdaterViewModel
 ) {
-    BackHandler(onBack = onBack)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showChangelog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -106,24 +104,7 @@ fun UpdateInfoScreen(
     // escriben en GitHub y el HTML crudo de ahí es legítimo.
     MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
     Scaffold(
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.settings_check_update),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-              }
-            },
-            actions = {}
-          )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         LazyColumn(

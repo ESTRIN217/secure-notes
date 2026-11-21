@@ -1,5 +1,6 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -7,7 +8,6 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,10 +38,8 @@ import com.example.ui.viewmodel.ConnectionState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiSettingsScreen(
-    aiViewModel: AiViewModel,
-    onBack: () -> Unit
+    aiViewModel: AiViewModel
 ) {
-    BackHandler(onBack = onBack)
     val aiEnabled by aiViewModel.aiEnabled.collectAsStateWithLifecycle()
     val aiBackend by aiViewModel.backend.collectAsStateWithLifecycle()
     val aiEndpointUrl by aiViewModel.endpointUrl.collectAsStateWithLifecycle()
@@ -59,24 +57,7 @@ fun AiSettingsScreen(
     val bestModel = aiViewModel.bestModel
 
     Scaffold(
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.ai_settings_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-              }
-            },
-            actions = {}
-          )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         LazyColumn(

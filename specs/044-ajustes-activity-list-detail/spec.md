@@ -112,6 +112,47 @@ cambiar el alcance, el candado ni los accesos.
   opciones del selector de idioma (el contenido del bottom sheet), sin abrir un modal.
 - RF-333: CUANDO se elige un idioma desde el detalle, EL SISTEMA aplica el cambio y recrea la
   Activity, igual que lo hacía el bottom sheet.
+- RF-334: CUANDO se selecciona la categoría IA, EL SISTEMA muestra `AiSettingsScreen` directamente
+  en el panel de detalle, sin una página intermedia con el interruptor; el listado conserva la
+  categoría y su estado seleccionado.
+- RF-335: CUANDO se selecciona la categoría Privacidad y seguridad, EL SISTEMA muestra
+  `PrivacySettingsScreen` directamente en el panel de detalle, sin una página intermedia con una
+  sola fila; el listado conserva la categoría y su estado seleccionado.
+- RF-336: EL SISTEMA muestra en la lista una sección «Almacenamiento y datos» con dos entradas —
+  Copia de seguridad y restauración y Administrador de almacenamiento— que abren sus pantallas
+  directamente en el panel de detalle, sin la categoría ni la sección intermedia anteriores.
+- RF-337: EL SISTEMA muestra en la lista una sección «Legal» con dos entradas —Términos y privacidad
+  y Licencias de código abierto— que abren sus pantallas directamente en el panel de detalle, sin
+  la categoría ni la sección intermedia anteriores.
+- RF-338: EL SISTEMA muestra en la lista una sección «Aplicación e información» con tres entradas —
+  Buscar actualizaciones, Registro de cambios y Acerca de— que abren sus pantallas directamente en
+  el panel de detalle, sin la categoría ni la sección intermedia anteriores. El registro de cambios
+  deja de ser una hoja modal y se convierte en contenido del detalle.
+- RF-339: EL SISTEMA incluye en la búsqueda de la lista los términos del contenido de las pantallas
+  de detalle, además del título y subtítulo de cada entrada; buscar «backend» encuentra Ajustes de
+  IA y buscar «contraseña» encuentra Privacidad y seguridad.
+- RF-340: MIENTRAS el ancho es menor de 600 dp, EL SISTEMA muestra una única `MediumTopAppBar` en
+  ajustes con botón de vuelta y un título que pasa de grande a mediano al desplazarse la lista; en
+  600 dp o más no muestra esa barra.
+- RF-341: EL SISTEMA elimina la barra superior y el botón de vuelta propios de las pantallas de
+  detalle; en móvil la vuelta la da la barra global y en tablet/PC el encabezado del detalle con X.
+- RF-342: EL SISTEMA muestra una acción X en la barra de búsqueda de ajustes cuando hay texto
+  escrito, que lo borra de una sola pulsación, y no muestra ningún título por encima de la barra.
+- RF-343: EL SISTEMA mantiene el desplazamiento de la lista de ajustes y del panel de detalle tras
+  introducir la barra global, dando altura acotada al contenido del `Scaffold`.
+- RF-344: EL SISTEMA muestra un chevron al final de cada fila de la lista solo cuando el ancho es
+  menor de 600 dp, en lugar de la marca de check; en tablet/PC la fila no lleva icono final porque
+  el detalle ya está visible. El estado seleccionado se sigue comunicando por semántica accesible.
+- RF-345: EL SISTEMA coloca la barra superior de ajustes como primer hijo de un `Column` raíz, con
+  el scaffold adaptativo en el espacio restante, y conecta el desplazamiento directamente a la
+  lista scrolleable, de modo que la lista se desplace y la barra colapse sin interferencias.
+- RF-346: EL SISTEMA conecta el desplazamiento de la barra superior al contenedor común de los
+  paneles, no al `LazyColumn` del listado, para que la lista scrollee y la barra colapse a la vez.
+- RF-347: EL SISTEMA cambia el estilo del título de la barra de grande a pequeño cuando la lista se
+  desplaza, observando el desplazamiento en solo lectura, sin consumir el gesto de scroll.
+- RF-348: EL SISTEMA aplica el padding de la barra de estado al contenido de ajustes de modo que la
+  barra de búsqueda no quede tapada: con dos paneles se aplica el padding completo del sistema y con
+  un solo panel solo los laterales e inferiores, porque la barra superior ya cubre la parte superior.
 - RNF-211: Todo texto nuevo visible sale de `strings.xml` en los nueve locales.
 - RNF-212: Las filas tienen un objetivo táctil de al menos 48 dp, nombre accesible, foco visible y
   textos que escalan sin recortarse; la selección no se comunica solo con color.

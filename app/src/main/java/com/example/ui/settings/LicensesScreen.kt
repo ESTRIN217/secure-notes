@@ -1,9 +1,9 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,10 +28,8 @@ import com.example.util.loadOssLicenses
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LicensesScreen(
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BackHandler(onBack = onBack)
     val context = LocalContext.current
     var ossLibraries by remember { mutableStateOf<List<OssLibrary>>(emptyList()) }
 
@@ -51,27 +49,7 @@ fun LicensesScreen(
     }
 
     Scaffold(
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.licenses_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-              }
-            },
-            actions = {}
-          )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->

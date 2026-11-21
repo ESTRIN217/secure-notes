@@ -20,6 +20,8 @@ debug.keystore
 key.properties
 *.jks
 *.keystore
+*.zip
+*.out
 workspace.json
 app/google-services.json
 # Firebase Hosting (caché local de despliegue)

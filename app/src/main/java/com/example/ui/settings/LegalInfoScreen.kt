@@ -1,6 +1,6 @@
 package com.example.ui.settings
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -40,35 +40,13 @@ import androidx.compose.material3.TopAppBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegalInfoScreen(
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BackHandler(onBack = onBack)
     var expandedSection by remember { mutableStateOf<Int?>(null) }
 
     MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
     Scaffold(
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.legal_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-              }
-            },
-            actions = {}
-          )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->

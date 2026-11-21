@@ -1164,4 +1164,6 @@ What would you like to do?</string>
     <string name="settings_group_general">General</string>
     <string name="settings_appearance_desc">Theme, dark mode and look</string>
     <string name="settings_language_desc">Interface language</string>
+    <string name="settings_group_app_info">App &amp; info</string>
+    <string name="settings_check_update_desc">Check for new versions</string>
 </resources>

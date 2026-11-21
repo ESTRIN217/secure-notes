@@ -1,6 +1,6 @@
 package com.example.ui.settings
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,8 +33,7 @@ import com.example.ui.viewmodel.StorageViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StorageManagerScreen(
-    viewModel: StorageViewModel,
-    onBack: () -> Unit
+    viewModel: StorageViewModel
 ) {
     val overview by viewModel.overview.collectAsStateWithLifecycle()
     val orphanFiles by viewModel.orphanFiles.collectAsStateWithLifecycle()
@@ -44,31 +43,12 @@ fun StorageManagerScreen(
     val autoCleanupEnabled by viewModel.autoCleanupEnabled.collectAsStateWithLifecycle()
     val lastCleanupMessage by viewModel.lastCleanupMessage.collectAsStateWithLifecycle()
 
-    BackHandler(onBack = onBack)
-
     LaunchedEffect(Unit) {
         viewModel.scanStorage()
     }
 
     Scaffold(
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.settings_storage_manager),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-            },
-            actions = {}
-          )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         LazyColumn(

@@ -3,13 +3,15 @@ package com.example.ui.settings
 import com.example.R
 
 /**
- * Spec 044 enmienda, RF-326…RF-328. Catálogo de las ocho categorías del panel izquierdo.
+ * Spec 044 enmienda, RF-326…RF-328 y RF-336. Catálogo de las entradas del panel izquierdo.
  * Solo enteros y recursos: se prueba sin `Context` ni Robolectric (RNF-212).
  */
 enum class SettingsGroup(val labelRes: Int) {
     GENERAL(R.string.settings_group_general),
     PRIVACY(R.string.settings_privacy_security),
-    INFORMATION(R.string.settings_information)
+    STORAGE_DATA(R.string.settings_storage_data),
+    LEGAL(R.string.settings_legal),
+    APP_INFO(R.string.settings_group_app_info)
 }
 
 data class SettingsCategoryInfo(
@@ -52,28 +54,56 @@ val CATEGORIES: List<SettingsCategoryInfo> = listOf(
         SettingsGroup.PRIVACY
     ),
     SettingsCategoryInfo(
-        SettingsDestination.STORAGE,
-        R.string.settings_storage_data,
+        SettingsDestination.BACKUP,
+        R.string.settings_backup_restore,
+        R.string.settings_backup_restore_desc,
+        SettingsGroup.STORAGE_DATA
+    ),
+    SettingsCategoryInfo(
+        SettingsDestination.STORAGE_MANAGER,
+        R.string.settings_storage_manager,
         R.string.settings_storage_manager_desc,
-        SettingsGroup.PRIVACY
+        SettingsGroup.STORAGE_DATA
     ),
     SettingsCategoryInfo(
-        SettingsDestination.LEGAL,
-        R.string.settings_legal,
+        SettingsDestination.LEGAL_INFO,
+        R.string.settings_terms_privacy,
         R.string.settings_legal_desc,
-        SettingsGroup.INFORMATION
+        SettingsGroup.LEGAL
     ),
     SettingsCategoryInfo(
-        SettingsDestination.INFORMATION,
-        R.string.settings_information,
+        SettingsDestination.LICENSES,
+        R.string.settings_licenses,
+        R.string.about_licenses_desc,
+        SettingsGroup.LEGAL
+    ),
+    SettingsCategoryInfo(
+        SettingsDestination.UPDATE,
+        R.string.settings_check_update,
+        R.string.settings_check_update_desc,
+        SettingsGroup.APP_INFO
+    ),
+    SettingsCategoryInfo(
+        SettingsDestination.CHANGELOG,
+        R.string.settings_changelog,
+        R.string.settings_changelog_desc,
+        SettingsGroup.APP_INFO
+    ),
+    SettingsCategoryInfo(
+        SettingsDestination.ABOUT,
+        R.string.settings_about,
         R.string.settings_about_desc,
-        SettingsGroup.INFORMATION
+        SettingsGroup.APP_INFO
     )
 )
 
-/** RF-326: una consulta vacía no filtra; en cualquier otro caso busca en título o subtítulo. */
-fun matchesQuery(title: String, subtitle: String, query: String): Boolean {
+/** RF-326/RF-339: una consulta vacía no filtra; en cualquier otro caso busca en todo el haystack. */
+fun matchesQuery(haystack: List<String>, query: String): Boolean {
     val term = query.trim()
     if (term.isEmpty()) return true
-    return title.contains(term, ignoreCase = true) || subtitle.contains(term, ignoreCase = true)
+    return haystack.any { it.contains(term, ignoreCase = true) }
 }
+
+/** Versión de dos campos, conservada para las pruebas del catálogo. */
+fun matchesQuery(title: String, subtitle: String, query: String): Boolean =
+    matchesQuery(listOf(title, subtitle), query)

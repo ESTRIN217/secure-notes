@@ -2,19 +2,31 @@ package com.example.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Palette
@@ -29,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -40,9 +53,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,53 +133,112 @@ fun SettingsApp(
 
     BackHandler { goBack() }
 
-    NavigableListDetailPaneScaffold(
-        modifier = modifier,
-        navigator = navigator,
-        listPane = {
-            AnimatedPane(modifier = Modifier.widthIn(max = 280.dp)) {
-                SettingsCategoryList(
-                    selected = navigator.currentDestination?.contentKey
-                        ?: CATEGORIES.first().destination,
-                    onSelect = { openDetail(it) }
-                )
-            }
-        },
-        detailPane = {
-            AnimatedPane {
-                SettingsDetailPane(
-                    destination = navigator.currentDestination?.contentKey,
-                    notesViewModel = notesViewModel,
-                    themeViewModel = themeViewModel,
-                    aiViewModel = aiViewModel,
-                    backupViewModel = backupViewModel,
-                    storageViewModel = storageViewModel,
-                    updaterViewModel = updaterViewModel,
-                    onNavigate = { openDetail(it) },
-                    onBack = { goBack() }
-                )
-            }
+    // RF-340/RF-347: una sola barra en móvil; en tablet/PC no hay barra global y el detalle pone
+    // título + X. El efecto medium→small se hace observando el scroll en solo lectura, SIN
+    // nestedScroll connection: ese connection consumía el gesto y rompía el scroll (RF-346).
+    var titleCollapsed by remember { mutableStateOf(false) }
+    val current = navigator.currentDestination?.contentKey
+    val appBarTitle = if (current == null || current == SettingsDestination.HUB) {
+        stringResource(R.string.nav_settings)
+    } else {
+        categoryLabel(current)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        if (!hasTwoPanes) {
+            MediumTopAppBar(
+                title = {
+                    Text(
+                        text = appBarTitle,
+                        style = if (titleCollapsed) MaterialTheme.typography.titleSmall
+                                else MaterialTheme.typography.titleLarge
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { goBack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                }
+            )
         }
-    )
+        // RF-348: en tablet no hay topbar, así que el Box aplica todo el padding del sistema; en
+        // móvil la MediumTopAppBar ya cubre el Top, así que aquí solo se aplican laterales y abajo.
+        val contentInsets = if (hasTwoPanes) {
+            WindowInsets.systemBars
+        } else {
+            WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+        }
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .windowInsetsPadding(contentInsets)
+        ) {
+            NavigableListDetailPaneScaffold(
+                navigator = navigator,
+                listPane = {
+                    AnimatedPane(modifier = Modifier.fillMaxSize().widthIn(max = 280.dp)) {
+                        SettingsCategoryList(
+                            selected = current ?: CATEGORIES.first().destination,
+                            showChevron = !hasTwoPanes,
+                            onScroll = { offset -> titleCollapsed = offset > 64 },
+                            onSelect = { openDetail(it) }
+                        )
+                    }
+                },
+                detailPane = {
+                    AnimatedPane(modifier = Modifier.fillMaxSize()) {
+                        SettingsDetailPane(
+                            destination = current,
+                            showHeader = hasTwoPanes,
+                            notesViewModel = notesViewModel,
+                            themeViewModel = themeViewModel,
+                            aiViewModel = aiViewModel,
+                            backupViewModel = backupViewModel,
+                            storageViewModel = storageViewModel,
+                            updaterViewModel = updaterViewModel,
+                            onNavigate = { openDetail(it) },
+                            onClose = { goBack() }
+                        )
+                    }
+                }
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsCategoryList(
     selected: SettingsDestination?,
+    showChevron: Boolean = true,
+    onScroll: (Int) -> Unit = {},
     onSelect: (SettingsDestination) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemScrollOffset }
+            .collect { onScroll(it) }
+    }
     val searchLabel = stringResource(R.string.settings_search_placeholder)
     val visible = CATEGORIES.filter { info ->
-        matchesQuery(stringResource(info.labelRes), stringResource(info.summaryRes), query)
+        // RF-339: título, subtítulo y términos del contenido de su pantalla de detalle.
+        val haystack = buildList {
+            add(stringResource(info.labelRes))
+            add(stringResource(info.summaryRes))
+            searchTermsFor(info.destination).forEach { add(stringResource(it)) }
+        }
+        matchesQuery(haystack, query)
     }
     Column(Modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(R.string.nav_settings),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-        )
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -174,8 +248,18 @@ internal fun SettingsCategoryList(
                 .semantics { contentDescription = searchLabel },
             singleLine = true,
             shape = RoundedCornerShape(28.dp),
-            placeholder = { Text(stringResource(R.string.settings_search_placeholder)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
+            placeholder = { Text(searchLabel) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = stringResource(R.string.clear_search)
+                        )
+                    }
+                }
+            }
         )
         if (visible.isEmpty()) {
             Text(
@@ -185,7 +269,7 @@ internal fun SettingsCategoryList(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp)
             )
         } else {
-            LazyColumn {
+            LazyColumn(modifier = Modifier.weight(1f), state = listState) {
                 visible.groupBy { it.group }.forEach { (group, items) ->
                     item(key = "header_${group.name}") {
                         Text(
@@ -196,7 +280,7 @@ internal fun SettingsCategoryList(
                         )
                     }
                     items(items, key = { it.destination.name }) { info ->
-                        SettingsCategoryRow(info, selected == info.destination) {
+                        SettingsCategoryRow(info, selected == info.destination, showChevron) {
                             onSelect(info.destination)
                         }
                     }
@@ -211,6 +295,7 @@ internal fun SettingsCategoryList(
 private fun SettingsCategoryRow(
     info: SettingsCategoryInfo,
     isSelected: Boolean,
+    showChevron: Boolean,
     onClick: () -> Unit
 ) {
     val container = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
@@ -231,11 +316,13 @@ private fun SettingsCategoryRow(
             )
         },
         trailingContent = {
-            if (isSelected) {
+            // RF-344: en móvil la fila navega al detalle; en tablet el detalle ya está visible.
+            if (showChevron) {
                 Icon(
-                    Icons.Default.Check,
+                    Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                           else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -255,6 +342,7 @@ private fun SettingsCategoryRow(
 @Composable
 private fun SettingsDetailPane(
     destination: SettingsDestination?,
+    showHeader: Boolean,
     notesViewModel: NotesViewModel,
     themeViewModel: ThemeViewModel,
     aiViewModel: AiViewModel,
@@ -262,32 +350,61 @@ private fun SettingsDetailPane(
     storageViewModel: StorageViewModel,
     updaterViewModel: UpdaterViewModel,
     onNavigate: (SettingsDestination) -> Unit,
-    onBack: () -> Unit
+    onClose: () -> Unit
 ) {
-    val context = LocalContext.current
     if (destination == null || destination == SettingsDestination.HUB) return
-    if (destination.isCategory) {
+    if (showHeader) {
         Column(Modifier.fillMaxSize()) {
-            SettingsDetailHeader(title = categoryLabel(destination), onClose = onBack)
-            SettingsCategoryDetail(
-                category = destination,
-                themeViewModel = themeViewModel,
-                aiViewModel = aiViewModel,
-                onNavigate = onNavigate,
-                onOpenCodeEditor = { launchCodeEditor(context) }
+            SettingsDetailHeader(title = categoryLabel(destination), onClose = onClose)
+            SettingsDetailContent(
+                destination, notesViewModel, themeViewModel, aiViewModel,
+                backupViewModel, storageViewModel, updaterViewModel, onNavigate, onClose
             )
         }
     } else {
+        SettingsDetailContent(
+            destination, notesViewModel, themeViewModel, aiViewModel,
+            backupViewModel, storageViewModel, updaterViewModel, onNavigate, onClose
+        )
+    }
+}
+
+@Composable
+private fun SettingsDetailContent(
+    destination: SettingsDestination,
+    notesViewModel: NotesViewModel,
+    themeViewModel: ThemeViewModel,
+    aiViewModel: AiViewModel,
+    backupViewModel: BackupViewModel,
+    storageViewModel: StorageViewModel,
+    updaterViewModel: UpdaterViewModel,
+    onNavigate: (SettingsDestination) -> Unit,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    // Las sub-pantallas ya no llevan barra ni back: en móvil los da la topbar global y en tablet
+    // el encabezado del panel (RF-341).
+    if (destination.isCategory &&
+        destination != SettingsDestination.AI &&
+        destination != SettingsDestination.PRIVACY
+    ) {
+        SettingsCategoryDetail(
+            category = destination,
+            themeViewModel = themeViewModel,
+            onOpenCodeEditor = { launchCodeEditor(context) }
+        )
+    } else {
         when (destination) {
-            SettingsDestination.PRIVACY_SETTINGS -> PrivacySettingsScreen(notesViewModel, onBack)
-            SettingsDestination.BACKUP -> BackupRestoreScreen(backupViewModel, onBack)
-            SettingsDestination.STORAGE_MANAGER -> StorageManagerScreen(storageViewModel, onBack)
-            SettingsDestination.AI_SETTINGS -> AiSettingsScreen(aiViewModel, onBack)
-            SettingsDestination.LEGAL_INFO -> LegalInfoScreen(onBack)
-            SettingsDestination.LICENSES -> LicensesScreen(onBack)
-            SettingsDestination.UPDATE -> UpdateInfoScreen(updaterViewModel, onBack)
+            SettingsDestination.PRIVACY, SettingsDestination.PRIVACY_SETTINGS ->
+                PrivacySettingsScreen(notesViewModel, onDone = onClose)
+            SettingsDestination.BACKUP -> BackupRestoreScreen(backupViewModel)
+            SettingsDestination.STORAGE_MANAGER -> StorageManagerScreen(storageViewModel)
+            SettingsDestination.AI, SettingsDestination.AI_SETTINGS -> AiSettingsScreen(aiViewModel)
+            SettingsDestination.LEGAL_INFO -> LegalInfoScreen()
+            SettingsDestination.LICENSES -> LicensesScreen()
+            SettingsDestination.UPDATE -> UpdateInfoScreen(updaterViewModel)
+            SettingsDestination.CHANGELOG -> ChangelogScreen()
             SettingsDestination.ABOUT -> AboutScreen(
-                onBack = onBack,
                 onNavigateToLegalInfo = { onNavigate(SettingsDestination.LEGAL_INFO) },
                 onNavigateToLicenses = { onNavigate(SettingsDestination.LICENSES) }
             )
@@ -316,15 +433,22 @@ internal fun SettingsDetailHeader(title: String, onClose: () -> Unit) {
 }
 
 @Composable
-private fun categoryLabel(destination: SettingsDestination): String = when (destination) {
+internal fun categoryLabel(destination: SettingsDestination): String = when (destination) {
     SettingsDestination.APPEARANCE -> stringResource(R.string.settings_appearance)
     SettingsDestination.LANGUAGE -> stringResource(R.string.settings_language)
     SettingsDestination.PRIVACY -> stringResource(R.string.settings_privacy_security)
     SettingsDestination.STORAGE -> stringResource(R.string.settings_storage_data)
+    SettingsDestination.BACKUP -> stringResource(R.string.settings_backup_restore)
+    SettingsDestination.STORAGE_MANAGER -> stringResource(R.string.settings_storage_manager)
     SettingsDestination.AI -> stringResource(R.string.ai_section)
     SettingsDestination.TOOLS -> stringResource(R.string.settings_tools)
     SettingsDestination.LEGAL -> stringResource(R.string.settings_legal)
+    SettingsDestination.LEGAL_INFO -> stringResource(R.string.settings_terms_privacy)
+    SettingsDestination.LICENSES -> stringResource(R.string.settings_licenses)
     SettingsDestination.INFORMATION -> stringResource(R.string.settings_information)
+    SettingsDestination.UPDATE -> stringResource(R.string.settings_check_update)
+    SettingsDestination.CHANGELOG -> stringResource(R.string.settings_changelog)
+    SettingsDestination.ABOUT -> stringResource(R.string.settings_about)
     else -> stringResource(R.string.nav_settings)
 }
 
@@ -333,8 +457,15 @@ private fun categoryIcon(destination: SettingsDestination): ImageVector = when (
     SettingsDestination.LANGUAGE -> Icons.Default.Language
     SettingsDestination.PRIVACY -> Icons.Default.Shield
     SettingsDestination.STORAGE -> Icons.Default.Storage
+    SettingsDestination.BACKUP -> Icons.Default.CloudDownload
+    SettingsDestination.STORAGE_MANAGER -> Icons.Default.Storage
     SettingsDestination.AI -> Icons.Default.Psychology
     SettingsDestination.TOOLS -> Icons.Default.Layers
     SettingsDestination.LEGAL -> Icons.Default.Description
+    SettingsDestination.LEGAL_INFO -> Icons.Default.Description
+    SettingsDestination.LICENSES -> Icons.Default.Code
+    SettingsDestination.UPDATE -> Icons.Default.Update
+    SettingsDestination.CHANGELOG -> Icons.Default.History
+    SettingsDestination.ABOUT -> Icons.Default.Info
     else -> Icons.Default.Update
 }

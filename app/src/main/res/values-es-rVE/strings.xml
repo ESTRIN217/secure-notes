@@ -1143,4 +1143,6 @@ Diferencia: %3$s
     <string name="settings_group_general">General</string>
     <string name="settings_appearance_desc">Tema, modo oscuro y apariencia</string>
     <string name="settings_language_desc">Idioma de la interfaz</string>
+    <string name="settings_group_app_info">Aplicación e información</string>
+    <string name="settings_check_update_desc">Buscar nuevas versiones</string>
 </resources>

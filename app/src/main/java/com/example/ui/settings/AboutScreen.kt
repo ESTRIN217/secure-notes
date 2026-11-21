@@ -1,10 +1,10 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,12 +38,10 @@ import com.example.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
-    onBack: () -> Unit,
     onNavigateToLegalInfo: () -> Unit = {},
     onNavigateToLicenses: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    BackHandler(onBack = onBack)
     val context = LocalContext.current
 
     val platformLabel = stringResource(R.string.platform_android)
@@ -74,27 +72,7 @@ fun AboutScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.about_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back)
-                        )
-                    }
-                },
-                actions = {}
-            )
-        },
+        contentWindowInsets = WindowInsets(0),
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->

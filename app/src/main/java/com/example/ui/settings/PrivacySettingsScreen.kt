@@ -1,8 +1,8 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.biometric.AuthenticationRequest
 import androidx.biometric.AuthenticationResult
 import androidx.biometric.AuthenticationResultCallback
@@ -49,9 +49,8 @@ import com.example.util.toLabelRes
 @Composable
 fun PrivacySettingsScreen(
     viewModel: NotesViewModel,
-    onBack: () -> Unit
+    onDone: () -> Unit = {}
 ) {
-    BackHandler(onBack = onBack)
     val isPasswordSet by viewModel.isPasswordSet.collectAsStateWithLifecycle()
     val passwordType by viewModel.passwordType.collectAsStateWithLifecycle()
     val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
@@ -117,25 +116,8 @@ fun PrivacySettingsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-          TopAppBar(
-            title = {
-              Text(
-                        text = stringResource(R.string.title_lock_settings),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-            },
-            navigationIcon = {
-              IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-              }
-            },
-            actions = {}
-          )
-        },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         LazyColumn(
@@ -333,7 +315,7 @@ fun PrivacySettingsScreen(
                                         return@Button
                                     }
                                     viewModel.setMasterPassword(passwordInput)
-                                    onBack()
+                                    onDone()
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -633,7 +615,7 @@ fun PrivacySettingsScreen(
                             Button(
                                 onClick = {
                                     viewModel.deletePassword()
-                                    onBack()
+                                    onDone()
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -1,13 +1,14 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.layout.WindowInsets
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,18 +30,15 @@ import com.example.data.updates.UpdateFetcher
 private const val TAG = "ChangelogSheet"
 
 /**
- * Las notas de cada release, pintadas con el motor de Markdown (spec 018, RF-105).
+ * Spec 044 enmienda, RF-338. Las notas de cada release, pintadas con el motor de Markdown (spec 018,
+ * RF-105). El texto se entrega **literal**: las notas se escriben en GitHub, donde el HTML crudo es
+ * legítimo; pasarlas por la adaptación del chat retiraría etiquetas que aquí sí significan algo.
  *
- * El texto se entrega **literal**: las notas se escriben en GitHub, donde el HTML crudo —un `<details>`, un
- * `<hr>`— es legítimo y se ve. Pasarlo por la adaptación del chat **haría daño**, porque esa adaptación está
- * hecha para el markup heredado de las notas de la app y retiraría etiquetas que aquí sí significan algo.
- *
- * El motor va por encima del `LazyColumn` de la hoja, nunca dentro de cada release: la lista descarta lo que
- * sale de pantalla, y un motor por release se reconstruiría en cada vuelta.
+ * Antes vivía en un `ModalBottomSheet`; ahora el mismo contenido se reutiliza en el panel de detalle.
+ * El motor se provee una sola vez por encima de la lista, nunca por release.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChangelogBottomSheet(onDismiss: () -> Unit) {
+fun ChangelogContent(modifier: Modifier = Modifier) {
     var releases by remember { mutableStateOf<List<GithubRelease>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
@@ -49,33 +47,16 @@ fun ChangelogBottomSheet(onDismiss: () -> Unit) {
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            val fetcher = UpdateFetcher()
-            releases = fetcher.fetchReleases()
-            isLoading = false
+            releases = UpdateFetcher().fetchReleases()
         } catch (e: Exception) {
             Log.e(TAG, "failed to load changelog", e)
-            isLoading = false
             error = true
         }
+        isLoading = false
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    ) {
-     MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = 48.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.settings_changelog),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
+    MarkdownEngine.ProvidesMarkdownEngine(colores = markdownColors()) {
+        Column(modifier = modifier.fillMaxWidth()) {
             when {
                 isLoading -> {
                     Box(
@@ -100,53 +81,61 @@ fun ChangelogBottomSheet(onDismiss: () -> Unit) {
                         )
                     }
                 }
+                releases.isEmpty() -> {
+                    Text(
+                        text = stringResource(R.string.changelog_empty),
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
                 else -> {
-                    if (releases.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.changelog_empty),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(releases) { release ->
-                                ChangelogReleaseItem(release = release)
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedButton(
-                                    onClick = {
-                                val intent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse(AppUpdateConfig.releasesWebUrl)
-                                )
-                                        context.startActivity(intent)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(releases) { release -> ChangelogReleaseItem(release = release) }
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    val intent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(AppUpdateConfig.releasesWebUrl)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(stringResource(R.string.about_github))
-                                }
-                                Spacer(modifier = Modifier.height(24.dp))
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.about_github))
                             }
+                            Spacer(modifier = Modifier.height(24.dp))
                         }
                     }
                 }
             }
         }
-        }
+    }
+}
+
+/** Pantalla del registro de cambios en el panel de detalle (RF-338). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChangelogScreen() {
+    Scaffold(
+        contentWindowInsets = WindowInsets(0),
+    ) { innerPadding ->
+        ChangelogContent(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+        )
     }
 }
 

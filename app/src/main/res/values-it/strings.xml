@@ -1101,4 +1101,6 @@ Cosa vuoi fare?</string>
     <string name="settings_group_general">Generale</string>
     <string name="settings_appearance_desc">Tema, modalità scura e aspetto</string>
     <string name="settings_language_desc">Lingua dell\'interfaccia</string>
+    <string name="settings_group_app_info">App e informazioni</string>
+    <string name="settings_check_update_desc">Cerca nuove versioni</string>
 </resources>

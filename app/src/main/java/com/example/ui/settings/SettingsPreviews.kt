@@ -6,11 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.estrin217.tema.AppThemes
 import com.example.DarkModeOption
-import com.example.R
 import com.example.ui.theme.MyApplicationTheme
 
 /**
@@ -36,7 +34,7 @@ fun SettingsDetailHeaderPreview() {
     MyApplicationTheme(darkTheme = true) {
         Surface(color = MaterialTheme.colorScheme.background) {
             SettingsDetailHeader(
-                title = stringResource(R.string.settings_appearance),
+                title = categoryLabel(SettingsDestination.APPEARANCE),
                 onClose = {}
             )
         }
@@ -75,19 +73,13 @@ fun LanguageOptionsPreview() {
 private fun PreviewDetailPane(
     category: SettingsDestination,
     language: String = "",
-    aiEnabled: Boolean = true,
     floatingActive: Boolean = false
 ) {
     MyApplicationTheme(darkTheme = true) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column {
                 SettingsDetailHeader(
-                    title = when (category) {
-                        SettingsDestination.APPEARANCE -> stringResource(R.string.settings_appearance)
-                        SettingsDestination.LANGUAGE -> stringResource(R.string.settings_language)
-                        SettingsDestination.INFORMATION -> stringResource(R.string.settings_information)
-                        else -> stringResource(R.string.nav_settings)
-                    },
+                    title = categoryLabel(category),
                     onClose = {}
                 )
                 SettingsCategoryContent(
@@ -95,13 +87,10 @@ private fun PreviewDetailPane(
                     appTheme = AppThemes.dynamic,
                     darkMode = DarkModeOption.SYSTEM,
                     language = language,
-                    aiEnabled = aiEnabled,
                     floatingActive = floatingActive,
                     canUseOverlay = true,
                     onLanguageSelected = {},
-                    onAiEnabled = {},
                     onFloatingToggle = {},
-                    onNavigate = {},
                     onOpenCodeEditor = {},
                     onThemeSelected = {},
                     onDarkModeSelected = {},

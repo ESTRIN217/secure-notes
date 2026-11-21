@@ -28,6 +28,7 @@ enum class SettingsDestination(val extraValue: String) {
     LEGAL_INFO("legal_info"),
     LICENSES("licenses"),
     UPDATE("update"),
+    CHANGELOG("changelog"),
     ABOUT("about");
 
     /** `true` solo para las ocho filas de la lista; el hub y las sub-pantallas no lo son. */
