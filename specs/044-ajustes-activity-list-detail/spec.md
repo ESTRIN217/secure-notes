@@ -153,6 +153,17 @@ cambiar el alcance, el candado ni los accesos.
 - RF-348: EL SISTEMA aplica el padding de la barra de estado al contenido de ajustes de modo que la
   barra de búsqueda no quede tapada: con dos paneles se aplica el padding completo del sistema y con
   un solo panel solo los laterales e inferiores, porque la barra superior ya cubre la parte superior.
+- RF-349: EL SISTEMA contrae y expande físicamente la altura de la barra superior a medida que se
+  desplaza la lista, y desvanece el título cuando el contenido pasa por debajo, igual que el patrón
+  de la referencia, sin consumir el gesto de scroll.
+- RF-350: EL SISTEMA contrae la barra de forma estable al desplazarse hacia abajo y la expande solo
+  al volver arriba (histéresis), sin vaivén, y el título pasa de grande a pequeño y se desvanece con
+  el desplazamiento, sin consumir el gesto de scroll.
+- RF-351: CUANDO se abre ajustes sin un destino explícito, EL SISTEMA resalta la primera categoría
+  solo si hay dos paneles; con un solo panel ninguna fila queda activa.
+- RF-352: EL SISTEMA abre ajustes desde el atajo del lanzador directamente en su Activity, sin pasar
+  por `MainActivity`; para ello usa un `activity-alias` exportado que apunta a la Activity de ajustes,
+  que sigue sin exportar. El destino `SETTINGS` desaparece del enrutado de atajos de la app.
 - RNF-211: Todo texto nuevo visible sale de `strings.xml` en los nueve locales.
 - RNF-212: Las filas tienen un objetivo táctil de al menos 48 dp, nombre accesible, foco visible y
   textos que escalan sin recortarse; la selección no se comunica solo con color.

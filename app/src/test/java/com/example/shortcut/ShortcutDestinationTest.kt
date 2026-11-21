@@ -22,8 +22,8 @@ class ShortcutDestinationTest {
         assertEquals(ShortcutDestination.NEW_NOTE, ShortcutDestination.desdeAccion(PREFIJO_ACCION + "NEW_NOTE"))
         assertEquals(ShortcutDestination.SEARCH, ShortcutDestination.desdeAccion(PREFIJO_ACCION + "SEARCH"))
         assertEquals(ShortcutDestination.AI_CHAT, ShortcutDestination.desdeAccion(PREFIJO_ACCION + "AI_CHAT"))
-        assertEquals(ShortcutDestination.SETTINGS, ShortcutDestination.desdeAccion(PREFIJO_ACCION + "SETTINGS"))
         assertEquals(ShortcutDestination.CODE_EDITOR, ShortcutDestination.desdeAccion(PREFIJO_ACCION + "CODE_EDITOR"))
+        assertNull(ShortcutDestination.desdeAccion(PREFIJO_ACCION + "SETTINGS"))
     }
 
     @Test
@@ -48,7 +48,7 @@ class ShortcutDestinationTest {
     }
 
     @Test
-    fun `las cinco claves son distintas entre si`() {
+    fun `las cuatro claves son distintas entre si`() {
         val claves = ShortcutDestination.entries.map { it.clave }
 
         assertEquals(claves.size, claves.distinct().size)

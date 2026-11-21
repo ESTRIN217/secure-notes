@@ -415,7 +415,7 @@ fun AppMainContent(viewModel: NotesViewModel, themeViewModel: ThemeViewModel, ai
         if (activity?.intent?.getBooleanExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE, false) == true) {
             // Spec 044, RF-324: la pantalla de actualización vive ahora en la Activity de ajustes.
             launchSettings(context, SettingsDestination.UPDATE)
-            activity?.intent?.removeExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE)
+            activity.intent.removeExtra(UpdaterViewModel.EXTRA_OPEN_UPDATE)
         }
         val noteId = activity?.intent?.getIntExtra("open_note_id", -1) ?: -1
         if (noteId > 0) {

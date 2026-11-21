@@ -210,6 +210,19 @@
             android:label="@string/nav_settings"
             android:theme="@style/Theme.MyApplication" />
 
+        <!--
+            Spec 044, RF-352: los atajos estáticos los lanza el launcher (otra app), así que el
+            destino tiene que ser exportado. En vez de exportar la Activity de ajustes, se expone
+            este alias que apunta a ella: SettingsActivity sigue sin exportar y el candado sigue
+            protegiendo su contenido. El atajo de ajustes apunta al alias, no a MainActivity.
+        -->
+        <activity-alias
+            android:name=".SettingsShortcutAlias"
+            android:exported="true"
+            android:targetActivity=".SettingsActivity"
+            android:label="@string/nav_settings"
+            android:theme="@style/Theme.MyApplication" />
+
         <activity
             android:name=".widget.SingleNoteConfigActivity"
             android:exported="false"

@@ -81,3 +81,16 @@
 - [x] **T29. Padding de barra de estado en el contenido.** RF-348
   - Hecho cuando: `consumeWindowInsets` se sustituye por `windowInsetsPadding` condicional (completo
     en tablet, laterales+abajo en móvil) y compile/assemble pasan.
+- [x] **T30. Contracción física de la barra desde el scroll pasivo.** RF-349
+  - Hecho cuando: `MediumTopAppBar` lleva `scrollBehavior` sin `nestedScroll`, `heightOffset` y
+    `contentOffset` se mueven desde el `snapshotFlow` del scroll y compile/assemble pasan.
+  - **REVESADO** por RF-350: mover heightOffset+contentOffset a la vez causaba vaivén de la barra.
+- [x] **T31. Contracción estable + título grande/pequeño con fade.** RF-350
+  - Hecho cuando: histéresis (>64 contrae, <8 expande) sin contentOffset/snap/fling evita el vaivén,
+    el título pasa de titleLarge a titleSmall y se desvanece con el offset, y compile/assemble pasan.
+- [x] **T32. Primera fila activa solo en dos paneles.** RF-351
+  - Hecho cuando: sin destino, la primera categoría se resalta solo con hasTwoPanes y compile/assemble
+    pasan.
+- [x] **T33. Atajo de ajustes directo vía alias exportado.** RF-352
+  - Hecho cuando: el alias exportado apunta a SettingsActivity (sigue sin exportar), el atajo apunta al
+    alias, SETTINGS sale del enum/enrutado, los invariantes se actualizan y compile/assemble pasan.

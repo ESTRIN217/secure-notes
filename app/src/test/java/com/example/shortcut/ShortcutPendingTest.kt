@@ -34,9 +34,9 @@ class ShortcutPendingTest {
     @Test
     fun `drenar dos veces no repite el destino`() {
         val pendiente = ShortcutPending()
-        pendiente.registra(ShortcutDestination.SETTINGS)
+        pendiente.registra(ShortcutDestination.CODE_EDITOR)
 
-        assertEquals(ShortcutDestination.SETTINGS, pendiente.drena())
+        assertEquals(ShortcutDestination.CODE_EDITOR, pendiente.drena())
         assertNull(pendiente.drena())
     }
 

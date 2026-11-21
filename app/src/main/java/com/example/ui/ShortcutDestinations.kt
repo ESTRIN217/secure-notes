@@ -3,19 +3,20 @@ package com.example.ui
 import android.content.Context
 import com.example.data.ai.AiBackend
 import com.example.shortcut.ShortcutDestination
-import com.example.ui.settings.SettingsDestination
-import com.example.ui.settings.launchSettings
 import com.example.ui.viewmodel.ChatHistoryViewModel
 
 /**
  * Cumple el destino de un atajo del lanzador (spec 021, RF-125, RF-126).
  *
- * Cuatro de los cinco destinos son **exactamente** los mismos `Screen` a los que ya navegan los botones de la
- * app, así que aquí no se abre ningún camino nuevo: la pantalla de búsqueda sigue yendo a la lista al pulsar
+ * Los cuatro destinos son **exactamente** los mismos `Screen` a los que ya navegan los botones de la app,
+ * así que aquí no se abre ningún camino nuevo: la pantalla de búsqueda sigue yendo a la lista al pulsar
  * atrás, y el chat sigue siendo el mismo chat.
  *
  * El único que sale de la app es [ShortcutDestination.CODE_EDITOR], que lanza su `Activity`. **Llega aquí
  * después de desbloquear**, porque quien decide eso es [com.example.shortcut.decidir] (RF-127).
+ *
+ * El atajo de ajustes **ya no aparece aquí** (Spec 044, RF-352): apunta directamente al alias exportado de
+ * la Activity de ajustes, así que el launcher lo abre sin pasar por `MainActivity` ni por esta función.
  */
 fun ejecutarDestino(
     destino: ShortcutDestination,
@@ -27,7 +28,6 @@ fun ejecutarDestino(
     when (destino) {
         ShortcutDestination.NEW_NOTE -> navigator.onNavigateTo(Screen.NoteEditor(0))
         ShortcutDestination.SEARCH -> navigator.onNavigateTo(Screen.Search)
-        ShortcutDestination.SETTINGS -> launchSettings(context)
         ShortcutDestination.CODE_EDITOR -> launchCodeEditor(context)
         ShortcutDestination.AI_CHAT -> abrirChatNuevo(chatHistoryViewModel, backend, navigator)
     }

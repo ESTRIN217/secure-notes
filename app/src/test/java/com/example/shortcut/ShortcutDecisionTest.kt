@@ -55,11 +55,11 @@ class ShortcutDecisionTest {
     }
 
     /**
-     * Los cinco destinos tienen que pasar por los dos caminos, no solo el primero: un brazo que se olvidara de
+     * Los cuatro destinos tienen que pasar por los dos caminos, no solo el primero: un brazo que se olvidara de
      * mirar `abierta` se vería verde con las pruebas de arriba.
      */
     @Test
-    fun `los cinco destinos se ejecutan con la boveda abierta y esperan con la cerrada`() {
+    fun `los cuatro destinos se ejecutan con la boveda abierta y esperan con la cerrada`() {
         ShortcutDestination.entries.forEach { destino ->
             val alAbrir = ShortcutPending()
             assertEquals(

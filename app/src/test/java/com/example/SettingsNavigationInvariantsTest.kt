@@ -19,8 +19,9 @@ class SettingsNavigationInvariantsTest {
         val activity = sinComentariosNiTextos("src/main/java/com/example/MainActivity.kt")
 
         assertTrue(screen.contains("launchSettings("))
-        assertTrue(shortcuts.contains("launchSettings("))
         assertTrue(activity.contains("launchSettings("))
+        // RF-352: el atajo de ajustes ya no pasa por ShortcutDestinations; apunta directo al alias.
+        assertFalse("el atajo no debe enrutarse por launchSettings", shortcuts.contains("launchSettings("))
         for (removed in removedScreens) {
             assertFalse("Screen.$removed sigue vivo", screen.contains("Screen.$removed"))
         }

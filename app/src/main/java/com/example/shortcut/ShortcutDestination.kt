@@ -3,9 +3,10 @@ package com.example.shortcut
 /**
  * El destino al que lleva un atajo del lanzador (spec 021, RF-125).
  *
- * Es un **conjunto cerrado de cinco destinos**, y por eso es una función pura sin `android` ni Compose: el
- * destino viaja en la **acción** del `Intent` que dispara el atajo, y este fichero es lo único que sabe qué
- * significa cada palabra.
+ * Es un **conjunto cerrado de cuatro destinos** (Spec 044, RF-352: el atajo de ajustes ya no pasa por aquí,
+ * apunta directamente al alias exportado de la Activity de ajustes), y por eso es una función pura sin `android`
+ * ni Compose: el destino viaja en la **acción** del `Intent` que dispara el atajo, y este fichero es lo único
+ * que sabe qué significa cada palabra.
  *
  * **Por qué la acción y no un extra.** Un `<extra>` dentro de `<intent>` en `shortcuts.xml` no se puede
  * comprobar sin dispositivo —AAPT trata `res/xml` como fichero opaco y lo valida en tiempo de ejecución, así que
@@ -23,7 +24,6 @@ enum class ShortcutDestination(val clave: String, val accion: String) {
     NEW_NOTE("new_note", "${PREFIJO_ACCION}NEW_NOTE"),
     SEARCH("search", "${PREFIJO_ACCION}SEARCH"),
     AI_CHAT("ai_chat", "${PREFIJO_ACCION}AI_CHAT"),
-    SETTINGS("settings", "${PREFIJO_ACCION}SETTINGS"),
     CODE_EDITOR("code_editor", "${PREFIJO_ACCION}CODE_EDITOR");
 
     companion object {

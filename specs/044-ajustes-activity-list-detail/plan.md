@@ -128,6 +128,13 @@ SettingsApp:
 - **D22. Chevron solo en móvil (RF-344).** `SettingsCategoryList(showChevron = !hasTwoPanes)` pasa
   el flags a cada fila, que cambia el check por `Icons.Default.ChevronRight`. El parámetro
   `selected` de `ListItem` mantiene la semántica accesible en tablet, aunque no haya marca visual.
+- **D24. Atajo directo vía activity-alias (RF-352).** Los atajos estáticos los lanza el launcher (otra app),
+  que no puede iniciar una Activity no exportada. En vez de exportar `SettingsActivity` (relajaría RNF-206),
+  se declara un `<activity-alias>` exportado `SettingsShortcutAlias` con `targetActivity=.SettingsActivity` y
+  el atajo de ajustes apunta a él. `SettingsActivity` sigue `exported=false` con su candado. Se mantiene
+  `FLAG_ACTIVITY_SINGLE_TOP` en `launchSettings` (el usuario eligió conservarlo) y se quita el destino
+  `SETTINGS` del enum `ShortcutDestination` y del `when` en `ShortcutDestinations.kt`, actualizando los
+  invariantes de atajos (4 en el enum, 5 en el XML) y añadiendo uno para el alias.
 - **D23. Barra sin Scaffold global (RF-345).** Se descarta el `Scaffold` envolvente (doble consumo
   de insets con el scaffold adaptativo y sus propios Scaffolds de sub-pantalla). La barra pasa a ser
   el primer hijo de un `Column(fillMaxSize)` y el `NavigableListDetailPaneScaffold` vive en un

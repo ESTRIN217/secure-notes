@@ -39,8 +39,9 @@ class ShortcutInvariantsTest {
         const val DESTINOS = "$JAVA/ui/ShortcutDestinations.kt"
 
         /**
-         * Los cinco destinos, con la etiqueta corta que cada uno usa y **en el orden del XML** (RF-124,
-         * `plan.md` §4).
+         * Los cinco destinos del XML, con la etiqueta corta que cada uno usa y **en el orden del XML** (RF-124,
+         * `plan.md` §4). Aunque `ShortcutDestination` ya solo tiene cuatro (RF-352), el XML sigue teniendo
+         * cinco atajos: el de ajustes apunta al alias exportado directamente y ya no pasa por el enum.
          *
          * El orden lo fijó quien Decide mirando **su** lanzador: el de un Infinix muestra **tres** atajos, así
          * que los tres primeros son los que importan de verdad y los otros dos quedan al final, alcanzables
@@ -53,6 +54,11 @@ class ShortcutInvariantsTest {
             "search" to "search_notes",
             "code_editor" to "code_editor"
         )
+
+        /** RF-352: el atajo de ajustes apunta al alias exportado, los otros cuatro a MainActivity. */
+        const val AJUSTES = "settings"
+        const val ALIAS_AJUSTES = "com.example.SettingsShortcutAlias"
+        const val MAIN_ACTIVITY = "com.example.MainActivity"
 
         val LOCALES = listOf(
             "values", "values-es-rVE", "values-pt-rBR", "values-fr", "values-it",
@@ -146,11 +152,11 @@ class ShortcutInvariantsTest {
      * cada cosa se comprueba en su invariante.
      */
     @Test
-    fun `las claves del XML son exactamente las que acepta el parser`() {
+    fun `las claves del XML son las del enum mas el atajo de ajustes`() {
         val delXml = atajos().map { it.getAttribute("android:shortcutId") }
 
         assertEquals(
-            ShortcutDestination.entries.map { it.clave }.sorted(),
+            (ShortcutDestination.entries.map { it.clave } + AJUSTES).sorted(),
             delXml.sorted()
         )
     }
@@ -214,14 +220,18 @@ class ShortcutInvariantsTest {
     // ------------------------------------------------------------------ RF-130: el intent
 
     @Test
-    fun `los cinco intents apuntan a MainActivity con accion`() {
+    fun `cuatro intents apuntan a MainActivity y el de ajustes al alias exportado`() {
         val intents = intentions()
 
         assertEquals(5, intents.size)
         intents.forEach { intent ->
             assertTrue("falta la accion", intent.getAttribute("android:action").isNotBlank())
-            assertEquals("com.example.MainActivity", intent.getAttribute("android:targetClass"))
             assertEquals("com.estrin217.securenotes", intent.getAttribute("android:targetPackage"))
+        }
+        atajos().forEach { atajo ->
+            val id = atajo.getAttribute("android:shortcutId")
+            val esperado = if (id == AJUSTES) ALIAS_AJUSTES else MAIN_ACTIVITY
+            assertEquals("targetClass del atajo $id", esperado, intentDe(id).getAttribute("android:targetClass"))
         }
     }
 
@@ -235,7 +245,7 @@ class ShortcutInvariantsTest {
      * Cruza el XML contra el **enum de verdad**, así que un destino renombrado aquí se nota al momento.
      */
     @Test
-    fun `cada intent lleva la accion del destino que su shortcutId promete`() {
+    fun `cada intent de los cuatro destinos lleva su accion`() {
         ShortcutDestination.entries.forEach { destino ->
             val accion = intentDe(destino.clave).getAttribute("android:action")
             assertEquals(
@@ -244,6 +254,12 @@ class ShortcutInvariantsTest {
                 accion
             )
         }
+        // RF-352: el atajo de ajustes no está en el enum, pero sigue llevando su acción por si un
+        // atajo antiguo fijado apuntara todavía a MainActivity.
+        assertEquals(
+            "com.estrin217.securenotes.shortcut.SETTINGS",
+            intentDe(AJUSTES).getAttribute("android:action")
+        )
     }
 
     /**
@@ -296,6 +312,27 @@ class ShortcutInvariantsTest {
 
         assertEquals("falta el meta-data android.app.shortcuts en MainActivity", 1, atajos.size)
         assertEquals("@xml/shortcuts", atajos.single().getAttribute("android:resource"))
+    }
+
+    /** RF-352: el alias que abre ajustes desde el launcher tiene que existir, estar exportado y apuntar a la Activity. */
+    @Test
+    fun `el alias de ajustes esta exportado y apunta a SettingsActivity`() {
+        val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File(MANIFIESTO))
+        val alias = doc.getElementsByTagName("activity-alias")
+        val ajustes = (0 until alias.length)
+            .map { alias.item(it) as Element }
+            .firstOrNull { it.getAttribute("android:name") == ".SettingsShortcutAlias" }
+            ?: throw AssertionError("falta el activity-alias .SettingsShortcutAlias en el manifiesto")
+
+        assertEquals("true", ajustes.getAttribute("android:exported"))
+        assertEquals(".SettingsActivity", ajustes.getAttribute("android:targetActivity"))
+
+        val actividades = doc.getElementsByTagName("activity")
+        val settings = (0 until actividades.length)
+            .map { actividades.item(it) as Element }
+            .firstOrNull { it.getAttribute("android:name") == ".SettingsActivity" }
+            ?: throw AssertionError("falta SettingsActivity en el manifiesto")
+        assertEquals("false", settings.getAttribute("android:exported"))
     }
 
     // ------------------------------------------------------------------ RNF-73: los ficheros puros
@@ -382,7 +419,18 @@ class ShortcutInvariantsTest {
      */
     @Test
     fun `el camino de la decision no toca la base de datos ni el cifrado`() {
-        listOf(MAIN, DESTINOS, *PUROS.toTypedArray()).forEach { nombre ->
+        // `sinComentarios` no basta para MainActivity: onDestroy purga sesiones vacias con DAO (spec 038),
+        // fuera del camino de la decision. Se acota a las funciones que resuelven el atajo.
+        val main = sinComentarios(leer(MAIN))
+        val decision = main.substringAfter("fun resolverAtajo(")
+            .substringBefore("LaunchedEffect(Unit)")
+        assertFalse("la resolucion de atajos llama a CipherService", decision.contains("CipherService"))
+        assertFalse(
+            "la resolucion de atajos llama a un DAO",
+            Regex("""\b\w+Dao\.""").containsMatchIn(decision)
+        )
+
+        listOf(DESTINOS, *PUROS.toTypedArray()).forEach { nombre ->
             val codigo = sinComentarios(leer(nombre))
             // Solo se veta en la resolucion: `createSession` escribe, pero es el camino del boton de la lista
             // reutilizado (RF-126), no algo que el atajo anada.

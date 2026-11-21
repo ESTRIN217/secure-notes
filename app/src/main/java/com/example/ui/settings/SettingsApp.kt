@@ -44,6 +44,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
@@ -52,6 +54,7 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,10 +63,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -133,10 +138,22 @@ fun SettingsApp(
 
     BackHandler { goBack() }
 
-    // RF-340/RF-347: una sola barra en móvil; en tablet/PC no hay barra global y el detalle pone
-    // título + X. El efecto medium→small se hace observando el scroll en solo lectura, SIN
-    // nestedScroll connection: ese connection consumía el gesto y rompía el scroll (RF-346).
-    var titleCollapsed by remember { mutableStateOf(false) }
+    // RF-340/RF-347/RF-349/RF-350: una sola barra en móvil; en tablet/PC no hay barra global y el
+    // detalle pone título + X. La barra se contrae/expande con un estado booleano con histéresis
+    // (sin contentOffset ni snap/fling, que causaban el vaivén). Sin nestedScroll connection, que
+    // rompía el gesto (RF-346).
+    val topBarState = rememberTopAppBarState()
+    val topBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        state = topBarState,
+        snapAnimationSpec = null,
+        flingAnimationSpec = null
+    )
+    var topBarCollapsed by remember { mutableStateOf(false) }
+    var titleAlpha by remember { mutableFloatStateOf(1f) }
+    val collapseOffsetPx = with(LocalDensity.current) { 48.dp.toPx() }
+    LaunchedEffect(topBarCollapsed) {
+        topBarState.heightOffset = if (topBarCollapsed) -collapseOffsetPx else 0f
+    }
     val current = navigator.currentDestination?.contentKey
     val appBarTitle = if (current == null || current == SettingsDestination.HUB) {
         stringResource(R.string.nav_settings)
@@ -154,8 +171,9 @@ fun SettingsApp(
                 title = {
                     Text(
                         text = appBarTitle,
-                        style = if (titleCollapsed) MaterialTheme.typography.titleSmall
-                                else MaterialTheme.typography.titleLarge
+                        style = if (topBarCollapsed) MaterialTheme.typography.titleSmall
+                                else MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.alpha(titleAlpha)
                     )
                 },
                 navigationIcon = {
@@ -165,7 +183,8 @@ fun SettingsApp(
                             contentDescription = stringResource(R.string.back)
                         )
                     }
-                }
+                },
+                scrollBehavior = topBarScrollBehavior
             )
         }
         // RF-348: en tablet no hay topbar, así que el Box aplica todo el padding del sistema; en
@@ -186,9 +205,23 @@ fun SettingsApp(
                 listPane = {
                     AnimatedPane(modifier = Modifier.fillMaxSize().widthIn(max = 280.dp)) {
                         SettingsCategoryList(
-                            selected = current ?: CATEGORIES.first().destination,
+                            // RF-351: en tablet/PC la primera queda activa al abrir; en móvil la
+                            // lista es la entrada y no debe haber ninguna fila resaltada.
+                            selected = current ?: if (hasTwoPanes) CATEGORIES.first().destination else null,
                             showChevron = !hasTwoPanes,
-                            onScroll = { offset -> titleCollapsed = offset > 64 },
+                            // heightOffset se coerciona entre 0 y heightOffsetLimit (lo fija la
+                            // barra); contentOffset alimenta el fade del título al pasar contenido
+                            // por debajo. Ambos los llenaba la connection, ahora el scroll pasivo.
+                            onScroll = { offset ->
+                                // Contracción con histéresis (evita el vaivén) y fade del título
+                                // solo cuando ya está contraída. Sin contentOffset ni snap/fling.
+                                topBarCollapsed = when {
+                                    offset > 64 -> true
+                                    offset < 8 -> false
+                                    else -> topBarCollapsed
+                                }
+                                titleAlpha = (1f - ((offset - 64) / 72f)).coerceIn(0f, 1f)
+                            },
                             onSelect = { openDetail(it) }
                         )
                     }
