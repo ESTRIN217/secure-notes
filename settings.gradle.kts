@@ -41,4 +41,15 @@ include(":tema")
 // de spec 039 (contadores de métricas y nkvPosition) — see lib/. El **motor** (los fuentes de
 // llama.cpp que el binding compila con add_subdirectory) sigue externo en `/root/llama.cpp`;
 // ver `lib/src/main/cpp/CMakeLists.txt` y AGENTS.md para el porqué.
-include(":lib")
+//
+// Solo se configura para tareas full o sin flavor explícito. Las tareas independent-only
+// (CI: testIndependentDebugUnitTest, assembleIndependentDebug, etc.) no lo necesitan y así
+// evitamos que AGP exija NDK/CMake en entornos sin ese SDK.
+val requested = gradle.startParameter.taskNames
+val independentOnly = requested.isNotEmpty() &&
+    requested.any { it.contains("independent", ignoreCase = true) } &&
+    requested.none { it.contains("full", ignoreCase = true) }
+
+if (!independentOnly) {
+    include(":lib")
+}

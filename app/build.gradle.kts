@@ -136,7 +136,8 @@ secrets {
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   // :lib (llama.cpp on-device) solo en flavor full; independent compila sin motor nativo.
-  "fullImplementation"(project(":lib"))
+  // Si :lib no se incluyó (tareas independent-only en CI), no se declara la dependencia.
+  rootProject.findProject(":lib")?.let { "fullImplementation"(it) }
   implementation(project(":visor-pdf"))
   // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
   // dirección: `:app` -> `:editor-de-codigo` -> `:tema`.
