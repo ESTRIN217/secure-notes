@@ -31,10 +31,10 @@ if(DEFINED ANDROID_ABI)
 endif()
 
 # El motor (los fuentes de llama.cpp que el binding compila con add_subdirectory) es EXTERNO y
-# vive en el host en `/root/llama.cpp` — la build está atada a este host por decisión del usuario
+# vive en el host en `~/llama.cpp` — la build está atada a este host por decisión del usuario
 # (el binding vendorizado en `lib/` es la fuente de verdad; llama.cpp se deja fuera porque no se
 # quiere copiar/commitear su árbol entero en el repo). CI nunca compila `:app` (ver AGENTS.md).
-set(LLAMA_SRC "/root/llama.cpp")
+set(LLAMA_SRC "$ENV{HOME}/llama.cpp")
 add_subdirectory(${LLAMA_SRC} build-llama)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED

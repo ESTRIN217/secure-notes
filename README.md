@@ -7,7 +7,7 @@ Bloc de notas Android con **cifrado real en el dispositivo**, **editor por bloqu
 ![minSdk](https://img.shields.io/badge/minSdk-33-blue.svg)
 ![targetSdk](https://img.shields.io/badge/targetSdk-36-blue.svg)
 ![Kotlin](https://img.shields.io/badge/kotlin-2.4.20-7F52FF.svg)
-![Tests](https://img.shields.io/badge/tests-JUnit4%20%2B%20Robolectric%20%2B%20Roborazzi-green.svg)
+[![Testing status](https://github.com/ESTRIN217/secure-notes/actions/workflows/test.yml/badge.svg)](https://github.com/ESTRIN217/secure-notes/actions/workflows/test.yml)
 
 <img src="public/assets/banner.png" width="720" alt="Secure Notes: Bloc de notas para Android con cifrado real"/>
 
