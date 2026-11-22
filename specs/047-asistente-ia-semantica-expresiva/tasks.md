@@ -33,3 +33,5 @@ Estado: aprobado
   - Hecho cuando: `:app:compileDebugKotlin` pasa; tests puros vigentes pasan; no hay
     `Color(0x...)` nuevo en superficies del asistente; `ChatHistoryScreen` sin cambios; spec/MEMORY
     actualizadas; revisión visual/accesibilidad pendiente en dispositivo.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

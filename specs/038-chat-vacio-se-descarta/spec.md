@@ -1,7 +1,7 @@
 # Spec 038 — Chats vacíos se descartan
 
 Fecha: 2026-11-16
-Estado: **aprobada — implementación en curso**
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 RF-273…RF-276 · RNF-165…RNF-169 · HU-1 · HU-2
 
 ## Contexto y objetivo

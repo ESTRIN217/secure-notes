@@ -27,8 +27,8 @@ flowchart TB
     subgraph DATA["Datos"]
         DAO[("Room DAOs<br/>Note / Tag / Chat / Memory")]
         CIP["CipherService<br/>AES-256-GCM + PBKDF2"]
-        DRIVE["GoogleDriveSyncService<br/>(OkHttp, Drive REST v3)"]
-        AIS["AIService<br/>OllamaService / OnDeviceService"]
+        DRIVE["GoogleDriveSyncService (solo full)<br/>(OkHttp, Drive REST v3)"]
+        AIS["AIService<br/>OllamaService / OnDeviceService (solo full)"]
     end
     UI --> VM
     VM --> DAO
@@ -43,6 +43,15 @@ Un solo módulo de app (`:app`) más módulos propios: `:visor-pdf` (PDF),
 (catálogo de temas compartido) y `:lib` (binding `llama.android`, compilado
 desde fuente, solo `arm64-v8a`).
 
+**Flavors** (`distribution`): `full` incluye Drive y el backend on-device
+(`:lib`); `independent` los excluye y mantiene Ollama, backup local y exportación.
+Ambos comparten `applicationId`, Room y formato de copia. Las piezas que importan
+dependencias ausentes en `independent` viven en `app/src/full/` con stubs en
+`app/src/independent/` (`AiModelHost`, `GgufModelMetadata`, `DriveTokenRefresher`,
+`DriveCloudSection`); `BuildConfig.HAS_ON_DEVICE_AI` / `HAS_GOOGLE_DRIVE` gaten
+el resto de la UI. `:lib` se incluye en `settings.gradle.kts` solo para tareas
+`full` o sin flavor, para que CI no exija NDK.
+
 ## 2. Flujo de datos
 
 1. **Lista**: `NotesViewModel` expone `notesList: StateFlow`; `MainListScreen` la
@@ -55,10 +64,11 @@ desde fuente, solo `arm64-v8a`).
 3. **Cifrado**: al guardar una nota cifrada, el contenido (JSON de bloques) pasa por
    `CipherService` (salt + IV aleatorios por nota) antes de Room. Al leer, el
    descifrado ocurre solo con la sesión desbloqueada (contraseña en memoria).
-4. **Sync**: `BackupViewModel` → `GoogleDriveSyncService` (REST v3 sobre OkHttp,
-   carpeta `appDataFolder`); `SyncWorker` (WorkManager) ejecuta la sincronía periódica.
-   Los respaldos se cifran **antes** de transmitirse.
-5. **IA**: `AiViewModel` delega en `AIService` según backend; `OnDeviceService` envuelve
+4. **Sync** (solo flavor `full`; en `independent` queda la copia local): `BackupViewModel` →
+   `GoogleDriveSyncService` (REST v3 sobre OkHttp, carpeta `appDataFolder`); `SyncWorker`
+   (WorkManager) ejecuta la sincronía periódica. Los respaldos se cifran **antes** de transmitirse.
+5. **IA**: `AiViewModel` delega en `AIService` según backend (Ollama en ambos flavors; on-device
+   solo en `full`); `OnDeviceService` envuelve
    `LlamaCppEngine` (singleton JNI con aislamiento por recarga) y el motor se materializa
    solo a través de `AiModelHost` (`SecureNotesApplication`); el historial vive en Room.
 

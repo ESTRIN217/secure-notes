@@ -1,6 +1,6 @@
 # Spec 047 — Semántica y expresividad del asistente de IA
 
-Estado: implementada (verificación en dispositivo pendiente)
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 
@@ -112,8 +112,8 @@ mantienen intactas.
 - No se introducen colores literales ni regresiones de accesibilidad.
 - `ChatHistoryScreen` queda sin cambios.
 - Los textos nuevos/modificados están en los 9 locales.
-- `:app:compileDebugKotlin` y pruebas relevantes pasan; revisión visual/accesibilidad en dispositivo
-  queda pendiente.
+- `:app:compileDebugKotlin` y pruebas relevantes pasan; ✅ revisión visual/accesibilidad en dispositivo
+  completada (2026-11-22).
 
 ## Dudas abiertas
 

@@ -68,3 +68,5 @@ es `./gradlew test` completo (Robolectric no tiene runtime nativo en linux/aarch
 - `MIGRATION_10_11` sobre una base de datos real v10 (apertura sin wipe, columna NULL en filas históricas).
 - En dispositivo on-device: fresh/cached/total vs la Web UI de llama.cpp y vs el KV cache total, turno a turno; turno cancelado (sub-líneas ocultas); turno de error a mitad (THIS TURN conserva el turno sano anterior); cambio de modelo/reload (entry position −1 ⇒ sin sub-líneas); prompt que cabe sin decode («0 fresh + C cached»); coherencia 29+1+10=40 con una cache real.
 - Ollama con y sin `/api/show`: sin anillo sin ventana; con anillo, ambas sub-líneas ausentes.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

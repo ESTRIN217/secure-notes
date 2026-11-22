@@ -1,6 +1,6 @@
 # Spec 020 — El registro de fallos: guardar el crash, mostrarlo y poder mandarlo a GitHub
 
-Estado: **implementada** (2026-10-16), T1-T9 cerradas; **sin verificación en dispositivo**
+Estado: **implementada y verificada en dispositivo** (2026-11-22; implementada 2026-10-16), T1-T9 cerradas
 
 > **Nota de procedencia.** No encadena con ninguna spec anterior: es la primera que toca el **ciclo de vida
 > del proceso**. Los RF más altos en uso son `RF-116` y `RNF-62` (spec 019), así que aquí empiezan en `RF-117`

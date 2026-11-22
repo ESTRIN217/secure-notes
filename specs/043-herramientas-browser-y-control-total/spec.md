@@ -1,6 +1,6 @@
 # Spec 043 — Herramientas de fecha/hora e información y control total de herramientas
 
-Estado: implementada
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 

@@ -103,3 +103,5 @@ cerrar; marcar y comprobar el «Hecho cuando» antes de pasar a la siguiente.
 - `:editor-de-codigo:testDebugUnitTest` → 2 fallos, ambos de plataforma
   (Robolectric aarch64, módulo sin tocar).
 - Pendiente (usuario, dispositivo): verificación en dispositivo de la spec 040.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

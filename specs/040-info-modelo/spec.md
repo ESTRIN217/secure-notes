@@ -1,7 +1,7 @@
 # Spec 040 — Info del modelo on-device (vista de detalles)
 
 Fecha: 2026-11-16
-Estado: **implementada** (2026-11-16, pendiente verificación en dispositivo)
+Estado: **implementada y verificada en dispositivo** (2026-11-22; implementada 2026-11-16)
 RF-281…RF-292 · RNF-174…RNF-178 · HU-1 · HU-2 · HU-3
 
 ## Contexto y objetivo

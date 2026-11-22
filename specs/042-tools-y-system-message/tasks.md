@@ -52,3 +52,5 @@
     el ViewModel, sin literales en `Text(`) pasan; el grep de tipos de archivo en `AiChatScreen`
     sigue devolviendo 1; y `MEMORY.md` actualizado con estado, decisiones (D1–D7) y pendiente de
     verificación en dispositivo.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

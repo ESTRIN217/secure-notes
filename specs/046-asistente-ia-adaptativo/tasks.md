@@ -1,6 +1,6 @@
 # Tasks 046 — Asistente de IA adaptativo en tablet y PC
 
-Estado: aprobado (enmienda 2026-11-22 pendiente de implementar)
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Implementación inicial (ya hecha)
 
@@ -46,3 +46,5 @@ Estado: aprobado (enmienda 2026-11-22 pendiente de implementar)
 - [x] **T15. Compilación, pruebas y cierre.** RNF-223, RNF-224, RNF-225, Criterios de finalización
   - Hecho cuando: `:app:compileDebugKotlin` pasa; pruebas puras vigentes pasan; spec/MEMORY
     actualizadas con el estado real; verificación en dispositivo de rail/breakpoints/tabla pendiente.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

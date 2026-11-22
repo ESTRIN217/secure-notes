@@ -1,7 +1,7 @@
 # Spec 039 — Métricas reales on-device desde el motor
 
 Fecha: 2026-11-16
-Estado: **aprobada — implementación en curso**
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 RF-277…RF-280 · RNF-170…RNF-173 · HU-1 · HU-2
 
 ## Contexto y objetivo

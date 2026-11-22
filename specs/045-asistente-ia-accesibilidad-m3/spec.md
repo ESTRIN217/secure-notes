@@ -1,6 +1,6 @@
 # Spec 045 — Accesibilidad y tokens M3 del asistente de IA
 
-Estado: implementada (verificación en dispositivo pendiente)
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 
@@ -114,8 +114,8 @@ posterior.
 - No quedan colores literales de estado/acento en las superficies del asistente de IA; los estados
   usan roles del tema.
 - Los textos nuevos/modificados están en los 9 locales.
-- `./gradlew :app:compileDebugKotlin` y las pruebas puras nuevas pasan; la verificación de TalkBack,
-  escala de texto y temas queda pendiente en dispositivo.
+- `./gradlew :app:compileDebugKotlin` y las pruebas puras nuevas pasan; ✅ verificación de TalkBack,
+  escala de texto y temas completada en dispositivo (2026-11-22).
 
 ## Dudas abiertas
 

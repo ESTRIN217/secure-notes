@@ -1,7 +1,7 @@
 # Spec 021 — Los atajos del lanzador: cinco entradas al app sin abrirlo antes
 
-Estado: **implementada** (2026-10-16), T1-T7 cerradas con 31 pruebas en verde; **T8 con la suite completa**;
-**sin verificación en dispositivo** (el guion está al final)
+Estado: **implementada y verificada en dispositivo** (2026-11-22; implementada 2026-10-16),
+T1-T7 cerradas con 31 pruebas en verde; **T8 con la suite completa**
 
 > **Nota de procedencia.** No encadena con ninguna spec anterior: es la primera que toca el **punto de
 > entrada** de la app por fuera del icono. Los RF más altos en uso son `RF-123` y `RNF-70` (spec 020), así que

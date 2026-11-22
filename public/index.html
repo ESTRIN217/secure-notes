@@ -134,8 +134,9 @@
         <li><strong>Editor por bloques</strong> con formato enriquecido en línea, deshacer/rehacer, drag &amp; drop y autoguardado.</li>
         <li><strong>Organización</strong>: etiquetas, favoritos, archivadas, colores, drag &amp; drop en rejilla y búsqueda en tiempo real (incluye cifradas con sesión abierta).</li>
         <li><strong>Multimedia</strong>: imágenes, vídeo, audio, voz, archivos, dibujos y visor PDF integrado.</li>
-        <li><strong>Sincronía opcional</strong>: Google Drive (<code>appDataFolder</code>, cifrado antes de subir) + exportación TXT/Markdown/PDF/HTML/JSON.</li>
-        <li><strong>IA local opcional</strong>: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota.</li>
+        <li><strong>Sincronía opcional</strong>: Google Drive (<code>appDataFolder</code>, cifrado antes de subir, solo en la variante <code>full</code>) + exportación TXT/Markdown/PDF/HTML/JSON en ambas variantes.</li>
+        <li><strong>IA local opcional</strong>: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota; llama.cpp on-device solo en <code>full</code>, Ollama/LM Studio en ambas.</li>
+        <li><strong>Dos variantes, mismos datos</strong>: <code>full</code> (Drive + IA on-device) e <code>independent</code> (sin Drive ni llama.cpp, con Ollama y copia local).</li>
         <li><strong>Diagnóstico honesto</strong>: registro de fallos local, con informe que puedes revisar y enviar a GitHub solo si lo decides.</li>
         <li><strong>9 locales</strong>, temas de color (claro/oscuro/dinámico y catálogo propio), widgets y burbuja flotante.</li>
       </ul>
@@ -171,7 +172,7 @@
         </article>
         <article class="card">
           <h3>Google Drive</h3>
-          <p>Opcional, carpeta privada <code>AppData</code>, OAuth 2.0 y revocable en Ajustes.</p>
+          <p>Opcional en la variante <code>full</code>: carpeta privada <code>AppData</code>, OAuth 2.0 y revocable en Ajustes. La variante <code>independent</code> no lo incluye.</p>
         </article>
       </div>
       <p class="note">
@@ -185,7 +186,7 @@
   <section class="section download">
     <div class="wrap download__inner">
       <h2>Empieza a tomar notas que nadie más puede leer</h2>
-      <p class="section__lede">APK firmado para <code>arm64-v8a</code>, publicado en GitHub Releases.</p>
+      <p class="section__lede">Dos APK firmados para <code>arm64-v8a</code> (<code>full</code> e <code>independent</code>), publicados en GitHub Releases.</p>
       <div class="cta">
         <a class="btn btn--primary" href="https://github.com/ESTRIN217/secure-notes/releases" target="_blank" rel="noopener noreferrer">Descargar la última versión</a>
         <a class="btn btn--ghost" href="https://github.com/ESTRIN217/secure-notes" target="_blank" rel="noopener noreferrer">Código fuente (MIT)</a>

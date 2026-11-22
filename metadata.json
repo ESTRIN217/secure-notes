@@ -1,6 +1,6 @@
 {
   "name": "Secure Notes",
-  "description": "Un bloc de notas con cifrado de extremo a extremo, sincronización en Google Drive, organización por etiquetas y exportación.",
+  "description": "Un bloc de notas con cifrado de extremo a extremo, sincronización opcional con Google Drive (variante full), organización por etiquetas y exportación.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

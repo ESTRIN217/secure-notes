@@ -1,7 +1,7 @@
 # Spec 041 — Desglose de ocupación de caché del contexto
 
 Fecha: 2026-11-17
-Estado: **aprobada** (2026-11-17)
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 RF-293…RF-299 · RNF-179…RNF-185 · HU-1 · HU-2 · HU-3
 
 Spec de referencia: la Web UI del servidor llama.cpp (http://0.0.0.0:9931, abierta en el

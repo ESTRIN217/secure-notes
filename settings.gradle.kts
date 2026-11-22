@@ -39,7 +39,7 @@ include(":tema")
 
 // El binding de llama.cpp del chat on-device, vendorizado en el repo con las modificaciones
 // de spec 039 (contadores de métricas y nkvPosition) — see lib/. El **motor** (los fuentes de
-// llama.cpp que el binding compila con add_subdirectory) sigue externo en `/root/llama.cpp`;
+// llama.cpp que el binding compila con add_subdirectory) sigue externo en `$HOME/llama.cpp`;
 // ver `lib/src/main/cpp/CMakeLists.txt` y AGENTS.md para el porqué.
 //
 // Solo se configura para tareas full o sin flavor explícito. Las tareas independent-only

@@ -1,7 +1,7 @@
 # Spec 033 — Razonamiento y modelo en el chat
 
 Fecha: 2026-11-11
-Estado: **implementada (pendiente verificación en dispositivo)** — 2026-11-11
+Estado: **implementada y verificada en dispositivo** (2026-11-22) — implementada 2026-11-11
 RF-215…RF-228 · RNF-140…RNF-145 · HU-1 · HU-2
 
 ## Contexto y objetivo
@@ -180,3 +180,4 @@ fijos: dos números distintos sin explicación a la vista.
 - 2026-11-14 — Panel tablet/PC (usuario, con dos capturas de la app oficial de Ollama como referencia): a pantalla completa dentro del assistant (≥600 dp), cabecera «Models» + subtítulo, buscador, tabla Model/Context/Status/Actions (power icon toggle en status; on-device: Download/⏻/LoadingIndicator, Ollama: «—»), Actions = ⋮ con Add to favorites/Delete from disk/Hide model (corazón en Ollama); ocultar persistido (`ai_hidden_models`) y restaurable en el mismo panel; viaja en la copia (**16** ajustes). RF-238…RF-247, RNF-147; ver «Cambio 2026-11-14».
 - 2026-11-15 — Corrección del usuario: Context no es el límite del chat (8192 fijo) sino **el `context_length` del modelo**: on-device desde metadatos GGUF (`dimensions.context_length` vía `GgufMetadataReader`), cacheado **una vez por archivo** en prefs (`ai_model_context_lengths`, fuera de la copia, se poda al borrar el modelo); Ollama sin cambios (`/api/show` en memoria). RF-241 reescrito.
 - 2026-11-19 — El modelo **cargado** muestra en Context la ventana del motor **y** la suya (`8.19k / 32.77k`); el resto de filas siguen con RF-241. RF-314/RF-315, RNF-205; ver «Cambio 2026-11-19».
+- 2026-11-22 — **Verificada en dispositivo** por el usuario: razonamiento y selector de modelo, panel ≥600 dp con la celda Context en los tres casos (cargado `motor / modelo`, sin cargar y Ollama).

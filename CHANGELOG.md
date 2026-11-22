@@ -4,6 +4,45 @@ Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y
 [SemVer](https://semver.org/lang/es/). Migra y reemplaza los antiguos
 `v2.0.md`, `v3.0.md` y `v4.0.md` sueltos de la raíz.
 
+## [4.1.0] — 2026-11-22
+
+Versión de consolidación: ajustes rediseñados, asistente IA más accesible y
+expresivo, y dos variantes de compilación para elegir qué servicios usar.
+
+### Añadido
+
+- **Variantes de compilación**: flavor `full` (por defecto: IA on-device y Google
+  Drive) e `independent` (sin llama.cpp ni Google Drive; mantiene Ollama/LM Studio,
+  copia local, exportación y cifrado). Mismo `applicationId`, base de datos y
+  formato de copia: los datos se conservan y lo no aplicable se ignora.
+- Los APK llevan flavor y tipo de build en el nombre
+  (`Secure-Notes-<flavor>-<buildType>-arm64-v8a.apk`).
+- CI ejecuta `:app:testIndependentDebugUnitTest` además de los tests de los módulos
+  librería, sin NDK ni `google-services.json` real.
+- Selector de backend y sección de modelos on-device ocultos en `independent`;
+  backend guardado `ondevice` cae a Ollama en esa variante.
+
+### Cambiado
+
+- Ajustes como Activity propia con lista/detalle adaptativos, búsqueda de
+  categorías y acceso por atajo (spec 044).
+- Asistente IA: panel de gestión de modelos, detalle de contexto y métricas del
+  motor, System Message y herramientas, y fila de acciones de burbuja en lugar de
+  gestos de arrastre (specs 033–043).
+- Accesibilidad y expresividad M3 en el chat: semántica de selección, estados y
+  transiciones, rail colapsable y tabla adaptable (specs 045–047).
+- El motor llama.cpp se resuelve desde `$HOME/llama.cpp`; sigue fuera del repo.
+- Ajustes visuales del editor (viñeta de lista y barra de tabla compacta); compilación
+  incremental de Kotlin/KSP reactivada.
+- Todas las funciones de las specs 032–047 verificadas en dispositivo.
+
+### Corregido
+
+- La nota nueva vacía ya no se persiste ni dispara el guard (spec 032).
+- Invariantes del chat actualizados para la fila de acciones (swipe eliminado).
+- `:lib` no se configura en tareas `independent-only`, evitando exigir licencias
+  del NDK en CI.
+
 ## [4.0.0] — 2026-10-18
 
 La versión que convierte a Secure Notes en un bloc de notas completo: editor
@@ -135,6 +174,7 @@ local, sincronización con Google Drive y temas para toda la app.
   TTS, lienzo de dibujo, grabación de voz y adjuntos.
 - Localización EN/ES-VE/PT-BR del editor.
 
+[4.1.0]: https://github.com/ESTRIN217/secure-notes/releases/tag/v4.1.0
 [4.0.0]: https://github.com/ESTRIN217/secure-notes/releases/tag/v4.0.0
 [3.0.0]: https://github.com/ESTRIN217/secure-notes/releases/tag/v3.0.0
 [2.0.0]: https://github.com/ESTRIN217/secure-notes/releases/tag/v2.0.0

@@ -19,7 +19,7 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 |---|---|
 | **Privacidad real** | AES-256-GCM + PBKDF2 (200 000 iteraciones). Salt e IV aleatorios por nota. Cifrado por nota, activo por defecto y con interruptor en el propio editor. Sin la contraseña maestra es matemáticamente imposible descifrar, ni siquiera para el desarrollador o Google. |
 | **Editor a la altura** | WYSIWYG por bloques: títulos H1–H4, listas, checklists, tablas, citas, código con resaltado, LaTeX, imágenes, audio, dibujo, pestañas múltiples y menú `/`. |
-| **IA sin nube** | Chat opcional (desactivado por defecto): llama.cpp on-device o Ollama/LM Studio en tu LAN. Cero APIs externas, cero entrenamiento con tus datos. |
+| **IA sin nube** | Chat opcional (desactivado por defecto): llama.cpp on-device (flavor `full`) u Ollama/LM Studio en tu LAN (ambos flavors). Cero APIs externas, cero entrenamiento con tus datos. |
 
 ## 📸 Capturas de Pantalla
 
@@ -50,7 +50,7 @@ Notion es cómodo pero tus notas viven en sus servidores. Las apps de notas cifr
 * **Editor por bloques** con formato enriquecido en línea, deshacer/rehacer, drag & drop y autoguardado.
 * **Organización**: etiquetas, favoritos, archivadas, colores, drag & drop en rejilla y búsqueda en tiempo real (incluye cifradas con sesión abierta).
 * **Multimedia**: imágenes, vídeo, audio, voz, archivos, dibujos y visor PDF integrado.
-* **Sincronía opcional**: Google Drive (`appDataFolder`, cifrado antes de subir) + exportación TXT/Markdown/PDF/HTML/JSON.
+* **Sincronía opcional**: Google Drive (`appDataFolder`, cifrado antes de subir, solo flavor `full`) + exportación TXT/Markdown/PDF/HTML/JSON en ambos flavors.
 * **IA local opcional**: chat con streaming, historial persistente, adjuntos de contexto y acciones (resumir, reescribir, traducir, corregir) insertables en la nota.
 * **Diagnóstico honesto**: registro de fallos local, con informe que puedes revisar y enviar a GitHub solo si lo decides.
 * **9 locales**, temas de color (claro/oscuro/dinámico y catálogo propio), widgets y burbuja flotante.
@@ -73,11 +73,11 @@ flowchart LR
     VM --> DAO["Room DAOs"]
     DAO --> DB[("Room DB")]
     VM --> CR["CipherService<br/>(AES-256-GCM)"]
-    VM --> SYNC["GoogleDriveSyncService<br/>(OkHttp)"]
-    VM --> AI["AIService<br/>(Ollama / On-Device)"]
+    VM --> SYNC["GoogleDriveSyncService<br/>(OkHttp, solo full)"]
+    VM --> AI["AIService<br/>(Ollama / On-Device solo full)"]
 ```
 
-MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:editor-de-codigo`, `:markdown`, `:tema` y binding `:lib`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
+MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:editor-de-codigo`, `:markdown`, `:tema` y binding `:lib` solo en `full`), DI manual por `ViewModelProvider.Factory`, sin frameworks. Detalle completo: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Principios: [docs/GUIDELINES.md](docs/GUIDELINES.md).
 
 ---
 
@@ -89,11 +89,20 @@ MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:
 | Gradle / AGP / Kotlin | 9.7.1 / 9.4.1 / 2.4.20 |
 | Android SDK | `compileSdk 37`, `targetSdk 36`, `minSdk 33` |
 | NDK / CMake (solo IA on-device) | 30.0.14904198 / la que resuelva el SDK |
-| llama.cpp | motor nativo externo en `/root/llama.cpp` (solo este host); binding vendorizado en `lib/` (spec 039); si falta el motor, el build nativo falla a propósito (CI no compila `:app`) |
+| llama.cpp | motor nativo externo en `$HOME/llama.cpp` (solo este host); binding vendorizado en `lib/` (spec 039); si falta el motor, la build nativa falla a propósito (CI compila `:app` solo con el flavor `independent`, que no lo necesita) |
 | Firma | `key.properties` (copia desde `key.properties.template`) |
-| Google (solo sync/Drive) | `app/google-services.json` |
+| Google (solo flavor `full`, sync/Drive) | `app/src/full/google-services.json` (el flavor `independent` lleva un placeholder) |
 
 > Solo se compila `arm64-v8a`. El plugin de secretos lee `.env` (ver `.env.example`); hoy ningún secreto es consumido: la IA no usa API keys.
+
+## 🌱 Variantes de compilación
+
+| Flavor | IA on-device (llama.cpp) | IA por red (Ollama/LM Studio) | Google Drive |
+|---|---|---|---|
+| `full` (por defecto) | ✅ | ✅ | ✅ |
+| `independent` | ❌ | ✅ | ❌ (backup local, exportación y cifrado siguen) |
+
+Ambos comparten `applicationId`, base de datos y copias de seguridad: `independent` ignora lo que no aplica sin perder datos. Los APK se nombran `Secure-Notes-<flavor>-<buildType>-arm64-v8a.apk`.
 
 ## 🚀 Instalación y guía rápida
 
@@ -101,8 +110,9 @@ MVVM de una sola app (`:app` + módulos propios `:visor-pdf`, `:visor-media`, `:
 git clone https://github.com/ESTRIN217/secure-notes.git
 cd secure-notes
 cp key.properties.template key.properties   # completa tus datos de firma
-# (opcional, solo Drive) coloca tu app/google-services.json
-./gradlew assembleDebug                    # APK en app/build/outputs/
+# (solo flavor full) coloca tu app/src/full/google-services.json
+./gradlew assembleFullDebug                # APK en app/build/outputs/apk/full/debug/
+./gradlew assembleIndependentDebug         # sin llama.cpp ni Google Drive
 ./gradlew test                             # unitarios + Robolectric + Roborazzi
 ```
 

@@ -62,3 +62,5 @@
     (`MasterToggleTest`, `ToolFormatTest`, `ToolRegistryTest`, `DisabledToolsTest`) y de la copia
     (`BackupSettingsTest`, `BackupSettingsInvariantsTest`) en verde; queda pendiente la comprobación en
     dispositivo del toque individual.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

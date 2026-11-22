@@ -49,3 +49,5 @@ Estado: borrador
     resultado de tests se documenta con la limitación aarch64/Robolectric si aplica; spec y MEMORY.md
     se actualizan con estado real y verificaciones pendientes en dispositivo.
   - Hecho: `:app:compileDebugKotlin` BUILD SUCCESSFUL; `BubbleActionsTest` (5 tests) BUILD SUCCESSFUL. Verificación TalkBack/escala 200%/dark-dynamic/tablet-PC pendiente en dispositivo.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

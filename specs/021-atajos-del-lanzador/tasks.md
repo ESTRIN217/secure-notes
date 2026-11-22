@@ -84,3 +84,5 @@
     `removeExtra` anti-rotación y lo de los cuatro atajos visibles.
   - Anotar en la spec lo que **solo** se puede comprobar en dispositivo: mantener pulsado el icono, y que con
     la bóveda cerrada salga el candado y luego el destino.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario (pulsación larga del icono y candado con la bóveda cerrada).

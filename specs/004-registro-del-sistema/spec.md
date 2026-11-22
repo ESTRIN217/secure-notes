@@ -1,6 +1,6 @@
 # Spec 004 — Registro del sistema
 
-Estado: **implementada** (2026-10-04) — T1-T7 cerradas; queda la puerta `./gradlew test` en un host x86_64
+Estado: **implementada** (2026-10-04) — T1-T7 cerradas; puerta `./gradlew test` verificada en host x86_64 y CI en verde (2026-11-22)
 
 > **Nota de procedencia.** Esta spec es una hija de `specs/001-limites-constitucion/spec.md`
 > (**aprobada**), que es la spec madre y sigue siendo la ley. No la sustituye ni la contradice.

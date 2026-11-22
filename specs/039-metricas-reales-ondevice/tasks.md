@@ -34,3 +34,5 @@ Una tarea cada vez: verde tras cada una.
 
 - [x] **T11. Docs: MEMORY.md, AGENTS.md (nota del binding modificado), specs 034/036/037 con línea «supersedido por spec 039».** RNF-173
   - Hecho cuando: AGENTS.md (section binding) documenta la patch local; cada spec afectada gana una nota de histórico; memoria actualizada; checklist dispositivo reproducido.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

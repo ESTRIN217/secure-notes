@@ -17,3 +17,5 @@
 
 - [ ] **T6. `MEMORY.md` + cierre.** RF-273…RF-276
   - Hecho cuando: memoria actualizada; T1-T5 marcados; diff sin código fuera de alcance ni strings nuevas.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

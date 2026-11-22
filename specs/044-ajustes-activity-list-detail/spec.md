@@ -1,5 +1,5 @@
 # Spec 044 — Ajustes como Activity con lista y detalle adaptativa
-Estado: aprobada
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 Los ajustes viven hoy como un `Screen` más del `Navigator` de `MainActivity`, con ocho sub-pantallas
@@ -88,7 +88,7 @@ a su lado; en teléfono el comportamiento sigue siendo de una sola pantalla con 
 - Todos los accesos a ajustes abren la Activity con el destino correcto.
 - En 600 dp o más, lista y detalle son visibles simultáneamente; por debajo, atrás vuelve a la lista.
 - Con contraseña y bóveda cerrada, la Activity muestra el bloqueo.
-- `assembleDebug` y las pruebas puras pasan; verificación en dispositivo pendiente.
+- `assembleDebug` y las pruebas puras pasan; ✅ verificación en dispositivo completada (2026-11-22).
 
 ## Enmienda (2026-11-20, RF-326…RF-333 / RNF-211…RNF-212) — interfaz de la Activity
 Tras ver la aplicación en dispositivo, la Activity cumple su función pero su interfaz no sigue los

@@ -1,6 +1,6 @@
 # Spec 042 — Hoja de adjuntos del chat: System Message y Tools
 
-Estado: implementada
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 

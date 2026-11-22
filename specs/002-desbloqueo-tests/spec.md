@@ -1,6 +1,6 @@
 # Spec 002 — Desbloqueo de los tests unitarios
 
-Estado: **implementada** (2026-10-18) — T1-T5 completadas; `./gradlew test` termina en `BUILD SUCCESSFUL` con 842 tests, 0 fallos y 0 omitidos.
+Estado: **cerrada** — implementada (2026-10-18) y puerta verificada (2026-11-22): `./gradlew test` termina en `BUILD SUCCESSFUL` con 842 tests, 0 fallos y 0 omitidos en host `x86_64`, y CI corre `:app:testIndependentDebugUnitTest` en verde.
 
 > **Nota de procedencia.** Esta spec es una hija de `specs/001-limites-constitucion/spec.md`
 > (**aprobada**), que es la spec madre y sigue siendo la ley. No la sustituye ni la contradice.
@@ -175,15 +175,15 @@ posteriores sigan bloqueados de la misma manera.
 
 **Qué quedó sin poder verificar en aquella ejecución, y por qué**:
 
-- [ ] La tarea de tests del proyecto termina en verde. En esa ejecución histórica, las suites
-      Robolectric estaban bloqueadas por el runtime de la plataforma.
-- [ ] `roborazzi.test.verify` fijada y las dos referencias de imagen ausentes generadas y
-      versionadas. **Bloqueado** por lo mismo: generar goldens exige ejecutar los tests de imagen.
+- [x] La tarea de tests del proyecto termina en verde. En esa ejecución histórica, las suites
+      Robolectric estaban bloqueadas por el runtime de la plataforma; verificado después en `x86_64`
+      y en CI con el flavor `independent` (2026-11-22).
+- [x] `roborazzi.test.verify` fijada y las dos referencias de imagen ausentes generadas y
+      versionadas. Resuelto en host `x86_64`; `app/src/test/screenshots/` contiene los tres goldens.
 
-**Resolución propuesta entonces**: en un host `x86_64` (o `mac/aarch64`, que sí tiene runtime nativo), o en un
-runner de integración continua de esas arquitecturas. La Decisión sobre el flujo de
-integración continua ya excluido `:app:test` del pipeline por el archivo de configuración que
-exige el plugin, así que hoy no hay ninguna vía automática: hay que hacerlo desde un host x86_64.
+**Resolución**: en un host `x86_64` (o `mac/aarch64`, que sí tiene runtime nativo) la suite completa
+pasó en verde. Hoy además hay vía automática: `test.yml` ejecuta `:app:testIndependentDebugUnitTest`
+(flavor `independent`, sin `:lib`/NDK) junto con los tests de los módulos librería.
 
 **Sobre la premisa de T3**: el plan justificaba subir las dos suites de SDK 28 a 36 porque 28 está
 roto (`PackageParserException` sobre `apk_for_local_tests`). El cambio es correcto como código y se

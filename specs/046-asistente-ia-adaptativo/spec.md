@@ -1,6 +1,6 @@
 # Spec 046 — Asistente de IA adaptativo en tablet y PC
 
-Estado: implementada (enmienda 2026-11-22; verificación en dispositivo pendiente)
+Estado: **implementada y verificada en dispositivo** (2026-11-22)
 
 ## Contexto y objetivo
 
@@ -121,8 +121,8 @@ originales y su implementación.
   la conversación.
 - El redimensionado conserva estado de conversación, entrada y selección relevante.
 - Los textos nuevos/modificados están en los 9 locales.
-- `:app:compileDebugKotlin` y pruebas puras nuevas pasan; verificación de breakpoints, rotación,
-  split screen e IME queda pendiente en dispositivo/emulador.
+- `:app:compileDebugKotlin` y pruebas puras nuevas pasan; ✅ verificación de breakpoints, rotación,
+  split screen e IME completada en dispositivo/emulador (2026-11-22).
 
 ## Enmienda (2026-11-22, RF-370…RF-379 / RNF-223…RNF-225)
 

@@ -94,3 +94,5 @@
 - [x] **T33. Atajo de ajustes directo vía alias exportado.** RF-352
   - Hecho cuando: el alias exportado apunta a SettingsActivity (sigue sin exportar), el atajo apunta al
     alias, SETTINGS sale del enum/enrutado, los invariantes se actualizan y compile/assemble pasan.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.

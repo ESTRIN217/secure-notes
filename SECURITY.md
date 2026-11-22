@@ -12,7 +12,7 @@ con crédito si lo deseas.
 * Cifrado client-side AES-256-GCM + PBKDF2 (200 000 iteraciones), salt e IV por nota.
 * **Sin tu contraseña maestra es matemáticamente imposible descifrar.** Perderla no
   es un bug: nadie —incluido el desarrollador— puede recuperar tus notas.
-* Los respaldos de Drive viajan ya cifrados; el token OAuth vive en
+* En el flavor `full`, los respaldos de Drive viajan ya cifrados; el token OAuth vive en
   `EncryptedSharedPreferences`.
 * La IA es local o LAN por diseño; no hay endpoints cloud que auditar.
 
@@ -20,4 +20,4 @@ con crédito si lo deseas.
 
 `CipherService`/`KeyDerivation`, `GoogleDriveSyncService` (scopes, refresh de
 token), `FileImporter` (límite de tamaño, intents `VIEW`), `BiometricAuthManager`
-y el aislamiento del motor JNI (`LlamaCppEngine`: jamás `destroy()`).
+y el aislamiento del motor JNI (`LlamaCppEngine`: jamás `destroy()`, solo en `full`).

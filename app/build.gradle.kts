@@ -21,10 +21,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 // Versión real de llama.cpp para la pantalla Acerca de (AboutScreen). Fuente de verdad: el
-// CMakeLists.txt del motor, que sigue externo en el checkout `/root/llama.cpp` (solo este host).
+// CMakeLists.txt del motor, que sigue externo en el checkout `$HOME/llama.cpp` (solo este host).
 // Si no existe (p. ej. CI/GitHub, que no compila :app), vale "local" en lugar de romper la build.
 val llamaCppVersion: String = run {
-  val cmakeFile = file("/root/llama.cpp/CMakeLists.txt")
+  val cmakeFile = file("${System.getProperty("user.home")}/llama.cpp/CMakeLists.txt")
   if (!cmakeFile.exists()) return@run "local"
   val cmake = cmakeFile.readText()
   fun part(name: String) =
@@ -59,8 +59,8 @@ android {
     applicationId = "com.estrin217.securenotes"
     minSdk = 33
     targetSdk = 36
-    versionCode = 4
-    versionName = "4.0.0"
+    versionCode = 5
+    versionName = "4.1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

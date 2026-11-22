@@ -12,10 +12,12 @@
 * **Persistencia:** Room 2.8.4 (única fuente local). KSP solo para Room.
 * **Seguridad:** AES-256-GCM + PBKDF2-HMAC-SHA256 (200 000 iteraciones). Salt e IV
   aleatorios por nota (`SecureRandom`). La contraseña maestra solo vive en memoria
-  durante la sesión; los respaldos se cifran en el dispositivo **antes** de subir a Drive.
-* **Red:** OkHttp 5.4.0, tanto para Ollama / LM Studio en la LAN como para Google Drive REST v3.
+  durante la sesión; los respaldos se cifran en el dispositivo **antes** de subir a Drive
+  (flavor `full`) o de exportar la copia local (ambos flavors).
+* **Red:** OkHttp 5.4.0, tanto para Ollama / LM Studio en la LAN como para Google Drive REST v3 (solo flavor `full`).
 * **IA local:** llama.cpp nativo (JNI/NDK, solo `arm64-v8a`) vía binding `llama.android`
   (`:lib`, fachada `com.arm.aichat.AiChat`); `OnDeviceService` envuelve `LlamaCppEngine`.
+  Solo en el flavor `full`; `independent` mantiene Ollama/LM Studio sin motor nativo.
 * **Licencias runtime:** ver `THIRD-PARTY-NOTICES` (raíz) y su fuente de verdad en app,
   `app/src/main/assets/oss-licenses.json` (pantalla Ajustes > Legal > Licencias).
 

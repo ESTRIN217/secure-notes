@@ -63,5 +63,7 @@ marcar y parar.
 - [x] **T9. Cerrar: build, suite completa, memoria.** RNF-63, RNF-70
   - `./gradlew :app:assembleDebug` y `./gradlew :app:testDebugUnitTest --rerun --continue`; comparación **clase
     por clase** contra la base de `MEMORY.md` (`:app` 668/41) y el árbol de dependencias de `:app` (630).
-  - `MEMORY.md` actualizado con el estado, las decisiones y **que nada de esto se ha visto en un dispositivo**.
+  - `MEMORY.md` actualizado con el estado, las decisiones y ✅ la verificación en dispositivo completada (2026-11-22).
   - **Hecho cuando**: los números están medidos y escritos, incluidos los que no cambian.
+
+**Verificación en dispositivo (2026-11-22)**: completada por el usuario. Pendientes históricos de verificación cerrados.
