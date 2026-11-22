@@ -38,13 +38,29 @@ android {
   buildToolsVersion = "36.1.0"
   compileSdk { version = release(37) { minorApiLevel = 1 } }
 
+  flavorDimensions += "distribution"
+  productFlavors {
+    create("full") {
+      dimension = "distribution"
+      isDefault = true
+      buildConfigField("Boolean", "HAS_ON_DEVICE_AI", "true")
+      buildConfigField("Boolean", "HAS_GOOGLE_DRIVE", "true")
+      buildConfigField("String", "LLAMA_CPP_VERSION", "\"$llamaCppVersion\"")
+    }
+    create("independent") {
+      dimension = "distribution"
+      buildConfigField("Boolean", "HAS_ON_DEVICE_AI", "false")
+      buildConfigField("Boolean", "HAS_GOOGLE_DRIVE", "false")
+      buildConfigField("String", "LLAMA_CPP_VERSION", "\"n/a\"")
+    }
+  }
+
   defaultConfig {
     applicationId = "com.estrin217.securenotes"
     minSdk = 33
     targetSdk = 36
     versionCode = 4
     versionName = "4.0.0"
-    buildConfigField("String", "LLAMA_CPP_VERSION", "\"$llamaCppVersion\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -95,9 +111,10 @@ tasks.withType<Test>().configureEach {
 androidComponents {
   onVariants { variant ->
     val appName = "Secure-Notes"
+    val flavor = variant.flavorName?.takeIf { it.isNotEmpty() } ?: "noFlavor"
     val buildType = variant.buildType ?: "unknown"
     val architecture = "arm64-v8a"
-    val newFileName = "${appName}-${buildType}-${architecture}.apk"
+    val newFileName = "${appName}-${flavor}-${buildType}-${architecture}.apk"
 
     variant.outputs.forEach { output ->
       if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
@@ -118,7 +135,8 @@ secrets {
 // incluye siempre; no hay guardas de «checkout externo».
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  implementation(project(":lib"))
+  // :lib (llama.cpp on-device) solo en flavor full; independent compila sin motor nativo.
+  "fullImplementation"(project(":lib"))
   implementation(project(":visor-pdf"))
   // El catálogo de temas que la app y el editor de código comparten (spec 025). Tres módulos y una sola
   // dirección: `:app` -> `:editor-de-codigo` -> `:tema`.
@@ -158,16 +176,17 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.okhttp)
-  implementation(libs.androidx.credentials)
-  implementation(libs.androidx.credentials.play.services.auth)
-  implementation(libs.googleid)
+  // Google Drive / auth: solo flavor full.
+  "fullImplementation"(libs.androidx.credentials)
+  "fullImplementation"(libs.androidx.credentials.play.services.auth)
+  "fullImplementation"(libs.googleid)
+  "fullImplementation"(libs.play.services.auth)
   implementation(libs.androidx.security.crypto)
   implementation(libs.androidx.work.ktx)
   implementation(libs.androidx.biometric)
   implementation(libs.androidx.biometric.compose)
   implementation(libs.androidx.glance.appwidget)
   implementation(libs.androidx.glance.material3)
-  implementation(libs.play.services.auth)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

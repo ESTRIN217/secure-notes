@@ -108,7 +108,7 @@ fun AiSettingsScreen(
                     )
                 }
 
-                if (aiBackend == AiBackend.ON_DEVICE) {
+                if (com.example.BuildConfig.HAS_ON_DEVICE_AI && aiBackend == AiBackend.ON_DEVICE) {
                     onDeviceDeviceInfoSection(deviceInfo)
                     onDeviceModelsSection(
                         aiViewModel = aiViewModel,

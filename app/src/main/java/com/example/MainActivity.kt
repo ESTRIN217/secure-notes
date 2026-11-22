@@ -113,7 +113,7 @@ import com.example.perf.DisplayRefreshRate
 import com.example.perf.FrameMetricsMonitor
 import com.example.perf.ProvidePerformanceProfile
 
-import com.google.android.gms.common.api.Scope
+
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date

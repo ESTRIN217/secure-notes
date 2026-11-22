@@ -32,7 +32,7 @@ import kotlinx.coroutines.withContext
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
-import com.arm.aichat.gguf.GgufMetadataReader
+// GgufMetadataReader es solo full (:lib); ver GgufModelMetadata en source sets.
 import com.example.ui.chat.LLAMA_CPP_CONTEXT_TOKENS
 import com.example.ui.chat.buildContextUsage
 import com.example.ui.chat.ContextUsage
@@ -202,7 +202,7 @@ class AiViewModel(
 
     private val _backend = MutableStateFlow(
         when (prefsRepository.getAiBackend()) {
-            "ondevice" -> AiBackend.ON_DEVICE
+            "ondevice" -> if (com.example.BuildConfig.HAS_ON_DEVICE_AI) AiBackend.ON_DEVICE else AiBackend.OLLAMA
             else -> AiBackend.OLLAMA
         }
     )
@@ -380,16 +380,11 @@ class AiViewModel(
             return
         }
         val loaded = withContext(Dispatchers.IO) {
-            val reader = GgufMetadataReader.create()
             missing.mapNotNull { id ->
                 val model = MODEL_CATALOG.firstOrNull { it.id == id } ?: return@mapNotNull null
                 val path = modelDownloader.getModelPath(model) ?: return@mapNotNull null
-                val context = runCatching {
-                    FileInputStream(java.io.File(path)).use { stream ->
-                        reader.readStructuredMetadata(stream).dimensions?.contextLength
-                    }
-                }.getOrNull()
-                if (context != null) id to context.toLong() else null
+                val context = GgufModelMetadata.readContextLength(path)
+                if (context != null) id to context else null
             }.toMap()
         }
         val updated = (base + loaded).filterKeys { it in ids }
@@ -416,18 +411,8 @@ class AiViewModel(
         chatTemplateCache[model.id]?.let { return it }
         val path = withContext(Dispatchers.IO) { modelDownloader.getModelPath(model) } ?: return null
         val template = withContext(Dispatchers.IO) {
-            runCatching {
-                FileInputStream(java.io.File(path)).use { stream ->
-                    GgufMetadataReader.create(
-                        skipKeys = setOf(
-                            "tokenizer.ggml.scores",
-                            "tokenizer.ggml.tokens",
-                            "tokenizer.ggml.token_type"
-                        )
-                    ).readStructuredMetadata(stream).tokenizer?.chatTemplate
-                }
-            }.getOrNull()
-        }?.takeIf { it.isNotBlank() }
+            GgufModelMetadata.readChatTemplate(path)
+        }
         if (template != null) chatTemplateCache[model.id] = template
         return template
     }
@@ -591,8 +576,9 @@ class AiViewModel(
     }
 
     fun setBackend(backend: AiBackend) {
-        _backend.value = backend
-        prefsRepository.setAiBackend(if (backend == AiBackend.ON_DEVICE) "ondevice" else "ollama")
+        val effective = if (backend == AiBackend.ON_DEVICE && !com.example.BuildConfig.HAS_ON_DEVICE_AI) AiBackend.OLLAMA else backend
+        _backend.value = effective
+        prefsRepository.setAiBackend(if (effective == AiBackend.ON_DEVICE) "ondevice" else "ollama")
         refreshContextUsage(justServed = false)
     }
 
@@ -817,13 +803,13 @@ class AiViewModel(
                     _sessionTitle.value = session.title
                     _currentNoteId.value = session.noteId ?: 0
                     session.backend.let { backendStr ->
-                        val savedBackend = if (backendStr == "ondevice") AiBackend.ON_DEVICE else AiBackend.OLLAMA
+                        val savedBackend = if (backendStr == "ondevice" && com.example.BuildConfig.HAS_ON_DEVICE_AI) AiBackend.ON_DEVICE else AiBackend.OLLAMA
                         if (savedBackend != _backend.value) {
                             _backend.value = savedBackend
                         }
                     }
                 session.modelName?.let { name ->
-                    val savedBackendEnum = if (session.backend == "ondevice") AiBackend.ON_DEVICE else AiBackend.OLLAMA
+                    val savedBackendEnum = if (session.backend == "ondevice" && com.example.BuildConfig.HAS_ON_DEVICE_AI) AiBackend.ON_DEVICE else AiBackend.OLLAMA
                     if (savedBackendEnum == AiBackend.ON_DEVICE) {
                         val matching = MODEL_CATALOG.firstOrNull { it.displayName == name || it.id == name }
                         if (matching != null) _selectedOnDeviceModel.value = matching

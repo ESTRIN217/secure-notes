@@ -11,4 +11,4 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - run: sh gradlew :visor-pdf:test :visor-media:test :editor-de-codigo:test --no-configuration-cache
+      - run: sh gradlew :app:testIndependentDebugUnitTest :visor-pdf:test :visor-media:test :editor-de-codigo:test --no-configuration-cache

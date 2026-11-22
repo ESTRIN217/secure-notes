@@ -1,6 +1,6 @@
 package com.example.ui.viewmodel
 
-import android.accounts.Account
+
 import android.app.Application
 import android.content.Context
 import android.util.Log
@@ -31,7 +31,7 @@ import com.example.data.security.KeyDerivation
 import com.example.data.sync.CloudSyncManager
 import com.example.data.sync.SyncService
 import com.example.data.sync.SyncWorker
-import com.google.android.gms.auth.GoogleAuthUtil
+import com.example.data.sync.DriveTokenRefresher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -955,6 +955,7 @@ class NotesViewModel(
 
     // Periodic background sync
     private fun schedulePeriodicSync() {
+        if (!com.example.BuildConfig.HAS_GOOGLE_DRIVE) return
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -1041,18 +1042,7 @@ class NotesViewModel(
 
     private suspend fun refreshAccessToken(): String? {
         val email = encryptedPrefs.getString(AppConstants.DRIVE_ACCOUNT_EMAIL_KEY, null) ?: return null
-        return try {
-            withContext(Dispatchers.IO) {
-                GoogleAuthUtil.getToken(
-                    getApplication<Application>(),
-                    Account(email, "com.google"),
-                    "oauth2:https://www.googleapis.com/auth/drive.appdata"
-                )
-            }
-        } catch (e: Exception) {
-            Log.e("NotesViewModel", "Token refresh failed", e)
-            null
-        }
+        return DriveTokenRefresher.refresh(getApplication<Application>(), email)
     }
 
     private suspend fun performSyncWithTokenBytes(currentToken: String, data: ByteArray): Boolean {

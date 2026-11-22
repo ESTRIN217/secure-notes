@@ -23,7 +23,7 @@ key.properties
 *.zip
 *.out
 workspace.json
-app/google-services.json
+app/src/full/google-services.json
 # Firebase Hosting (caché local de despliegue)
 .firebase/
 firebase-debug.log

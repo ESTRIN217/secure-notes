@@ -192,17 +192,19 @@ fun AiBackendBottomSheet(
                     isSelected = currentBackend == AiBackend.OLLAMA,
                     onClick = { onBackendSelected(AiBackend.OLLAMA) }
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-                BackendOption(
-                    icon = Icons.Default.PhoneAndroid,
-                    title = stringResource(R.string.ai_ondevice),
-                    subtitle = stringResource(R.string.ai_ondevice_desc),
-                    isSelected = currentBackend == AiBackend.ON_DEVICE,
-                    onClick = { onBackendSelected(AiBackend.ON_DEVICE) }
-                )
+                if (com.example.BuildConfig.HAS_ON_DEVICE_AI) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    BackendOption(
+                        icon = Icons.Default.PhoneAndroid,
+                        title = stringResource(R.string.ai_ondevice),
+                        subtitle = stringResource(R.string.ai_ondevice_desc),
+                        isSelected = currentBackend == AiBackend.ON_DEVICE,
+                        onClick = { onBackendSelected(AiBackend.ON_DEVICE) }
+                    )
+                }
             }
         }
     }

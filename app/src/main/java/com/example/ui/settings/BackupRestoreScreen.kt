@@ -1,7 +1,6 @@
 package com.example.ui.settings
 
 import androidx.compose.foundation.layout.WindowInsets
-import android.accounts.Account
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -27,30 +26,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.AppConstants
 import com.example.R
 import androidx.compose.material3.TopAppBar
 import com.example.data.model.SyncStage
 import com.example.ui.viewmodel.BackupViewModel
-import com.google.android.gms.auth.GoogleAuthUtil
-import com.google.android.gms.auth.UserRecoverableAuthException
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.util.BackupAttachmentHelper
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,54 +51,6 @@ fun BackupRestoreScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val credentialManager = remember { CredentialManager.create(context) }
-
-    val signIn: () -> Unit = {
-        scope.launch {
-            try {
-                val googleIdOption = GetSignInWithGoogleOption.Builder(
-                    AppConstants.WEB_CLIENT_ID
-                ).build()
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-                val response = credentialManager.getCredential(context, request)
-                val credential = response.credential
-                if (credential is CustomCredential &&
-                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleIdTokenCredential = GoogleIdTokenCredential
-                        .createFrom(credential.data)
-                    val accountEmail = googleIdTokenCredential.id
-                    val pictureUri = googleIdTokenCredential.profilePictureUri?.toString() ?: ""
-                    withContext(Dispatchers.IO) {
-                        val token = GoogleAuthUtil.getToken(
-                            context,
-                            Account(accountEmail, "com.google"),
-                            "oauth2:https://www.googleapis.com/auth/drive.appdata"
-                        )
-                        withContext(Dispatchers.Main) {
-                            viewModel.linkGoogleDrive(token, accountEmail, pictureUri)
-                        }
-                    }
-                }
-            } catch (e: UserRecoverableAuthException) {
-                android.util.Log.w("CloudSync", "NeedRemoteConsent — launching recovery intent")
-                withContext(Dispatchers.Main) {
-                    try {
-                        context.startActivity(e.intent)
-                    } catch (intentEx: Exception) {
-                        Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("CloudSync", "Credential Manager failed", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, context.getString(R.string.toast_auth_error), Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -139,24 +79,11 @@ fun BackupRestoreScreen(
                     .padding(innerPadding),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
             ) {
-                // Cloud Section
-                item {
-                    SettingsSectionTitle(title = stringResource(R.string.backup_cloud_section))
-                }
-                item {
-                    CloudSection(
-                        isDriveLinked = uiState.isDriveLinked,
-                        lastSyncTime = uiState.lastSyncTime,
-                        syncStage = uiState.syncStage,
-                        isEncrypted = uiState.isPasswordSet && uiState.encryptBackups,
-                        backupSize = uiState.lastBackupSizeCloud,
-                        accountEmail = uiState.driveAccountEmail,
-                        profilePictureUri = uiState.driveProfilePictureUri,
-                        onBackupCloud = { viewModel.backupToCloud() },
-                        onRestoreCloud = { viewModel.checkCloudBeforeManualRestore() },
-                        onLinkDrive = signIn,
-                        onUnlinkDrive = { viewModel.unlinkDrive() }
-                    )
+                // Cloud Section (solo flavor full)
+                if (com.example.BuildConfig.HAS_GOOGLE_DRIVE) {
+                    item {
+                        DriveCloudSection(viewModel = viewModel, uiState = uiState)
+                    }
                 }
 
                 // Encryption & Auto-Backup Section
@@ -325,166 +252,6 @@ fun BackupRestoreScreen(
 }
 
 // ---------------------------------------------------------------------------
-// Cloud Section
-// ---------------------------------------------------------------------------
-
-@Composable
-fun CloudSection(
-    isDriveLinked: Boolean,
-    lastSyncTime: String,
-    syncStage: SyncStage = SyncStage.IDLE,
-    isEncrypted: Boolean = false,
-    backupSize: Long = 0L,
-    accountEmail: String? = null,
-    profilePictureUri: String? = null,
-    onBackupCloud: () -> Unit,
-    onRestoreCloud: () -> Unit,
-    onLinkDrive: () -> Unit,
-    onUnlinkDrive: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isSyncing = syncStage != SyncStage.IDLE
-
-    SettingsCardGroup(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SettingsIconContainer(icon = Icons.Outlined.Cloud)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(R.string.title_cloud_sync),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        SettingsBadge(
-                            text = if (isEncrypted) stringResource(R.string.backup_e2ee_badge)
-                                   else stringResource(R.string.backup_e2ee_disabled_badge)
-                        )
-                    }
-                    if (isDriveLinked && accountEmail != null) {
-                        Text(
-                            text = accountEmail,
-                            color = colorScheme.onSurface,
-                            fontSize = 13.sp
-                        )
-                    } else {
-                        Text(
-                            text = if (isDriveLinked) stringResource(R.string.drive_linked) else stringResource(R.string.drive_unlinked),
-                            color = if (isDriveLinked) Color(0xFF42A5F5) else colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-                if (isDriveLinked && accountEmail != null) {
-                    val context = LocalContext.current
-                    val imageRequest = remember(profilePictureUri) {
-                        ImageRequest.Builder(context)
-                            .data(profilePictureUri)
-                            .crossfade(true)
-                            .build()
-                    }
-                    AsyncImage(
-                        model = imageRequest,
-                        contentDescription = accountEmail,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = stringResource(R.string.last_synced, lastSyncTime),
-                fontSize = 12.sp,
-                color = colorScheme.onSurfaceVariant
-            )
-            if (backupSize > 0L) {
-                Text(
-                    text = stringResource(R.string.backup_size_label, formatSize(LocalContext.current, backupSize)),
-                    fontSize = 12.sp,
-                    color = colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (isSyncing) {
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = when (syncStage) {
-                        SyncStage.ENCRYPTING -> stringResource(R.string.sync_encrypting)
-                        SyncStage.SEARCHING -> stringResource(R.string.sync_searching)
-                        SyncStage.UPLOADING -> stringResource(R.string.sync_uploading)
-                        SyncStage.DOWNLOADING -> stringResource(R.string.sync_downloading)
-                        SyncStage.RESTORING -> stringResource(R.string.sync_restoring)
-                        else -> ""
-                    },
-                    fontSize = 11.sp,
-                    color = colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (isDriveLinked) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onBackupCloud,
-                        modifier = Modifier.weight(1f),
-                        enabled = !isSyncing
-                    ) {
-                        Icon(Icons.Outlined.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.backup_upload), fontSize = 13.sp)
-                    }
-                    OutlinedButton(
-                        onClick = onRestoreCloud,
-                        modifier = Modifier.weight(1f),
-                        enabled = !isSyncing
-                    ) {
-                        Icon(Icons.Outlined.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.backup_download), fontSize = 13.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onUnlinkDrive,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colorScheme.error),
-                    enabled = !isSyncing
-                ) {
-                    Icon(Icons.Outlined.LinkOff, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.btn_unlink_drive), fontSize = 13.sp)
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onLinkDrive,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Outlined.CloudQueue, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.btn_link_drive), fontSize = 13.sp)
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Encryption & Auto-Backup Section
 // ---------------------------------------------------------------------------
 
@@ -529,6 +296,7 @@ fun EncryptionSection(
                 }
             }
 
+            if (com.example.BuildConfig.HAS_GOOGLE_DRIVE) {
                 SettingsSwitchTile(
                     title = stringResource(R.string.backup_auto_title),
                     subtitle = stringResource(R.string.backup_auto_desc),
@@ -537,54 +305,55 @@ fun EncryptionSection(
                     onCheckedChange = onAutoBackupEnabledChange
                 )
 
-            if (autoBackupEnabled) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.backup_interval_label),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    val intervals = listOf("6h", "12h", "24h", "weekly")
-                    val labels = mapOf(
-                        "6h" to stringResource(R.string.backup_interval_6h),
-                        "12h" to stringResource(R.string.backup_interval_12h),
-                        "24h" to stringResource(R.string.backup_interval_24h),
-                        "weekly" to stringResource(R.string.backup_interval_weekly)
-                    )
-                    var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it }
+                if (autoBackupEnabled) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = labels[autoBackupInterval] ?: autoBackupInterval,
-                            onValueChange = {},
-                            readOnly = true,
-                            modifier = Modifier
-                                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                                .width(160.dp),
-                            textStyle = MaterialTheme.typography.bodySmall,
-                            singleLine = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                        Text(
+                            text = stringResource(R.string.backup_interval_label),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = colorScheme.onSurfaceVariant
                         )
-                        ExposedDropdownMenu(
+                        Spacer(modifier = Modifier.width(12.dp))
+                        val intervals = listOf("6h", "12h", "24h", "weekly")
+                        val labels = mapOf(
+                            "6h" to stringResource(R.string.backup_interval_6h),
+                            "12h" to stringResource(R.string.backup_interval_12h),
+                            "24h" to stringResource(R.string.backup_interval_24h),
+                            "weekly" to stringResource(R.string.backup_interval_weekly)
+                        )
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onExpandedChange = { expanded = it }
                         ) {
-                            intervals.forEach { interval ->
-                                DropdownMenuItem(
-                                    text = { Text(labels[interval] ?: interval) },
-                                    onClick = {
-                                        onAutoBackupIntervalChange(interval)
-                                        expanded = false
-                                    }
-                                )
+                            OutlinedTextField(
+                                value = labels[autoBackupInterval] ?: autoBackupInterval,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier
+                                    .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
+                                    .width(160.dp),
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                singleLine = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                intervals.forEach { interval ->
+                                    DropdownMenuItem(
+                                        text = { Text(labels[interval] ?: interval) },
+                                        onClick = {
+                                            onAutoBackupIntervalChange(interval)
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
