@@ -163,12 +163,13 @@ class MarkdownRenderInvariantsTest {
     // ── RNF-52: lo que ya funciona sigue funcionando ────────────────────────────────────────
 
     @Test
-    fun `la pantalla del chat sigue teniendo sus gestos`() {
+    fun `la pantalla del chat sigue exponiendo las acciones de burbuja`() {
         val fuente = leer(PANTALLA_CHAT)
         assertTrue("no se está leyendo la pantalla del chat", fuente.length > MINIMO_DE_LINEAS)
 
-        listOf("combinedClickable", "detectHorizontalDragGestures", "SWIPE_THRESHOLD").forEach { gesto ->
-            assertTrue("el gesto $gesto no debe desaparecer de la burbuja", fuente.contains(gesto))
+        // Spec 045: swipe eliminado; la fila de acciones es el único camino accesible.
+        listOf("bubbleActions(", "BubbleActionRow", "BubbleAction.").forEach { accion ->
+            assertTrue("la acción $accion no debe desaparecer de la burbuja", fuente.contains(accion))
         }
     }
 
