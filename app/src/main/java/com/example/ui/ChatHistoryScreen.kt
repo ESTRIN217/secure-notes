@@ -269,7 +269,7 @@ fun ChatSessionCard(
         ) {
             Icon(
                 imageVector = if (session.isPinned) Icons.Default.PushPin else Icons.AutoMirrored.Filled.Chat,
-                contentDescription = null,
+                contentDescription = if (session.isPinned) stringResource(R.string.chat_pinned_status) else null,
                 modifier = Modifier
                     .size(20.dp)
                     .padding(top = 2.dp),

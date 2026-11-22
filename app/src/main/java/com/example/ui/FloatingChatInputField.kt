@@ -152,20 +152,20 @@ fun FloatingChatInputField(
                 // Botón de adjuntar (+) a la izquierda.
                 IconButton(
                     onClick = onAttachClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = stringResource(R.string.attach),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 contextDetail?.let { detail ->
                     // Spec 037 (RF-265, RF-271): el anillo es un botón. <600 dp abre hoja; ≥600 dp, menú anclado.
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(androidx.compose.foundation.shape.CircleShape)
                             .clickable(role = Role.Button) { showContextDetail = !showContextDetail }
                             .semantics {
@@ -363,7 +363,7 @@ private fun ReasoningEffortButton(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier.semantics {
                 contentDescription = effortDesc
-            }.height(32.dp)
+            }.height(48.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -424,7 +424,7 @@ private fun ModelPickerButton(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.semantics {
             contentDescription = pickerDesc
-        }.height(32.dp).widthIn(max = 140.dp)
+        }.height(48.dp).widthIn(max = 140.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -494,7 +494,7 @@ private fun SendOrStopButton(
         },
         enabled = enabled,
         modifier = Modifier
-            .size(32.dp)
+            .size(48.dp)
             .background(color = containerColor, shape = CircleShape)
     ) {
         Icon(
@@ -502,7 +502,7 @@ private fun SendOrStopButton(
             contentDescription = if (isProcessing) stringResource(R.string.ai_stop)
             else stringResource(R.string.ai_send),
             tint = contentColor,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(24.dp)
         )
     }
 }

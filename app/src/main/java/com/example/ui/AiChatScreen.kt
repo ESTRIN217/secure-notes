@@ -2,11 +2,16 @@ package com.example.ui
 
 import android.content.ClipData
 import android.net.Uri
+import android.provider.Settings
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -15,10 +20,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,9 +47,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,10 +61,16 @@ import com.example.R
 import com.example.data.ai.*
 import com.example.data.local.ChatSessionWithPreview
 import com.example.data.model.DecryptedNote
+import com.example.ui.chat.BubbleAction
 import com.example.ui.chat.adoptPendingEditing
+import com.example.ui.chat.bubbleActions
 import com.example.ui.chat.buildContextDetail
 import com.example.ui.chat.SystemMessageDialog
 import com.example.ui.chat.ToolsSheet
+import com.example.ui.chat.AssistantDestination
+import com.example.ui.chat.AssistantRail
+import com.example.ui.chat.chatLayoutMode
+import com.example.ui.chat.shouldShowAssistantRail
 import com.example.ui.chat.isLargeScreenWidth
 import com.example.ui.chat.TurnMetrics
 import com.example.ui.chat.canSend
@@ -85,15 +95,12 @@ import com.example.ui.viewmodel.ConversationTurn
 import com.example.ui.viewmodel.MessageStatus
 import com.example.util.RichTextParser
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
-private const val SWIPE_THRESHOLD = 120f
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AiChatScreen(
     viewModel: AiViewModel,
@@ -103,7 +110,10 @@ fun AiChatScreen(
     fullContent: String,
     selectedText: String,
     onBack: () -> Unit,
-    onInsert: ((String) -> Unit)?
+    onInsert: ((String) -> Unit)?,
+    onNavigateToChatSearch: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToMain: () -> Unit = {}
 ) {
     var currentAction by remember { mutableStateOf(AiAction.GENERATE) }
     var inputText by remember { mutableStateOf("") }
@@ -115,6 +125,9 @@ fun AiChatScreen(
     var notePickerSearchQuery by remember { mutableStateOf("") }
     var showAttachmentSheet by remember { mutableStateOf(false) }
     var showModelPanel by remember { mutableStateOf(false) }
+    // Enmienda 046: destino del área principal y estado del rail en Media+.
+    var assistantDestination by remember { mutableStateOf(AssistantDestination.CHAT) }
+    var railExpanded by remember { mutableStateOf(true) }
     // Spec 042 (RF-301, RF-304): las dos superficies nuevas que la hoja de adjuntos abre tras cerrarse.
     var showSystemMessageDialog by remember { mutableStateOf(false) }
     var showToolsSheet by remember { mutableStateOf(false) }
@@ -159,6 +172,10 @@ fun AiChatScreen(
     val haptic = LocalHapticFeedback.current
     val configuration = LocalConfiguration.current
     val isLargeScreen = remember(configuration.screenWidthDp) { isLargeScreenWidth(configuration.screenWidthDp) }
+    val chatLayout = remember(configuration.screenWidthDp) { chatLayoutMode(configuration.screenWidthDp) }
+    val reduceMotion = remember {
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val sessions by chatHistoryViewModel.sessions.collectAsStateWithLifecycle()
@@ -297,39 +314,9 @@ fun AiChatScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = false,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.width(320.dp),
-                drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
-            ) {
-                ChatHistoryDrawerContent(
-                    sessions = sessions,
-                    drawerSearchQuery = drawerSearchQuery,
-                    onSearchQueryChange = { drawerSearchQuery = it },
-                    onNavigateToSession = { sessionId ->
-                        viewModel.loadSession(sessionId, 0)
-                        scope.launch { drawerState.close() }
-                    },
-                    onCreateSession = {
-                        chatHistoryViewModel.createSession(backend = backend)
-                        scope.launch { drawerState.close() }
-                    },
-                    onRename = { session ->
-                        renameText = session.title
-                        showRenameDialog = session
-                    },
-                    onDelete = { showDeleteDialog = it },
-                    onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
-                    chatHistoryViewModel = chatHistoryViewModel,
-                    drawerState = { scope.launch { drawerState.close() } }
-                )
-            }
-        }
-    ) {
+    val showRailForInput = shouldShowAssistantRail(chatLayout)
+    @Composable
+    fun ConversationPane(showHistoryNav: Boolean) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
               modifier = Modifier
@@ -337,11 +324,20 @@ fun AiChatScreen(
               contentWindowInsets = WindowInsets(0,0,0,0),
             topBar = {
                 TopAppBar(
-                    title = {},
+                    title = {
+                        Text(
+                            text = sessionTitle.ifBlank { stringResource(R.string.nav_chats) },
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     modifier = Modifier.statusBarsPadding(),
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.chat_history_title))
+                        if (showHistoryNav) {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.chat_history_title))
+                            }
                         }
                     },
                     actions = {
@@ -479,7 +475,10 @@ fun AiChatScreen(
                         viewModel.loadSelectedModel()
                     },
                     onUnloadModel = viewModel::unloadModel,
-                    onModelPanelOpen = { showModelPanel = true },
+                    onModelPanelOpen = {
+                        if (showRailForInput) assistantDestination = AssistantDestination.MODELS
+                        else showModelPanel = true
+                    },
                     onShowModelInfo = { infoModel = it },
                     modelSheetDismissTick = modelSheetDismissTick,
                     contextDetail = contextDetail
@@ -577,7 +576,180 @@ fun AiChatScreen(
             }
         }
     }
+        }
     }
+
+    @Composable
+    fun ModelInfoContent(model: com.example.data.ai.OnDeviceModel) {
+        ModelInfoPanel(
+            state = ModelInfoState(
+                model = model,
+                isDownloaded = model.id in downloadedModelIds,
+                isSelected = backend == AiBackend.ON_DEVICE && selectedOnDeviceModel?.id == model.id,
+                engineState = onDeviceModelState,
+                isDownloadingThis = downloadingModelId == model.id,
+                isAnyDownloadActive = downloadingModelId != null,
+                downloadProgress = (downloadState as? DownloadState.Downloading)?.progress,
+                contextLength = contextLengths["gguf:${model.id}"]
+            ),
+            isLargeScreen = isLargeScreen,
+            onDismiss = { infoModel = null },
+            onLoad = {
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                viewModel.loadSelectedModel()
+            },
+            onUnload = viewModel::unloadModel,
+            onDownload = { viewModel.downloadOnDeviceModel(model) },
+            onNewChat = {
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                chatHistoryViewModel.createSession(backend = AiBackend.ON_DEVICE, modelName = model.displayName)
+                showModelPanel = false
+                modelSheetDismissTick += 1
+                infoModel = null
+                assistantDestination = AssistantDestination.CHAT
+            },
+            onDelete = { viewModel.deleteOnDeviceModel(model) },
+            loadChatTemplate = { m -> viewModel.readChatTemplate(m) }
+        )
+    }
+    @Composable
+    fun ModelManagerPanelAsDestination(
+        onClose: () -> Unit,
+        onShowInfo: (com.example.data.ai.OnDeviceModel) -> Unit,
+        onSelectOllama: (String) -> Unit
+    ) {
+        ModelManagerPanel(
+            state = ModelSelectorState(
+                backend = backend,
+                selectedOnDeviceId = selectedOnDeviceModel?.id,
+                downloadedIds = downloadedModelIds,
+                catalogModels = MODEL_CATALOG,
+                modelName = displayModelName,
+                ollamaModels = ollamaModels,
+                isTesting = connectionState is ConnectionState.Testing,
+                connectionError = connectionErrorText,
+                favorites = favoriteModels,
+                downloadingModelId = downloadingModelId,
+                downloadState = downloadState,
+                onDeviceModelState = onDeviceModelState,
+                hiddenModels = hiddenModels,
+                contextLengths = contextLengths
+            ),
+            onClose = onClose,
+            onSelectOnDevice = { model ->
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+            },
+            onSelectOllama = onSelectOllama,
+            onDownloadModel = viewModel::downloadOnDeviceModel,
+            onLoadModel = { model ->
+                viewModel.selectOnDeviceModel(model)
+                viewModel.setBackend(AiBackend.ON_DEVICE)
+                viewModel.loadSelectedModel()
+            },
+            onUnloadModel = viewModel::unloadModel,
+            onDeleteModel = viewModel::deleteOnDeviceModel,
+            onToggleFavorite = viewModel::toggleFavoriteModel,
+            onToggleHidden = viewModel::toggleHiddenModel,
+            onShowInfo = onShowInfo
+        )
+    }
+
+    val showRail = shouldShowAssistantRail(chatLayout)
+    // Al volver a Compacto, el destino se reconduce a Chat (RF-377/RF-379).
+    LaunchedEffect(showRail) {
+        if (!showRail) assistantDestination = AssistantDestination.CHAT
+    }
+
+    if (showRail) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            AssistantRail(
+                destination = assistantDestination,
+                expanded = railExpanded,
+                sessions = sessions,
+                activeSessionId = effectiveSessionId,
+                onDestinationChange = { assistantDestination = it },
+                onToggleExpanded = { railExpanded = !railExpanded },
+                onNewChat = { chatHistoryViewModel.createSession(backend = backend) },
+                onSearch = onNavigateToChatSearch,
+                onSettings = onNavigateToSettings,
+                onNavigateToMain = onNavigateToMain,
+                onNavigateToChat = { id -> viewModel.loadSession(id, 0) },
+                onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) }
+            )
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                AnimatedContent(
+                    targetState = assistantDestination,
+                    transitionSpec = {
+                        if (reduceMotion) {
+                            fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))
+                        } else {
+                            fadeIn(animationSpec = tween(180)) togetherWith fadeOut(animationSpec = tween(120))
+                        }
+                    },
+                    label = "assistantDestination"
+                ) { destination ->
+                when (destination) {
+                    AssistantDestination.CHAT -> ConversationPane(showHistoryNav = false)
+                    AssistantDestination.MODELS -> {
+                        if (infoModel != null) {
+                            ModelInfoContent(infoModel!!)
+                        } else {
+                            ModelManagerPanelAsDestination(
+                        onClose = { assistantDestination = AssistantDestination.CHAT },
+                        onShowInfo = { infoModel = it },
+                        onSelectOllama = { name ->
+                            if (name.isNotBlank()) {
+                                viewModel.setModelName(name)
+                                viewModel.setBackend(AiBackend.OLLAMA)
+                            }
+                            assistantDestination = AssistantDestination.CHAT
+                        }
+                        )
+                        }
+                    }
+                }
+                }
+            }
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = false,
+            drawerContent = {
+                ModalDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.width(320.dp),
+                    drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
+                ) {
+                    ChatHistoryDrawerContent(
+                        sessions = sessions,
+                        drawerSearchQuery = drawerSearchQuery,
+                        onSearchQueryChange = { drawerSearchQuery = it },
+                        onNavigateToSession = { sessionId ->
+                            viewModel.loadSession(sessionId, 0)
+                            scope.launch { drawerState.close() }
+                        },
+                        onCreateSession = {
+                            chatHistoryViewModel.createSession(backend = backend)
+                            scope.launch { drawerState.close() }
+                        },
+                        onRename = { session ->
+                            renameText = session.title
+                            showRenameDialog = session
+                        },
+                        onDelete = { showDeleteDialog = it },
+                        onTogglePin = { session -> chatHistoryViewModel.togglePin(session.id, session.isPinned) },
+                        chatHistoryViewModel = chatHistoryViewModel,
+                        drawerState = { scope.launch { drawerState.close() } }
+                    )
+                }
+            }
+        ) {
+            ConversationPane(showHistoryNav = true)
+        }
     }
 
     val latestSessionId by chatHistoryViewModel.latestSessionId.collectAsStateWithLifecycle()
@@ -724,88 +896,30 @@ fun AiChatScreen(
 
     // Panel de gestión de modelos a pantalla completa (spec 033, RF-238…RF-247): hermano de
     // Scaffold, animado después — se pinta por encima; el atrás también lo cierra (RF-238).
-    if (showModelPanel) {
-        ModelManagerPanel(
-            state = ModelSelectorState(
-                backend = backend,
-                selectedOnDeviceId = selectedOnDeviceModel?.id,
-                downloadedIds = downloadedModelIds,
-                catalogModels = MODEL_CATALOG,
-                modelName = displayModelName,
-                ollamaModels = ollamaModels,
-                isTesting = connectionState is ConnectionState.Testing,
-                connectionError = connectionErrorText,
-                favorites = favoriteModels,
-                downloadingModelId = downloadingModelId,
-                downloadState = downloadState,
-                onDeviceModelState = onDeviceModelState,
-                hiddenModels = hiddenModels,
-                contextLengths = contextLengths
-            ),
+    // Modelos como overlay solo en Compacto; en Media+ es destino del área principal (RF-372/RF-374).
+    if (showModelPanel && !showRail) {
+        ModelManagerPanelAsDestination(
             onClose = { showModelPanel = false },
-            onSelectOnDevice = { model ->
-                viewModel.selectOnDeviceModel(model)
-                viewModel.setBackend(AiBackend.ON_DEVICE)
-            },
+            onShowInfo = { infoModel = it },
             onSelectOllama = { name ->
                 if (name.isNotBlank()) {
                     viewModel.setModelName(name)
                     viewModel.setBackend(AiBackend.OLLAMA)
                 }
                 showModelPanel = false
-            },
-            onDownloadModel = viewModel::downloadOnDeviceModel,
-            onLoadModel = { model ->
-                viewModel.selectOnDeviceModel(model)
-                viewModel.setBackend(AiBackend.ON_DEVICE)
-                viewModel.loadSelectedModel()
-            },
-            onUnloadModel = viewModel::unloadModel,
-            onDeleteModel = viewModel::deleteOnDeviceModel,
-            onToggleFavorite = viewModel::toggleFavoriteModel,
-            onToggleHidden = viewModel::toggleHiddenModel,
-            onShowInfo = { infoModel = it }
+            }
         )
     }
 
-    // Spec 040 (RF-281…RF-292): vista de detalles del modelo on-device. Hermana de los overlays
-    // (se pinta por encima); su atrás cierra solo el info (RF-282).
-    infoModel?.let { model ->
-        ModelInfoPanel(
-            state = ModelInfoState(
-                model = model,
-                isDownloaded = model.id in downloadedModelIds,
-                isSelected = backend == AiBackend.ON_DEVICE && selectedOnDeviceModel?.id == model.id,
-                engineState = onDeviceModelState,
-                isDownloadingThis = downloadingModelId == model.id,
-                isAnyDownloadActive = downloadingModelId != null,
-                downloadProgress = (downloadState as? DownloadState.Downloading)?.progress,
-                contextLength = contextLengths["gguf:${model.id}"]
-            ),
-            isLargeScreen = isLargeScreen,
-            onDismiss = { infoModel = null },
-            onLoad = {
-                viewModel.selectOnDeviceModel(model)
-                viewModel.setBackend(AiBackend.ON_DEVICE)
-                viewModel.loadSelectedModel()
-            },
-            onUnload = viewModel::unloadModel,
-            onDownload = { viewModel.downloadOnDeviceModel(model) },
-            onNewChat = {
-                viewModel.selectOnDeviceModel(model)
-                viewModel.setBackend(AiBackend.ON_DEVICE)
-                chatHistoryViewModel.createSession(backend = AiBackend.ON_DEVICE, modelName = model.displayName)
-                showModelPanel = false
-                modelSheetDismissTick += 1
-                infoModel = null
-            },
-            onDelete = { viewModel.deleteOnDeviceModel(model) },
-            loadChatTemplate = { m -> viewModel.readChatTemplate(m) }
-        )
+
+    // Spec 040: en Media+ el detalle se integra en el destino Modelos (RF-372/RF-374);
+    // en Compacto sigue como overlay (RF-377).
+    if (!showRail) {
+        infoModel?.let { model -> ModelInfoContent(model) }
     }
+
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     turn: ConversationTurn,
@@ -833,15 +947,14 @@ fun MessageBubble(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-
-    val context = LocalContext.current
-    var showMenu by remember { mutableStateOf(false) }
-    var swipeOffset by remember { mutableStateOf(0f) }
     val clipboardScope = rememberCoroutineScope()
-
-    val animatedSwipeOffset by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = swipeOffset,
-        animationSpec = tween(200)
+    val context = LocalContext.current
+    val actions = bubbleActions(
+        isUser = isUser,
+        isError = isError,
+        isLastAssistant = isLastAssistant,
+        canInsert = showInsert,
+        hasContent = turn.content.isNotBlank()
     )
 
     Column(
@@ -876,84 +989,54 @@ fun MessageBubble(
             )
         }
 
-        Box {
-            Surface(
-                color = bubbleColor,
-                shape = RoundedCornerShape(
-                    topStart = 16.dp,
-                    topEnd = 16.dp,
-                    bottomStart = if (isUser) 16.dp else 4.dp,
-                    bottomEnd = if (isUser) 4.dp else 16.dp
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .widthIn(max = 480.dp)
-                    .offset { IntOffset(animatedSwipeOffset.roundToInt(), 0) }
-                    .combinedClickable(
-                        onClick = {
-                            if (isError) onRetry()
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            showMenu = true
-                        }
-                    )
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                if (swipeOffset > SWIPE_THRESHOLD && isUser) {
-                                    onEdit(turn.content)
-                                } else if (swipeOffset < -SWIPE_THRESHOLD && !isUser) {
-                                    clipboardScope.launch {
-                                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", turn.content)))
-                                    }
-                                }
-                                swipeOffset = 0f
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                val maxSwipe = if (isUser) SWIPE_THRESHOLD * 2 else -SWIPE_THRESHOLD * 2
-                                swipeOffset = (swipeOffset + dragAmount).coerceIn(
-                                    if (isUser) 0f else maxSwipe,
-                                    if (isUser) maxSwipe else 0f
-                                )
-                            }
+        Surface(
+            color = bubbleColor,
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isUser) 16.dp else 4.dp,
+                bottomEnd = if (isUser) 4.dp else 16.dp
+            ),
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .widthIn(max = 480.dp)
+                .then(if (isError) Modifier.clickable { onRetry() } else Modifier)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                if (isError) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = turn.errorMessage ?: stringResource(R.string.ai_generation_failed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = textColor
                         )
                     }
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    if (isError) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.ErrorOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = turn.errorMessage ?: stringResource(R.string.ai_generation_failed),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = textColor
-                            )
-                        }
-                    } else {
-                        if (turn.files.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            turn.files.forEach { file ->
-                              Surface(
+                } else {
+                    if (turn.files.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        turn.files.forEach { file ->
+                            Surface(
                                 modifier = Modifier,
                                 shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh
-                              ) {
+                            ) {
                                 Row(
-                                  verticalAlignment = Alignment.CenterVertically, 
-                                  modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Icon(
-                                      Icons.AutoMirrored.Filled.InsertDriveFile, 
-                                      contentDescription = null, 
-                                      modifier = Modifier.size(16.dp), 
-                                      tint = textColor.copy(alpha = 0.6f))
+                                        Icons.AutoMirrored.Filled.InsertDriveFile,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = textColor.copy(alpha = 0.6f)
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = file.name,
@@ -963,170 +1046,129 @@ fun MessageBubble(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                              }
                             }
                         }
-                        // El cuerpo del mensaje se pinta con el motor de GFM (spec 017, RF-98), no con el
-                        // analizador de texto enriquecido: el Markdown que devuelve el modelo se ve como en
-                        // GitHub. La burbuja entrega el contenido **crudo**: la adaptación del markup heredado
-                        // la hace `ChatMarkdownText`, **una sola vez** y con su `remember` (spec 018, RF-108).
-                        // Antes se adaptaba aquí también, y el texto pasaba dos veces por la adaptación.
-                        ChatMarkdownText(
-                            crudo = turn.content,
-                            color = textColor
-                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        MessageStatusIcon(turn.status, textColor)
+                    ChatMarkdownText(
+                        crudo = turn.content,
+                        color = textColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    MessageStatusIcon(turn.status, textColor)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = turn.formattedTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor.copy(alpha = 0.5f)
+                    )
+                    val metricTokens = if (isUser) turn.promptEvalCount else turn.evalCount
+                    val metricMs = if (isUser) turn.promptEvalDurationMs else turn.evalDurationMs
+                    if (metricTokens != null) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = turn.formattedTime,
+                            text = stringResource(R.string.chat_msg_tokens, metricTokens),
                             style = MaterialTheme.typography.labelSmall,
                             color = textColor.copy(alpha = 0.5f)
                         )
-                        // Spec 036 (RF-260…RF-262): métricas reales del turno. El usuario lleva la
-                        // métrica del prompt y el asistente la de generación; en on-device van con «~».
-                        val metricTokens = if (isUser) turn.promptEvalCount else turn.evalCount
-                        val metricMs = if (isUser) turn.promptEvalDurationMs else turn.evalDurationMs
-                        if (metricTokens != null) {
+                    }
+                    turn.formattedDuration?.let { dur ->
+                        Text(
+                            text = stringResource(R.string.chat_msg_duration, dur),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = textColor.copy(alpha = 0.5f)
+                        )
+                    }
+                    if (metricTokens != null && metricMs != null && metricMs > 0L) {
+                        tokensPerSecond(metricTokens, metricMs * 1_000_000L)?.let { tps ->
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = stringResource(R.string.chat_msg_tokens, metricTokens),
+                                text = stringResource(R.string.chat_msg_tok_per_s, String.format(Locale.getDefault(), "%.1f", tps)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = textColor.copy(alpha = 0.5f)
                             )
                         }
-                        turn.formattedDuration?.let { dur ->
-                            Text(
-                                text = stringResource(R.string.chat_msg_duration, dur),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textColor.copy(alpha = 0.5f)
-                            )
-                        }
-                        if (metricTokens != null && metricMs != null && metricMs > 0L) {
-                            tokensPerSecond(metricTokens, metricMs * 1_000_000L)?.let { tps ->
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(R.string.chat_msg_tok_per_s, String.format(Locale.getDefault(), "%.1f", tps)),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = textColor.copy(alpha = 0.5f)
-                                )
+                    }
+                    if (!isUser && modelName.isNotBlank()) {
+                        Text(
+                            text = stringResource(R.string.chat_msg_model, modelName),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = textColor.copy(alpha = 0.35f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (actions.isNotEmpty()) {
+                    BubbleActionRow(
+                        actions = actions,
+                        textColor = textColor,
+                        onAction = { action ->
+                            when (action) {
+                                BubbleAction.COPY -> clipboardScope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(ClipData.newPlainText("secure_notes", turn.content))
+                                    )
+                                }
+                                BubbleAction.SHARE -> {
+                                    val sendIntent = android.content.Intent().apply {
+                                        this.action = android.content.Intent.ACTION_SEND
+                                        putExtra(android.content.Intent.EXTRA_TEXT, turn.content)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                                }
+                                BubbleAction.EDIT -> onEdit(turn.content)
+                                BubbleAction.RESEND -> onResend(turn.content)
+                                BubbleAction.RETRY -> onRetry()
+                                BubbleAction.INSERT -> onInsert()
                             }
                         }
-                        if (!isUser && modelName.isNotBlank()) {
-                            Text(
-                                text = stringResource(R.string.chat_msg_model, modelName),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textColor.copy(alpha = 0.35f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        if (isUser) {
-                            IconButton(
-                                onClick = { onResend(turn.content) },
-                                modifier = Modifier.size(22.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Refresh,
-                                    contentDescription = stringResource(R.string.ai_resend),
-                                    modifier = Modifier.size(12.dp),
-                                    tint = textColor.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                    }
-                    if (showInsert && isLastAssistant) {
-                        TextButton(
-                            onClick = onInsert,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.ContentPaste,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.ai_insert), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        IconButton(onClick = {
-                        clipboardScope.launch {
-                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("secure_notes", turn.content)))
-                        }
-                        showMenu = false
-                    }) {
-            Icon(
-                Icons.Default.ContentCopy,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        if (!isUser && turn.status == MessageStatus.ERROR) {
-        IconButton(onClick = {
-                            onRetry()
-                            showMenu = false
-                        }) {
-            Icon(
-                Icons.Default.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        }
-        if (!isUser && turn.content.isNotBlank()) {
-        IconButton(onClick = {
-                            onResend(turn.content)
-                            showMenu = false
-                        }) {
-            Icon(
-                Icons.Default.AutoAwesome,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        }
-        IconButton(onClick = {
-                        val sendIntent = android.content.Intent().apply {
-                            action = android.content.Intent.ACTION_SEND
-                            putExtra(android.content.Intent.EXTRA_TEXT, turn.content)
-                            type = "text/plain"
-                        }
-                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
-                        showMenu = false
-                    }) {
-            Icon(
-                Icons.Default.Share,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        if (showInsert && isLastAssistant) {
-        IconButton(onClick = {
-                            onInsert()
-                            showMenu = false
-                        }) {
-            Icon(
-                Icons.Default.ContentPaste,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp)
-            )
-        }
-        }
-                    }
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun BubbleActionRow(
+    actions: List<BubbleAction>,
+    textColor: Color,
+    onAction: (BubbleAction) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        actions.forEach { action ->
+            val (icon, labelRes) = bubbleActionIcon(action)
+            IconButton(
+                onClick = { onAction(action) },
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = stringResource(labelRes),
+                    modifier = Modifier.size(20.dp),
+                    tint = textColor.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+private fun bubbleActionIcon(action: BubbleAction): Pair<androidx.compose.ui.graphics.vector.ImageVector, Int> = when (action) {
+    BubbleAction.EDIT -> Icons.Default.Edit to R.string.chat_action_edit
+    BubbleAction.RESEND -> Icons.Default.Refresh to R.string.ai_resend
+    BubbleAction.COPY -> Icons.Default.ContentCopy to R.string.chat_action_copy
+    BubbleAction.SHARE -> Icons.Default.Share to R.string.chat_action_share
+    BubbleAction.RETRY -> Icons.Default.Refresh to R.string.chat_action_retry
+    BubbleAction.INSERT -> Icons.Default.ContentPaste to R.string.ai_insert
 }
 
 @Composable
@@ -1135,7 +1177,7 @@ fun MessageStatusIcon(status: MessageStatus, tint: Color) {
         MessageStatus.SENT -> {
             Icon(
                 Icons.Default.Check,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.chat_status_sent),
                 modifier = Modifier.size(12.dp),
                 tint = tint.copy(alpha = 0.4f)
             )
@@ -1143,7 +1185,7 @@ fun MessageStatusIcon(status: MessageStatus, tint: Color) {
         MessageStatus.DELIVERED -> {
             Icon(
                 Icons.Default.DoneAll,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.chat_status_delivered),
                 modifier = Modifier.size(12.dp),
                 tint = tint.copy(alpha = 0.4f)
             )
@@ -1154,7 +1196,13 @@ fun MessageStatusIcon(status: MessageStatus, tint: Color) {
                 initialValue = 0.3f, targetValue = 1.0f,
                 animationSpec = infiniteRepeatable(tween(400), RepeatMode.Reverse)
             )
-            Box(modifier = Modifier.size(12.dp), contentAlignment = Alignment.Center) {
+            val generatingDesc = stringResource(R.string.chat_status_generating)
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .semantics { contentDescription = generatingDesc },
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
                     modifier = Modifier
                         .size(4.dp)
@@ -1166,7 +1214,7 @@ fun MessageStatusIcon(status: MessageStatus, tint: Color) {
         MessageStatus.COMPLETED -> {
             Icon(
                 Icons.Default.CheckCircle,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.chat_status_completed),
                 modifier = Modifier.size(12.dp),
                 tint = tint.copy(alpha = 0.6f)
             )
@@ -1174,9 +1222,9 @@ fun MessageStatusIcon(status: MessageStatus, tint: Color) {
         MessageStatus.ERROR -> {
             Icon(
                 Icons.Default.ErrorOutline,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.chat_status_error),
                 modifier = Modifier.size(12.dp),
-                tint = Color(0xFFE53935)
+                tint = MaterialTheme.colorScheme.error
             )
         }
     }

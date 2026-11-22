@@ -1145,4 +1145,15 @@ Diferencia: %3$s
     <string name="settings_language_desc">Idioma de la interfaz</string>
     <string name="settings_group_app_info">Aplicación e información</string>
     <string name="settings_check_update_desc">Buscar nuevas versiones</string>
+    <string name="chat_action_copy">Copiar</string>
+    <string name="chat_action_share">Compartir</string>
+    <string name="chat_action_edit">Editar</string>
+    <string name="chat_action_retry">Reintentar</string>
+    <string name="chat_action_regenerate">Regenerar</string>
+    <string name="chat_status_sent">Enviado</string>
+    <string name="chat_status_delivered">Entregado</string>
+    <string name="chat_status_generating">Generando</string>
+    <string name="chat_status_completed">Completado</string>
+    <string name="chat_status_error">Error</string>
+    <string name="chat_pinned_status">Conversación fijada</string>
 </resources>

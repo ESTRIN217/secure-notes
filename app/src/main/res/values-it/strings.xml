@@ -1103,4 +1103,15 @@ Cosa vuoi fare?</string>
     <string name="settings_language_desc">Lingua dell\'interfaccia</string>
     <string name="settings_group_app_info">App e informazioni</string>
     <string name="settings_check_update_desc">Cerca nuove versioni</string>
+    <string name="chat_action_copy">Copia</string>
+    <string name="chat_action_share">Condividi</string>
+    <string name="chat_action_edit">Modifica</string>
+    <string name="chat_action_retry">Riprova</string>
+    <string name="chat_action_regenerate">Rigenera</string>
+    <string name="chat_status_sent">Inviato</string>
+    <string name="chat_status_delivered">Consegnato</string>
+    <string name="chat_status_generating">Generazione</string>
+    <string name="chat_status_completed">Completato</string>
+    <string name="chat_status_error">Errore</string>
+    <string name="chat_pinned_status">Conversazione fissata</string>
 </resources>

@@ -210,7 +210,7 @@ private fun FavoriteButton(favorite: Boolean, modelName: String, size: androidx.
         Icon(
             imageVector = if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
             contentDescription = stringResource(R.string.chat_model_favorite_desc, modelName),
-            tint = if (favorite) androidx.compose.ui.graphics.Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

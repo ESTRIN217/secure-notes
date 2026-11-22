@@ -1167,4 +1167,15 @@ O que deseja fazer?</string>
     <string name="settings_language_desc">Idioma da interface</string>
     <string name="settings_group_app_info">App e informações</string>
     <string name="settings_check_update_desc">Verificar novas versões</string>
+    <string name="chat_action_copy">Copiar</string>
+    <string name="chat_action_share">Compartilhar</string>
+    <string name="chat_action_edit">Editar</string>
+    <string name="chat_action_retry">Tentar novamente</string>
+    <string name="chat_action_regenerate">Regenerar</string>
+    <string name="chat_status_sent">Enviado</string>
+    <string name="chat_status_delivered">Entregue</string>
+    <string name="chat_status_generating">Gerando</string>
+    <string name="chat_status_completed">Concluído</string>
+    <string name="chat_status_error">Erro</string>
+    <string name="chat_pinned_status">Conversa fixada</string>
 </resources>

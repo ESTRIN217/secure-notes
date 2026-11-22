@@ -1,18 +1,25 @@
 package com.example.ui.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.ai.allToolsEnabled
@@ -124,9 +131,17 @@ private fun ToolsEmptyMessage() {
  */
 @Composable
 private fun ToolsRow(name: String, disabled: Boolean, onToggle: (String) -> Unit) {
+    val rowBg by animateColorAsState(
+        targetValue = if (!disabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        else androidx.compose.ui.graphics.Color.Transparent,
+        animationSpec = tween(200),
+        label = "toolRowBg"
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .background(rowBg, MaterialTheme.shapes.medium)
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -137,7 +152,8 @@ private fun ToolsRow(name: String, disabled: Boolean, onToggle: (String) -> Unit
         )
         Checkbox(
             checked = !disabled,
-            onCheckedChange = { onToggle(name) }
+            onCheckedChange = { onToggle(name) },
+            modifier = Modifier.semantics { selected = !disabled }
         )
     }
 }

@@ -140,6 +140,7 @@ sealed class Screen {
         override fun render(context: ScreenContext) {
             // Abrir el asistente es la señal explícita para materializar el modelo on-device.
             AiSurfaceLifecycle(context)
+            val railAppContext = LocalContext.current
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -151,7 +152,10 @@ sealed class Screen {
                 onInsert = { text ->
                     context.aiViewModel.requestInsert(text)
                     context.navigator.onNavigateBack(Screen.NoteEditor(noteId))
-                }
+                },
+                onNavigateToChatSearch = { context.navigator.onNavigateTo(Screen.ChatSearch) },
+                onNavigateToSettings = { launchSettings(railAppContext, com.example.ui.settings.SettingsDestination.AI) },
+                onNavigateToMain = { context.navigator.onNavigateBack(Screen.MainList) }
             )
         }
     }
@@ -160,6 +164,7 @@ sealed class Screen {
         @Composable
         override fun render(context: ScreenContext) {
             AiSurfaceLifecycle(context)
+            val railAppContext = LocalContext.current
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -168,7 +173,10 @@ sealed class Screen {
                 fullContent = "",
                 selectedText = "",
                 onBack = { context.navigator.onNavigateBack(Screen.ChatHistory) },
-                onInsert = null
+                onInsert = null,
+                onNavigateToChatSearch = { context.navigator.onNavigateTo(Screen.ChatSearch) },
+                onNavigateToSettings = { launchSettings(railAppContext, com.example.ui.settings.SettingsDestination.AI) },
+                onNavigateToMain = { context.navigator.onNavigateBack(Screen.MainList) }
             )
         }
     }
@@ -177,6 +185,7 @@ sealed class Screen {
         @Composable
         override fun render(context: ScreenContext) {
             AiSurfaceLifecycle(context)
+            val railAppContext = LocalContext.current
             AiChatScreen(
                 viewModel = context.aiViewModel,
                 chatHistoryViewModel = context.chatHistoryViewModel,
@@ -185,7 +194,10 @@ sealed class Screen {
                 fullContent = "",
                 selectedText = "",
                 onBack = { context.navigator.onNavigateBack(Screen.MainList) },
-                onInsert = null
+                onInsert = null,
+                onNavigateToChatSearch = { context.navigator.onNavigateTo(Screen.ChatSearch) },
+                onNavigateToSettings = { launchSettings(railAppContext, com.example.ui.settings.SettingsDestination.AI) },
+                onNavigateToMain = { context.navigator.onNavigateBack(Screen.MainList) }
             )
         }
     }

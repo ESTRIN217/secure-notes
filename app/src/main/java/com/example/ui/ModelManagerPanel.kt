@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -87,6 +88,16 @@ import java.util.Locale
  * Sin VM ni Estado: recibe [ModelSelectorState] y callbacks; la decisión de ocultar/eliminar/cargar
  * viaja por eventos y la toma el ViewModel. Solo pinta y lanza eventos (Constitución #3).
  */
+/** Pesos de columnas de la tabla de modelos (spec 046 enmienda, RF-372/RNF-225). */
+private object ModelColumns {
+    const val CONTEXT_WEIGHT = 0.22f
+    const val STATUS_WEIGHT = 0.18f
+    const val ACTIONS_WEIGHT = 0.22f
+    val MIN_CONTEXT = 72.dp
+    val MIN_STATUS = 64.dp
+    val MIN_ACTIONS = 88.dp
+}
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ModelManagerPanel(
@@ -302,9 +313,9 @@ private fun TableHeaderRow() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.models_col_model), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(stringResource(R.string.models_col_context), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(92.dp))
-        Text(stringResource(R.string.models_col_status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
-        Text(stringResource(R.string.models_col_actions), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(96.dp))
+        Text(stringResource(R.string.models_col_context), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(ModelColumns.CONTEXT_WEIGHT).widthIn(min = ModelColumns.MIN_CONTEXT))
+        Text(stringResource(R.string.models_col_status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(ModelColumns.STATUS_WEIGHT).widthIn(min = ModelColumns.MIN_STATUS))
+        Text(stringResource(R.string.models_col_actions), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(ModelColumns.ACTIONS_WEIGHT).widthIn(min = ModelColumns.MIN_ACTIONS))
     }
 }
 
@@ -404,8 +415,8 @@ private fun LocalModelRow(
                 Chip("${model.fileSizeMb} MB")
             }
         }
-        Text(contextLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(92.dp))
-        Box(modifier = Modifier.width(84.dp), contentAlignment = Alignment.Center) {
+        Text(contextLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(ModelColumns.CONTEXT_WEIGHT).widthIn(min = ModelColumns.MIN_CONTEXT))
+        Box(modifier = Modifier.weight(ModelColumns.STATUS_WEIGHT).widthIn(min = ModelColumns.MIN_STATUS), contentAlignment = Alignment.Center) {
             if (isHiddenView) {
                 UnhideButton(onToggleHidden = onToggleHidden, modelName = model.displayName)
             } else {
@@ -421,11 +432,11 @@ private fun LocalModelRow(
             }
         }
         if (isHiddenView) {
-            Spacer(modifier = Modifier.width(96.dp))
+            Spacer(modifier = Modifier.weight(ModelColumns.ACTIONS_WEIGHT).widthIn(min = ModelColumns.MIN_ACTIONS))
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.width(96.dp)
+                modifier = Modifier.weight(ModelColumns.ACTIONS_WEIGHT).widthIn(min = ModelColumns.MIN_ACTIONS)
             ) {
                 IconButton(onClick = onShowInfo, modifier = Modifier.size(40.dp)) {
                     Icon(
@@ -472,9 +483,9 @@ private fun OllamaModelRow(
             FavoriteHeart(favorite = favorite, onToggle = onToggleFavorite, modelName = name, size = 36.dp)
         }
         Text(text = name, style = MaterialTheme.typography.bodyLarge, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(horizontal = 4.dp))
-        Text(contextLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(92.dp))
+        Text(contextLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(ModelColumns.CONTEXT_WEIGHT).widthIn(min = ModelColumns.MIN_CONTEXT))
         Text("—", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
-        Spacer(modifier = Modifier.width(56.dp))
+        Spacer(modifier = Modifier.weight(ModelColumns.ACTIONS_WEIGHT).widthIn(min = ModelColumns.MIN_ACTIONS))
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 }
@@ -526,7 +537,7 @@ private fun FavoriteHeart(favorite: Boolean, onToggle: () -> Unit, modelName: St
         Icon(
             imageVector = if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             contentDescription = stringResource(R.string.chat_model_favorite_desc, modelName),
-            tint = if (favorite) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

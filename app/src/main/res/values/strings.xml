@@ -1203,4 +1203,15 @@
     <string name="settings_language_desc">Interface language</string>
     <string name="settings_group_app_info">App &amp; info</string>
     <string name="settings_check_update_desc">Check for new versions</string>
+    <string name="chat_action_copy">Copy</string>
+    <string name="chat_action_share">Share</string>
+    <string name="chat_action_edit">Edit</string>
+    <string name="chat_action_retry">Retry</string>
+    <string name="chat_action_regenerate">Regenerate</string>
+    <string name="chat_status_sent">Sent</string>
+    <string name="chat_status_delivered">Delivered</string>
+    <string name="chat_status_generating">Generating</string>
+    <string name="chat_status_completed">Completed</string>
+    <string name="chat_status_error">Error</string>
+    <string name="chat_pinned_status">Pinned conversation</string>
 </resources>

@@ -418,7 +418,7 @@ private fun StatusRow(dot: ModelDotState) {
                     .size(10.dp)
                     .clip(CircleShape)
                     .background(
-                        if (dot == ModelDotState.LOADED) Color(0xFF4CAF50)
+                        if (dot == ModelDotState.LOADED) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
             )
