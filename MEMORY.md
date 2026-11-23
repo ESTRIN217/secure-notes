@@ -16,7 +16,7 @@ Memoria entre sesiones. Mantenerla breve (máximo ~50 líneas); las reglas perma
 - **2026-11-15**: Specs **037** (detalles del anillo de contexto; verificada en dispositivo), **036** (metadatos por burbuja; verificada), **035** (barra de carga del motor) y **034** (anillo de ocupación; exacto Ollama/estimado on-device) implementadas.
 - **Spec 033 (2026-11-14), implementada y verificada en dispositivo (2026-11-22)**: razonamiento y modelo en el chat (RF-215…RF-247); favoritos/ocultos en prefs y en la copia.
 - **Spec 032 (2026-11-11), cerrada y verificada en dispositivo**: la nota nueva vacía se descarta. `./gradlew test` → 868 tests, 38 fallos (todos de plataforma `linux/aarch64`).
-- **Spec 031**: sitio de marca estático en `public/` publicado en https://notes-502213.web.app. **v4.0.0 publicada** (tag + Release); **4.1.0 publicada** (tag `v4.1.0` + Release con ambos APK, 2026-11-22). Acerca de: tarjeta de llama.cpp (CC-BY-NC-4.0).
+- **Spec 031**: sitio de marca estático en `public/` publicado en https://notes-502213.web.app. **v4.0.0 publicada** (tag + Release); **4.1.0 publicada** (tag `v4.1.0` + Release con ambos APK, 2026-11-22); sitio con las dos variantes desplegado en https://notes-502213.web.app. Acerca de: tarjeta de llama.cpp (CC-BY-NC-4.0).
 - **Spec 028**: los ajustes de tema viajan en la copia; `BACKUP_SETTINGS` centraliza los valores (042 añade la línea 17: `ai_disabled_tools`).
 
 ## Decisiones que conviene recordar
