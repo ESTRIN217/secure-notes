@@ -6,7 +6,7 @@ la arquitectura (cifrado client-side + IA local).
 ## Corto plazo
 
 * ✅ Publicada la release **v4.0.0** firmada `arm64-v8a` con sus notas en GitHub Releases (2026-10-18).
-* Preparar la release **v4.1.0**: flavors `full`/`independent`, notas y APKs firmados.
+* ✅ Publicada la release **v4.1.0** (`full` + `independent`), tag y notas en GitHub Releases (2026-11-22).
 * ✅ Informe de fallos (spec 020) verificado en dispositivo (2026-11-22).
 
 ## Mediano plazo
